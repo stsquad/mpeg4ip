@@ -1,0 +1,13 @@
+
+TODO list for the 1.2 release:
+
+ * DirectInput joystick support needs to be implemented
+ * Resizable windows on MacOS need to be implemented
+ * Be able to enumerate and select available audio and video drivers
+ * Use /etc/fb.modes, if available, like GGI does
+ * Official support for MacOS X
+
+In the jump from 1.1 to 1.2, we should change the SDL_Rect members to
+int and evaluate all the rest of the datatypes.  This is the only place
+we should do it though, since the 1.1 series should not break binary
+compatibility in this way.

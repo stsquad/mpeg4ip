@@ -1,0 +1,4 @@
+echo #define CCL_VERSION "v%v%" > version.h
+
+
+

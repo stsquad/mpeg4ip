@@ -1,0 +1,1561 @@
+Basic block profiling finished on Wed Dec  6 16:58:11 2000
+
+File /home/wmay/faad/wav.d, 9 basic blocks 
+
+    Block #1: executed 1 time(s) address= 0x8048fa0 function= CreateWavHeader line=  8 file= wav.c
+    Block #2: executed 0 time(s) address= 0x8048fed function= CreateWavHeader line= 18 file= wav.c
+    Block #3: executed 1 time(s) address= 0x8048ff7 function= CreateWavHeader line= 18 file= wav.c
+    Block #4: executed 1 time(s) address= 0x8049088 function= UpdateWavHeader line= 36 file= wav.c
+    Block #5: executed 0 time(s) address= 0x80490b5 function= UpdateWavHeader line= 42 file= wav.c
+    Block #6: executed 1 time(s) address= 0x80490c8 function= UpdateWavHeader line= 44 file= wav.c
+    Block #7: executed 0 time(s) address= 0x80490f7 function= UpdateWavHeader line= 48 file= wav.c
+    Block #8: executed 1 time(s) address= 0x8049104 function= UpdateWavHeader line= 50 file= wav.c
+    Block #9: executed 1 time(s) address= 0x804917d function= UpdateWavHeader line= 63 file= wav.c
+
+File /home/wmay/faad/tns.d, 68 basic blocks 
+
+    Block # 1: executed     29 time(s) address= 0x805acf0 function= tns_decode_coef     line=  31 file= tns.c
+    Block # 2: executed    257 time(s) address= 0x805ad84 function= tns_decode_coef     line=  39 file= tns.c
+    Block # 3: executed     29 time(s) address= 0x805ad92 function= tns_decode_coef     line=  39 file= tns.c
+    Block # 4: executed    228 time(s) address= 0x805ada0 function= tns_decode_coef     line=  40 file= tns.c
+    Block # 5: executed    205 time(s) address= 0x805ade6 function= tns_decode_coef     line=  40 file= tns.c
+    Block # 6: executed     23 time(s) address= 0x805ae00 function= tns_decode_coef     line=  40 file= tns.c
+    Block # 7: executed    228 time(s) address= 0x805ae15 function= tns_decode_coef     line=  40 file= tns.c
+    Block # 8: executed     29 time(s) address= 0x805ae4c function= tns_decode_coef     line=  45 file= tns.c
+    Block # 9: executed    257 time(s) address= 0x805ae64 function= tns_decode_coef     line=  46 file= tns.c
+    Block #10: executed     29 time(s) address= 0x805ae72 function= tns_decode_coef     line=  46 file= tns.c
+    Block #11: executed    228 time(s) address= 0x805ae80 function= tns_decode_coef     line=  47 file= tns.c
+    Block #12: executed   1188 time(s) address= 0x805ae98 function= tns_decode_coef     line=  48 file= tns.c
+    Block #13: executed    228 time(s) address= 0x805aea6 function= tns_decode_coef     line=  48 file= tns.c
+    Block #14: executed    960 time(s) address= 0x805aeb0 function= tns_decode_coef     line=  49 file= tns.c
+    Block #15: executed    228 time(s) address= 0x805af18 function= tns_decode_coef     line=  51 file= tns.c
+    Block #16: executed   1644 time(s) address= 0x805af50 function= tns_decode_coef     line=  52 file= tns.c
+    Block #17: executed    228 time(s) address= 0x805af5e function= tns_decode_coef     line=  52 file= tns.c
+    Block #18: executed   1416 time(s) address= 0x805af70 function= tns_decode_coef     line=  53 file= tns.c
+    Block #19: executed     29 time(s) address= 0x805af9c function= tns_decode_coef     line=  57 file= tns.c
+    Block #20: executed     29 time(s) address= 0x805afac function= tns_ar_filter       line=  62 file= tns.c
+    Block #21: executed    257 time(s) address= 0x805afe0 function= tns_ar_filter       line=  77 file= tns.c
+    Block #22: executed     29 time(s) address= 0x805afee function= tns_ar_filter       line=  77 file= tns.c
+    Block #23: executed    228 time(s) address= 0x805aff8 function= tns_ar_filter       line=  78 file= tns.c
+    Block #24: executed     29 time(s) address= 0x805b01c function= tns_ar_filter       line=  80 file= tns.c
+    Block #25: executed      0 time(s) address= 0x805b028 function= tns_ar_filter       line=  81 file= tns.c
+    Block #26: executed     29 time(s) address= 0x805b03d function= tns_ar_filter       line=  83 file= tns.c
+    Block #27: executed  18589 time(s) address= 0x805b04c function= tns_ar_filter       line=  83 file= tns.c
+    Block #28: executed     29 time(s) address= 0x805b05a function= tns_ar_filter       line=  83 file= tns.c
+    Block #29: executed  18560 time(s) address= 0x805b068 function= tns_ar_filter       line=  84 file= tns.c
+    Block #30: executed 164480 time(s) address= 0x805b080 function= tns_ar_filter       line=  85 file= tns.c
+    Block #31: executed  18560 time(s) address= 0x805b08e function= tns_ar_filter       line=  85 file= tns.c
+    Block #32: executed 145920 time(s) address= 0x805b098 function= tns_ar_filter       line=  86 file= tns.c
+    Block #33: executed  18560 time(s) address= 0x805b0d0 function= tns_ar_filter       line=  87 file= tns.c
+    Block #34: executed 145920 time(s) address= 0x805b0e0 function= tns_ar_filter       line=  87 file= tns.c
+    Block #35: executed  18560 time(s) address= 0x805b0ec function= tns_ar_filter       line=  89 file= tns.c
+    Block #36: executed 127360 time(s) address= 0x805b118 function= tns_ar_filter       line=  88 file= tns.c
+    Block #37: executed     29 time(s) address= 0x805b14c function= tns_ar_filter       line=  93 file= tns.c
+    Block #38: executed   4479 time(s) address= 0x805b158 function= tns_decode_subblock line=  99 file= tns.c
+    Block #39: executed   4508 time(s) address= 0x805b194 function= tns_decode_subblock line= 107 file= tns.c
+    Block #40: executed   4479 time(s) address= 0x805b1a2 function= tns_decode_subblock line= 107 file= tns.c
+    Block #41: executed     29 time(s) address= 0x805b1b0 function= tns_decode_subblock line= 108 file= tns.c
+    Block #42: executed      0 time(s) address= 0x805b231 function= tns_decode_subblock line= 119 file= tns.c
+    Block #43: executed     29 time(s) address= 0x805b23d function= tns_decode_subblock line= 121 file= tns.c
+    Block #44: executed      0 time(s) address= 0x805b249 function= tns_decode_subblock line= 121 file= tns.c
+    Block #45: executed     29 time(s) address= 0x805b254 function= tns_decode_subblock line= 123 file= tns.c
+    Block #46: executed      0 time(s) address= 0x805b291 function= tns_decode_subblock line= 125 file= tns.c
+    Block #47: executed     29 time(s) address= 0x805b2b0 function= tns_decode_subblock line= 125 file= tns.c
+    Block #48: executed     29 time(s) address= 0x805b2bf function= tns_decode_subblock line= 125 file= tns.c
+    Block #49: executed     29 time(s) address= 0x805b2e2 function= tns_decode_subblock line= 126 file= tns.c
+    Block #50: executed     29 time(s) address= 0x805b2f1 function= tns_decode_subblock line= 126 file= tns.c
+    Block #51: executed     29 time(s) address= 0x805b306 function= tns_decode_subblock line= 127 file= tns.c
+    Block #52: executed      0 time(s) address= 0x805b328 function= tns_decode_subblock line= 127 file= tns.c
+    Block #53: executed     29 time(s) address= 0x805b338 function= tns_decode_subblock line= 127 file= tns.c
+    Block #54: executed     29 time(s) address= 0x805b366 function= tns_decode_subblock line= 129 file= tns.c
+    Block #55: executed      0 time(s) address= 0x805b384 function= tns_decode_subblock line= 129 file= tns.c
+    Block #56: executed     29 time(s) address= 0x805b393 function= tns_decode_subblock line= 129 file= tns.c
+    Block #57: executed     29 time(s) address= 0x805b3b6 function= tns_decode_subblock line= 130 file= tns.c
+    Block #58: executed     29 time(s) address= 0x805b3c5 function= tns_decode_subblock line= 130 file= tns.c
+    Block #59: executed     29 time(s) address= 0x805b3da function= tns_decode_subblock line= 131 file= tns.c
+    Block #60: executed      0 time(s) address= 0x805b3fc function= tns_decode_subblock line= 131 file= tns.c
+    Block #61: executed     29 time(s) address= 0x805b40c function= tns_decode_subblock line= 131 file= tns.c
+    Block #62: executed      0 time(s) address= 0x805b431 function= tns_decode_subblock line= 132 file= tns.c
+    Block #63: executed     29 time(s) address= 0x805b43c function= tns_decode_subblock line= 134 file= tns.c
+    Block #64: executed      0 time(s) address= 0x805b448 function= tns_decode_subblock line= 135 file= tns.c
+    Block #65: executed     29 time(s) address= 0x805b458 function= tns_decode_subblock line= 137 file= tns.c
+    Block #66: executed     29 time(s) address= 0x805b465 function= tns_decode_subblock line= 140 file= tns.c
+    Block #67: executed     29 time(s) address= 0x805b492 function= tns_decode_subblock line= 107 file= tns.c
+    Block #68: executed   4479 time(s) address= 0x805b4a4 function= tns_decode_subblock line= 142 file= tns.c
+
+File /home/wmay/faad/transfo.d, 50 basic blocks 
+
+    Block # 1: executed      0 time(s) address= 0x805b4b0 function= MDCT  line=  16 file= transfo.c
+    Block # 2: executed      0 time(s) address= 0x805b5b4 function= MDCT  line=  42 file= transfo.c
+    Block # 3: executed      0 time(s) address= 0x805b5c2 function= MDCT  line=  42 file= transfo.c
+    Block # 4: executed      0 time(s) address= 0x805b5d0 function= MDCT  line=  45 file= transfo.c
+    Block # 5: executed      0 time(s) address= 0x805b5ff function= MDCT  line=  47 file= transfo.c
+    Block # 6: executed      0 time(s) address= 0x805b630 function= MDCT  line=  49 file= transfo.c
+    Block # 7: executed      0 time(s) address= 0x805b65b function= MDCT  line=  51 file= transfo.c
+    Block # 8: executed      0 time(s) address= 0x805b672 function= MDCT  line=  53 file= transfo.c
+    Block # 9: executed      0 time(s) address= 0x805b6a0 function= MDCT  line=  55 file= transfo.c
+    Block #10: executed      0 time(s) address= 0x805b6cc function= MDCT  line=  59 file= transfo.c
+    Block #11: executed      0 time(s) address= 0x805b744 function= MDCT  line=  69 file= transfo.c
+    Block #12: executed      0 time(s) address= 0x805b759 function= MDCT  line=  69 file= transfo.c
+    Block #13: executed      0 time(s) address= 0x805b768 function= MDCT  line=  69 file= transfo.c
+    Block #14: executed      0 time(s) address= 0x805b770 function= MDCT  line=  70 file= transfo.c
+    Block #15: executed      0 time(s) address= 0x805b788 function= MDCT  line=  72 file= transfo.c
+    Block #16: executed      0 time(s) address= 0x805b79e function= MDCT  line=  76 file= transfo.c
+    Block #17: executed      0 time(s) address= 0x805b7b8 function= MDCT  line=  80 file= transfo.c
+    Block #18: executed      0 time(s) address= 0x805b7c6 function= MDCT  line=  80 file= transfo.c
+    Block #19: executed      0 time(s) address= 0x805b7d4 function= MDCT  line=  84 file= transfo.c
+    Block #20: executed      0 time(s) address= 0x805b7e9 function= MDCT  line=  84 file= transfo.c
+    Block #21: executed      0 time(s) address= 0x805b7f8 function= MDCT  line=  84 file= transfo.c
+    Block #22: executed      0 time(s) address= 0x805b800 function= MDCT  line=  86 file= transfo.c
+    Block #23: executed      0 time(s) address= 0x805b820 function= MDCT  line=  89 file= transfo.c
+    Block #24: executed      0 time(s) address= 0x805b83b function= MDCT  line=  91 file= transfo.c
+    Block #25: executed      0 time(s) address= 0x805b93c function= MDCT  line= 106 file= transfo.c
+    Block #26: executed   5056 time(s) address= 0x805b948 function= IMDCT line= 109 file= transfo.c
+    Block #27: executed 790976 time(s) address= 0x805ba2c function= IMDCT line= 130 file= transfo.c
+    Block #28: executed   5056 time(s) address= 0x805ba3a function= IMDCT line= 130 file= transfo.c
+    Block #29: executed 785920 time(s) address= 0x805ba48 function= IMDCT line= 133 file= transfo.c
+    Block #30: executed 528384 time(s) address= 0x805ba8a function= IMDCT line= 137 file= transfo.c
+    Block #31: executed      0 time(s) address= 0x805ba99 function= IMDCT line= 137 file= transfo.c
+    Block #32: executed 257536 time(s) address= 0x805baa4 function= IMDCT line= 139 file= transfo.c
+    Block #33: executed 528384 time(s) address= 0x805bac4 function= IMDCT line= 142 file= transfo.c
+    Block #34: executed 785920 time(s) address= 0x805badf function= IMDCT line= 144 file= transfo.c
+    Block #35: executed   5056 time(s) address= 0x805bb58 function= IMDCT line= 154 file= transfo.c
+    Block #36: executed   1032 time(s) address= 0x805bb6d function= IMDCT line= 154 file= transfo.c
+    Block #37: executed      0 time(s) address= 0x805bb7c function= IMDCT line= 154 file= transfo.c
+    Block #38: executed   4024 time(s) address= 0x805bb84 function= IMDCT line= 155 file= transfo.c
+    Block #39: executed   1032 time(s) address= 0x805bb9c function= IMDCT line= 157 file= transfo.c
+    Block #40: executed   5056 time(s) address= 0x805bbb2 function= IMDCT line= 162 file= transfo.c
+    Block #41: executed 790976 time(s) address= 0x805bbcc function= IMDCT line= 166 file= transfo.c
+    Block #42: executed   5056 time(s) address= 0x805bbda function= IMDCT line= 166 file= transfo.c
+    Block #43: executed 785920 time(s) address= 0x805bbe8 function= IMDCT line= 169 file= transfo.c
+    Block #44: executed 392960 time(s) address= 0x805bc7e function= IMDCT line= 175 file= transfo.c
+    Block #45: executed 392960 time(s) address= 0x805bca4 function= IMDCT line= 177 file= transfo.c
+    Block #46: executed 785920 time(s) address= 0x805bcc4 function= IMDCT line= 179 file= transfo.c
+    Block #47: executed 392960 time(s) address= 0x805bce7 function= IMDCT line= 181 file= transfo.c
+    Block #48: executed 392960 time(s) address= 0x805bd10 function= IMDCT line= 183 file= transfo.c
+    Block #49: executed 785920 time(s) address= 0x805bd36 function= IMDCT line= 187 file= transfo.c
+    Block #50: executed   5056 time(s) address= 0x805bd70 function= IMDCT line= 191 file= transfo.c
+
+File /home/wmay/faad/block.d, 87 basic blocks 
+
+    Block # 1: executed       1 time(s) address= 0x8049744 function= InitBlock       line=  44 file= block.c
+    Block # 2: executed    1025 time(s) address= 0x804977c function= InitBlock       line=  54 file= block.c
+    Block # 3: executed       1 time(s) address= 0x804978b function= InitBlock       line=  54 file= block.c
+    Block # 4: executed    1024 time(s) address= 0x8049794 function= InitBlock       line=  55 file= block.c
+    Block # 5: executed       1 time(s) address= 0x80497d8 function= InitBlock       line=  59 file= block.c
+    Block # 6: executed     129 time(s) address= 0x80497ec function= InitBlock       line=  60 file= block.c
+    Block # 7: executed       1 time(s) address= 0x80497f8 function= InitBlock       line=  60 file= block.c
+    Block # 8: executed     128 time(s) address= 0x8049800 function= InitBlock       line=  61 file= block.c
+    Block # 9: executed       1 time(s) address= 0x8049844 function= InitBlock       line=  65 file= block.c
+    Block #10: executed     449 time(s) address= 0x8049858 function= InitBlock       line=  65 file= block.c
+    Block #11: executed       1 time(s) address= 0x8049867 function= InitBlock       line=  65 file= block.c
+    Block #12: executed     448 time(s) address= 0x8049870 function= InitBlock       line=  66 file= block.c
+    Block #13: executed       1 time(s) address= 0x80498b0 function= InitBlock       line=  69 file= block.c
+    Block #14: executed     129 time(s) address= 0x80498c0 function= InitBlock       line=  69 file= block.c
+    Block #15: executed       1 time(s) address= 0x80498cc function= InitBlock       line=  69 file= block.c
+    Block #16: executed     128 time(s) address= 0x80498d4 function= InitBlock       line=  70 file= block.c
+    Block #17: executed     449 time(s) address= 0x8049930 function= InitBlock       line=  73 file= block.c
+    Block #18: executed       1 time(s) address= 0x804993f function= InitBlock       line=  73 file= block.c
+    Block #19: executed     448 time(s) address= 0x8049948 function= InitBlock       line=  74 file= block.c
+    Block #20: executed       1 time(s) address= 0x8049984 function= InitBlock       line=  79 file= block.c
+    Block #21: executed     385 time(s) address= 0x8049998 function= InitBlock       line=  79 file= block.c
+    Block #22: executed       1 time(s) address= 0x80499a7 function= InitBlock       line=  79 file= block.c
+    Block #23: executed     384 time(s) address= 0x80499b0 function= InitBlock       line=  80 file= block.c
+    Block #24: executed       1 time(s) address= 0x80499f0 function= InitBlock       line=  83 file= block.c
+    Block #25: executed     129 time(s) address= 0x8049a00 function= InitBlock       line=  83 file= block.c
+    Block #26: executed       1 time(s) address= 0x8049a0c function= InitBlock       line=  83 file= block.c
+    Block #27: executed     128 time(s) address= 0x8049a14 function= InitBlock       line=  84 file= block.c
+    Block #28: executed     385 time(s) address= 0x8049a70 function= InitBlock       line=  87 file= block.c
+    Block #29: executed       1 time(s) address= 0x8049a7f function= InitBlock       line=  87 file= block.c
+    Block #30: executed     384 time(s) address= 0x8049a88 function= InitBlock       line=  88 file= block.c
+    Block #31: executed       1 time(s) address= 0x8049ac4 function= InitBlock       line=  91 file= block.c
+    Block #32: executed    5056 time(s) address= 0x8049ad4 function= ITransformBlock line= 112 file= block.c
+    Block #33: executed       1 time(s) address= 0x8049b04 function= ITransformBlock line= 120 file= block.c
+    Block #34: executed    5056 time(s) address= 0x8049b19 function= ITransformBlock line= 124 file= block.c
+    Block #35: executed    4546 time(s) address= 0x8049b25 function= ITransformBlock line= 124 file= block.c
+    Block #36: executed    4237 time(s) address= 0x8049b31 function= ITransformBlock line= 124 file= block.c
+    Block #37: executed     819 time(s) address= 0x8049b3c function= ITransformBlock line= 125 file= block.c
+    Block #38: executed    4237 time(s) address= 0x8049b4c function= ITransformBlock line= 126 file= block.c
+    Block #39: executed     213 time(s) address= 0x8049b58 function= ITransformBlock line= 127 file= block.c
+    Block #40: executed    4024 time(s) address= 0x8049b68 function= ITransformBlock line= 129 file= block.c
+    Block #41: executed    5056 time(s) address= 0x8049b75 function= ITransformBlock line= 131 file= block.c
+    Block #42: executed    4546 time(s) address= 0x8049b81 function= ITransformBlock line= 131 file= block.c
+    Block #43: executed    4333 time(s) address= 0x8049b8d function= ITransformBlock line= 131 file= block.c
+    Block #44: executed     723 time(s) address= 0x8049b98 function= ITransformBlock line= 132 file= block.c
+    Block #45: executed    4333 time(s) address= 0x8049ba8 function= ITransformBlock line= 133 file= block.c
+    Block #46: executed     309 time(s) address= 0x8049bb4 function= ITransformBlock line= 134 file= block.c
+    Block #47: executed    4024 time(s) address= 0x8049bc4 function= ITransformBlock line= 136 file= block.c
+    Block #48: executed    5056 time(s) address= 0x8049bd1 function= ITransformBlock line= 138 file= block.c
+    Block #49: executed 1576896 time(s) address= 0x8049c3c function= ITransformBlock line= 148 file= block.c
+    Block #50: executed    5056 time(s) address= 0x8049c59 function= ITransformBlock line= 148 file= block.c
+    Block #51: executed 1571840 time(s) address= 0x8049c64 function= ITransformBlock line= 149 file= block.c
+    Block #52: executed    5056 time(s) address= 0x8049c88 function= ITransformBlock line= 153 file= block.c
+    Block #53: executed 1576896 time(s) address= 0x8049cd0 function= ITransformBlock line= 155 file= block.c
+    Block #54: executed    5056 time(s) address= 0x8049cde function= ITransformBlock line= 155 file= block.c
+    Block #55: executed 1571840 time(s) address= 0x8049ce8 function= ITransformBlock line= 156 file= block.c
+    Block #56: executed    5056 time(s) address= 0x8049d0c function= ITransformBlock line= 159 file= block.c
+    Block #57: executed       0 time(s) address= 0x8049d20 function= TransformBlock  line= 180 file= block.c
+    Block #58: executed       0 time(s) address= 0x8049d4d function= TransformBlock  line= 186 file= block.c
+    Block #59: executed       0 time(s) address= 0x8049d59 function= TransformBlock  line= 186 file= block.c
+    Block #60: executed       0 time(s) address= 0x8049d65 function= TransformBlock  line= 186 file= block.c
+    Block #61: executed       0 time(s) address= 0x8049d71 function= TransformBlock  line= 186 file= block.c
+    Block #62: executed       0 time(s) address= 0x8049d7c function= TransformBlock  line= 188 file= block.c
+    Block #63: executed       0 time(s) address= 0x8049d8c function= TransformBlock  line= 190 file= block.c
+    Block #64: executed       0 time(s) address= 0x8049d98 function= TransformBlock  line= 191 file= block.c
+    Block #65: executed       0 time(s) address= 0x8049da8 function= TransformBlock  line= 193 file= block.c
+    Block #66: executed       0 time(s) address= 0x8049db4 function= TransformBlock  line= 194 file= block.c
+    Block #67: executed       0 time(s) address= 0x8049dc4 function= TransformBlock  line= 197 file= block.c
+    Block #68: executed       0 time(s) address= 0x8049dd1 function= TransformBlock  line= 199 file= block.c
+    Block #69: executed       0 time(s) address= 0x8049ddd function= TransformBlock  line= 199 file= block.c
+    Block #70: executed       0 time(s) address= 0x8049de9 function= TransformBlock  line= 199 file= block.c
+    Block #71: executed       0 time(s) address= 0x8049df5 function= TransformBlock  line= 199 file= block.c
+    Block #72: executed       0 time(s) address= 0x8049e01 function= TransformBlock  line= 199 file= block.c
+    Block #73: executed       0 time(s) address= 0x8049e0c function= TransformBlock  line= 201 file= block.c
+    Block #74: executed       0 time(s) address= 0x8049e1c function= TransformBlock  line= 203 file= block.c
+    Block #75: executed       0 time(s) address= 0x8049e28 function= TransformBlock  line= 204 file= block.c
+    Block #76: executed       0 time(s) address= 0x8049e38 function= TransformBlock  line= 206 file= block.c
+    Block #77: executed       0 time(s) address= 0x8049e44 function= TransformBlock  line= 207 file= block.c
+    Block #78: executed       0 time(s) address= 0x8049e54 function= TransformBlock  line= 210 file= block.c
+    Block #79: executed       0 time(s) address= 0x8049e61 function= TransformBlock  line= 212 file= block.c
+    Block #80: executed       0 time(s) address= 0x8049ebc function= TransformBlock  line= 220 file= block.c
+    Block #81: executed       0 time(s) address= 0x8049ed9 function= TransformBlock  line= 220 file= block.c
+    Block #82: executed       0 time(s) address= 0x8049ee4 function= TransformBlock  line= 221 file= block.c
+    Block #83: executed       0 time(s) address= 0x8049f08 function= TransformBlock  line= 225 file= block.c
+    Block #84: executed       0 time(s) address= 0x8049f50 function= TransformBlock  line= 227 file= block.c
+    Block #85: executed       0 time(s) address= 0x8049f5e function= TransformBlock  line= 227 file= block.c
+    Block #86: executed       0 time(s) address= 0x8049f68 function= TransformBlock  line= 228 file= block.c
+    Block #87: executed       0 time(s) address= 0x8049f8c function= TransformBlock  line= 230 file= block.c
+
+File /home/wmay/faad/dolby_adapt.d, 120 basic blocks 
+
+    Block #  1: executed    5056 time(s) address= 0x804d368 function= unfold          line=  55 file= dolby_adapt.c
+    Block #  2: executed 1576896 time(s) address= 0x804d398 function= unfold          line=  59 file= dolby_adapt.c
+    Block #  3: executed    5056 time(s) address= 0x804d3a6 function= unfold          line=  59 file= dolby_adapt.c
+    Block #  4: executed 1571840 time(s) address= 0x804d3b0 function= unfold          line=  60 file= dolby_adapt.c
+    Block #  5: executed    5056 time(s) address= 0x804d3f0 function= unfold          line=  64 file= dolby_adapt.c
+    Block #  6: executed    1535 time(s) address= 0x804d3f8 function= freq2time_adapt line=  88 file= dolby_adapt.c
+    Block #  7: executed     510 time(s) address= 0x804d42f function= freq2time_adapt line=  96 file= dolby_adapt.c
+    Block #  8: executed  522750 time(s) address= 0x804d480 function= freq2time_adapt line= 103 file= dolby_adapt.c
+    Block #  9: executed     510 time(s) address= 0x804d48f function= freq2time_adapt line= 103 file= dolby_adapt.c
+    Block # 10: executed  522240 time(s) address= 0x804d498 function= freq2time_adapt line= 104 file= dolby_adapt.c
+    Block # 11: executed     510 time(s) address= 0x804d4cc function= freq2time_adapt line= 107 file= dolby_adapt.c
+    Block # 12: executed  522750 time(s) address= 0x804d4e0 function= freq2time_adapt line= 108 file= dolby_adapt.c
+    Block # 13: executed     510 time(s) address= 0x804d4ef function= freq2time_adapt line= 108 file= dolby_adapt.c
+    Block # 14: executed  522240 time(s) address= 0x804d4fc function= freq2time_adapt line= 109 file= dolby_adapt.c
+    Block # 15: executed    1025 time(s) address= 0x804d524 function= freq2time_adapt line= 113 file= dolby_adapt.c
+    Block # 16: executed     503 time(s) address= 0x804d534 function= freq2time_adapt line= 116 file= dolby_adapt.c
+    Block # 17: executed       0 time(s) address= 0x804d543 function= freq2time_adapt line= 117 file= dolby_adapt.c
+    Block # 18: executed     503 time(s) address= 0x804d558 function= freq2time_adapt line= 119 file= dolby_adapt.c
+    Block # 19: executed     503 time(s) address= 0x804d569 function= freq2time_adapt line= 121 file= dolby_adapt.c
+    Block # 20: executed    4527 time(s) address= 0x804d578 function= freq2time_adapt line= 121 file= dolby_adapt.c
+    Block # 21: executed     503 time(s) address= 0x804d584 function= freq2time_adapt line= 121 file= dolby_adapt.c
+    Block # 22: executed    4024 time(s) address= 0x804d590 function= freq2time_adapt line= 122 file= dolby_adapt.c
+    Block # 23: executed  519096 time(s) address= 0x804d5e0 function= freq2time_adapt line= 129 file= dolby_adapt.c
+    Block # 24: executed    4024 time(s) address= 0x804d5ec function= freq2time_adapt line= 129 file= dolby_adapt.c
+    Block # 25: executed  515072 time(s) address= 0x804d5f4 function= freq2time_adapt line= 130 file= dolby_adapt.c
+    Block # 26: executed    4024 time(s) address= 0x804d61c function= freq2time_adapt line= 133 file= dolby_adapt.c
+    Block # 27: executed  519096 time(s) address= 0x804d62c function= freq2time_adapt line= 133 file= dolby_adapt.c
+    Block # 28: executed    4024 time(s) address= 0x804d638 function= freq2time_adapt line= 136 file= dolby_adapt.c
+    Block # 29: executed  515072 time(s) address= 0x804d654 function= freq2time_adapt line= 134 file= dolby_adapt.c
+    Block # 30: executed     503 time(s) address= 0x804d67c function= freq2time_adapt line= 139 file= dolby_adapt.c
+    Block # 31: executed  515575 time(s) address= 0x804d698 function= freq2time_adapt line= 141 file= dolby_adapt.c
+    Block # 32: executed     503 time(s) address= 0x804d6a7 function= freq2time_adapt line= 141 file= dolby_adapt.c
+    Block # 33: executed  515072 time(s) address= 0x804d6b0 function= freq2time_adapt line= 142 file= dolby_adapt.c
+    Block # 34: executed     503 time(s) address= 0x804d6d4 function= freq2time_adapt line= 145 file= dolby_adapt.c
+    Block # 35: executed  515575 time(s) address= 0x804d6e8 function= freq2time_adapt line= 146 file= dolby_adapt.c
+    Block # 36: executed     503 time(s) address= 0x804d6f7 function= freq2time_adapt line= 146 file= dolby_adapt.c
+    Block # 37: executed  515072 time(s) address= 0x804d704 function= freq2time_adapt line= 147 file= dolby_adapt.c
+    Block # 38: executed     522 time(s) address= 0x804d728 function= freq2time_adapt line= 151 file= dolby_adapt.c
+    Block # 39: executed     309 time(s) address= 0x804d738 function= freq2time_adapt line= 152 file= dolby_adapt.c
+    Block # 40: executed  316725 time(s) address= 0x804d78c function= freq2time_adapt line= 158 file= dolby_adapt.c
+    Block # 41: executed     309 time(s) address= 0x804d79b function= freq2time_adapt line= 158 file= dolby_adapt.c
+    Block # 42: executed  316416 time(s) address= 0x804d7a4 function= freq2time_adapt line= 159 file= dolby_adapt.c
+    Block # 43: executed     309 time(s) address= 0x804d7d8 function= freq2time_adapt line= 162 file= dolby_adapt.c
+    Block # 44: executed  316725 time(s) address= 0x804d7ec function= freq2time_adapt line= 163 file= dolby_adapt.c
+    Block # 45: executed     309 time(s) address= 0x804d7fb function= freq2time_adapt line= 166 file= dolby_adapt.c
+    Block # 46: executed  316416 time(s) address= 0x804d810 function= freq2time_adapt line= 164 file= dolby_adapt.c
+    Block # 47: executed     213 time(s) address= 0x804d838 function= freq2time_adapt line= 169 file= dolby_adapt.c
+    Block # 48: executed     213 time(s) address= 0x804d848 function= freq2time_adapt line= 170 file= dolby_adapt.c
+    Block # 49: executed  122901 time(s) address= 0x804d89c function= freq2time_adapt line= 177 file= dolby_adapt.c
+    Block # 50: executed     213 time(s) address= 0x804d8ab function= freq2time_adapt line= 177 file= dolby_adapt.c
+    Block # 51: executed  122688 time(s) address= 0x804d8b4 function= freq2time_adapt line= 178 file= dolby_adapt.c
+    Block # 52: executed   95637 time(s) address= 0x804d8e8 function= freq2time_adapt line= 180 file= dolby_adapt.c
+    Block # 53: executed     213 time(s) address= 0x804d8f7 function= freq2time_adapt line= 180 file= dolby_adapt.c
+    Block # 54: executed   95424 time(s) address= 0x804d900 function= freq2time_adapt line= 181 file= dolby_adapt.c
+    Block # 55: executed     213 time(s) address= 0x804d928 function= freq2time_adapt line= 184 file= dolby_adapt.c
+    Block # 56: executed  218325 time(s) address= 0x804d93c function= freq2time_adapt line= 185 file= dolby_adapt.c
+    Block # 57: executed     213 time(s) address= 0x804d94b function= freq2time_adapt line= 185 file= dolby_adapt.c
+    Block # 58: executed  218112 time(s) address= 0x804d954 function= freq2time_adapt line= 186 file= dolby_adapt.c
+    Block # 59: executed    1535 time(s) address= 0x804d97c function= freq2time_adapt line= 190 file= dolby_adapt.c
+    Block # 60: executed 1573375 time(s) address= 0x804d98c function= freq2time_adapt line= 190 file= dolby_adapt.c
+    Block # 61: executed    1535 time(s) address= 0x804d99b function= freq2time_adapt line= 190 file= dolby_adapt.c
+    Block # 62: executed 1571840 time(s) address= 0x804d9a4 function= freq2time_adapt line= 191 file= dolby_adapt.c
+    Block # 63: executed    1535 time(s) address= 0x804d9d0 function= freq2time_adapt line= 193 file= dolby_adapt.c
+    Block # 64: executed       0 time(s) address= 0x804d9d8 function= time2freq_adapt line= 215 file= dolby_adapt.c
+    Block # 65: executed       0 time(s) address= 0x804da13 function= time2freq_adapt line= 227 file= dolby_adapt.c
+    Block # 66: executed       0 time(s) address= 0x804da1f function= time2freq_adapt line= 227 file= dolby_adapt.c
+    Block # 67: executed       0 time(s) address= 0x804da2b function= time2freq_adapt line= 227 file= dolby_adapt.c
+    Block # 68: executed       0 time(s) address= 0x804da34 function= time2freq_adapt line= 227 file= dolby_adapt.c
+    Block # 69: executed       0 time(s) address= 0x804da40 function= time2freq_adapt line= 227 file= dolby_adapt.c
+    Block # 70: executed       0 time(s) address= 0x804da4c function= time2freq_adapt line= 227 file= dolby_adapt.c
+    Block # 71: executed       0 time(s) address= 0x804da54 function= time2freq_adapt line= 230 file= dolby_adapt.c
+    Block # 72: executed       0 time(s) address= 0x804da60 function= time2freq_adapt line= 233 file= dolby_adapt.c
+    Block # 73: executed       0 time(s) address= 0x804da6c function= time2freq_adapt line= 236 file= dolby_adapt.c
+    Block # 74: executed       0 time(s) address= 0x804da78 function= time2freq_adapt line= 239 file= dolby_adapt.c
+    Block # 75: executed       0 time(s) address= 0x804da84 function= time2freq_adapt line= 242 file= dolby_adapt.c
+    Block # 76: executed       0 time(s) address= 0x804daac function= time2freq_adapt line= 253 file= dolby_adapt.c
+    Block # 77: executed       0 time(s) address= 0x804dabc function= time2freq_adapt line= 254 file= dolby_adapt.c
+    Block # 78: executed       0 time(s) address= 0x804dad8 function= time2freq_adapt line= 256 file= dolby_adapt.c
+    Block # 79: executed       0 time(s) address= 0x804dae7 function= time2freq_adapt line= 256 file= dolby_adapt.c
+    Block # 80: executed       0 time(s) address= 0x804daf0 function= time2freq_adapt line= 257 file= dolby_adapt.c
+    Block # 81: executed       0 time(s) address= 0x804db14 function= time2freq_adapt line= 260 file= dolby_adapt.c
+    Block # 82: executed       0 time(s) address= 0x804db44 function= time2freq_adapt line= 264 file= dolby_adapt.c
+    Block # 83: executed       0 time(s) address= 0x804db53 function= time2freq_adapt line= 264 file= dolby_adapt.c
+    Block # 84: executed       0 time(s) address= 0x804db60 function= time2freq_adapt line= 265 file= dolby_adapt.c
+    Block # 85: executed       0 time(s) address= 0x804db84 function= time2freq_adapt line= 269 file= dolby_adapt.c
+    Block # 86: executed       0 time(s) address= 0x804db94 function= time2freq_adapt line= 272 file= dolby_adapt.c
+    Block # 87: executed       0 time(s) address= 0x804dbb4 function= time2freq_adapt line= 275 file= dolby_adapt.c
+    Block # 88: executed       0 time(s) address= 0x804dbc0 function= time2freq_adapt line= 275 file= dolby_adapt.c
+    Block # 89: executed       0 time(s) address= 0x804dbcc function= time2freq_adapt line= 276 file= dolby_adapt.c
+    Block # 90: executed       0 time(s) address= 0x804dbe4 function= time2freq_adapt line= 277 file= dolby_adapt.c
+    Block # 91: executed       0 time(s) address= 0x804dbf3 function= time2freq_adapt line= 277 file= dolby_adapt.c
+    Block # 92: executed       0 time(s) address= 0x804dbfc function= time2freq_adapt line= 278 file= dolby_adapt.c
+    Block # 93: executed       0 time(s) address= 0x804dc24 function= time2freq_adapt line= 280 file= dolby_adapt.c
+    Block # 94: executed       0 time(s) address= 0x804dc5c function= time2freq_adapt line= 285 file= dolby_adapt.c
+    Block # 95: executed       0 time(s) address= 0x804dc68 function= time2freq_adapt line= 285 file= dolby_adapt.c
+    Block # 96: executed       0 time(s) address= 0x804dc78 function= time2freq_adapt line= 286 file= dolby_adapt.c
+    Block # 97: executed       0 time(s) address= 0x804dca0 function= time2freq_adapt line= 291 file= dolby_adapt.c
+    Block # 98: executed       0 time(s) address= 0x804dcb0 function= time2freq_adapt line= 292 file= dolby_adapt.c
+    Block # 99: executed       0 time(s) address= 0x804dccc function= time2freq_adapt line= 294 file= dolby_adapt.c
+    Block #100: executed       0 time(s) address= 0x804dcdb function= time2freq_adapt line= 294 file= dolby_adapt.c
+    Block #101: executed       0 time(s) address= 0x804dce4 function= time2freq_adapt line= 295 file= dolby_adapt.c
+    Block #102: executed       0 time(s) address= 0x804dd08 function= time2freq_adapt line= 297 file= dolby_adapt.c
+    Block #103: executed       0 time(s) address= 0x804dd38 function= time2freq_adapt line= 301 file= dolby_adapt.c
+    Block #104: executed       0 time(s) address= 0x804dd47 function= time2freq_adapt line= 304 file= dolby_adapt.c
+    Block #105: executed       0 time(s) address= 0x804dd5c function= time2freq_adapt line= 302 file= dolby_adapt.c
+    Block #106: executed       0 time(s) address= 0x804dd80 function= time2freq_adapt line= 307 file= dolby_adapt.c
+    Block #107: executed       0 time(s) address= 0x804dd90 function= time2freq_adapt line= 308 file= dolby_adapt.c
+    Block #108: executed       0 time(s) address= 0x804ddac function= time2freq_adapt line= 310 file= dolby_adapt.c
+    Block #109: executed       0 time(s) address= 0x804ddbb function= time2freq_adapt line= 310 file= dolby_adapt.c
+    Block #110: executed       0 time(s) address= 0x804ddc4 function= time2freq_adapt line= 311 file= dolby_adapt.c
+    Block #111: executed       0 time(s) address= 0x804dde8 function= time2freq_adapt line= 313 file= dolby_adapt.c
+    Block #112: executed       0 time(s) address= 0x804de18 function= time2freq_adapt line= 317 file= dolby_adapt.c
+    Block #113: executed       0 time(s) address= 0x804de27 function= time2freq_adapt line= 317 file= dolby_adapt.c
+    Block #114: executed       0 time(s) address= 0x804de30 function= time2freq_adapt line= 318 file= dolby_adapt.c
+    Block #115: executed       0 time(s) address= 0x804de54 function= time2freq_adapt line= 323 file= dolby_adapt.c
+    Block #116: executed       0 time(s) address= 0x804de7c function= time2freq_adapt line= 327 file= dolby_adapt.c
+    Block #117: executed       0 time(s) address= 0x804de8c function= time2freq_adapt line= 327 file= dolby_adapt.c
+    Block #118: executed       0 time(s) address= 0x804de9b function= time2freq_adapt line= 327 file= dolby_adapt.c
+    Block #119: executed       0 time(s) address= 0x804dea4 function= time2freq_adapt line= 329 file= dolby_adapt.c
+    Block #120: executed       0 time(s) address= 0x804ded4 function= time2freq_adapt line= 334 file= dolby_adapt.c
+
+File /home/wmay/faad/intensity.d, 23 basic blocks 
+
+    Block # 1: executed   958 time(s) address= 0x8059844 function= intensity line= 40 file= intensity.c
+    Block # 2: executed   958 time(s) address= 0x805988e function= intensity line= 46 file= intensity.c
+    Block # 3: executed   479 time(s) address= 0x80598a1 function= intensity line= 49 file= intensity.c
+    Block # 4: executed   958 time(s) address= 0x80598d8 function= intensity line= 54 file= intensity.c
+    Block # 5: executed   479 time(s) address= 0x80598e9 function= intensity line= 54 file= intensity.c
+    Block # 6: executed   479 time(s) address= 0x80598f4 function= intensity line= 55 file= intensity.c
+    Block # 7: executed  2393 time(s) address= 0x805992c function= intensity line= 59 file= intensity.c
+    Block # 8: executed   479 time(s) address= 0x805993a function= intensity line= 85 file= intensity.c
+    Block # 9: executed  1914 time(s) address= 0x8059958 function= intensity line= 60 file= intensity.c
+    Block #10: executed 38300 time(s) address= 0x805996c function= intensity line= 61 file= intensity.c
+    Block #11: executed  1914 time(s) address= 0x805997a function= intensity line= 81 file= intensity.c
+    Block #12: executed 36386 time(s) address= 0x80599cc function= intensity line= 62 file= intensity.c
+    Block #13: executed 36386 time(s) address= 0x80599f4 function= intensity line= 64 file= intensity.c
+    Block #14: executed 36386 time(s) address= 0x8059a00 function= intensity line= 64 file= intensity.c
+    Block #15: executed     0 time(s) address= 0x8059a0c function= intensity line= 67 file= intensity.c
+    Block #16: executed     0 time(s) address= 0x8059a2a function= intensity line= 69 file= intensity.c
+    Block #17: executed     0 time(s) address= 0x8059a3c function= intensity line= 69 file= intensity.c
+    Block #18: executed     0 time(s) address= 0x8059a49 function= intensity line= 69 file= intensity.c
+    Block #19: executed     0 time(s) address= 0x8059aa8 function= intensity line= 75 file= intensity.c
+    Block #20: executed     0 time(s) address= 0x8059ab6 function= intensity line= 75 file= intensity.c
+    Block #21: executed     0 time(s) address= 0x8059ac0 function= intensity line= 76 file= intensity.c
+    Block #22: executed 36386 time(s) address= 0x8059ae8 function= intensity line= 79 file= intensity.c
+    Block #23: executed   958 time(s) address= 0x8059b00 function= intensity line= 87 file= intensity.c
+
+File /home/wmay/faad/pns.d, 47 basic blocks 
+
+    Block # 1: executed     0 time(s) address= 0x805bd7c function= random2         line=  30 file= pns.c
+    Block # 2: executed     0 time(s) address= 0x805bde8 function= gen_rand_vector line=  37 file= pns.c
+    Block # 3: executed     0 time(s) address= 0x805be48 function= gen_rand_vector line=  43 file= pns.c
+    Block # 4: executed     0 time(s) address= 0x805be56 function= gen_rand_vector line=  43 file= pns.c
+    Block # 5: executed     0 time(s) address= 0x805be60 function= gen_rand_vector line=  45 file= pns.c
+    Block # 6: executed     0 time(s) address= 0x805beb0 function= gen_rand_vector line=  50 file= pns.c
+    Block # 7: executed     0 time(s) address= 0x805bee0 function= gen_rand_vector line=  51 file= pns.c
+    Block # 8: executed     0 time(s) address= 0x805beee function= gen_rand_vector line=  51 file= pns.c
+    Block # 9: executed     0 time(s) address= 0x805bef8 function= gen_rand_vector line=  52 file= pns.c
+    Block #10: executed     0 time(s) address= 0x805bf20 function= gen_rand_vector line=  53 file= pns.c
+    Block #11: executed   958 time(s) address= 0x805bf2c function= pns             line=  74 file= pns.c
+    Block #12: executed   958 time(s) address= 0x805bf72 function= pns             line=  87 file= pns.c
+    Block #13: executed   479 time(s) address= 0x805bf81 function= pns             line=  87 file= pns.c
+    Block #14: executed   181 time(s) address= 0x805bf8f function= pns             line=  88 file= pns.c
+    Block #15: executed  9050 time(s) address= 0x805bf9c function= pns             line=  88 file= pns.c
+    Block #16: executed   181 time(s) address= 0x805bfad function= pns             line=  88 file= pns.c
+    Block #17: executed  8869 time(s) address= 0x805bfb8 function= pns             line=  89 file= pns.c
+    Block #18: executed   958 time(s) address= 0x805bfe4 function= pns             line=  92 file= pns.c
+    Block #19: executed   958 time(s) address= 0x805bff3 function= pns             line=  92 file= pns.c
+    Block #20: executed   479 time(s) address= 0x805c002 function= pns             line=  92 file= pns.c
+    Block #21: executed   274 time(s) address= 0x805c010 function= pns             line=  93 file= pns.c
+    Block #22: executed 13700 time(s) address= 0x805c020 function= pns             line=  93 file= pns.c
+    Block #23: executed   274 time(s) address= 0x805c031 function= pns             line=  93 file= pns.c
+    Block #24: executed 13426 time(s) address= 0x805c03c function= pns             line=  94 file= pns.c
+    Block #25: executed   958 time(s) address= 0x805c068 function= pns             line=  96 file= pns.c
+    Block #26: executed  1916 time(s) address= 0x805c094 function= pns             line= 101 file= pns.c
+    Block #27: executed   958 time(s) address= 0x805c0a5 function= pns             line= 101 file= pns.c
+    Block #28: executed   958 time(s) address= 0x805c0b0 function= pns             line= 102 file= pns.c
+    Block #29: executed  5437 time(s) address= 0x805c0e8 function= pns             line= 106 file= pns.c
+    Block #30: executed   958 time(s) address= 0x805c0f6 function= pns             line= 143 file= pns.c
+    Block #31: executed  4479 time(s) address= 0x805c130 function= pns             line= 107 file= pns.c
+    Block #32: executed 83110 time(s) address= 0x805c144 function= pns             line= 108 file= pns.c
+    Block #33: executed  4479 time(s) address= 0x805c152 function= pns             line= 140 file= pns.c
+    Block #34: executed 78631 time(s) address= 0x805c188 function= pns             line= 109 file= pns.c
+    Block #35: executed 78631 time(s) address= 0x805c1b0 function= pns             line= 111 file= pns.c
+    Block #36: executed 78631 time(s) address= 0x805c1bc function= pns             line= 111 file= pns.c
+    Block #37: executed     0 time(s) address= 0x805c1c8 function= pns             line= 115 file= pns.c
+    Block #38: executed     0 time(s) address= 0x805c1d6 function= pns             line= 115 file= pns.c
+    Block #39: executed     0 time(s) address= 0x805c1ee function= pns             line= 118 file= pns.c
+    Block #40: executed     0 time(s) address= 0x805c215 function= pns             line= 125 file= pns.c
+    Block #41: executed     0 time(s) address= 0x805c240 function= pns             line= 128 file= pns.c
+    Block #42: executed     0 time(s) address= 0x805c273 function= pns             line= 133 file= pns.c
+    Block #43: executed     0 time(s) address= 0x805c2a8 function= pns             line= 134 file= pns.c
+    Block #44: executed     0 time(s) address= 0x805c2b6 function= pns             line= 134 file= pns.c
+    Block #45: executed     0 time(s) address= 0x805c2c0 function= pns             line= 135 file= pns.c
+    Block #46: executed 78631 time(s) address= 0x805c2e0 function= pns             line= 138 file= pns.c
+    Block #47: executed   958 time(s) address= 0x805c2f8 function= pns             line= 146 file= pns.c
+
+File /home/wmay/faad/stereo.d, 31 basic blocks 
+
+    Block # 1: executed    264 time(s) address= 0x805a9a0 function= synt     line= 28 file= stereo.c
+    Block # 2: executed    528 time(s) address= 0x805a9d8 function= synt     line= 35 file= stereo.c
+    Block # 3: executed    264 time(s) address= 0x805a9e9 function= synt     line= 35 file= stereo.c
+    Block # 4: executed    264 time(s) address= 0x805a9f4 function= synt     line= 36 file= stereo.c
+    Block # 5: executed   1753 time(s) address= 0x805aa2c function= synt     line= 40 file= stereo.c
+    Block # 6: executed    264 time(s) address= 0x805aa3a function= synt     line= 62 file= stereo.c
+    Block # 7: executed   1489 time(s) address= 0x805aa58 function= synt     line= 41 file= stereo.c
+    Block # 8: executed  25450 time(s) address= 0x805aa6c function= synt     line= 42 file= stereo.c
+    Block # 9: executed   1489 time(s) address= 0x805aa7a function= synt     line= 58 file= stereo.c
+    Block #10: executed  23961 time(s) address= 0x805aac0 function= synt     line= 43 file= stereo.c
+    Block #11: executed  14452 time(s) address= 0x805aae1 function= synt     line= 45 file= stereo.c
+    Block #12: executed 200076 time(s) address= 0x805ab00 function= synt     line= 47 file= stereo.c
+    Block #13: executed  14452 time(s) address= 0x805ab0e function= synt     line= 47 file= stereo.c
+    Block #14: executed 185624 time(s) address= 0x805ab18 function= synt     line= 48 file= stereo.c
+    Block #15: executed  23961 time(s) address= 0x805ab58 function= synt     line= 56 file= stereo.c
+    Block #16: executed    264 time(s) address= 0x805ab70 function= synt     line= 64 file= stereo.c
+    Block #17: executed    264 time(s) address= 0x805ab78 function= map_mask line= 70 file= stereo.c
+    Block #18: executed    528 time(s) address= 0x805aba8 function= map_mask line= 74 file= stereo.c
+    Block #19: executed    264 time(s) address= 0x805abb9 function= map_mask line= 74 file= stereo.c
+    Block #20: executed    264 time(s) address= 0x805abc4 function= map_mask line= 75 file= stereo.c
+    Block #21: executed   7075 time(s) address= 0x805abe8 function= map_mask line= 77 file= stereo.c
+    Block #22: executed    264 time(s) address= 0x805abf6 function= map_mask line= 92 file= stereo.c
+    Block #23: executed   6811 time(s) address= 0x805ac3c function= map_mask line= 78 file= stereo.c
+    Block #24: executed   5072 time(s) address= 0x805ac51 function= map_mask line= 79 file= stereo.c
+    Block #25: executed      0 time(s) address= 0x805ac62 function= map_mask line= 80 file= stereo.c
+    Block #26: executed   5072 time(s) address= 0x805ac7c function= map_mask line= 82 file= stereo.c
+    Block #27: executed      0 time(s) address= 0x805ac8d function= map_mask line= 83 file= stereo.c
+    Block #28: executed   5072 time(s) address= 0x805aca8 function= map_mask line= 85 file= stereo.c
+    Block #29: executed      0 time(s) address= 0x805acb9 function= map_mask line= 86 file= stereo.c
+    Block #30: executed   6811 time(s) address= 0x805acd1 function= map_mask line= 77 file= stereo.c
+    Block #31: executed    264 time(s) address= 0x805ace4 function= map_mask line= 96 file= stereo.c
+
+File /home/wmay/faad/huffdec2.d, 274 basic blocks 
+
+    Block #  1: executed     505 time(s) address= 0x8056f08 function= deinterleave    line=  48 file= huffdec2.c
+    Block #  2: executed    1010 time(s) address= 0x8056f44 function= deinterleave    line=  55 file= huffdec2.c
+    Block #  3: executed     505 time(s) address= 0x8056f53 function= deinterleave    line=  55 file= huffdec2.c
+    Block #  4: executed     505 time(s) address= 0x8056f60 function= deinterleave    line=  57 file= huffdec2.c
+    Block #  5: executed    7575 time(s) address= 0x8056f80 function= deinterleave    line=  63 file= huffdec2.c
+    Block #  6: executed     505 time(s) address= 0x8056f97 function= deinterleave    line=  63 file= huffdec2.c
+    Block #  7: executed    7070 time(s) address= 0x8056fa0 function= deinterleave    line=  64 file= huffdec2.c
+    Block #  8: executed     505 time(s) address= 0x8056fc0 function= deinterleave    line=  69 file= huffdec2.c
+    Block #  9: executed    7575 time(s) address= 0x8056fd0 function= deinterleave    line=  69 file= huffdec2.c
+    Block # 10: executed     505 time(s) address= 0x8056fe7 function= deinterleave    line=  81 file= huffdec2.c
+    Block # 11: executed    7070 time(s) address= 0x8057008 function= deinterleave    line=  70 file= huffdec2.c
+    Block # 12: executed   63630 time(s) address= 0x805701c function= deinterleave    line=  72 file= huffdec2.c
+    Block # 13: executed    7070 time(s) address= 0x8057034 function= deinterleave    line=  79 file= huffdec2.c
+    Block # 14: executed   56560 time(s) address= 0x8057058 function= deinterleave    line=  73 file= huffdec2.c
+    Block # 15: executed  573680 time(s) address= 0x8057074 function= deinterleave    line=  74 file= huffdec2.c
+    Block # 16: executed   56560 time(s) address= 0x805708c function= deinterleave    line=  77 file= huffdec2.c
+    Block # 17: executed  517120 time(s) address= 0x80570a8 function= deinterleave    line=  75 file= huffdec2.c
+    Block # 18: executed     505 time(s) address= 0x80570cc function= deinterleave    line=  83 file= huffdec2.c
+    Block # 19: executed     960 time(s) address= 0x80570d4 function= calc_gsfb_table line=  87 file= huffdec2.c
+    Block # 20: executed     455 time(s) address= 0x8057103 function= calc_gsfb_table line=  95 file= huffdec2.c
+    Block # 21: executed     505 time(s) address= 0x8057110 function= calc_gsfb_table line=  97 file= huffdec2.c
+    Block # 22: executed     505 time(s) address= 0x8057124 function= calc_gsfb_table line= 100 file= huffdec2.c
+    Block # 23: executed     505 time(s) address= 0x8057169 function= calc_gsfb_table line= 104 file= huffdec2.c
+    Block # 24: executed    1010 time(s) address= 0x8057194 function= calc_gsfb_table line= 107 file= huffdec2.c
+    Block # 25: executed     505 time(s) address= 0x80571a8 function= calc_gsfb_table line= 107 file= huffdec2.c
+    Block # 26: executed     505 time(s) address= 0x80571b4 function= calc_gsfb_table line= 108 file= huffdec2.c
+    Block # 27: executed    7575 time(s) address= 0x80571e0 function= calc_gsfb_table line= 109 file= huffdec2.c
+    Block # 28: executed     505 time(s) address= 0x80571fc function= calc_gsfb_table line= 109 file= huffdec2.c
+    Block # 29: executed    7070 time(s) address= 0x805720c function= calc_gsfb_table line= 110 file= huffdec2.c
+    Block # 30: executed     960 time(s) address= 0x8057248 function= calc_gsfb_table line= 115 file= huffdec2.c
+    Block # 31: executed     330 time(s) address= 0x8057250 function= getgroup        line= 119 file= huffdec2.c
+    Block # 32: executed    2970 time(s) address= 0x8057288 function= getgroup        line= 123 file= huffdec2.c
+    Block # 33: executed     330 time(s) address= 0x8057299 function= getgroup        line= 123 file= huffdec2.c
+    Block # 34: executed    2640 time(s) address= 0x80572a4 function= getgroup        line= 124 file= huffdec2.c
+    Block # 35: executed       0 time(s) address= 0x80572c1 function= getgroup        line= 126 file= huffdec2.c
+    Block # 36: executed    2640 time(s) address= 0x80572d8 function= getgroup        line= 130 file= huffdec2.c
+    Block # 37: executed     330 time(s) address= 0x80572e4 function= getgroup        line= 132 file= huffdec2.c
+    Block # 38: executed    2310 time(s) address= 0x80572f4 function= getgroup        line= 135 file= huffdec2.c
+    Block # 39: executed       0 time(s) address= 0x8057314 function= getgroup        line= 136 file= huffdec2.c
+    Block # 40: executed    2640 time(s) address= 0x8057327 function= getgroup        line= 123 file= huffdec2.c
+    Block # 41: executed     330 time(s) address= 0x8057338 function= getgroup        line= 141 file= huffdec2.c
+    Block # 42: executed     264 time(s) address= 0x8057348 function= getmask         line= 151 file= huffdec2.c
+    Block # 43: executed       0 time(s) address= 0x805738b function= getmask         line= 158 file= huffdec2.c
+    Block # 44: executed     264 time(s) address= 0x805739c function= getmask         line= 160 file= huffdec2.c
+    Block # 45: executed       0 time(s) address= 0x80573ac function= getmask         line= 161 file= huffdec2.c
+    Block # 46: executed       0 time(s) address= 0x80573bc function= getmask         line= 161 file= huffdec2.c
+    Block # 47: executed       0 time(s) address= 0x80573cd function= getmask         line= 164 file= huffdec2.c
+    Block # 48: executed       0 time(s) address= 0x80573e0 function= getmask         line= 162 file= huffdec2.c
+    Block # 49: executed       0 time(s) address= 0x80573f0 function= getmask         line= 162 file= huffdec2.c
+    Block # 50: executed       0 time(s) address= 0x805740c function= getmask         line= 162 file= huffdec2.c
+    Block # 51: executed       0 time(s) address= 0x8057424 function= getmask         line= 163 file= huffdec2.c
+    Block # 52: executed     264 time(s) address= 0x805743c function= getmask         line= 168 file= huffdec2.c
+    Block # 53: executed     528 time(s) address= 0x805744c function= getmask         line= 168 file= huffdec2.c
+    Block # 54: executed     264 time(s) address= 0x805745d function= getmask         line= 168 file= huffdec2.c
+    Block # 55: executed     264 time(s) address= 0x8057468 function= getmask         line= 169 file= huffdec2.c
+    Block # 56: executed    7075 time(s) address= 0x8057478 function= getmask         line= 169 file= huffdec2.c
+    Block # 57: executed     264 time(s) address= 0x8057487 function= getmask         line= 169 file= huffdec2.c
+    Block # 58: executed    6811 time(s) address= 0x8057490 function= getmask         line= 170 file= huffdec2.c
+    Block # 59: executed     264 time(s) address= 0x80574bc function= getmask         line= 173 file= huffdec2.c
+    Block # 60: executed     264 time(s) address= 0x80574d8 function= getmask         line= 173 file= huffdec2.c
+    Block # 61: executed       0 time(s) address= 0x80574f4 function= getmask         line= 174 file= huffdec2.c
+    Block # 62: executed     264 time(s) address= 0x805750c function= getmask         line= 178 file= huffdec2.c
+    Block # 63: executed     264 time(s) address= 0x8057517 function= getmask         line= 179 file= huffdec2.c
+    Block # 64: executed     931 time(s) address= 0x8057520 function= clr_tns         line= 183 file= huffdec2.c
+    Block # 65: executed    5397 time(s) address= 0x805755c function= clr_tns         line= 187 file= huffdec2.c
+    Block # 66: executed     931 time(s) address= 0x805756c function= clr_tns         line= 187 file= huffdec2.c
+    Block # 67: executed    4466 time(s) address= 0x8057574 function= clr_tns         line= 188 file= huffdec2.c
+    Block # 68: executed     931 time(s) address= 0x80575a4 function= clr_tns         line= 189 file= huffdec2.c
+    Block # 69: executed      29 time(s) address= 0x80575ac function= get_tns         line= 193 file= huffdec2.c
+    Block # 70: executed      58 time(s) address= 0x80575f8 function= get_tns         line= 206 file= huffdec2.c
+    Block # 71: executed      29 time(s) address= 0x8057608 function= get_tns         line= 206 file= huffdec2.c
+    Block # 72: executed      29 time(s) address= 0x8057614 function= get_tns         line= 207 file= huffdec2.c
+    Block # 73: executed       0 time(s) address= 0x8057639 function= get_tns         line= 209 file= huffdec2.c
+    Block # 74: executed      29 time(s) address= 0x8057648 function= get_tns         line= 209 file= huffdec2.c
+    Block # 75: executed      29 time(s) address= 0x8057655 function= get_tns         line= 209 file= huffdec2.c
+    Block # 76: executed       0 time(s) address= 0x8057675 function= get_tns         line= 210 file= huffdec2.c
+    Block # 77: executed      29 time(s) address= 0x8057680 function= get_tns         line= 212 file= huffdec2.c
+    Block # 78: executed      58 time(s) address= 0x80576d0 function= get_tns         line= 215 file= huffdec2.c
+    Block # 79: executed      29 time(s) address= 0x80576dc function= get_tns         line= 215 file= huffdec2.c
+    Block # 80: executed      29 time(s) address= 0x80576e8 function= get_tns         line= 216 file= huffdec2.c
+    Block # 81: executed       0 time(s) address= 0x8057700 function= get_tns         line= 217 file= huffdec2.c
+    Block # 82: executed      29 time(s) address= 0x8057710 function= get_tns         line= 217 file= huffdec2.c
+    Block # 83: executed      29 time(s) address= 0x805771d function= get_tns         line= 217 file= huffdec2.c
+    Block # 84: executed       0 time(s) address= 0x805774c function= get_tns         line= 218 file= huffdec2.c
+    Block # 85: executed      29 time(s) address= 0x805775c function= get_tns         line= 218 file= huffdec2.c
+    Block # 86: executed      29 time(s) address= 0x8057769 function= get_tns         line= 218 file= huffdec2.c
+    Block # 87: executed      29 time(s) address= 0x8057793 function= get_tns         line= 221 file= huffdec2.c
+    Block # 88: executed     257 time(s) address= 0x8057810 function= get_tns         line= 229 file= huffdec2.c
+    Block # 89: executed      29 time(s) address= 0x805781c function= get_tns         line= 229 file= huffdec2.c
+    Block # 90: executed     228 time(s) address= 0x8057824 function= get_tns         line= 230 file= huffdec2.c
+    Block # 91: executed      23 time(s) address= 0x8057862 function= get_tns         line= 231 file= huffdec2.c
+    Block # 92: executed     228 time(s) address= 0x8057870 function= get_tns         line= 231 file= huffdec2.c
+    Block # 93: executed      29 time(s) address= 0x8057888 function= get_tns         line= 234 file= huffdec2.c
+    Block # 94: executed      29 time(s) address= 0x80578a0 function= get_tns         line= 206 file= huffdec2.c
+    Block # 95: executed      29 time(s) address= 0x80578b0 function= get_tns         line= 237 file= huffdec2.c
+    Block # 96: executed       0 time(s) address= 0x80578c0 function= get_nec_nc      line= 256 file= huffdec2.c
+    Block # 97: executed       0 time(s) address= 0x8057920 function= get_nec_nc      line= 260 file= huffdec2.c
+    Block # 98: executed       0 time(s) address= 0x8057932 function= get_nec_nc      line= 260 file= huffdec2.c
+    Block # 99: executed       0 time(s) address= 0x805793c function= get_nec_nc      line= 261 file= huffdec2.c
+    Block #100: executed       0 time(s) address= 0x805799c function= get_nec_nc      line= 264 file= huffdec2.c
+    Block #101: executed       0 time(s) address= 0x80579a4 function= nec_nc          line= 268 file= huffdec2.c
+    Block #102: executed       0 time(s) address= 0x80579ec function= nec_nc          line= 273 file= huffdec2.c
+    Block #103: executed       0 time(s) address= 0x80579fd function= nec_nc          line= 273 file= huffdec2.c
+    Block #104: executed       0 time(s) address= 0x8057a08 function= nec_nc          line= 274 file= huffdec2.c
+    Block #105: executed       0 time(s) address= 0x8057a38 function= nec_nc          line= 276 file= huffdec2.c
+    Block #106: executed       0 time(s) address= 0x8057a74 function= nec_nc          line= 278 file= huffdec2.c
+    Block #107: executed       0 time(s) address= 0x8057ab0 function= nec_nc          line= 273 file= huffdec2.c
+    Block #108: executed       0 time(s) address= 0x8057ac0 function= nec_nc          line= 280 file= huffdec2.c
+    Block #109: executed     960 time(s) address= 0x8057ad0 function= getics          line= 290 file= huffdec2.c
+    Block #110: executed     432 time(s) address= 0x8057b1f function= getics          line= 300 file= huffdec2.c
+    Block #111: executed     960 time(s) address= 0x8057b45 function= getics          line= 303 file= huffdec2.c
+    Block #112: executed       0 time(s) address= 0x8057b77 function= getics          line= 307 file= huffdec2.c
+    Block #113: executed     960 time(s) address= 0x8057b88 function= getics          line= 310 file= huffdec2.c
+    Block #114: executed     960 time(s) address= 0x8057ba0 function= getics          line= 312 file= huffdec2.c
+    Block #115: executed     960 time(s) address= 0x8057bbc function= getics          line= 312 file= huffdec2.c
+    Block #116: executed       0 time(s) address= 0x8057bc4 function= getics          line= 313 file= huffdec2.c
+    Block #117: executed     960 time(s) address= 0x8057bd8 function= getics          line= 320 file= huffdec2.c
+    Block #118: executed       0 time(s) address= 0x8057c10 function= getics          line= 321 file= huffdec2.c
+    Block #119: executed       0 time(s) address= 0x8057c1e function= getics          line= 322 file= huffdec2.c
+    Block #120: executed     960 time(s) address= 0x8057c30 function= getics          line= 327 file= huffdec2.c
+    Block #121: executed     960 time(s) address= 0x8057c40 function= getics          line= 328 file= huffdec2.c
+    Block #122: executed   13643 time(s) address= 0x8057c54 function= getics          line= 329 file= huffdec2.c
+    Block #123: executed     960 time(s) address= 0x8057c62 function= getics          line= 329 file= huffdec2.c
+    Block #124: executed   12683 time(s) address= 0x8057c70 function= getics          line= 330 file= huffdec2.c
+    Block #125: executed   42048 time(s) address= 0x8057ca8 function= getics          line= 332 file= huffdec2.c
+    Block #126: executed   12683 time(s) address= 0x8057cb6 function= getics          line= 334 file= huffdec2.c
+    Block #127: executed   29365 time(s) address= 0x8057ccc function= getics          line= 333 file= huffdec2.c
+    Block #128: executed       0 time(s) address= 0x8057ce8 function= getics          line= 337 file= huffdec2.c
+    Block #129: executed       0 time(s) address= 0x8057cf8 function= getics          line= 337 file= huffdec2.c
+    Block #130: executed       0 time(s) address= 0x8057d04 function= getics          line= 337 file= huffdec2.c
+    Block #131: executed       0 time(s) address= 0x8057d0c function= getics          line= 338 file= huffdec2.c
+    Block #132: executed     960 time(s) address= 0x8057d24 function= getics          line= 345 file= huffdec2.c
+    Block #133: executed       0 time(s) address= 0x8057d6f function= getics          line= 351 file= huffdec2.c
+    Block #134: executed     960 time(s) address= 0x8057d80 function= getics          line= 356 file= huffdec2.c
+    Block #135: executed       0 time(s) address= 0x8057da8 function= getics          line= 357 file= huffdec2.c
+    Block #136: executed       0 time(s) address= 0x8057db6 function= getics          line= 358 file= huffdec2.c
+    Block #137: executed       0 time(s) address= 0x8057dd0 function= getics          line= 361 file= huffdec2.c
+    Block #138: executed     960 time(s) address= 0x8057de8 function= getics          line= 368 file= huffdec2.c
+    Block #139: executed      29 time(s) address= 0x8057e0a function= getics          line= 369 file= huffdec2.c
+    Block #140: executed     931 time(s) address= 0x8057e24 function= getics          line= 372 file= huffdec2.c
+    Block #141: executed     960 time(s) address= 0x8057e3b function= getics          line= 375 file= huffdec2.c
+    Block #142: executed       0 time(s) address= 0x8057e5d function= getics          line= 376 file= huffdec2.c
+    Block #143: executed     960 time(s) address= 0x8057e75 function= getics          line= 379 file= huffdec2.c
+    Block #144: executed     960 time(s) address= 0x8057ea5 function= getics          line= 380 file= huffdec2.c
+    Block #145: executed     960 time(s) address= 0x8057eb0 function= huffcb          line= 387 file= huffdec2.c
+    Block #146: executed   13643 time(s) address= 0x8057f08 function= huffcb          line= 393 file= huffdec2.c
+    Block #147: executed   12683 time(s) address= 0x8057f1a function= huffcb          line= 393 file= huffdec2.c
+    Block #148: executed       0 time(s) address= 0x8057f28 function= huffcb          line= 393 file= huffdec2.c
+    Block #149: executed   12683 time(s) address= 0x8057f34 function= huffcb          line= 394 file= huffdec2.c
+    Block #150: executed   12720 time(s) address= 0x8057f68 function= huffcb          line= 397 file= huffdec2.c
+    Block #151: executed      37 time(s) address= 0x8057f76 function= huffcb          line= 397 file= huffdec2.c
+    Block #152: executed       0 time(s) address= 0x8057f84 function= huffcb          line= 397 file= huffdec2.c
+    Block #153: executed      37 time(s) address= 0x8057f8c function= huffcb          line= 398 file= huffdec2.c
+    Block #154: executed   12683 time(s) address= 0x8057fb0 function= huffcb          line= 401 file= huffdec2.c
+    Block #155: executed       0 time(s) address= 0x8057ff7 function= huffcb          line= 407 file= huffdec2.c
+    Block #156: executed     960 time(s) address= 0x805802c function= huffcb          line= 414 file= huffdec2.c
+    Block #157: executed     960 time(s) address= 0x805803a function= huffcb          line= 414 file= huffdec2.c
+    Block #158: executed     960 time(s) address= 0x8058048 function= huffcb          line= 414 file= huffdec2.c
+    Block #159: executed       0 time(s) address= 0x8058050 function= huffcb          line= 415 file= huffdec2.c
+    Block #160: executed     960 time(s) address= 0x8058060 function= huffcb          line= 416 file= huffdec2.c
+    Block #161: executed     960 time(s) address= 0x805806f function= huffcb          line= 417 file= huffdec2.c
+    Block #162: executed     960 time(s) address= 0x8058078 function= hufffac         line= 425 file= huffdec2.c
+    Block #163: executed   13643 time(s) address= 0x80580fc function= hufffac         line= 439 file= huffdec2.c
+    Block #164: executed     960 time(s) address= 0x805810a function= hufffac         line= 439 file= huffdec2.c
+    Block #165: executed   12683 time(s) address= 0x8058114 function= hufffac         line= 440 file= huffdec2.c
+    Block #166: executed   42048 time(s) address= 0x8058134 function= hufffac         line= 443 file= huffdec2.c
+    Block #167: executed   12683 time(s) address= 0x8058142 function= hufffac         line= 443 file= huffdec2.c
+    Block #168: executed   29365 time(s) address= 0x8058150 function= hufffac         line= 444 file= huffdec2.c
+    Block #169: executed     960 time(s) address= 0x8058170 function= hufffac         line= 451 file= huffdec2.c
+    Block #170: executed    1920 time(s) address= 0x80581b0 function= hufffac         line= 459 file= huffdec2.c
+    Block #171: executed     960 time(s) address= 0x80581c1 function= hufffac         line= 459 file= huffdec2.c
+    Block #172: executed     960 time(s) address= 0x80581cc function= hufffac         line= 460 file= huffdec2.c
+    Block #173: executed   30325 time(s) address= 0x80581fc function= hufffac         line= 462 file= huffdec2.c
+    Block #174: executed     960 time(s) address= 0x805820a function= hufffac         line= 462 file= huffdec2.c
+    Block #175: executed   29365 time(s) address= 0x8058218 function= hufffac         line= 463 file= huffdec2.c
+    Block #176: executed   29365 time(s) address= 0x8058248 function= hufffac         line= 463 file= huffdec2.c
+    Block #177: executed   17586 time(s) address= 0x805826c function= hufffac         line= 468 file= huffdec2.c
+    Block #178: executed   17586 time(s) address= 0x8058298 function= hufffac         line= 470 file= huffdec2.c
+    Block #179: executed   17586 time(s) address= 0x80582a4 function= hufffac         line= 472 file= huffdec2.c
+    Block #180: executed       0 time(s) address= 0x80582c0 function= hufffac         line= 471 file= huffdec2.c
+    Block #181: executed       0 time(s) address= 0x80582d0 function= hufffac         line= 475 file= huffdec2.c
+    Block #182: executed       0 time(s) address= 0x80582e0 function= hufffac         line= 479 file= huffdec2.c
+    Block #183: executed       0 time(s) address= 0x8058318 function= hufffac         line= 485 file= huffdec2.c
+    Block #184: executed       0 time(s) address= 0x8058327 function= hufffac         line= 486 file= huffdec2.c
+    Block #185: executed       0 time(s) address= 0x805835c function= hufffac         line= 490 file= huffdec2.c
+    Block #186: executed       0 time(s) address= 0x8058382 function= hufffac         line= 491 file= huffdec2.c
+    Block #187: executed   29365 time(s) address= 0x80583a6 function= hufffac         line= 462 file= huffdec2.c
+    Block #188: executed     960 time(s) address= 0x80583b8 function= hufffac         line= 498 file= huffdec2.c
+    Block #189: executed     505 time(s) address= 0x80583ca function= hufffac         line= 499 file= huffdec2.c
+    Block #190: executed    4040 time(s) address= 0x80583d8 function= hufffac         line= 499 file= huffdec2.c
+    Block #191: executed     505 time(s) address= 0x80583e6 function= hufffac         line= 499 file= huffdec2.c
+    Block #192: executed    3535 time(s) address= 0x80583f0 function= hufffac         line= 500 file= huffdec2.c
+    Block #193: executed   53025 time(s) address= 0x8058400 function= hufffac         line= 500 file= huffdec2.c
+    Block #194: executed    3535 time(s) address= 0x805840e function= hufffac         line= 503 file= huffdec2.c
+    Block #195: executed   49490 time(s) address= 0x8058428 function= hufffac         line= 501 file= huffdec2.c
+    Block #196: executed     960 time(s) address= 0x8058454 function= hufffac         line= 506 file= huffdec2.c
+    Block #197: executed     960 time(s) address= 0x8058480 function= hufffac         line= 509 file= huffdec2.c
+    Block #198: executed     960 time(s) address= 0x805848b function= hufffac         line= 510 file= huffdec2.c
+    Block #199: executed  983040 time(s) address= 0x8058498 function= esc_iquant      line= 521 file= huffdec2.c
+    Block #200: executed   62106 time(s) address= 0x80584c5 function= esc_iquant      line= 523 file= huffdec2.c
+    Block #201: executed   62106 time(s) address= 0x80584d1 function= esc_iquant      line= 524 file= huffdec2.c
+    Block #202: executed       0 time(s) address= 0x80584f0 function= esc_iquant      line= 527 file= huffdec2.c
+    Block #203: executed  920934 time(s) address= 0x805851c function= esc_iquant      line= 531 file= huffdec2.c
+    Block #204: executed  920934 time(s) address= 0x805852b function= esc_iquant      line= 533 file= huffdec2.c
+    Block #205: executed       0 time(s) address= 0x8058550 function= esc_iquant      line= 536 file= huffdec2.c
+    Block #206: executed  983040 time(s) address= 0x805857a function= esc_iquant      line= 539 file= huffdec2.c
+    Block #207: executed     960 time(s) address= 0x8058584 function= huffspec        line= 545 file= huffdec2.c
+    Block #208: executed   13643 time(s) address= 0x80585f0 function= huffspec        line= 560 file= huffdec2.c
+    Block #209: executed     960 time(s) address= 0x80585fc function= huffspec        line= 560 file= huffdec2.c
+    Block #210: executed   12683 time(s) address= 0x8058608 function= huffspec        line= 561 file= huffdec2.c
+    Block #211: executed   10574 time(s) address= 0x805862d function= huffspec        line= 564 file= huffdec2.c
+    Block #212: executed   10574 time(s) address= 0x8058639 function= huffspec        line= 564 file= huffdec2.c
+    Block #213: executed   10574 time(s) address= 0x8058645 function= huffspec        line= 564 file= huffdec2.c
+    Block #214: executed   10574 time(s) address= 0x8058651 function= huffspec        line= 564 file= huffdec2.c
+    Block #215: executed    2109 time(s) address= 0x805865c function= huffspec        line= 566 file= huffdec2.c
+    Block #216: executed   10574 time(s) address= 0x8058688 function= huffspec        line= 571 file= huffdec2.c
+    Block #217: executed    6679 time(s) address= 0x8058694 function= huffspec        line= 572 file= huffdec2.c
+    Block #218: executed    3895 time(s) address= 0x80586a4 function= huffspec        line= 575 file= huffdec2.c
+    Block #219: executed   10574 time(s) address= 0x80586b1 function= huffspec        line= 576 file= huffdec2.c
+    Block #220: executed   28160 time(s) address= 0x80586f8 function= huffspec        line= 580 file= huffdec2.c
+    Block #221: executed   10574 time(s) address= 0x8058706 function= huffspec        line= 580 file= huffdec2.c
+    Block #222: executed   17586 time(s) address= 0x8058714 function= huffspec        line= 581 file= huffdec2.c
+    Block #223: executed  134907 time(s) address= 0x805872c function= huffspec        line= 582 file= huffdec2.c
+    Block #224: executed   17586 time(s) address= 0x805873a function= huffspec        line= 582 file= huffdec2.c
+    Block #225: executed  117321 time(s) address= 0x8058748 function= huffspec        line= 583 file= huffdec2.c
+    Block #226: executed   28302 time(s) address= 0x805877f function= huffspec        line= 587 file= huffdec2.c
+    Block #227: executed  117321 time(s) address= 0x8058799 function= huffspec        line= 588 file= huffdec2.c
+    Block #228: executed    4384 time(s) address= 0x80587a5 function= huffspec        line= 589 file= huffdec2.c
+    Block #229: executed  117321 time(s) address= 0x80587ff function= huffspec        line= 592 file= huffdec2.c
+    Block #230: executed   10574 time(s) address= 0x8058824 function= huffspec        line= 596 file= huffdec2.c
+    Block #231: executed   12683 time(s) address= 0x8058830 function= huffspec        line= 560 file= huffdec2.c
+    Block #232: executed     960 time(s) address= 0x8058840 function= huffspec        line= 600 file= huffdec2.c
+    Block #233: executed     455 time(s) address= 0x805884e function= huffspec        line= 600 file= huffdec2.c
+    Block #234: executed       0 time(s) address= 0x805885d function= huffspec        line= 601 file= huffdec2.c
+    Block #235: executed     960 time(s) address= 0x805887a function= huffspec        line= 603 file= huffdec2.c
+    Block #236: executed     505 time(s) address= 0x8058888 function= huffspec        line= 604 file= huffdec2.c
+    Block #237: executed     960 time(s) address= 0x80588e9 function= huffspec        line= 613 file= huffdec2.c
+    Block #238: executed  984000 time(s) address= 0x80588f8 function= huffspec        line= 613 file= huffdec2.c
+    Block #239: executed     960 time(s) address= 0x8058909 function= huffspec        line= 613 file= huffdec2.c
+    Block #240: executed  983040 time(s) address= 0x8058914 function= huffspec        line= 614 file= huffdec2.c
+    Block #241: executed     960 time(s) address= 0x805894c function= huffspec        line= 622 file= huffdec2.c
+    Block #242: executed    5455 time(s) address= 0x8058978 function= huffspec        line= 625 file= huffdec2.c
+    Block #243: executed     960 time(s) address= 0x805898c function= huffspec        line= 625 file= huffdec2.c
+    Block #244: executed    4495 time(s) address= 0x8058998 function= huffspec        line= 626 file= huffdec2.c
+    Block #245: executed   83350 time(s) address= 0x80589c8 function= huffspec        line= 628 file= huffdec2.c
+    Block #246: executed    4495 time(s) address= 0x80589dc function= huffspec        line= 628 file= huffdec2.c
+    Block #247: executed   78855 time(s) address= 0x80589ec function= huffspec        line= 629 file= huffdec2.c
+    Block #248: executed   50486 time(s) address= 0x8058a3b function= huffspec        line= 632 file= huffdec2.c
+    Block #249: executed   50486 time(s) address= 0x8058a4a function= huffspec        line= 633 file= huffdec2.c
+    Block #250: executed   28369 time(s) address= 0x8058a70 function= huffspec        line= 636 file= huffdec2.c
+    Block #251: executed   28369 time(s) address= 0x8058a7f function= huffspec        line= 637 file= huffdec2.c
+    Block #252: executed       0 time(s) address= 0x8058a94 function= huffspec        line= 640 file= huffdec2.c
+    Block #253: executed 1061895 time(s) address= 0x8058ac4 function= huffspec        line= 643 file= huffdec2.c
+    Block #254: executed   78855 time(s) address= 0x8058ad5 function= huffspec        line= 643 file= huffdec2.c
+    Block #255: executed  983040 time(s) address= 0x8058ae8 function= huffspec        line= 644 file= huffdec2.c
+    Block #256: executed     960 time(s) address= 0x8058b10 function= huffspec        line= 649 file= huffdec2.c
+    Block #257: executed    8768 time(s) address= 0x8058b20 function= getescape       line= 653 file= huffdec2.c
+    Block #258: executed    4195 time(s) address= 0x8058b4d function= getescape       line= 657 file= huffdec2.c
+    Block #259: executed    3914 time(s) address= 0x8058b59 function= getescape       line= 658 file= huffdec2.c
+    Block #260: executed     281 time(s) address= 0x8058b70 function= getescape       line= 659 file= huffdec2.c
+    Block #261: executed    4573 time(s) address= 0x8058b80 function= getescape       line= 661 file= huffdec2.c
+    Block #262: executed    4278 time(s) address= 0x8058b8c function= getescape       line= 662 file= huffdec2.c
+    Block #263: executed     295 time(s) address= 0x8058ba0 function= getescape       line= 663 file= huffdec2.c
+    Block #264: executed     576 time(s) address= 0x8058bad function= getescape       line= 666 file= huffdec2.c
+    Block #265: executed     602 time(s) address= 0x8058bbc function= getescape       line= 667 file= huffdec2.c
+    Block #266: executed     576 time(s) address= 0x8058bd8 function= getescape       line= 668 file= huffdec2.c
+    Block #267: executed      26 time(s) address= 0x8058be0 function= getescape       line= 666 file= huffdec2.c
+    Block #268: executed     576 time(s) address= 0x8058bf0 function= getescape       line= 671 file= huffdec2.c
+    Block #269: executed       0 time(s) address= 0x8058bfc function= getescape       line= 672 file= huffdec2.c
+    Block #270: executed     576 time(s) address= 0x8058c3c function= getescape       line= 675 file= huffdec2.c
+    Block #271: executed     576 time(s) address= 0x8058c53 function= getescape       line= 677 file= huffdec2.c
+    Block #272: executed     281 time(s) address= 0x8058c75 function= getescape       line= 679 file= huffdec2.c
+    Block #273: executed     576 time(s) address= 0x8058c80 function= getescape       line= 680 file= huffdec2.c
+    Block #274: executed    8768 time(s) address= 0x8058c8f function= getescape       line= 681 file= huffdec2.c
+
+File /home/wmay/faad/huffdec1.d, 28 basic blocks 
+
+    Block # 1: executed  481 time(s) address= 0x80569b8 function= huffdecode   line=  39 file= huffdec1.c
+    Block # 2: executed  480 time(s) address= 0x8056a12 function= huffdecode   line=  47 file= huffdec1.c
+    Block # 3: executed    0 time(s) address= 0x8056a21 function= huffdecode   line=  56 file= huffdec1.c
+    Block # 4: executed    1 time(s) address= 0x8056a34 function= huffdecode   line=  49 file= huffdec1.c
+    Block # 5: executed  480 time(s) address= 0x8056a44 function= huffdecode   line=  52 file= huffdec1.c
+    Block # 6: executed  481 time(s) address= 0x8056a5a function= huffdecode   line=  59 file= huffdec1.c
+    Block # 7: executed    1 time(s) address= 0x8056a7d function= huffdecode   line=  60 file= huffdec1.c
+    Block # 8: executed  480 time(s) address= 0x8056a90 function= huffdecode   line=  62 file= huffdec1.c
+    Block # 9: executed  480 time(s) address= 0x8056aa8 function= huffdecode   line=  62 file= huffdec1.c
+    Block #10: executed    0 time(s) address= 0x8056ab7 function= huffdecode   line=  62 file= huffdec1.c
+    Block #11: executed    0 time(s) address= 0x8056ac4 function= huffdecode   line=  64 file= huffdec1.c
+    Block #12: executed  480 time(s) address= 0x8056b04 function= huffdecode   line=  70 file= huffdec1.c
+    Block #13: executed  264 time(s) address= 0x8056b38 function= huffdecode   line=  73 file= huffdec1.c
+    Block #14: executed  216 time(s) address= 0x8056c1c function= huffdecode   line=  82 file= huffdec1.c
+    Block #15: executed  480 time(s) address= 0x8056c64 function= huffdecode   line=  88 file= huffdec1.c
+    Block #16: executed 1440 time(s) address= 0x8056c70 function= huffdecode   line=  88 file= huffdec1.c
+    Block #17: executed  480 time(s) address= 0x8056c7e function= huffdecode   line=  88 file= huffdec1.c
+    Block #18: executed  960 time(s) address= 0x8056c8c function= huffdecode   line=  89 file= huffdec1.c
+    Block #19: executed    0 time(s) address= 0x8056d70 function= huffdecode   line=  98 file= huffdec1.c
+    Block #20: executed  960 time(s) address= 0x8056d80 function= huffdecode   line=  88 file= huffdec1.c
+    Block #21: executed  480 time(s) address= 0x8056d90 function= huffdecode   line= 100 file= huffdec1.c
+    Block #22: executed  481 time(s) address= 0x8056d9b function= huffdecode   line= 101 file= huffdec1.c
+    Block #23: executed  696 time(s) address= 0x8056da4 function= get_ics_info line= 107 file= huffdec1.c
+    Block #24: executed    0 time(s) address= 0x8056e20 function= get_ics_info line= 114 file= huffdec1.c
+    Block #25: executed  696 time(s) address= 0x8056e38 function= get_ics_info line= 119 file= huffdec1.c
+    Block #26: executed  366 time(s) address= 0x8056e4f function= get_ics_info line= 121 file= huffdec1.c
+    Block #27: executed  330 time(s) address= 0x8056eb4 function= get_ics_info line= 130 file= huffdec1.c
+    Block #28: executed  696 time(s) address= 0x8056ef9 function= get_ics_info line= 135 file= huffdec1.c
+
+File /home/wmay/faad/config.d, 217 basic blocks 
+
+    Block #  1: executed   87 time(s) address= 0x8049fd8 function= tns_max_bands    line=  32 file= config.c
+    Block #  2: executed   29 time(s) address= 0x804a030 function= tns_max_order    line=  43 file= config.c
+    Block #  3: executed   29 time(s) address= 0x804a05d function= tns_max_order    line=  45 file= config.c
+    Block #  4: executed    0 time(s) address= 0x804a071 function= tns_max_order    line=  45 file= config.c
+    Block #  5: executed    0 time(s) address= 0x804a07d function= tns_max_order    line=  45 file= config.c
+    Block #  6: executed   29 time(s) address= 0x804a088 function= tns_max_order    line=  47 file= config.c
+    Block #  7: executed    0 time(s) address= 0x804a098 function= tns_max_order    line=  49 file= config.c
+    Block #  8: executed    0 time(s) address= 0x804a0a8 function= tns_max_order    line=  54 file= config.c
+    Block #  9: executed    0 time(s) address= 0x804a0b8 function= tns_max_order    line=  56 file= config.c
+    Block # 10: executed   29 time(s) address= 0x804a0c3 function= tns_max_order    line=  57 file= config.c
+    Block # 11: executed    0 time(s) address= 0x804a0cc function= max_indep_cc     line=  61 file= config.c
+    Block # 12: executed    0 time(s) address= 0x804a101 function= max_indep_cc     line=  62 file= config.c
+    Block # 13: executed    0 time(s) address= 0x804a10d function= max_indep_cc     line=  62 file= config.c
+    Block # 14: executed    0 time(s) address= 0x804a118 function= max_indep_cc     line=  64 file= config.c
+    Block # 15: executed    0 time(s) address= 0x804a128 function= max_indep_cc     line=  66 file= config.c
+    Block # 16: executed    0 time(s) address= 0x804a138 function= max_indep_cc     line=  68 file= config.c
+    Block # 17: executed    0 time(s) address= 0x804a143 function= max_indep_cc     line=  69 file= config.c
+    Block # 18: executed    0 time(s) address= 0x804a14c function= max_dep_cc       line=  73 file= config.c
+    Block # 19: executed    0 time(s) address= 0x804a181 function= max_dep_cc       line=  74 file= config.c
+    Block # 20: executed    0 time(s) address= 0x804a18d function= max_dep_cc       line=  77 file= config.c
+    Block # 21: executed    0 time(s) address= 0x804a19c function= max_dep_cc       line=  79 file= config.c
+    Block # 22: executed    0 time(s) address= 0x804a1a7 function= max_dep_cc       line=  80 file= config.c
+    Block # 23: executed    0 time(s) address= 0x804a1b0 function= get_adif_header  line=  86 file= config.c
+    Block # 24: executed    0 time(s) address= 0x804a1ec function= get_adif_header  line=  92 file= config.c
+    Block # 25: executed    0 time(s) address= 0x804a1f8 function= get_adif_header  line=  92 file= config.c
+    Block # 26: executed    0 time(s) address= 0x804a200 function= get_adif_header  line=  93 file= config.c
+    Block # 27: executed    0 time(s) address= 0x804a234 function= get_adif_header  line=  94 file= config.c
+    Block # 28: executed    0 time(s) address= 0x804a26e function= get_adif_header  line=  97 file= config.c
+    Block # 29: executed    0 time(s) address= 0x804a27c function= get_adif_header  line=  97 file= config.c
+    Block # 30: executed    0 time(s) address= 0x804a288 function= get_adif_header  line=  97 file= config.c
+    Block # 31: executed    0 time(s) address= 0x804a290 function= get_adif_header  line=  98 file= config.c
+    Block # 32: executed    0 time(s) address= 0x804a2c8 function= get_adif_header  line=  99 file= config.c
+    Block # 33: executed    0 time(s) address= 0x804a2e0 function= get_adif_header  line= 101 file= config.c
+    Block # 34: executed    0 time(s) address= 0x804a39c function= get_adif_header  line= 109 file= config.c
+    Block # 35: executed    0 time(s) address= 0x804a3aa function= get_adif_header  line= 109 file= config.c
+    Block # 36: executed    0 time(s) address= 0x804a3b8 function= get_adif_header  line= 110 file= config.c
+    Block # 37: executed    0 time(s) address= 0x804a3ca function= get_adif_header  line= 110 file= config.c
+    Block # 38: executed    0 time(s) address= 0x804a3e8 function= get_adif_header  line= 110 file= config.c
+    Block # 39: executed    0 time(s) address= 0x804a3f8 function= get_adif_header  line= 110 file= config.c
+    Block # 40: executed    0 time(s) address= 0x804a425 function= get_adif_header  line= 114 file= config.c
+    Block # 41: executed    0 time(s) address= 0x804a433 function= get_adif_header  line= 115 file= config.c
+    Block # 42: executed    0 time(s) address= 0x804a443 function= get_adif_header  line= 116 file= config.c
+    Block # 43: executed    0 time(s) address= 0x804a46c function= get_adif_header  line= 109 file= config.c
+    Block # 44: executed    0 time(s) address= 0x804a47c function= get_adif_header  line= 121 file= config.c
+    Block # 45: executed    0 time(s) address= 0x804a494 function= get_ele_list     line= 130 file= config.c
+    Block # 46: executed    0 time(s) address= 0x804a4cc function= get_ele_list     line= 132 file= config.c
+    Block # 47: executed    0 time(s) address= 0x804a4da function= get_ele_list     line= 132 file= config.c
+    Block # 48: executed    0 time(s) address= 0x804a4e8 function= get_ele_list     line= 133 file= config.c
+    Block # 49: executed    0 time(s) address= 0x804a4f4 function= get_ele_list     line= 134 file= config.c
+    Block # 50: executed    0 time(s) address= 0x804a528 function= get_ele_list     line= 136 file= config.c
+    Block # 51: executed    0 time(s) address= 0x804a549 function= get_ele_list     line= 137 file= config.c
+    Block # 52: executed    0 time(s) address= 0x804a584 function= get_ele_list     line= 139 file= config.c
+    Block # 53: executed    0 time(s) address= 0x804a58c function= get_prog_config  line= 143 file= config.c
+    Block # 54: executed    0 time(s) address= 0x804a6ba function= get_prog_config  line= 157 file= config.c
+    Block # 55: executed    0 time(s) address= 0x804a6dc function= get_prog_config  line= 158 file= config.c
+    Block # 56: executed    0 time(s) address= 0x804a703 function= get_prog_config  line= 159 file= config.c
+    Block # 57: executed    0 time(s) address= 0x804a725 function= get_prog_config  line= 160 file= config.c
+    Block # 58: executed    0 time(s) address= 0x804a74c function= get_prog_config  line= 161 file= config.c
+    Block # 59: executed    0 time(s) address= 0x804a78a function= get_prog_config  line= 164 file= config.c
+    Block # 60: executed    0 time(s) address= 0x804a830 function= get_prog_config  line= 173 file= config.c
+    Block # 61: executed    0 time(s) address= 0x804a83e function= get_prog_config  line= 173 file= config.c
+    Block # 62: executed    0 time(s) address= 0x804a848 function= get_prog_config  line= 174 file= config.c
+    Block # 63: executed    0 time(s) address= 0x804a87c function= get_prog_config  line= 175 file= config.c
+    Block # 64: executed    0 time(s) address= 0x804a8a0 function= get_prog_config  line= 179 file= config.c
+    Block # 65: executed    0 time(s) address= 0x804a8ae function= get_prog_config  line= 180 file= config.c
+    Block # 66: executed    0 time(s) address= 0x804a8bf function= get_prog_config  line= 182 file= config.c
+    Block # 67: executed    0 time(s) address= 0x804a8e1 function= get_prog_config  line= 183 file= config.c
+    Block # 68: executed    0 time(s) address= 0x804a8f0 function= get_prog_config  line= 185 file= config.c
+    Block # 69: executed    0 time(s) address= 0x804a900 function= get_prog_config  line= 188 file= config.c
+    Block # 70: executed    0 time(s) address= 0x804a90f function= get_prog_config  line= 189 file= config.c
+    Block # 71: executed    0 time(s) address= 0x804a918 function= enter_mc_info    line= 196 file= config.c
+    Block # 72: executed    0 time(s) address= 0x804a99f function= enter_mc_info    line= 215 file= config.c
+    Block # 73: executed    0 time(s) address= 0x804a9d2 function= enter_mc_info    line= 219 file= config.c
+    Block # 74: executed    0 time(s) address= 0x804a9f8 function= enter_mc_info    line= 224 file= config.c
+    Block # 75: executed    0 time(s) address= 0x804aa06 function= enter_mc_info    line= 224 file= config.c
+    Block # 76: executed    0 time(s) address= 0x804aa10 function= enter_mc_info    line= 225 file= config.c
+    Block # 77: executed    0 time(s) address= 0x804aa30 function= enter_mc_info    line= 226 file= config.c
+    Block # 78: executed    0 time(s) address= 0x804aa38 function= enter_mc_info    line= 227 file= config.c
+    Block # 79: executed    0 time(s) address= 0x804aa4c function= enter_mc_info    line= 229 file= config.c
+    Block # 80: executed    0 time(s) address= 0x804aa64 function= enter_mc_info    line= 229 file= config.c
+    Block # 81: executed    0 time(s) address= 0x804aa72 function= enter_mc_info    line= 229 file= config.c
+    Block # 82: executed    0 time(s) address= 0x804aa7c function= enter_mc_info    line= 230 file= config.c
+    Block # 83: executed    0 time(s) address= 0x804aad7 function= enter_mc_info    line= 233 file= config.c
+    Block # 84: executed    0 time(s) address= 0x804aae8 function= enter_mc_info    line= 229 file= config.c
+    Block # 85: executed    0 time(s) address= 0x804aaf8 function= enter_mc_info    line= 237 file= config.c
+    Block # 86: executed    0 time(s) address= 0x804ab18 function= enter_mc_info    line= 238 file= config.c
+    Block # 87: executed    0 time(s) address= 0x804ab26 function= enter_mc_info    line= 238 file= config.c
+    Block # 88: executed    0 time(s) address= 0x804ab30 function= enter_mc_info    line= 239 file= config.c
+    Block # 89: executed    0 time(s) address= 0x804ab8b function= enter_mc_info    line= 242 file= config.c
+    Block # 90: executed    0 time(s) address= 0x804ab9c function= enter_mc_info    line= 238 file= config.c
+    Block # 91: executed    0 time(s) address= 0x804abac function= enter_mc_info    line= 246 file= config.c
+    Block # 92: executed    0 time(s) address= 0x804abcc function= enter_mc_info    line= 247 file= config.c
+    Block # 93: executed    0 time(s) address= 0x804abda function= enter_mc_info    line= 247 file= config.c
+    Block # 94: executed    0 time(s) address= 0x804abe4 function= enter_mc_info    line= 248 file= config.c
+    Block # 95: executed    0 time(s) address= 0x804ac3f function= enter_mc_info    line= 251 file= config.c
+    Block # 96: executed    0 time(s) address= 0x804ac50 function= enter_mc_info    line= 247 file= config.c
+    Block # 97: executed    0 time(s) address= 0x804ac60 function= enter_mc_info    line= 255 file= config.c
+    Block # 98: executed    0 time(s) address= 0x804ac80 function= enter_mc_info    line= 256 file= config.c
+    Block # 99: executed    0 time(s) address= 0x804ac8e function= enter_mc_info    line= 256 file= config.c
+    Block #100: executed    0 time(s) address= 0x804ac98 function= enter_mc_info    line= 257 file= config.c
+    Block #101: executed    0 time(s) address= 0x804acf3 function= enter_mc_info    line= 260 file= config.c
+    Block #102: executed    0 time(s) address= 0x804ad04 function= enter_mc_info    line= 256 file= config.c
+    Block #103: executed    0 time(s) address= 0x804ad14 function= enter_mc_info    line= 264 file= config.c
+    Block #104: executed    0 time(s) address= 0x804ad34 function= enter_mc_info    line= 265 file= config.c
+    Block #105: executed    0 time(s) address= 0x804ad42 function= enter_mc_info    line= 265 file= config.c
+    Block #106: executed    0 time(s) address= 0x804ad4c function= enter_mc_info    line= 266 file= config.c
+    Block #107: executed    0 time(s) address= 0x804ad88 function= enter_mc_info    line= 267 file= config.c
+    Block #108: executed    0 time(s) address= 0x804adaa function= enter_mc_info    line= 273 file= config.c
+    Block #109: executed    0 time(s) address= 0x804adb8 function= enter_mc_info    line= 277 file= config.c
+    Block #110: executed    0 time(s) address= 0x804add1 function= enter_mc_info    line= 280 file= config.c
+    Block #111: executed    0 time(s) address= 0x804ade0 function= enter_mc_info    line= 284 file= config.c
+    Block #112: executed    0 time(s) address= 0x804adf9 function= enter_mc_info    line= 287 file= config.c
+    Block #113: executed    0 time(s) address= 0x804ae08 function= enter_mc_info    line= 291 file= config.c
+    Block #114: executed    0 time(s) address= 0x804ae25 function= enter_mc_info    line= 294 file= config.c
+    Block #115: executed  480 time(s) address= 0x804ae34 function= enter_chn        line= 302 file= config.c
+    Block #116: executed  480 time(s) address= 0x804ae6f function= enter_chn        line= 306 file= config.c
+    Block #117: executed    0 time(s) address= 0x804ae80 function= enter_chn        line= 306 file= config.c
+    Block #118: executed  480 time(s) address= 0x804ae8d function= enter_chn        line= 306 file= config.c
+    Block #119: executed    0 time(s) address= 0x804aea9 function= enter_chn        line= 308 file= config.c
+    Block #120: executed    0 time(s) address= 0x804aeb5 function= enter_chn        line= 308 file= config.c
+    Block #121: executed    0 time(s) address= 0x804aec1 function= enter_chn        line= 308 file= config.c
+    Block #122: executed    0 time(s) address= 0x804aed1 function= enter_chn        line= 308 file= config.c
+    Block #123: executed    0 time(s) address= 0x804aedc function= enter_chn        line= 308 file= config.c
+    Block #124: executed    0 time(s) address= 0x804aeec function= enter_chn        line= 308 file= config.c
+    Block #125: executed    0 time(s) address= 0x804aefc function= enter_chn        line= 308 file= config.c
+    Block #126: executed    0 time(s) address= 0x804af08 function= enter_chn        line= 311 file= config.c
+    Block #127: executed    0 time(s) address= 0x804af2b function= enter_chn        line= 313 file= config.c
+    Block #128: executed    0 time(s) address= 0x804af74 function= enter_chn        line= 317 file= config.c
+    Block #129: executed    0 time(s) address= 0x804afba function= enter_chn        line= 320 file= config.c
+    Block #130: executed  480 time(s) address= 0x804afd0 function= enter_chn        line= 324 file= config.c
+    Block #131: executed    0 time(s) address= 0x804afe6 function= enter_chn        line= 326 file= config.c
+    Block #132: executed  480 time(s) address= 0x804aff8 function= enter_chn        line= 328 file= config.c
+    Block #133: executed  480 time(s) address= 0x804b007 function= enter_chn        line= 359 file= config.c
+    Block #134: executed  480 time(s) address= 0x804b013 function= enter_chn        line= 361 file= config.c
+    Block #135: executed    0 time(s) address= 0x804b030 function= enter_chn        line= 366 file= config.c
+    Block #136: executed    0 time(s) address= 0x804b04c function= enter_chn        line= 372 file= config.c
+    Block #137: executed    0 time(s) address= 0x804b070 function= enter_chn        line= 377 file= config.c
+    Block #138: executed    0 time(s) address= 0x804b086 function= enter_chn        line= 379 file= config.c
+    Block #139: executed    0 time(s) address= 0x804b098 function= enter_chn        line= 381 file= config.c
+    Block #140: executed    0 time(s) address= 0x804b0c0 function= enter_chn        line= 385 file= config.c
+    Block #141: executed    0 time(s) address= 0x804b0d6 function= enter_chn        line= 387 file= config.c
+    Block #142: executed    0 time(s) address= 0x804b0e8 function= enter_chn        line= 389 file= config.c
+    Block #143: executed    0 time(s) address= 0x804b10c function= enter_chn        line= 393 file= config.c
+    Block #144: executed    0 time(s) address= 0x804b122 function= enter_chn        line= 395 file= config.c
+    Block #145: executed    0 time(s) address= 0x804b134 function= enter_chn        line= 397 file= config.c
+    Block #146: executed    0 time(s) address= 0x804b158 function= enter_chn        line= 401 file= config.c
+    Block #147: executed  480 time(s) address= 0x804b170 function= enter_chn        line= 403 file= config.c
+    Block #148: executed    0 time(s) address= 0x804b189 function= enter_chn        line= 407 file= config.c
+    Block #149: executed  480 time(s) address= 0x804b1e4 function= enter_chn        line= 418 file= config.c
+    Block #150: executed  264 time(s) address= 0x804b28f function= enter_chn        line= 434 file= config.c
+    Block #151: executed  216 time(s) address= 0x804b2d8 function= enter_chn        line= 438 file= config.c
+    Block #152: executed  480 time(s) address= 0x804b31e function= enter_chn        line= 441 file= config.c
+    Block #153: executed  480 time(s) address= 0x804b32f function= enter_chn        line= 444 file= config.c
+    Block #154: executed  480 time(s) address= 0x804b33e function= enter_chn        line= 445 file= config.c
+    Block #155: executed  481 time(s) address= 0x804b34c function= default_position line= 448 file= config.c
+    Block #156: executed  480 time(s) address= 0x804b378 function= default_position line= 453 file= config.c
+    Block #157: executed  480 time(s) address= 0x804b384 function= default_position line= 454 file= config.c
+    Block #158: executed    0 time(s) address= 0x804b398 function= default_position line= 455 file= config.c
+    Block #159: executed    0 time(s) address= 0x804b3a7 function= default_position line= 455 file= config.c
+    Block #160: executed    0 time(s) address= 0x804b3b6 function= default_position line= 457 file= config.c
+    Block #161: executed  480 time(s) address= 0x804b3c2 function= default_position line= 459 file= config.c
+    Block #162: executed    1 time(s) address= 0x804b3d0 function= default_position line= 461 file= config.c
+    Block #163: executed    0 time(s) address= 0x804b3de function= default_position line= 462 file= config.c
+    Block #164: executed    1 time(s) address= 0x804b3ec function= default_position line= 463 file= config.c
+    Block #165: executed    0 time(s) address= 0x804b3fa function= default_position line= 464 file= config.c
+    Block #166: executed    1 time(s) address= 0x804b408 function= default_position line= 466 file= config.c
+    Block #167: executed  481 time(s) address= 0x804b413 function= default_position line= 467 file= config.c
+    Block #168: executed  481 time(s) address= 0x804b41c function= chn_config       line= 474 file= config.c
+    Block #169: executed  481 time(s) address= 0x804b462 function= chn_config       line= 492 file= config.c
+    Block #170: executed  481 time(s) address= 0x804b478 function= chn_config       line= 492 file= config.c
+    Block #171: executed  481 time(s) address= 0x804b484 function= chn_config       line= 496 file= config.c
+    Block #172: executed    1 time(s) address= 0x804b4a4 function= chn_config       line= 499 file= config.c
+    Block #173: executed  480 time(s) address= 0x804b4b4 function= chn_config       line= 501 file= config.c
+    Block #174: executed    0 time(s) address= 0x804b4dc function= chn_config       line= 506 file= config.c
+    Block #175: executed  480 time(s) address= 0x804b4fe function= chn_config       line= 509 file= config.c
+    Block #176: executed  481 time(s) address= 0x804b50d function= chn_config       line= 510 file= config.c
+    Block #177: executed  480 time(s) address= 0x804b518 function= reset_mc_info    line= 518 file= config.c
+    Block #178: executed  480 time(s) address= 0x804b54c function= reset_mc_info    line= 525 file= config.c
+    Block #179: executed    1 time(s) address= 0x804b596 function= reset_mc_info    line= 533 file= config.c
+    Block #180: executed  480 time(s) address= 0x804b5a6 function= reset_mc_info    line= 534 file= config.c
+    Block #181: executed 1440 time(s) address= 0x804b5b4 function= reset_mc_info    line= 534 file= config.c
+    Block #182: executed  480 time(s) address= 0x804b5c0 function= reset_mc_info    line= 534 file= config.c
+    Block #183: executed  960 time(s) address= 0x804b5c8 function= reset_mc_info    line= 535 file= config.c
+    Block #184: executed  480 time(s) address= 0x804b630 function= reset_mc_info    line= 545 file= config.c
+    Block #185: executed  479 time(s) address= 0x804b638 function= check_mc_info    line= 550 file= config.c
+    Block #186: executed    1 time(s) address= 0x804b671 function= check_mc_info    line= 558 file= config.c
+    Block #187: executed    3 time(s) address= 0x804b680 function= check_mc_info    line= 558 file= config.c
+    Block #188: executed    1 time(s) address= 0x804b68e function= check_mc_info    line= 558 file= config.c
+    Block #189: executed    2 time(s) address= 0x804b69c function= check_mc_info    line= 559 file= config.c
+    Block #190: executed  478 time(s) address= 0x804b70c function= check_mc_info    line= 569 file= config.c
+    Block #191: executed 1434 time(s) address= 0x804b720 function= check_mc_info    line= 570 file= config.c
+    Block #192: executed  478 time(s) address= 0x804b72e function= check_mc_info    line= 570 file= config.c
+    Block #193: executed  956 time(s) address= 0x804b73c function= check_mc_info    line= 571 file= config.c
+    Block #194: executed    0 time(s) address= 0x804b77f function= check_mc_info    line= 573 file= config.c
+    Block #195: executed  956 time(s) address= 0x804b78c function= check_mc_info    line= 574 file= config.c
+    Block #196: executed    0 time(s) address= 0x804b79a function= check_mc_info    line= 574 file= config.c
+    Block #197: executed  956 time(s) address= 0x804b7a4 function= check_mc_info    line= 575 file= config.c
+    Block #198: executed    0 time(s) address= 0x804b7b8 function= check_mc_info    line= 575 file= config.c
+    Block #199: executed  956 time(s) address= 0x804b7c5 function= check_mc_info    line= 576 file= config.c
+    Block #200: executed    0 time(s) address= 0x804b7d9 function= check_mc_info    line= 576 file= config.c
+    Block #201: executed  956 time(s) address= 0x804b7e6 function= check_mc_info    line= 577 file= config.c
+    Block #202: executed    0 time(s) address= 0x804b7fa function= check_mc_info    line= 577 file= config.c
+    Block #203: executed  956 time(s) address= 0x804b807 function= check_mc_info    line= 570 file= config.c
+    Block #204: executed  478 time(s) address= 0x804b818 function= check_mc_info    line= 579 file= config.c
+    Block #205: executed    0 time(s) address= 0x804b824 function= check_mc_info    line= 580 file= config.c
+    Block #206: executed  479 time(s) address= 0x804b83c function= check_mc_info    line= 583 file= config.c
+    Block #207: executed    0 time(s) address= 0x804b844 function= ch_index         line= 591 file= config.c
+    Block #208: executed    0 time(s) address= 0x804b874 function= ch_index         line= 594 file= config.c
+    Block #209: executed    0 time(s) address= 0x804b884 function= ch_index         line= 594 file= config.c
+    Block #210: executed    0 time(s) address= 0x804b890 function= ch_index         line= 596 file= config.c
+    Block #211: executed    0 time(s) address= 0x804b8b4 function= ch_index         line= 597 file= config.c
+    Block #212: executed    0 time(s) address= 0x804b8bc function= ch_index         line= 599 file= config.c
+    Block #213: executed    0 time(s) address= 0x804b8e2 function= ch_index         line= 599 file= config.c
+    Block #214: executed    0 time(s) address= 0x804b908 function= ch_index         line= 601 file= config.c
+    Block #215: executed    0 time(s) address= 0x804b91c function= ch_index         line= 594 file= config.c
+    Block #216: executed    0 time(s) address= 0x804b92c function= ch_index         line= 619 file= config.c
+    Block #217: executed    0 time(s) address= 0x804b942 function= ch_index         line= 623 file= config.c
+
+File /home/wmay/faad/fastfft.d, 53 basic blocks 
+
+    Block # 1: executed      0 time(s) address= 0x804dee4 function= pfftw_16              line=  382 file= fastfft.c
+    Block # 2: executed      0 time(s) address= 0x804ef34 function= pfftw_32              line=  689 file= fastfft.c
+    Block # 3: executed      0 time(s) address= 0x8051b8c function= pfftw_64              line= 1473 file= fastfft.c
+    Block # 4: executed      0 time(s) address= 0x8051c14 function= pfftw_128             line= 1482 file= fastfft.c
+    Block # 5: executed      0 time(s) address= 0x8051c9c function= pfftw_512             line= 1491 file= fastfft.c
+    Block # 6: executed  16096 time(s) address= 0x8051d28 function= pfftwi_16             line= 1499 file= fastfft.c
+    Block # 7: executed  16512 time(s) address= 0x8052d80 function= pfftwi_32             line= 1808 file= fastfft.c
+    Block # 8: executed   4024 time(s) address= 0x80559d8 function= pfftwi_64             line= 2592 file= fastfft.c
+    Block # 9: executed   4128 time(s) address= 0x8055a60 function= pfftwi_128            line= 2601 file= fastfft.c
+    Block #10: executed   1032 time(s) address= 0x8055ae8 function= pfftwi_512            line= 2610 file= fastfft.c
+    Block #11: executed      0 time(s) address= 0x8055b74 function= pfftw_twiddle_4       line= 2619 file= fastfft.c
+    Block #12: executed      0 time(s) address= 0x8055da8 function= pfftw_twiddle_4       line= 2677 file= fastfft.c
+    Block #13: executed      0 time(s) address= 0x805608d function= pfftw_twiddle_4       line= 2730 file= fastfft.c
+    Block #14: executed   9184 time(s) address= 0x8056098 function= pfftwi_twiddle_4      line= 2732 file= fastfft.c
+    Block #15: executed 319392 time(s) address= 0x80562cc function= pfftwi_twiddle_4      line= 2790 file= fastfft.c
+    Block #16: executed   9184 time(s) address= 0x80565c9 function= pfftwi_twiddle_4      line= 2847 file= fastfft.c
+    Block #17: executed     64 time(s) address= 0x80565d4 function= pfftw_permutation_64  line= 2850 file= fastfft.c
+    Block #18: executed      0 time(s) address= 0x805660d function= pfftw_permutation_64  line= 2851 file= fastfft.c
+    Block #19: executed     64 time(s) address= 0x8056617 function= pfftw_permutation_64  line= 2851 file= fastfft.c
+    Block #20: executed      0 time(s) address= 0x805663c function= pfftw_permutation_64  line= 2852 file= fastfft.c
+    Block #21: executed     64 time(s) address= 0x8056646 function= pfftw_permutation_64  line= 2852 file= fastfft.c
+    Block #22: executed     48 time(s) address= 0x805665b function= pfftw_permutation_64  line= 2854 file= fastfft.c
+    Block #23: executed     16 time(s) address= 0x8056678 function= pfftw_permutation_64  line= 2856 file= fastfft.c
+    Block #24: executed      0 time(s) address= 0x805669c function= pfftw_permutation_64  line= 2856 file= fastfft.c
+    Block #25: executed     16 time(s) address= 0x80566a6 function= pfftw_permutation_64  line= 2856 file= fastfft.c
+    Block #26: executed     64 time(s) address= 0x80566c9 function= pfftw_permutation_64  line= 2857 file= fastfft.c
+    Block #27: executed    512 time(s) address= 0x80566d4 function= pfftw_permutation_128 line= 2860 file= fastfft.c
+    Block #28: executed      0 time(s) address= 0x805670d function= pfftw_permutation_128 line= 2861 file= fastfft.c
+    Block #29: executed    512 time(s) address= 0x8056717 function= pfftw_permutation_128 line= 2861 file= fastfft.c
+    Block #30: executed      0 time(s) address= 0x805673c function= pfftw_permutation_128 line= 2862 file= fastfft.c
+    Block #31: executed    512 time(s) address= 0x8056746 function= pfftw_permutation_128 line= 2862 file= fastfft.c
+    Block #32: executed    384 time(s) address= 0x805675b function= pfftw_permutation_128 line= 2864 file= fastfft.c
+    Block #33: executed    128 time(s) address= 0x8056778 function= pfftw_permutation_128 line= 2866 file= fastfft.c
+    Block #34: executed      0 time(s) address= 0x805679c function= pfftw_permutation_128 line= 2866 file= fastfft.c
+    Block #35: executed    128 time(s) address= 0x80567a6 function= pfftw_permutation_128 line= 2866 file= fastfft.c
+    Block #36: executed    512 time(s) address= 0x80567c9 function= pfftw_permutation_128 line= 2867 file= fastfft.c
+    Block #37: executed    512 time(s) address= 0x80567d4 function= pfftw_permutation_512 line= 2870 file= fastfft.c
+    Block #38: executed      0 time(s) address= 0x805680d function= pfftw_permutation_512 line= 2871 file= fastfft.c
+    Block #39: executed    512 time(s) address= 0x8056817 function= pfftw_permutation_512 line= 2871 file= fastfft.c
+    Block #40: executed      0 time(s) address= 0x805683c function= pfftw_permutation_512 line= 2872 file= fastfft.c
+    Block #41: executed    512 time(s) address= 0x8056846 function= pfftw_permutation_512 line= 2872 file= fastfft.c
+    Block #42: executed    384 time(s) address= 0x805685b function= pfftw_permutation_512 line= 2874 file= fastfft.c
+    Block #43: executed    128 time(s) address= 0x8056888 function= pfftw_permutation_512 line= 2876 file= fastfft.c
+    Block #44: executed      0 time(s) address= 0x80568a4 function= pfftw_permutation_512 line= 2876 file= fastfft.c
+    Block #45: executed    128 time(s) address= 0x80568ae function= pfftw_permutation_512 line= 2876 file= fastfft.c
+    Block #46: executed    512 time(s) address= 0x80568e5 function= pfftw_permutation_512 line= 2877 file= fastfft.c
+    Block #47: executed      1 time(s) address= 0x80568f0 function= MakeFFTOrder          line= 2880 file= fastfft.c
+    Block #48: executed    513 time(s) address= 0x8056920 function= MakeFFTOrder          line= 2882 file= fastfft.c
+    Block #49: executed      1 time(s) address= 0x805692f function= MakeFFTOrder          line= 2882 file= fastfft.c
+    Block #50: executed    512 time(s) address= 0x8056938 function= MakeFFTOrder          line= 2884 file= fastfft.c
+    Block #51: executed     64 time(s) address= 0x8056944 function= MakeFFTOrder          line= 2884 file= fastfft.c
+    Block #52: executed    512 time(s) address= 0x8056972 function= MakeFFTOrder          line= 2885 file= fastfft.c
+    Block #53: executed      1 time(s) address= 0x80569ac function= MakeFFTOrder          line= 2887 file= fastfft.c
+
+File /home/wmay/faad/nok_lt_prediction.d, 102 basic blocks 
+
+    Block #  1: executed       2 time(s) address= 0x8059b0c function= nok_init_lt_pred line=  57 file= nok_lt_prediction.c
+    Block #  2: executed    8194 time(s) address= 0x8059b40 function= nok_init_lt_pred line=  60 file= nok_lt_prediction.c
+    Block #  3: executed       2 time(s) address= 0x8059b4f function= nok_init_lt_pred line=  60 file= nok_lt_prediction.c
+    Block #  4: executed    8192 time(s) address= 0x8059b58 function= nok_init_lt_pred line=  61 file= nok_lt_prediction.c
+    Block #  5: executed       2 time(s) address= 0x8059b78 function= nok_init_lt_pred line=  63 file= nok_lt_prediction.c
+    Block #  6: executed      18 time(s) address= 0x8059b94 function= nok_init_lt_pred line=  64 file= nok_lt_prediction.c
+    Block #  7: executed       2 time(s) address= 0x8059ba0 function= nok_init_lt_pred line=  64 file= nok_lt_prediction.c
+    Block #  8: executed      16 time(s) address= 0x8059ba8 function= nok_init_lt_pred line=  65 file= nok_lt_prediction.c
+    Block #  9: executed       2 time(s) address= 0x8059be8 function= nok_init_lt_pred line=  67 file= nok_lt_prediction.c
+    Block # 10: executed     258 time(s) address= 0x8059bf8 function= nok_init_lt_pred line=  67 file= nok_lt_prediction.c
+    Block # 11: executed       2 time(s) address= 0x8059c04 function= nok_init_lt_pred line=  67 file= nok_lt_prediction.c
+    Block # 12: executed     256 time(s) address= 0x8059c0c function= nok_init_lt_pred line=  68 file= nok_lt_prediction.c
+    Block # 13: executed       2 time(s) address= 0x8059c38 function= nok_init_lt_pred line=  69 file= nok_lt_prediction.c
+    Block # 14: executed     958 time(s) address= 0x8059c48 function= nok_lt_predict   line= 138 file= nok_lt_prediction.c
+    Block # 15: executed     577 time(s) address= 0x8059c8b function= nok_lt_predict   line= 148 file= nok_lt_prediction.c
+    Block # 16: executed     113 time(s) address= 0x8059c9a function= nok_lt_predict   line= 148 file= nok_lt_prediction.c
+    Block # 17: executed       0 time(s) address= 0x8059ca9 function= nok_lt_predict   line= 148 file= nok_lt_prediction.c
+    Block # 18: executed     577 time(s) address= 0x8059cb4 function= nok_lt_predict   line= 153 file= nok_lt_prediction.c
+    Block # 19: executed       0 time(s) address= 0x8059cc6 function= nok_lt_predict   line= 156 file= nok_lt_prediction.c
+    Block # 20: executed       0 time(s) address= 0x8059cec function= nok_lt_predict   line= 157 file= nok_lt_prediction.c
+    Block # 21: executed       0 time(s) address= 0x8059cfd function= nok_lt_predict   line= 157 file= nok_lt_prediction.c
+    Block # 22: executed       0 time(s) address= 0x8059d08 function= nok_lt_predict   line= 158 file= nok_lt_prediction.c
+    Block # 23: executed       0 time(s) address= 0x8059d40 function= nok_lt_predict   line= 161 file= nok_lt_prediction.c
+    Block # 24: executed       0 time(s) address= 0x8059d74 function= nok_lt_predict   line= 164 file= nok_lt_prediction.c
+    Block # 25: executed       0 time(s) address= 0x8059d85 function= nok_lt_predict   line= 164 file= nok_lt_prediction.c
+    Block # 26: executed       0 time(s) address= 0x8059d90 function= nok_lt_predict   line= 165 file= nok_lt_prediction.c
+    Block # 27: executed       0 time(s) address= 0x8059da8 function= nok_lt_predict   line= 166 file= nok_lt_prediction.c
+    Block # 28: executed       0 time(s) address= 0x8059dc3 function= nok_lt_predict   line= 166 file= nok_lt_prediction.c
+    Block # 29: executed       0 time(s) address= 0x8059dcc function= nok_lt_predict   line= 167 file= nok_lt_prediction.c
+    Block # 30: executed       0 time(s) address= 0x8059df0 function= nok_lt_predict   line= 169 file= nok_lt_prediction.c
+    Block # 31: executed       0 time(s) address= 0x8059e09 function= nok_lt_predict   line= 164 file= nok_lt_prediction.c
+    Block # 32: executed       0 time(s) address= 0x8059e1c function= nok_lt_predict   line= 172 file= nok_lt_prediction.c
+    Block # 33: executed       0 time(s) address= 0x8059e2c function= nok_lt_predict   line= 172 file= nok_lt_prediction.c
+    Block # 34: executed       0 time(s) address= 0x8059e3a function= nok_lt_predict   line= 172 file= nok_lt_prediction.c
+    Block # 35: executed       0 time(s) address= 0x8059e44 function= nok_lt_predict   line= 173 file= nok_lt_prediction.c
+    Block # 36: executed     577 time(s) address= 0x8059e7c function= nok_lt_predict   line= 176 file= nok_lt_prediction.c
+    Block # 37: executed  591425 time(s) address= 0x8059e8c function= nok_lt_predict   line= 176 file= nok_lt_prediction.c
+    Block # 38: executed     577 time(s) address= 0x8059e9a function= nok_lt_predict   line= 176 file= nok_lt_prediction.c
+    Block # 39: executed  590848 time(s) address= 0x8059ea4 function= nok_lt_predict   line= 178 file= nok_lt_prediction.c
+    Block # 40: executed     577 time(s) address= 0x8059eec function= nok_lt_predict   line= 183 file= nok_lt_prediction.c
+    Block # 41: executed 1773121 time(s) address= 0x8059f24 function= nok_lt_predict   line= 185 file= nok_lt_prediction.c
+    Block # 42: executed     577 time(s) address= 0x8059f37 function= nok_lt_predict   line= 185 file= nok_lt_prediction.c
+    Block # 43: executed 1772544 time(s) address= 0x8059f40 function= nok_lt_predict   line= 186 file= nok_lt_prediction.c
+    Block # 44: executed     577 time(s) address= 0x8059f6c function= nok_lt_predict   line= 188 file= nok_lt_prediction.c
+    Block # 45: executed  591425 time(s) address= 0x8059f8c function= nok_lt_predict   line= 189 file= nok_lt_prediction.c
+    Block # 46: executed     577 time(s) address= 0x8059f9a function= nok_lt_predict   line= 189 file= nok_lt_prediction.c
+    Block # 47: executed  590848 time(s) address= 0x8059fa8 function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 48: executed  590848 time(s) address= 0x8059ffb function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 49: executed       0 time(s) address= 0x805a004 function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 50: executed  590848 time(s) address= 0x805a018 function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 51: executed  590848 time(s) address= 0x805a056 function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 52: executed       0 time(s) address= 0x805a060 function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 53: executed  590848 time(s) address= 0x805a074 function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 54: executed  299168 time(s) address= 0x805a0ab function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 55: executed  291680 time(s) address= 0x805a0b4 function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 56: executed  299168 time(s) address= 0x805a118 function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 57: executed       0 time(s) address= 0x805a154 function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 58: executed  299168 time(s) address= 0x805a15c function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 59: executed       0 time(s) address= 0x805a1bc function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 60: executed  590848 time(s) address= 0x805a1cb function= nok_lt_predict   line= 191 file= nok_lt_prediction.c
+    Block # 61: executed  590848 time(s) address= 0x805a22b function= nok_lt_predict   line= 192 file= nok_lt_prediction.c
+    Block # 62: executed       0 time(s) address= 0x805a234 function= nok_lt_predict   line= 192 file= nok_lt_prediction.c
+    Block # 63: executed  590848 time(s) address= 0x805a248 function= nok_lt_predict   line= 192 file= nok_lt_prediction.c
+    Block # 64: executed  590848 time(s) address= 0x805a275 function= nok_lt_predict   line= 192 file= nok_lt_prediction.c
+    Block # 65: executed       0 time(s) address= 0x805a280 function= nok_lt_predict   line= 192 file= nok_lt_prediction.c
+    Block # 66: executed  590848 time(s) address= 0x805a294 function= nok_lt_predict   line= 192 file= nok_lt_prediction.c
+    Block # 67: executed  346845 time(s) address= 0x805a2ba function= nok_lt_predict   line= 192 file= nok_lt_prediction.c
+    Block # 68: executed  244003 time(s) address= 0x805a2c4 function= nok_lt_predict   line= 192 file= nok_lt_prediction.c
+    Block # 69: executed  346845 time(s) address= 0x805a318 function= nok_lt_predict   line= 192 file= nok_lt_prediction.c
+    Block # 70: executed       0 time(s) address= 0x805a343 function= nok_lt_predict   line= 192 file= nok_lt_prediction.c
+    Block # 71: executed  346845 time(s) address= 0x805a34c function= nok_lt_predict   line= 192 file= nok_lt_prediction.c
+    Block # 72: executed       0 time(s) address= 0x805a39c function= nok_lt_predict   line= 192 file= nok_lt_prediction.c
+    Block # 73: executed  590848 time(s) address= 0x805a3ab function= nok_lt_predict   line= 192 file= nok_lt_prediction.c
+    Block # 74: executed     958 time(s) address= 0x805a3d4 function= nok_lt_predict   line= 230 file= nok_lt_prediction.c
+    Block # 75: executed     366 time(s) address= 0x805a3e4 function= nok_lt_decode    line= 263 file= nok_lt_prediction.c
+    Block # 76: executed       0 time(s) address= 0x805a42e function= nok_lt_decode    line= 270 file= nok_lt_prediction.c
+    Block # 77: executed       0 time(s) address= 0x805a477 function= nok_lt_decode    line= 275 file= nok_lt_prediction.c
+    Block # 78: executed       0 time(s) address= 0x805a489 function= nok_lt_decode    line= 275 file= nok_lt_prediction.c
+    Block # 79: executed       0 time(s) address= 0x805a496 function= nok_lt_decode    line= 275 file= nok_lt_prediction.c
+    Block # 80: executed       0 time(s) address= 0x805a4b4 function= nok_lt_decode    line= 279 file= nok_lt_prediction.c
+    Block # 81: executed       0 time(s) address= 0x805a4c2 function= nok_lt_decode    line= 279 file= nok_lt_prediction.c
+    Block # 82: executed       0 time(s) address= 0x805a4cc function= nok_lt_decode    line= 280 file= nok_lt_prediction.c
+    Block # 83: executed       0 time(s) address= 0x805a4f8 function= nok_lt_decode    line= 281 file= nok_lt_prediction.c
+    Block # 84: executed       0 time(s) address= 0x805a507 function= nok_lt_decode    line= 281 file= nok_lt_prediction.c
+    Block # 85: executed       0 time(s) address= 0x805a514 function= nok_lt_decode    line= 282 file= nok_lt_prediction.c
+    Block # 86: executed       0 time(s) address= 0x805a534 function= nok_lt_decode    line= 286 file= nok_lt_prediction.c
+    Block # 87: executed       0 time(s) address= 0x805a546 function= nok_lt_decode    line= 286 file= nok_lt_prediction.c
+    Block # 88: executed       0 time(s) address= 0x805a553 function= nok_lt_decode    line= 286 file= nok_lt_prediction.c
+    Block # 89: executed       0 time(s) address= 0x805a570 function= nok_lt_decode    line= 289 file= nok_lt_prediction.c
+    Block # 90: executed       0 time(s) address= 0x805a57c function= nok_lt_decode    line= 289 file= nok_lt_prediction.c
+    Block # 91: executed       0 time(s) address= 0x805a588 function= nok_lt_decode    line= 291 file= nok_lt_prediction.c
+    Block # 92: executed       0 time(s) address= 0x805a5b7 function= nok_lt_decode    line= 293 file= nok_lt_prediction.c
+    Block # 93: executed       0 time(s) address= 0x805a5c3 function= nok_lt_decode    line= 295 file= nok_lt_prediction.c
+    Block # 94: executed       0 time(s) address= 0x805a5e8 function= nok_lt_decode    line= 300 file= nok_lt_prediction.c
+    Block # 95: executed       0 time(s) address= 0x805a604 function= nok_lt_decode    line= 302 file= nok_lt_prediction.c
+    Block # 96: executed       0 time(s) address= 0x805a66c function= nok_lt_decode    line= 307 file= nok_lt_prediction.c
+    Block # 97: executed       0 time(s) address= 0x805a68a function= nok_lt_decode    line= 310 file= nok_lt_prediction.c
+    Block # 98: executed       0 time(s) address= 0x805a698 function= nok_lt_decode    line= 310 file= nok_lt_prediction.c
+    Block # 99: executed       0 time(s) address= 0x805a6a6 function= nok_lt_decode    line= 310 file= nok_lt_prediction.c
+    Block #100: executed       0 time(s) address= 0x805a6b0 function= nok_lt_decode    line= 311 file= nok_lt_prediction.c
+    Block #101: executed       0 time(s) address= 0x805a6d4 function= nok_lt_decode    line= 289 file= nok_lt_prediction.c
+    Block #102: executed     366 time(s) address= 0x805a6e4 function= nok_lt_decode    line= 316 file= nok_lt_prediction.c
+
+File /home/wmay/faad/huffdec3.d, 34 basic blocks 
+
+    Block # 1: executed    7208 time(s) address= 0x8058c9c function= huffcmp        line=  34 file= huffdec3.c
+    Block # 2: executed    1565 time(s) address= 0x8058cdd function= huffcmp        line=  40 file= huffdec3.c
+    Block # 3: executed    5643 time(s) address= 0x8058cec function= huffcmp        line=  41 file= huffdec3.c
+    Block # 4: executed    4384 time(s) address= 0x8058d00 function= huffcmp        line=  41 file= huffdec3.c
+    Block # 5: executed    2304 time(s) address= 0x8058d14 function= huffcmp        line=  42 file= huffdec3.c
+    Block # 6: executed    3339 time(s) address= 0x8058d24 function= huffcmp        line=  43 file= huffdec3.c
+    Block # 7: executed    7208 time(s) address= 0x8058d2f function= huffcmp        line=  44 file= huffdec3.c
+    Block # 8: executed      12 time(s) address= 0x8058d38 function= hufftab        line=  52 file= huffdec3.c
+    Block # 9: executed       7 time(s) address= 0x8058d65 function= hufftab        line=  56 file= huffdec3.c
+    Block #10: executed       5 time(s) address= 0x8058d84 function= hufftab        line=  60 file= huffdec3.c
+    Block #11: executed      12 time(s) address= 0x8058da2 function= hufftab        line=  63 file= huffdec3.c
+    Block #12: executed      43 time(s) address= 0x8058db8 function= hufftab        line=  64 file= huffdec3.c
+    Block #13: executed      12 time(s) address= 0x8058dc6 function= hufftab        line=  64 file= huffdec3.c
+    Block #14: executed      31 time(s) address= 0x8058dd0 function= hufftab        line=  65 file= huffdec3.c
+    Block #15: executed      12 time(s) address= 0x8058dec function= hufftab        line=  66 file= huffdec3.c
+    Block #16: executed  134907 time(s) address= 0x8058e38 function= decode_huff_cw line=  83 file= huffdec3.c
+    Block #17: executed 1655690 time(s) address= 0x8058e7c function= decode_huff_cw line=  90 file= huffdec3.c
+    Block #18: executed  134907 time(s) address= 0x8058e8d function= decode_huff_cw line=  90 file= huffdec3.c
+    Block #19: executed 1520783 time(s) address= 0x8058e98 function= decode_huff_cw line=  92 file= huffdec3.c
+    Block #20: executed  134907 time(s) address= 0x8058ee4 function= decode_huff_cw line=  98 file= huffdec3.c
+    Block #21: executed  117321 time(s) address= 0x8058ef8 function= unpack_idx     line= 103 file= huffdec3.c
+    Block #22: executed   86951 time(s) address= 0x8058f2c function= unpack_idx     line= 106 file= huffdec3.c
+    Block #23: executed   30370 time(s) address= 0x8059054 function= unpack_idx     line= 116 file= huffdec3.c
+    Block #24: executed  117321 time(s) address= 0x80590a9 function= unpack_idx     line= 120 file= huffdec3.c
+    Block #25: executed   28302 time(s) address= 0x80590b4 function= get_sign_bits  line= 124 file= huffdec3.c
+    Block #26: executed     584 time(s) address= 0x80590e5 function= get_sign_bits  line= 129 file= huffdec3.c
+    Block #27: executed   28302 time(s) address= 0x805910a function= get_sign_bits  line= 133 file= huffdec3.c
+    Block #28: executed  111054 time(s) address= 0x8059118 function= get_sign_bits  line= 133 file= huffdec3.c
+    Block #29: executed   28302 time(s) address= 0x8059126 function= get_sign_bits  line= 133 file= huffdec3.c
+    Block #30: executed   82752 time(s) address= 0x8059130 function= get_sign_bits  line= 134 file= huffdec3.c
+    Block #31: executed   55504 time(s) address= 0x8059145 function= get_sign_bits  line= 135 file= huffdec3.c
+    Block #32: executed   27956 time(s) address= 0x805916a function= get_sign_bits  line= 138 file= huffdec3.c
+    Block #33: executed   82752 time(s) address= 0x805918a function= get_sign_bits  line= 133 file= huffdec3.c
+    Block #34: executed   28302 time(s) address= 0x8059198 function= get_sign_bits  line= 142 file= huffdec3.c
+
+File /home/wmay/faad/huffinit.d, 35 basic blocks 
+
+    Block # 1: executed   1 time(s) address= 0x80591a8 function= huffbookinit line=  30 file= huffinit.c
+    Block # 2: executed 129 time(s) address= 0x805931c function= huffbookinit line=  47 file= huffinit.c
+    Block # 3: executed   1 time(s) address= 0x8059328 function= huffbookinit line=  47 file= huffinit.c
+    Block # 4: executed 128 time(s) address= 0x8059330 function= huffbookinit line=  48 file= huffinit.c
+    Block # 5: executed   1 time(s) address= 0x8059370 function= huffbookinit line=  51 file= huffinit.c
+    Block # 6: executed 129 time(s) address= 0x8059380 function= huffbookinit line=  51 file= huffinit.c
+    Block # 7: executed   1 time(s) address= 0x805938c function= huffbookinit line=  51 file= huffinit.c
+    Block # 8: executed 128 time(s) address= 0x8059394 function= huffbookinit line=  52 file= huffinit.c
+    Block # 9: executed   1 time(s) address= 0x80593d0 function= huffbookinit line=  55 file= huffinit.c
+    Block #10: executed   1 time(s) address= 0x80593fc function= infoinit     line=  60 file= huffinit.c
+    Block #11: executed   2 time(s) address= 0x8059458 function= infoinit     line=  71 file= huffinit.c
+    Block #12: executed   1 time(s) address= 0x8059469 function= infoinit     line=  71 file= huffinit.c
+    Block #13: executed   1 time(s) address= 0x8059474 function= infoinit     line=  72 file= huffinit.c
+    Block #14: executed   1 time(s) address= 0x80594c4 function= infoinit     line=  76 file= huffinit.c
+    Block #15: executed   9 time(s) address= 0x8059530 function= infoinit     line=  87 file= huffinit.c
+    Block #16: executed   1 time(s) address= 0x8059541 function= infoinit     line=  87 file= huffinit.c
+    Block #17: executed   8 time(s) address= 0x805954c function= infoinit     line=  88 file= huffinit.c
+    Block #18: executed   1 time(s) address= 0x805959c function= infoinit     line=  93 file= huffinit.c
+    Block #19: executed  15 time(s) address= 0x80595c8 function= infoinit     line=  94 file= huffinit.c
+    Block #20: executed   1 time(s) address= 0x80595d6 function= infoinit     line=  94 file= huffinit.c
+    Block #21: executed  14 time(s) address= 0x80595e0 function= infoinit     line=  95 file= huffinit.c
+    Block #22: executed   1 time(s) address= 0x8059620 function= infoinit     line= 101 file= huffinit.c
+    Block #23: executed   5 time(s) address= 0x8059630 function= infoinit     line= 101 file= huffinit.c
+    Block #24: executed   1 time(s) address= 0x805963c function= infoinit     line= 101 file= huffinit.c
+    Block #25: executed   4 time(s) address= 0x8059648 function= infoinit     line= 102 file= huffinit.c
+    Block #26: executed   2 time(s) address= 0x8059669 function= infoinit     line= 103 file= huffinit.c
+    Block #27: executed   2 time(s) address= 0x8059674 function= infoinit     line= 105 file= huffinit.c
+    Block #28: executed  11 time(s) address= 0x805969c function= infoinit     line= 108 file= huffinit.c
+    Block #29: executed   2 time(s) address= 0x80596ad function= infoinit     line= 108 file= huffinit.c
+    Block #30: executed   9 time(s) address= 0x80596b8 function= infoinit     line= 110 file= huffinit.c
+    Block #31: executed 170 time(s) address= 0x8059720 function= infoinit     line= 117 file= huffinit.c
+    Block #32: executed   9 time(s) address= 0x805973c function= infoinit     line= 120 file= huffinit.c
+    Block #33: executed 161 time(s) address= 0x8059778 function= infoinit     line= 118 file= huffinit.c
+    Block #34: executed   4 time(s) address= 0x80597b4 function= infoinit     line= 101 file= huffinit.c
+    Block #35: executed   1 time(s) address= 0x80597c4 function= infoinit     line= 124 file= huffinit.c
+
+File /home/wmay/faad/portio.d, 21 basic blocks 
+
+    Block # 1: executed       1 time(s) address= 0x805a6f8 function= reset_bits line= 12 file= portio.c
+    Block # 2: executed   45105 time(s) address= 0x805a734 function= getshort   line= 18 file= portio.c
+    Block # 3: executed       1 time(s) address= 0x805a779 function= getshort   line= 25 file= portio.c
+    Block # 4: executed   45104 time(s) address= 0x805a790 function= getshort   line= 29 file= portio.c
+    Block # 5: executed       1 time(s) address= 0x805a7b4 function= getshort   line= 31 file= portio.c
+    Block # 6: executed   45103 time(s) address= 0x805a7cc function= getshort   line= 40 file= portio.c
+    Block # 7: executed   45105 time(s) address= 0x805a7eb function= getshort   line= 42 file= portio.c
+    Block # 8: executed     480 time(s) address= 0x805a7f4 function= byte_align line= 45 file= portio.c
+    Block # 9: executed      90 time(s) address= 0x805a82b function= byte_align line= 50 file= portio.c
+    Block #10: executed    2119 time(s) address= 0x805a850 function= byte_align line= 54 file= portio.c
+    Block #11: executed     480 time(s) address= 0x805a862 function= byte_align line= 54 file= portio.c
+    Block #12: executed    1639 time(s) address= 0x805a86c function= byte_align line= 56 file= portio.c
+    Block #13: executed     480 time(s) address= 0x805a880 function= byte_align line= 60 file= portio.c
+    Block #14: executed 1713929 time(s) address= 0x805a894 function= getbits    line= 64 file= portio.c
+    Block #15: executed   44431 time(s) address= 0x805a8c4 function= getbits    line= 67 file= portio.c
+    Block #16: executed 1713929 time(s) address= 0x805a8e9 function= getbits    line= 71 file= portio.c
+    Block #17: executed       1 time(s) address= 0x805a924 function= startblock line= 76 file= portio.c
+    Block #18: executed       0 time(s) address= 0x805a954 function= startblock line= 81 file= portio.c
+    Block #19: executed       0 time(s) address= 0x805a968 function= startblock line= 82 file= portio.c
+    Block #20: executed       0 time(s) address= 0x805a97c function= startblock line= 84 file= portio.c
+    Block #21: executed       1 time(s) address= 0x805a98c function= startblock line= 87 file= portio.c
+
+File /home/wmay/faad/filestream.d, 47 basic blocks 
+
+    Block # 1: executed     0 time(s) address= 0x804918c function= open_filestream_yours  line=  23 file= filestream.c
+    Block # 2: executed     0 time(s) address= 0x80491c9 function= open_filestream_yours  line=  26 file= filestream.c
+    Block # 3: executed     0 time(s) address= 0x80491d8 function= open_filestream_yours  line=  27 file= filestream.c
+    Block # 4: executed     0 time(s) address= 0x8049226 function= open_filestream_yours  line=  34 file= filestream.c
+    Block # 5: executed     1 time(s) address= 0x8049230 function= open_filestream        line=  36 file= filestream.c
+    Block # 6: executed     0 time(s) address= 0x8049285 function= open_filestream        line=  65 file= filestream.c
+    Block # 7: executed     1 time(s) address= 0x8049294 function= open_filestream        line=  67 file= filestream.c
+    Block # 8: executed     0 time(s) address= 0x80492c8 function= open_filestream        line=  71 file= filestream.c
+    Block # 9: executed     1 time(s) address= 0x80492e4 function= open_filestream        line=  78 file= filestream.c
+    Block #10: executed     1 time(s) address= 0x80492f3 function= open_filestream        line=  79 file= filestream.c
+    Block #11: executed 90213 time(s) address= 0x80492fc function= read_byte_filestream   line=  82 file= filestream.c
+    Block #12: executed     0 time(s) address= 0x804932c function= read_byte_filestream   line=  84 file= filestream.c
+    Block #13: executed 90213 time(s) address= 0x8049350 function= read_byte_filestream   line=  86 file= filestream.c
+    Block #14: executed     1 time(s) address= 0x804935f function= read_byte_filestream   line=  86 file= filestream.c
+    Block #15: executed 90212 time(s) address= 0x8049370 function= read_byte_filestream   line=  87 file= filestream.c
+    Block #16: executed    90 time(s) address= 0x8049384 function= read_byte_filestream   line=  89 file= filestream.c
+    Block #17: executed     1 time(s) address= 0x80493c3 function= read_byte_filestream   line= 100 file= filestream.c
+    Block #18: executed 90211 time(s) address= 0x80493dc function= read_byte_filestream   line= 105 file= filestream.c
+    Block #19: executed 90213 time(s) address= 0x8049400 function= read_byte_filestream   line= 108 file= filestream.c
+    Block #20: executed     1 time(s) address= 0x8049408 function= read_buffer_filestream line= 111 file= filestream.c
+    Block #21: executed     0 time(s) address= 0x804943e function= read_buffer_filestream line= 117 file= filestream.c
+    Block #22: executed     1 time(s) address= 0x8049468 function= read_buffer_filestream line= 120 file= filestream.c
+    Block #23: executed     5 time(s) address= 0x8049478 function= read_buffer_filestream line= 120 file= filestream.c
+    Block #24: executed     1 time(s) address= 0x8049486 function= read_buffer_filestream line= 120 file= filestream.c
+    Block #25: executed     4 time(s) address= 0x8049490 function= read_buffer_filestream line= 122 file= filestream.c
+    Block #26: executed     0 time(s) address= 0x80494bd function= read_buffer_filestream line= 126 file= filestream.c
+    Block #27: executed     0 time(s) address= 0x80494c9 function= read_buffer_filestream line= 128 file= filestream.c
+    Block #28: executed     0 time(s) address= 0x80494d4 function= read_buffer_filestream line= 132 file= filestream.c
+    Block #29: executed     4 time(s) address= 0x80494e4 function= read_buffer_filestream line= 120 file= filestream.c
+    Block #30: executed     1 time(s) address= 0x80494f4 function= read_buffer_filestream line= 137 file= filestream.c
+    Block #31: executed     1 time(s) address= 0x8049503 function= read_buffer_filestream line= 138 file= filestream.c
+    Block #32: executed     1 time(s) address= 0x804950c function= filelength_filestream  line= 141 file= filestream.c
+    Block #33: executed     0 time(s) address= 0x804953c function= filelength_filestream  line= 146 file= filestream.c
+    Block #34: executed     1 time(s) address= 0x804955c function= filelength_filestream  line= 155 file= filestream.c
+    Block #35: executed     1 time(s) address= 0x80495ba function= filelength_filestream  line= 161 file= filestream.c
+    Block #36: executed     0 time(s) address= 0x80495c4 function= seek_filestream        line= 164 file= filestream.c
+    Block #37: executed     0 time(s) address= 0x80495f4 function= seek_filestream        line= 166 file= filestream.c
+    Block #38: executed     0 time(s) address= 0x8049614 function= seek_filestream        line= 175 file= filestream.c
+    Block #39: executed     0 time(s) address= 0x8049660 function= seek_filestream        line= 180 file= filestream.c
+    Block #40: executed     0 time(s) address= 0x8049668 function= tell_filestream        line= 183 file= filestream.c
+    Block #41: executed     1 time(s) address= 0x80496a0 function= close_filestream       line= 188 file= filestream.c
+    Block #42: executed     1 time(s) address= 0x80496cd function= close_filestream       line= 191 file= filestream.c
+    Block #43: executed     0 time(s) address= 0x80496dc function= close_filestream       line= 192 file= filestream.c
+    Block #44: executed     1 time(s) address= 0x80496f8 function= close_filestream       line= 194 file= filestream.c
+    Block #45: executed     1 time(s) address= 0x8049706 function= close_filestream       line= 201 file= filestream.c
+    Block #46: executed     1 time(s) address= 0x804971c function= close_filestream       line= 204 file= filestream.c
+    Block #47: executed     1 time(s) address= 0x8049737 function= close_filestream       line= 207 file= filestream.c
+
+File /home/wmay/faad/decoder.d, 167 basic blocks 
+
+    Block #  1: executed       1 time(s) address= 0x804b9b4 function= do_init                    line=  38 file= decoder.c
+    Block #  2: executed       1 time(s) address= 0x804ba14 function= predinit                   line=  53 file= decoder.c
+    Block #  3: executed       3 time(s) address= 0x804ba44 function= predinit                   line=  56 file= decoder.c
+    Block #  4: executed       1 time(s) address= 0x804ba50 function= predinit                   line=  56 file= decoder.c
+    Block #  5: executed       2 time(s) address= 0x804ba58 function= predinit                   line=  57 file= decoder.c
+    Block #  6: executed       1 time(s) address= 0x804ba84 function= predinit                   line=  58 file= decoder.c
+    Block #  7: executed       0 time(s) address= 0x804ba8c function= getfill                    line=  61 file= decoder.c
+    Block #  8: executed       0 time(s) address= 0x804bace function= getfill                    line=  65 file= decoder.c
+    Block #  9: executed       0 time(s) address= 0x804baee function= getfill                    line=  67 file= decoder.c
+    Block # 10: executed       0 time(s) address= 0x804bafc function= getfill                    line=  67 file= decoder.c
+    Block # 11: executed       0 time(s) address= 0x804bb0a function= getfill                    line=  67 file= decoder.c
+    Block # 12: executed       0 time(s) address= 0x804bb14 function= getfill                    line=  68 file= decoder.c
+    Block # 13: executed       0 time(s) address= 0x804bb30 function= getfill                    line=  69 file= decoder.c
+    Block # 14: executed     480 time(s) address= 0x804bb38 function= get_adts_header            line=  72 file= decoder.c
+    Block # 15: executed    6240 time(s) address= 0x804bb68 function= get_adts_header            line=  78 file= decoder.c
+    Block # 16: executed     480 time(s) address= 0x804bb74 function= get_adts_header            line=  78 file= decoder.c
+    Block # 17: executed    5760 time(s) address= 0x804bb7c function= get_adts_header            line=  79 file= decoder.c
+    Block # 18: executed       0 time(s) address= 0x804bb98 function= get_adts_header            line=  81 file= decoder.c
+    Block # 19: executed    5760 time(s) address= 0x804bba8 function= get_adts_header            line=  78 file= decoder.c
+    Block # 20: executed     480 time(s) address= 0x804bbb8 function= get_adts_header            line=  83 file= decoder.c
+    Block # 21: executed     480 time(s) address= 0x804bcd1 function= get_adts_header            line= 105 file= decoder.c
+    Block # 22: executed       0 time(s) address= 0x804bcdc function= aac_decode_seek            line= 108 file= decoder.c
+    Block # 23: executed       0 time(s) address= 0x804bd70 function= aac_decode_seek            line= 121 file= decoder.c
+    Block # 24: executed       0 time(s) address= 0x804bd7e function= aac_decode_seek            line= 121 file= decoder.c
+    Block # 25: executed       0 time(s) address= 0x804bd8c function= aac_decode_seek            line= 123 file= decoder.c
+    Block # 26: executed       0 time(s) address= 0x804bda0 function= aac_decode_seek            line= 124 file= decoder.c
+    Block # 27: executed       0 time(s) address= 0x804bdb0 function= aac_decode_seek            line= 126 file= decoder.c
+    Block # 28: executed       0 time(s) address= 0x804bdd8 function= aac_decode_seek            line= 129 file= decoder.c
+    Block # 29: executed       0 time(s) address= 0x804bde6 function= aac_decode_seek            line= 129 file= decoder.c
+    Block # 30: executed       0 time(s) address= 0x804bdf8 function= aac_decode_seek            line= 130 file= decoder.c
+    Block # 31: executed       0 time(s) address= 0x804be14 function= aac_decode_seek            line= 133 file= decoder.c
+    Block # 32: executed       0 time(s) address= 0x804be1f function= aac_decode_seek            line= 134 file= decoder.c
+    Block # 33: executed       1 time(s) address= 0x804be28 function= aac_decode_init_filestream line= 137 file= decoder.c
+    Block # 34: executed       0 time(s) address= 0x804be58 function= aac_decode_init_filestream line= 140 file= decoder.c
+    Block # 35: executed       1 time(s) address= 0x804be79 function= aac_decode_init_filestream line= 144 file= decoder.c
+    Block # 36: executed       0 time(s) address= 0x804bea5 function= aac_decode_init_filestream line= 150 file= decoder.c
+    Block # 37: executed       1 time(s) address= 0x804bec4 function= aac_decode_init_filestream line= 154 file= decoder.c
+    Block # 38: executed       1 time(s) address= 0x804bed9 function= aac_decode_init_filestream line= 156 file= decoder.c
+    Block # 39: executed       1 time(s) address= 0x804bee4 function= aac_decode_init            line= 159 file= decoder.c
+    Block # 40: executed       3 time(s) address= 0x804bf50 function= aac_decode_init            line= 173 file= decoder.c
+    Block # 41: executed       1 time(s) address= 0x804bf5c function= aac_decode_init            line= 173 file= decoder.c
+    Block # 42: executed       2 time(s) address= 0x804bf68 function= aac_decode_init            line= 175 file= decoder.c
+    Block # 43: executed       1 time(s) address= 0x804c294 function= aac_decode_init            line= 197 file= decoder.c
+    Block # 44: executed       3 time(s) address= 0x804c2a4 function= aac_decode_init            line= 197 file= decoder.c
+    Block # 45: executed       1 time(s) address= 0x804c2b0 function= aac_decode_init            line= 197 file= decoder.c
+    Block # 46: executed       2 time(s) address= 0x804c2b8 function= aac_decode_init            line= 198 file= decoder.c
+    Block # 47: executed       1 time(s) address= 0x804c318 function= aac_decode_init            line= 214 file= decoder.c
+    Block # 48: executed       1 time(s) address= 0x804c328 function= aac_decode_init            line= 215 file= decoder.c
+    Block # 49: executed       0 time(s) address= 0x804c371 function= aac_decode_init            line= 222 file= decoder.c
+    Block # 50: executed       1 time(s) address= 0x804c384 function= aac_decode_init            line= 224 file= decoder.c
+    Block # 51: executed       1 time(s) address= 0x804c394 function= aac_decode_init            line= 227 file= decoder.c
+    Block # 52: executed       1 time(s) address= 0x804c3a3 function= aac_decode_init            line= 229 file= decoder.c
+    Block # 53: executed       1 time(s) address= 0x804c3af function= aac_decode_init            line= 229 file= decoder.c
+    Block # 54: executed       1 time(s) address= 0x804c3bf function= aac_decode_init            line= 232 file= decoder.c
+    Block # 55: executed       0 time(s) address= 0x804c3dc function= aac_decode_init            line= 237 file= decoder.c
+    Block # 56: executed       0 time(s) address= 0x804c3f0 function= aac_decode_init            line= 241 file= decoder.c
+    Block # 57: executed       1 time(s) address= 0x804c40a function= aac_decode_init            line= 245 file= decoder.c
+    Block # 58: executed       0 time(s) address= 0x804c440 function= aac_decode_init            line= 254 file= decoder.c
+    Block # 59: executed       1 time(s) address= 0x804c46d function= aac_decode_init            line= 258 file= decoder.c
+    Block # 60: executed       1 time(s) address= 0x804c4f4 function= aac_decode_free            line= 266 file= decoder.c
+    Block # 61: executed       1 time(s) address= 0x804c52e function= aac_decode_free            line= 273 file= decoder.c
+    Block # 62: executed       1 time(s) address= 0x804c53d function= aac_decode_free            line= 274 file= decoder.c
+    Block # 63: executed       1 time(s) address= 0x804c554 function= aac_decode_free            line= 276 file= decoder.c
+    Block # 64: executed       1 time(s) address= 0x804c56e function= aac_decode_free            line= 280 file= decoder.c
+    Block # 65: executed       3 time(s) address= 0x804c57c function= aac_decode_free            line= 280 file= decoder.c
+    Block # 66: executed       1 time(s) address= 0x804c588 function= aac_decode_free            line= 280 file= decoder.c
+    Block # 67: executed       2 time(s) address= 0x804c594 function= aac_decode_free            line= 282 file= decoder.c
+    Block # 68: executed       2 time(s) address= 0x804c5b1 function= aac_decode_free            line= 282 file= decoder.c
+    Block # 69: executed       2 time(s) address= 0x804c5d6 function= aac_decode_free            line= 283 file= decoder.c
+    Block # 70: executed       2 time(s) address= 0x804c5f3 function= aac_decode_free            line= 283 file= decoder.c
+    Block # 71: executed       2 time(s) address= 0x804c618 function= aac_decode_free            line= 284 file= decoder.c
+    Block # 72: executed       2 time(s) address= 0x804c635 function= aac_decode_free            line= 284 file= decoder.c
+    Block # 73: executed       2 time(s) address= 0x804c65a function= aac_decode_free            line= 285 file= decoder.c
+    Block # 74: executed       2 time(s) address= 0x804c677 function= aac_decode_free            line= 285 file= decoder.c
+    Block # 75: executed       2 time(s) address= 0x804c69c function= aac_decode_free            line= 286 file= decoder.c
+    Block # 76: executed       2 time(s) address= 0x804c6b9 function= aac_decode_free            line= 286 file= decoder.c
+    Block # 77: executed       2 time(s) address= 0x804c6de function= aac_decode_free            line= 287 file= decoder.c
+    Block # 78: executed       2 time(s) address= 0x804c6fb function= aac_decode_free            line= 287 file= decoder.c
+    Block # 79: executed       2 time(s) address= 0x804c720 function= aac_decode_free            line= 288 file= decoder.c
+    Block # 80: executed       2 time(s) address= 0x804c73d function= aac_decode_free            line= 288 file= decoder.c
+    Block # 81: executed       2 time(s) address= 0x804c762 function= aac_decode_free            line= 289 file= decoder.c
+    Block # 82: executed       2 time(s) address= 0x804c77f function= aac_decode_free            line= 289 file= decoder.c
+    Block # 83: executed       2 time(s) address= 0x804c7a4 function= aac_decode_free            line= 290 file= decoder.c
+    Block # 84: executed       2 time(s) address= 0x804c7c1 function= aac_decode_free            line= 290 file= decoder.c
+    Block # 85: executed       2 time(s) address= 0x804c7e6 function= aac_decode_free            line= 291 file= decoder.c
+    Block # 86: executed       2 time(s) address= 0x804c803 function= aac_decode_free            line= 291 file= decoder.c
+    Block # 87: executed       2 time(s) address= 0x804c828 function= aac_decode_free            line= 280 file= decoder.c
+    Block # 88: executed       1 time(s) address= 0x804c838 function= aac_decode_free            line= 294 file= decoder.c
+    Block # 89: executed       3 time(s) address= 0x804c848 function= aac_decode_free            line= 294 file= decoder.c
+    Block # 90: executed       1 time(s) address= 0x804c854 function= aac_decode_free            line= 294 file= decoder.c
+    Block # 91: executed       2 time(s) address= 0x804c85c function= aac_decode_free            line= 296 file= decoder.c
+    Block # 92: executed       2 time(s) address= 0x804c879 function= aac_decode_free            line= 296 file= decoder.c
+    Block # 93: executed       2 time(s) address= 0x804c89e function= aac_decode_free            line= 294 file= decoder.c
+    Block # 94: executed       1 time(s) address= 0x804c8ac function= aac_decode_free            line= 314 file= decoder.c
+    Block # 95: executed     480 time(s) address= 0x804c8b4 function= aac_decode_frame           line= 317 file= decoder.c
+    Block # 96: executed       0 time(s) address= 0x804c8ef function= aac_decode_frame           line= 323 file= decoder.c
+    Block # 97: executed       0 time(s) address= 0x804c8fb function= aac_decode_frame           line= 323 file= decoder.c
+    Block # 98: executed     480 time(s) address= 0x804c904 function= aac_decode_frame           line= 325 file= decoder.c
+    Block # 99: executed       0 time(s) address= 0x804c918 function= aac_decode_frame           line= 327 file= decoder.c
+    Block #100: executed     480 time(s) address= 0x804c93c function= aac_decode_frame           line= 333 file= decoder.c
+    Block #101: executed     960 time(s) address= 0x804c954 function= aac_decode_frame           line= 334 file= decoder.c
+    Block #102: executed     479 time(s) address= 0x804c975 function= aac_decode_frame           line= 334 file= decoder.c
+    Block #103: executed     481 time(s) address= 0x804c980 function= aac_decode_frame           line= 338 file= decoder.c
+    Block #104: executed     481 time(s) address= 0x804c990 function= aac_decode_frame           line= 338 file= decoder.c
+    Block #105: executed     481 time(s) address= 0x804c9a4 function= aac_decode_frame           line= 342 file= decoder.c
+    Block #106: executed       1 time(s) address= 0x804ca0c function= aac_decode_frame           line= 348 file= decoder.c
+    Block #107: executed       0 time(s) address= 0x804ca1c function= aac_decode_frame           line= 359 file= decoder.c
+    Block #108: executed       0 time(s) address= 0x804ca38 function= aac_decode_frame           line= 362 file= decoder.c
+    Block #109: executed       0 time(s) address= 0x804ca48 function= aac_decode_frame           line= 366 file= decoder.c
+    Block #110: executed     479 time(s) address= 0x804ca58 function= aac_decode_frame           line= 369 file= decoder.c
+    Block #111: executed       1 time(s) address= 0x804ca71 function= aac_decode_frame           line= 369 file= decoder.c
+    Block #112: executed       1 time(s) address= 0x804ca80 function= aac_decode_frame           line= 369 file= decoder.c
+    Block #113: executed     479 time(s) address= 0x804ca8d function= aac_decode_frame           line= 369 file= decoder.c
+    Block #114: executed    1437 time(s) address= 0x804caac function= aac_decode_frame           line= 378 file= decoder.c
+    Block #115: executed     479 time(s) address= 0x804cab8 function= aac_decode_frame           line= 378 file= decoder.c
+    Block #116: executed     958 time(s) address= 0x804cac4 function= aac_decode_frame           line= 379 file= decoder.c
+    Block #117: executed     958 time(s) address= 0x804caf3 function= aac_decode_frame           line= 380 file= decoder.c
+    Block #118: executed     958 time(s) address= 0x804cb08 function= aac_decode_frame           line= 380 file= decoder.c
+    Block #119: executed     479 time(s) address= 0x804cb1d function= aac_decode_frame           line= 381 file= decoder.c
+    Block #120: executed     264 time(s) address= 0x804cb40 function= aac_decode_frame           line= 383 file= decoder.c
+    Block #121: executed     264 time(s) address= 0x804cb81 function= aac_decode_frame           line= 387 file= decoder.c
+    Block #122: executed     264 time(s) address= 0x804cbcb function= aac_decode_frame           line= 388 file= decoder.c
+    Block #123: executed     958 time(s) address= 0x804cc2a function= aac_decode_frame           line= 378 file= decoder.c
+    Block #124: executed     479 time(s) address= 0x804cc3c function= aac_decode_frame           line= 394 file= decoder.c
+    Block #125: executed    1437 time(s) address= 0x804cc4c function= aac_decode_frame           line= 394 file= decoder.c
+    Block #126: executed     479 time(s) address= 0x804cc58 function= aac_decode_frame           line= 394 file= decoder.c
+    Block #127: executed     958 time(s) address= 0x804cc64 function= aac_decode_frame           line= 395 file= decoder.c
+    Block #128: executed       0 time(s) address= 0x804cc89 function= aac_decode_frame           line= 395 file= decoder.c
+    Block #129: executed     958 time(s) address= 0x804cc94 function= aac_decode_frame           line= 396 file= decoder.c
+    Block #130: executed     958 time(s) address= 0x804ce6b function= aac_decode_frame           line= 394 file= decoder.c
+    Block #131: executed     479 time(s) address= 0x804ce7c function= aac_decode_frame           line= 412 file= decoder.c
+    Block #132: executed    1437 time(s) address= 0x804ce8c function= aac_decode_frame           line= 412 file= decoder.c
+    Block #133: executed     479 time(s) address= 0x804ce98 function= aac_decode_frame           line= 412 file= decoder.c
+    Block #134: executed     958 time(s) address= 0x804cea4 function= aac_decode_frame           line= 413 file= decoder.c
+    Block #135: executed       0 time(s) address= 0x804cec9 function= aac_decode_frame           line= 413 file= decoder.c
+    Block #136: executed     958 time(s) address= 0x804ced4 function= aac_decode_frame           line= 414 file= decoder.c
+    Block #137: executed    5437 time(s) address= 0x804cf24 function= aac_decode_frame           line= 423 file= decoder.c
+    Block #138: executed     958 time(s) address= 0x804cf43 function= aac_decode_frame           line= 423 file= decoder.c
+    Block #139: executed    4479 time(s) address= 0x804cf50 function= aac_decode_frame           line= 425 file= decoder.c
+    Block #140: executed     958 time(s) address= 0x804cfe4 function= aac_decode_frame           line= 439 file= decoder.c
+    Block #141: executed     958 time(s) address= 0x804d044 function= aac_decode_frame           line= 412 file= decoder.c
+    Block #142: executed     479 time(s) address= 0x804d054 function= aac_decode_frame           line= 449 file= decoder.c
+    Block #143: executed  490975 time(s) address= 0x804d064 function= aac_decode_frame           line= 449 file= decoder.c
+    Block #144: executed     479 time(s) address= 0x804d073 function= aac_decode_frame           line= 449 file= decoder.c
+    Block #145: executed  490496 time(s) address= 0x804d080 function= aac_decode_frame           line= 450 file= decoder.c
+    Block #146: executed 1471488 time(s) address= 0x804d090 function= aac_decode_frame           line= 450 file= decoder.c
+    Block #147: executed  490496 time(s) address= 0x804d0a3 function= aac_decode_frame           line= 450 file= decoder.c
+    Block #148: executed  980992 time(s) address= 0x804d0b0 function= aac_decode_frame           line= 451 file= decoder.c
+    Block #149: executed  980992 time(s) address= 0x804d0fd function= aac_decode_frame           line= 451 file= decoder.c
+    Block #150: executed       0 time(s) address= 0x804d108 function= aac_decode_frame           line= 451 file= decoder.c
+    Block #151: executed  980992 time(s) address= 0x804d11c function= aac_decode_frame           line= 451 file= decoder.c
+    Block #152: executed  980992 time(s) address= 0x804d151 function= aac_decode_frame           line= 451 file= decoder.c
+    Block #153: executed       0 time(s) address= 0x804d15c function= aac_decode_frame           line= 451 file= decoder.c
+    Block #154: executed  980992 time(s) address= 0x804d170 function= aac_decode_frame           line= 451 file= decoder.c
+    Block #155: executed  497177 time(s) address= 0x804d19e function= aac_decode_frame           line= 451 file= decoder.c
+    Block #156: executed  483815 time(s) address= 0x804d1a8 function= aac_decode_frame           line= 451 file= decoder.c
+    Block #157: executed  497177 time(s) address= 0x804d1ec function= aac_decode_frame           line= 451 file= decoder.c
+    Block #158: executed       0 time(s) address= 0x804d21f function= aac_decode_frame           line= 451 file= decoder.c
+    Block #159: executed  497177 time(s) address= 0x804d228 function= aac_decode_frame           line= 451 file= decoder.c
+    Block #160: executed       0 time(s) address= 0x804d26c function= aac_decode_frame           line= 451 file= decoder.c
+    Block #161: executed  980992 time(s) address= 0x804d278 function= aac_decode_frame           line= 451 file= decoder.c
+    Block #162: executed     479 time(s) address= 0x804d298 function= aac_decode_frame           line= 453 file= decoder.c
+    Block #163: executed       0 time(s) address= 0x804d2ad function= aac_decode_frame           line= 456 file= decoder.c
+    Block #164: executed     479 time(s) address= 0x804d2bc function= aac_decode_frame           line= 458 file= decoder.c
+    Block #165: executed     480 time(s) address= 0x804d2d2 function= aac_decode_frame           line= 461 file= decoder.c
+    Block #166: executed       0 time(s) address= 0x804d2e0 function= CommonWarning              line= 465 file= decoder.c
+    Block #167: executed       0 time(s) address= 0x804d31c function= CommonExit                 line= 470 file= decoder.c
+
+File /home/wmay/faad/faad.d, 87 basic blocks 
+
+    Block # 1: executed   0 time(s) address= 0x805c304 function= get_filename line=  15 file= faad.c
+    Block # 2: executed   0 time(s) address= 0x805c334 function= get_filename line=  18 file= faad.c
+    Block # 3: executed   0 time(s) address= 0x805c342 function= get_filename line=  18 file= faad.c
+    Block # 4: executed   0 time(s) address= 0x805c34c function= get_filename line=  19 file= faad.c
+    Block # 5: executed   0 time(s) address= 0x805c35a function= get_filename line=  19 file= faad.c
+    Block # 6: executed   0 time(s) address= 0x805c368 function= get_filename line=  19 file= faad.c
+    Block # 7: executed   0 time(s) address= 0x805c370 function= get_filename line=  19 file= faad.c
+    Block # 8: executed   0 time(s) address= 0x805c37f function= get_filename line=  19 file= faad.c
+    Block # 9: executed   0 time(s) address= 0x805c38e function= get_filename line=  20 file= faad.c
+    Block #10: executed   0 time(s) address= 0x805c39b function= get_filename line=  18 file= faad.c
+    Block #11: executed   0 time(s) address= 0x805c3a8 function= get_filename line=  23 file= faad.c
+    Block #12: executed   0 time(s) address= 0x805c3bc function= combine_path line=  27 file= faad.c
+    Block #13: executed   0 time(s) address= 0x805c400 function= combine_path line=  33 file= faad.c
+    Block #14: executed   0 time(s) address= 0x805c419 function= combine_path line=  34 file= faad.c
+    Block #15: executed   0 time(s) address= 0x805c454 function= usage        line=  39 file= faad.c
+    Block #16: executed   1 time(s) address= 0x805c520 function= main         line=  55 file= faad.c
+    Block #17: executed   0 time(s) address= 0x805c596 function= main         line=  70 file= faad.c
+    Block #18: executed   1 time(s) address= 0x805c5ac function= main         line=  74 file= faad.c
+    Block #19: executed   2 time(s) address= 0x805c5bc function= main         line=  74 file= faad.c
+    Block #20: executed   1 time(s) address= 0x805c5cd function= main         line=  74 file= faad.c
+    Block #21: executed   1 time(s) address= 0x805c5d8 function= main         line=  76 file= faad.c
+    Block #22: executed   1 time(s) address= 0x805c5f6 function= main         line=  77 file= faad.c
+    Block #23: executed   1 time(s) address= 0x805c62f function= main         line=  78 file= faad.c
+    Block #24: executed   0 time(s) address= 0x805c650 function= main         line=  79 file= faad.c
+    Block #25: executed   1 time(s) address= 0x805c66b function= main         line=  81 file= faad.c
+    Block #26: executed   1 time(s) address= 0x805c698 function= main         line=  81 file= faad.c
+    Block #27: executed   1 time(s) address= 0x805c6c5 function= main         line=  83 file= faad.c
+    Block #28: executed   0 time(s) address= 0x805c75c function= main         line= 118 file= faad.c
+    Block #29: executed   0 time(s) address= 0x805c778 function= main         line= 122 file= faad.c
+    Block #30: executed   0 time(s) address= 0x805c7a7 function= main         line= 122 file= faad.c
+    Block #31: executed   0 time(s) address= 0x805c7bc function= main         line= 125 file= faad.c
+    Block #32: executed   0 time(s) address= 0x805c7f4 function= main         line= 130 file= faad.c
+    Block #33: executed   0 time(s) address= 0x805c824 function= main         line= 134 file= faad.c
+    Block #34: executed   0 time(s) address= 0x805c838 function= main         line= 138 file= faad.c
+    Block #35: executed   1 time(s) address= 0x805c848 function= main         line=  74 file= faad.c
+    Block #36: executed   1 time(s) address= 0x805c85c function= main         line= 144 file= faad.c
+    Block #37: executed   1 time(s) address= 0x805c86b function= main         line= 146 file= faad.c
+    Block #38: executed   1 time(s) address= 0x805c896 function= main         line= 150 file= faad.c
+    Block #39: executed   1 time(s) address= 0x805c8a5 function= main         line= 150 file= faad.c
+    Block #40: executed   0 time(s) address= 0x805c8b4 function= main         line= 152 file= faad.c
+    Block #41: executed   1 time(s) address= 0x805c8cc function= main         line= 155 file= faad.c
+    Block #42: executed   0 time(s) address= 0x805c8db function= main         line= 157 file= faad.c
+    Block #43: executed   1 time(s) address= 0x805c8ec function= main         line= 159 file= faad.c
+    Block #44: executed   0 time(s) address= 0x805c8fb function= main         line= 159 file= faad.c
+    Block #45: executed   0 time(s) address= 0x805c90a function= main         line= 161 file= faad.c
+    Block #46: executed   1 time(s) address= 0x805c920 function= main         line= 164 file= faad.c
+    Block #47: executed   0 time(s) address= 0x805c92f function= main         line= 166 file= faad.c
+    Block #48: executed   1 time(s) address= 0x805c940 function= main         line= 168 file= faad.c
+    Block #49: executed   2 time(s) address= 0x805c950 function= main         line= 168 file= faad.c
+    Block #50: executed   1 time(s) address= 0x805c964 function= main         line= 168 file= faad.c
+    Block #51: executed   1 time(s) address= 0x805c970 function= main         line= 173 file= faad.c
+    Block #52: executed   1 time(s) address= 0x805c9be function= main         line= 182 file= faad.c
+    Block #53: executed   1 time(s) address= 0x805c9ea function= main         line= 185 file= faad.c
+    Block #54: executed   1 time(s) address= 0x805c9fd function= main         line= 187 file= faad.c
+    Block #55: executed   0 time(s) address= 0x805ca0c function= main         line= 188 file= faad.c
+    Block #56: executed   1 time(s) address= 0x805ca44 function= main         line= 190 file= faad.c
+    Block #57: executed   1 time(s) address= 0x805ca72 function= main         line= 192 file= faad.c
+    Block #58: executed   0 time(s) address= 0x805caa5 function= main         line= 197 file= faad.c
+    Block #59: executed   0 time(s) address= 0x805cad4 function= main         line= 197 file= faad.c
+    Block #60: executed   0 time(s) address= 0x805cae3 function= main         line= 197 file= faad.c
+    Block #61: executed   0 time(s) address= 0x805caec function= main         line= 199 file= faad.c
+    Block #62: executed   0 time(s) address= 0x805cb15 function= main         line= 200 file= faad.c
+    Block #63: executed   0 time(s) address= 0x805cb20 function= main         line= 197 file= faad.c
+    Block #64: executed   0 time(s) address= 0x805cb30 function= main         line= 203 file= faad.c
+    Block #65: executed   1 time(s) address= 0x805cbbf function= main         line= 209 file= faad.c
+    Block #66: executed   1 time(s) address= 0x805cbf4 function= main         line= 212 file= faad.c
+    Block #67: executed   1 time(s) address= 0x805cc03 function= main         line= 214 file= faad.c
+    Block #68: executed   1 time(s) address= 0x805cc22 function= main         line= 217 file= faad.c
+    Block #69: executed 480 time(s) address= 0x805cc34 function= main         line= 221 file= faad.c
+    Block #70: executed 479 time(s) address= 0x805cc61 function= main         line= 225 file= faad.c
+    Block #71: executed   1 time(s) address= 0x805cc74 function= main         line= 227 file= faad.c
+    Block #72: executed   1 time(s) address= 0x805cc91 function= main         line= 231 file= faad.c
+    Block #73: executed   0 time(s) address= 0x805ccc8 function= main         line= 236 file= faad.c
+    Block #74: executed   1 time(s) address= 0x805ccf8 function= main         line= 240 file= faad.c
+    Block #75: executed   0 time(s) address= 0x805cd1c function= main         line= 244 file= faad.c
+    Block #76: executed 479 time(s) address= 0x805cd2d function= main         line= 248 file= faad.c
+    Block #77: executed 480 time(s) address= 0x805cd54 function= main         line= 250 file= faad.c
+    Block #78: executed   1 time(s) address= 0x805cd67 function= main         line= 252 file= faad.c
+    Block #79: executed   1 time(s) address= 0x805cd7b function= main         line= 255 file= faad.c
+    Block #80: executed   1 time(s) address= 0x805cd92 function= main         line= 258 file= faad.c
+    Block #81: executed   1 time(s) address= 0x805cda1 function= main         line= 259 file= faad.c
+    Block #82: executed   1 time(s) address= 0x805cdb0 function= main         line= 260 file= faad.c
+    Block #83: executed   1 time(s) address= 0x805cdc7 function= main         line= 271 file= faad.c
+    Block #84: executed   1 time(s) address= 0x805cdd6 function= main         line= 272 file= faad.c
+    Block #85: executed   1 time(s) address= 0x805ce1f function= main         line= 168 file= faad.c
+    Block #86: executed   1 time(s) address= 0x805ce34 function= main         line= 277 file= faad.c
+    Block #87: executed   1 time(s) address= 0x805ce3f function= main         line= 278 file= faad.c
+
+
+

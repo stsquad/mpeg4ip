@@ -1,0 +1,52 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT()
+AC_CONFIG_AUX_DIR(config)
+
+AM_PROG_LIBTOOL
+AM_INIT_AUTOMAKE(mpeg4ip, 0.5)
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_CXX
+AC_PROG_LIBTOOL
+
+dnl Checks for libraries.
+
+dnl Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS(fcntl.h unistd.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+
+dnl Checks for library functions.
+AC_CHECK_FUNCS(strerror)
+
+AC_OUTPUT( \
+	Makefile \
+	common/Makefile \
+	common/mp4/Makefile \
+	common/video/Makefile \
+	server/Makefile \
+	server/audio/Makefile \
+	server/audio/faac/Makefile \
+	server/lib/Makefile \
+	server/lib/avi/Makefile \
+	server/util/Makefile \
+	server/util/avi2raw/Makefile \
+	server/util/mp4apkt/Makefile \
+	server/util/mp4vpkt/Makefile \
+	server/util/mp4vhdr/Makefile \
+	server/util/mp4dump/Makefile \
+	player/Makefile \
+	player/lib/Makefile \
+	player/lib/sdp/Makefile \
+	player/lib/rtsp/Makefile \
+	player/lib/audio/Makefile \
+	player/lib/audio/faad/Makefile \
+	player/src/Makefile \
+	player/src/codec/Makefile \
+	player/src/codec/aa/Makefile \
+	player/src/codec/mpeg4/Makefile \
+	util/Makefile \
+	util/yuv/Makefile \
+)

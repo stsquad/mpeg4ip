@@ -1,0 +1,10 @@
+noinst_LTLIBRARIES = libmpeg4.la
+libmpeg4_la_LDFLAGS = -static
+libmpeg4_la_SOURCES = \
+	mpeg4.cpp \
+	mpeg4_file.cpp
+
+INCLUDES = -I.. -I../.. -I../../../lib -I../../../lib/SDL/include -I../../../../common/video/mpeg4
+
+AM_CFLAGS = -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
+

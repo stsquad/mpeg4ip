@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# Bootstrap development of mpeg4ip with GNU autoconf, automake, and libtool
+# Assumes tools are available on the system
+#
+
+set -o xtrace
+
+# These packages have their own configure scripts, run them now
+# resulting Makefiles are called from mpeg4ip's Makefiles
+
+pushd ./server/lib/sndfile
+./configure
+popd
+
+pushd ./player/lib/SDL
+./configure
+popd
+
+pushd ./player/lib/rtp
+./configure
+popd
+
+# if src tree is created via cvs export to tar.gz
+# then empty directories in the repository are pruned
+# this code recreates the empty directories
+# if src tree is checked out directly via cvs, this is a no-op
+
+if [ ! -d ./config ]; then
+	mkdir ./config
+fi
+if [ ! -d ./common/video/mpeg4/bin ]; then
+	mkdir ./common/video/mpeg4/bin
+fi
+if [ ! -d ./common/video/mpeg4/obj ]; then
+	mkdir ./common/video/mpeg4/obj
+fi
+
+# Create our own configure script and run it
+aclocal
+automake --add-missing
+autoconf
+./configure
+
+set +o xtrace
+
+# Now ready to run make
+echo "ready to make"

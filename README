@@ -1,0 +1,297 @@
+January 25, 2001
+
+MPEG4IP Project
+==================
+
+The MPEG4IP project provides a standards-based system for encoding, 
+streaming, and playing MPEG-4 encoded audio and video for an on-demand 
+scenario. To achieve this we've integrated several existing open source 
+packages, and also created some original code to fill in the gaps.
+
+Please note this project is intended for developers who are interested
+in MPEG-4 audio and video, and Internet streaming. It is not intended
+for end-users. Please read all the legal information!
+
+Please use the SourceForge site to report problems, suggest enhancements,
+ask questions, etc. The URL is http://www.sourceforge.net/projects/mpeg4ip
+
+
+Overview
+===========
+
+The starting point for MPEG4IP is some raw audio and/or video in a file.
+Instructions for how to convert this into a streamable file are in 
+doc/encoding.htm  
+
+The streaming server is assumed to be Apple's Darwin Streaming Server 
+which is open source but not currently included in MPEG4IP (we expect 
+to fix that soon).
+
+Once the content is encoded and available on the server, you can run
+the player. Start 'gmp4player' and then enter the RTSP URL to the server 
+and the content (command line works too). E.g.  
+	$ gmp4player rtsp://myserver.mydomain.com/mycontent.mov
+
+The player has a simple Gtk interface. If you prefer no UI, but just
+the bare bones video, 'mp4player' is available to you.
+
+Although we're focussed on streaming, the player will also playback from
+a local file. 
+
+
+Legal
+========
+
+As you might imagine, integrating a significant number of open source 
+packages creates a complicated legal situation. Here's the plain language 
+overview. For the complete story, you'll have to wade through the licenses.
+
+For the original code that we've written, it's under the Mozilla Public
+License 1.1, included in the file 'COPYING' or from http://www.mozilla.org/mpl
+ 
+Each third party package has it's own license (it's quite a menagerie). 
+Before you do anything, you should take a look at each package. They are 
+listed in the next section.
+
+Like most modern codecs, MPEG-4 Video and Audio codecs are almost certainly 
+subject to patent royalities. The problem is that you wouldn't know whom to
+pay. For MPEG-2 this problem was addressed by establishing a patent pool that
+charges a relatively modest fee for products to license the patents in the 
+pool. This is admistered by MPEG-LA, http://www.mpeg-la.org/  For MPEG-4,
+the MPEG-4 Industry Forum is looking at doing roughly the same thing.
+See http://www.m4if.org for details. In any case, you need to consider this 
+issue before you start building derivative works. We are not warranting or 
+indemnifying you in any way for patent royalities! YOU ARE SOLELY RESPONSIBLE 
+FOR YOUR OWN ACTIONS!
+
+
+Redistributed Open Source Packages
+=====================================
+
+This is the currently list of redistributed open source packages that are
+in MPEG4IP:
+
+Name:       avilib
+Version:    1999
+Origin:     http://www.munich-vision.de/lavtools
+Author:     Rainer Johanni
+Directory:  mpeg4ip/server/lib/avi
+License:    GNU Library General Public License (LGPL), version 2 1991
+Notes:      Extracted from lavtools package,
+            Used only by the avi2raw utility
+
+Name:       Freeware Advanced Audio Coder (FAAC) / Decoder (FAAD)
+Version:    0.7 / 0.6
+Origin:     http://www.sourceforge.net/projects/FAAC
+Author:     Menno Bakker
+Directory:  mpeg4ip/server/audio/faac
+            mpeg4ip/player/lib/audio/faad
+License:    GNU General Public License (GPL), version 2 1991 for modifications 
+            ISO MPEG-4 for original base code
+Notes:      See ISO MPEG-4 reference software license
+
+Name:       ISO MPEG-4 reference software
+Version:    2000
+Origin:     http://www.iso.ch/ittf
+Author:     ISO
+Directory:  mpeg4ip/common/video/mpeg4
+License:    Other, see source files
+Notes:      Use may require payment of patent royalties
+
+Name:       Quicktime for Linux
+Version:    1.2
+Origin:     http://heroine.linuxave.net/quicktime.html 
+Author:     Adam Williams
+Directory:  mpeg4ip/common/mp4
+License:    Other, see README_ORIGINAL
+Notes:      This directory also contains original MPEG4IP code.
+
+Name:       Simple DirectMedia Layer
+Version:    1.1
+Origin:     http://www.libsdl.org/
+Author:     Sam Lantinga
+Directory:  mpeg4ip/player/lib/SDL
+License:    GNU Library General Public License (LGPL), version 2 1991
+
+Name:       sndfile
+Version:    0.0.16
+Origin:     http://www.zip.com.au/~erikd/libsndfile
+Author:     Erik de Castro Lopo
+Directory:  mpeg4ip/server/lib/sndfile
+License:    GNU Lesser General Public License, version 2.1 1999
+Notes:      Used by FAAC
+
+Name:       UCL Common Multimedia Library
+Version:    1.2
+Origin:     http://www-mice.cs.ucl.ac.uk/multimedia/software/common/
+Author:     University College London
+Directory:  mpeg4ip/player/lib/rtp
+License:    Other, see COPYRIGHT
+Notes:      This directory contains additional third-party code with 
+            different licenses.
+
+
+We will attempt to keep up with the current stable releases of
+these packages. 
+
+If you have questions or problems that are specific to one of 
+these packages, please look at the package for how best to contact
+the authors/maintainers. 
+
+
+Building
+========
+
+This package uses GNU autoconf, automake, and libtool. It attempts to 
+follow the GNU conventions for open source packages. This is complicated
+by the fact that we build on many other packages. Where the package was 
+already using the GNU tools, we left things alone. Where the package was 
+using it's own Makefile, we typically (but not always) replaced that with 
+an equivalent automake file.
+
+To date we've only built on Red Hat Linux 7.0, with GCC 2.96. 
+The code should be portable, but as someone once said "There's no such
+thing as portable code, just code that has been ported." When you find
+problems please be sure to use the SourceForge site, to tell us what you
+encountered, and hopefully how you fixed it.
+
+To build:
+    ./bootstrap
+    make
+    make install (optional)
+
+For the curious, the bootstrap script invokes the configure scripts of 
+the included packages that have them, and then our the top level configure 
+script is generated and run. At the end of this process all the Makefile's
+are ready, and setup in the correct hierarchy. If this doesn't work for you,
+you're free to hack as needed ;-)  
+
+
+Executables
+==============
+
+If you ran 'make install' with the defaults, then all the MPEG4IP executables
+will end up in /usr/local/bin. 
+
+For encoding tools, you get:
+
+avi2raw     Extracts raw audio/video tracks from an AVI file
+faac        Encodes raw audio into MPEG-4 AAC encoded audio
+mp4venc     Encodes raw video into MPEG-4 encoded video
+mp4apkt     Creates audio streaming hint track in MP4/Quicktime file
+mp4vpkt     Creates video streaming hint track in MP4/Quicktime file
+mp4dump     Dumps MP4/Quicktime file meta-information in text form
+yuvdump     Displays a raw video file on the screen
+
+These are desribed in more detail in doc/encoding.htm
+
+
+For playback, you get:
+
+gmp4player  Simple graphical interface player
+mp4player   Bare video window with sync'ed audio
+
+
+Directory Structure
+===================
+
+If you're going to start hacking, a map of the territory may prove useful:
+
+mpeg4ip - top level project directory
+
+    config - autoconf files
+
+    doc - the minimal doc we've written so far ;-)
+
+    include - project wide includes 
+
+    common - project wide code
+        mp4 - MP4 (aka MOV/Quicktime) file format library
+        video 
+            mpeg4 - MPEG-4 video encoder/decoder
+
+    player - player specific code
+        lib - libraries specifically for the player
+            audio
+                faad - FAAD AAC decoder
+            rtp - UCL RTP 
+            rtsp - Our own RTSP client 
+            SDL - Simple DirectMedia Layer
+            sdp - Our own SDP
+        src - the player and it's variants
+            codec - wrappers to interface codecs with player
+                aa - wrapper around FAAD
+                mpeg4 - wrapper around mpeg4v
+
+    server - server specific code
+        QTSS - placeholder for QuickTime Streaming Server
+            patch01 - patch to get correct RTP timestamps for B frames
+        audio
+            faac - AAC encoder program
+        lib - libraries specifically for the server tools
+            avi - AVI file format
+            sndfile - sound file formats, used by faac
+        util
+            avi2raw - extract raw A/V data from AVI files
+            mp4apkt - MPEG-4 audio packetizer
+            mp4vpkt - MPEG-4 video packetizer
+            mp4dump - dump MP4 file meta-info contents
+
+    util - generally useful utilities
+        yuv - simple tools for examining uncompressed video
+
+
+Standards Compliance
+====================
+
+We're not only supporters of open source, we're supporters of open standards!
+We've attempted to use the publically defined standards as much as possible.
+Here's what we believe we are following. If you find something non-compliant,
+please let us know. We certainly will want to fix it.
+
+Here are the citations:
+
+ISO/IEC 14496-2:1999 MPEG-4 Video
+ISO/IEC 14496-3:1999 MPEG-4 Audio (including AAC)
+ISO/IEC 13818-7:1997 MPEG-2 AAC
+
+IETF RFC 1889 & 1890 RTP
+IETF RFC 2326 RTSP
+IETF RFC 2327 SDP
+IETF RFC 3016 RTP Payload for MPEG-4 Audio/Visual
+    Note: we're implementing the video part,
+    the audio part mandates the use of MPEG-4 LATM which is far too
+    complicated for our needs. Instead we're using an RTP payload 
+    format similar to that of RFC 2250 for MPEG 1/2. We're anticipating
+    submitting that to IETF soon. We'll add a pointer to the spec ASAP.
+
+
+Known Problems
+=================
+
+* Some redistributable sample content would be nice. We're working on it.
+
+* We don't include the Apple Darwin Quicktime Streaming Server. 
+This is temporary, we just waiting for the version 3 code to be finalized.
+The current preview version expires on 2/15/01. In the interim, you can 
+download this from http://www.apple.com.
+
+* The version 0.7 FAAC audio encoder creates less than perfect audio.
+The good news is that we've looked at recent snapshots of the upcoming
+version 1.0 and all those problems appear to be fixed. We included the 0.7
+version because that's the project's current stable release. We will  
+sync up with the 1.0 release as soon as the authors deem it stable.
+
+* The ISO MPEG-4 video codec has a bitrate control feature, but we're
+still mystified as to how the input parameter influences the output.
+The same value of the parameter results in different bitrates by a factor
+of two for different content. See doc/mp4encode and doc/template.par for
+details. If you figure it out, please let us know. (Anyway we're expecting
+to add the OpenDivX codec soon, and we're hoping that will deal with 
+this reasonably.)
+
+* We currently create "hinted Quicktime" files as the streamable file format.
+This is approximately 90% compatible with the MPEG-4 file format. We're
+working on the other 10%, and expect to check in the changes soon.
+
+

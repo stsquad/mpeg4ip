@@ -1,0 +1,17 @@
+For the MPEG4IP project, this library has been extensively modified 
+from its original form, Quicktime for Linux 1.2. Specifically:
+
+* The builtin codecs have been removed.
+* Code to created a hinted Quicktime file has been added.
+* The library API has been modified to support the hinting.
+
+See the README_ORIGINAL as to how to get the original version of the library.
+This code should be considered a mutation of the original not an incremental 
+improvement! Caveat emptor!
+
+The new code we wrote to handle hinting is licensed under the 
+Mozilla Public License 1.1. This can be distinguished by the presence of the 
+MPL header at the top of the source file.
+
+The license for the original code is described in README_ORIGINAL.
+

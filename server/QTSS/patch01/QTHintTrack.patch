@@ -1,0 +1,67 @@
+diff -Naur old/QTFileLib/QTHintTrack.cpp new/QTFileLib/QTHintTrack.cpp
+--- old/QTFileLib/QTHintTrack.cpp	Wed Dec 20 16:32:23 2000
++++ new/QTFileLib/QTHintTrack.cpp	Wed Dec 20 16:32:27 2000
+@@ -453,16 +453,38 @@
+ 	MOVE_WORD( hdrData.dataEntryCount, samplePacketPtr + 10);
+ 	hdrData.dataEntryCount = ntohs(hdrData.dataEntryCount);
+ 
+-	
+-	if( hdrData.hintFlags & 0x4 ) 
++	// MODIFICATION dmackie@cisco.com 12/19/00 - handle RTP timestamp offset
++	if( hdrData.hintFlags & 0x4 )
+ 	{ 	// Extra Information TLV is present
+-		MOVE_LONG_WORD( hdrData.tlvSize, samplePacketPtr + 12);
++		char* tlvPtr = samplePacketPtr + 12;
++		UInt32 tlvPos = 4;
++
++		MOVE_LONG_WORD(hdrData.tlvSize, tlvPtr);
+ 		hdrData.tlvSize = ntohl(hdrData.tlvSize);
++
++		while (tlvPos < hdrData.tlvSize)
++		{
++			UInt32 tlvEntrySize;
++			MOVE_LONG_WORD(tlvEntrySize, tlvPtr + tlvPos);
++			tlvEntrySize = ntohl(tlvEntrySize);
++
++			if (tlvPtr[tlvPos + 4] == 'r' && tlvPtr[tlvPos + 5] == 't' &&
++				tlvPtr[tlvPos + 6] == 'p' && tlvPtr[tlvPos + 7] == 'o')
++			{
++				MOVE_LONG_WORD(hdrData.rtpTimestampOffset, 
++					tlvPtr + tlvPos + 4 + 4);
++				hdrData.rtpTimestampOffset = ntohl(hdrData.rtpTimestampOffset);
++			}
++			
++			tlvPos += tlvEntrySize;
++		}
+ 	} 
+ 	else
+ 	{
+ 		hdrData.tlvSize = 0;
++		hdrData.rtpTimestampOffset = 0;
+ 	}
++	// END MODIFICATION dmackie@cisco.com 12/19/00
+ 	MOVE_LONG_WORD( hdrData.relativePacketTransmissionTime, samplePacketPtr );
+ 	
+ 	hdrData.relativePacketTransmissionTime = ntohl(hdrData.relativePacketTransmissionTime);
+@@ -1205,6 +1227,8 @@
+ 	if ( err != errNoError )
+ 		return err;
+ 		
++	// MODIFICATION dmackie@cisco.com 12/19/00 - added RTP timestamp offset 
++	rtpTimestamp += hdrData.rtpTimestampOffset;
+ 	
+ 	*transmitTime =  ( mediaTime * fMediaHeaderAtom->GetTimeScaleRecip() )
+ 					+ ( hdrData.relativePacketTransmissionTime * fMediaHeaderAtom->GetTimeScaleRecip() );
+diff -Naur old/QTFileLib/QTHintTrack.h new/QTFileLib/QTHintTrack.h
+--- old/QTFileLib/QTHintTrack.h	Wed Dec 20 16:32:23 2000
++++ new/QTFileLib/QTHintTrack.h	Wed Dec 20 16:32:30 2000
+@@ -55,7 +55,8 @@
+ 		UInt16		hintFlags;
+ 		UInt16		dataEntryCount;
+ 		UInt32		tlvSize;
+-
++		// MODIFICATION dmackie@cisco.com 12/19/00 - added RTP timestamp offset
++		SInt32		rtpTimestampOffset;
+ };
+ 
+ //

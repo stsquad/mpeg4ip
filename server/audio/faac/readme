@@ -1,0 +1,15 @@
+Freeware Advanced Audio Coder/Decoder
+http://www.audiocoding.com/
+
+Currently maintained by
+M. Bakker (menno@audiocoding.com).
+Other contributors
+Tony Lenox (len0x@mail.ru)
+RageAMP
+(If you feel your name should be here please mail me, I
+can't remember everyone)
+
+
+The modifications to the ISO MPEG4-AAC reference source code
+are distributed under the GNU General Public License
+(see the file COPYING for details).

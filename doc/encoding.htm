@@ -1,0 +1,117 @@
+<HTML>
+<HEAD>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-1252">
+<META NAME="Generator" CONTENT="Microsoft Word 97">
+<TITLE>Use of the MPEG4IP Server Side Tools</TITLE>
+</HEAD>
+<BODY>
+
+<B><FONT FACE="Arial"><P ALIGN="CENTER">Use of the MPEG4IP Server Side Tools</P>
+</B>
+<P>The MPEG4IP Server Side Tools allow for the conversion of raw audio and video into MPEG-4 compressed media stored in a hinted Quicktime file which can be streamed by the Darwin Streaming Server and other servers capable of streaming such a file.</P>
+
+<B><P>Process Overview</P>
+</B>
+<P>1) Acquire raw audio and/or video</P>
+<P>2) Encode audio</P>
+<P>3) Encode video</P>
+<P>4) Packetize audio-only</P>
+<P>5) Packetize video-only</P>
+<P>6) Packetize both audio and video</P>
+<P>7) Useful options to both packetizers </P>
+<P>8) Make content available</P>
+
+<P>&nbsp;</P>
+<B><P>1) Acquire raw audio and/or video</P>
+
+</B><P>The details here are varied. But the result should be a file for audio containing PCM raw audio samples, and/or a file containing YUV12, aka YV12, raw video samples. (FYI: This is a planar format sampled at 4:2:0)</P>
+
+<P>If you use a Windows system for the media acquisition, you frequently will have your data stored in an AVI file. If that is the case, the avi2raw utility is provided to extract either the audio or video tracks from an AVI file, and write the raw track data to a file of your choice.</P>
+
+<P>Examples:</P>
+</FONT><FONT SIZE=2>
+</FONT><FONT FACE="Courier New" SIZE=2><P>avi2raw -a mymedia.avi myaudio.pcm</P>
+<P>avi2raw -v mymedia.avi myvideo.yuv</P>
+
+<P>&nbsp;</P>
+</FONT><FONT FACE="Arial"><P>The avi2raw utility also has very basic editing capabilities. You can specify a time to start the extraction in seconds from the beginning of the file and a length in seconds. For example, to extract 10 seconds of video starting at 5 seconds from the beginning of the file:</P>
+
+</FONT><FONT FACE="Courier New" SIZE=2><P>avi2raw –s 5 –l 10 -v mymedia.avi myvideo.yuv</P>
+
+<P>&nbsp;</P>
+</FONT><B><FONT FACE="Arial"><P>2) Encode audio</P>
+</B></FONT><FONT FACE="Courier New" SIZE=2>
+</FONT><FONT FACE="Arial"><P>Use the provided faac tool to generate the MPEG-4 AAC bitstream. Two parameters are required: the profile to be used, typically "LOW" for low-complexity; the desired bitrate in Kbps, typically between 16 and 96.</P>
+
+<P>Example:</P>
+</FONT><FONT FACE="Courier New" SIZE=2>
+<P>faac -pLOW -b96 myaudio.wav </P>
+<P>&#9;(output file is myaudio.aac)</P>
+
+</FONT><FONT FACE="Arial"><P>If a raw PCM file is provided as the input, then the -r option must be used.</P>
+<P>ISSUE: currently the FAAC code is hard-coded with respect to the parameters of the raw format. Hence it is currently easier to use the WAV format as input, since the configuration parameters are extracted from the file header.</P>
+</FONT><FONT FACE="Courier New" SIZE=2>
+</FONT><B><FONT FACE="Arial"><P>3) Encode video</P>
+</B>
+<P>Use the provided venc tool to generate the MPEG-4 video bitstream. This tool takes one parameter which is the name of a file where the many configuration parameters are given.</P>
+
+<P>Example:</P>
+
+</FONT><FONT FACE="Courier New" SIZE=2><P>venc myvideo.par</P>
+
+</FONT><B><FONT FACE="Arial"><P>4) Packetize audio-only</P>
+
+</B><P>Use the provided mpeg4apkt tool to generate a hinted Quicktime file from the MPEG-4 AAC encoded file. There are two required parameters the first is the input file name, the second is the output file name.</P>
+<B>
+</B><P>Example:</P>
+</FONT><FONT FACE="Courier New" SIZE=2><P>mpeg4apkt myaudio.aac myaudio.mov</P>
+
+</FONT><B><FONT FACE="Arial"><P>5) Packetize video-only</P>
+
+</B><P>Use the provided mpeg4vpkt tool to generate a hinted Quicktime file from the MPEG-4 Video encoded file. There are two required parameters the first is the input file name, the second is the output file name.</P>
+<B>
+</B><P>The following options should be used to inform the packetizer of the configuration parameters of the compressed video bitstream.</P>
+
+</FONT><FONT FACE="Courier New" SIZE=2><P>-h &lt;uint&gt;&#9;--height &lt;uint&gt;&#9;&#9;Use the given number as the video frame height in pixels, default value is 320</P>
+
+<P>-w &lt;uint&gt;&#9;--width &lt;uint&gt;&#9;&#9;Use the given number as the video frame width in pixels, default value is 240</P>
+
+<P>-r &lt;uint&gt;&#9;--rate &lt;uint&gt;&#9;&#9;Use the given number as the video frame rate in frames per second, default value is 30</P>
+
+</FONT><FONT FACE="Arial"><P>Examples:</P>
+<B>
+</B></FONT><FONT FACE="Courier New" SIZE=2><P>mpeg4vpkt myvideo.cmp myvideo.mov</P>
+<P>mpeg4vpkt -h 160 -w 120 -r 15 myvideo.cmp myvideo.mov</P>
+
+<P>&nbsp;</P>
+</FONT><FONT FACE="Arial"><P>Typically, the video frames will be encoded to use bi-directional motion vectors, aka B-frames. If this is the case, then you will also need to specify how many B-frames occur between non-B-frames (I-frames or P-frames). Note: the answer is often 2. This parameter can be specified via the ‘bfrequency’ command line argument. It is expected that in a future version of the tool, this parameter will be detected automatically.</P>
+
+<P>Example:</P>
+
+</FONT><FONT FACE="Courier New" SIZE=2><P>mpeg4vpkt –bfrequency=2 myvideo.cmp myvideo.mov</P>
+</FONT><FONT FACE="Arial">
+</FONT><FONT FACE="Courier New" SIZE=2><P>&nbsp;</P>
+</FONT><B><FONT FACE="Arial"><P>6) Packetize both audio and video</P>
+</B></FONT><FONT FACE="Courier New" SIZE=2><P> </P>
+</FONT><FONT FACE="Arial"><P>Use the provided mpeg4apkt or mpeg4vpkt tool to first generate a hinted Quicktime file for one of the media. Then use the '--merge' option when packetizing the second media. The resulting hinted Quicktime file will contain both media tracks and their associated hint tracks.</P>
+</FONT><FONT FACE="Courier New" SIZE=2>
+<P>mpeg4apkt myaudio.aac mymedia.mov</P>
+<P>mpeg4vpkt --merge myvideo.cmp mymedia.mov</P>
+
+</FONT><B><FONT FACE="Arial"><P>7) Useful options to both packetizers</P>
+</B></FONT><FONT FACE="Courier New" SIZE=2>
+<P>-s &lt;uint&gt;&#9;--payloadsize &lt;uint&gt;&#9;Use the given number as the RTP payload size, the default value is 1460 bytes</P>
+
+<P>-d&#9;--dump&#9;Dumps Quicktime file structure to stdout</P>
+<P>-t&#9;--trace&#9;Dumps RTP packetization information to stdout</P>
+
+</FONT><B><FONT FACE="Arial"><P>8) Make content available</P>
+
+</B><P>Copy the hinted Quicktime file to a directory under the configured media root for your streaming server. See the documentation for your server as to how to generate a URL for the file, but typically it would look like rtsp://myserver/mymedia.mov</P>
+
+<P>Example:</P>
+</FONT><FONT FACE="Courier New" SIZE=2>
+<P>cp mymedia.mov /var/movies</P>
+
+<P>&nbsp;</P></FONT></BODY>
+</HTML>

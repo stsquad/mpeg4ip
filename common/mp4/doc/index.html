@@ -1,0 +1,60 @@
+<TITLE>Quicktime for Linux</TITLE>
+
+<CENTER><H1>Quicktime for Linux</H1>
+<P>
+
+<TABLE>
+<TR>
+<TD>
+<CODE>
+Author: Adam Williams    broadcast@earthling.net<BR>
+Homepage: heroinewarrior.com/quicktime.html<BR>
+Requires: libpthread libpng
+</CODE>
+</TD>
+</TR>
+</TABLE>
+</CENTER>
+
+
+Quicktime movies are first and foremost a very complicated, tedious,
+wrapper for 3rd party compression schemes.<P>
+
+Quicktime for Linux hides the nightmare of accessing a Quicktime movie
+and gives the programmer a set of audio and video streams with some
+compression ability.  The audio tracks are sequential streams of PCM
+audio data and video tracks are a sequential streams of frames.<P>
+
+Before you drop your classes and write up your dream program on this be
+aware of some limitations.  This library doesn't give you the official
+Quicktime API even remotely.  It uses it's own threadable, scalable
+ANSI C API.  This library doesn't include any commercial codecs nor
+does it include support for keyframes, which most of the expensive
+codecs require but the free codecs don't.  Also you may encounter
+Quicktime files containing compressed headers.  This library only reads
+uncompressed headers.<P>
+
+What you can do is create and read any Quicktime movie that uses JPEG,
+MJPA, RGB, PNG, or YUV2 compression and many sound formats.  MJPA,
+JPEG, RGB, PNG, YUV 4:2:2, and YUV 4:2:0 encoding and decoding is
+currently built into the library.  For audio, IMA4, ulaw, 16, 8, and 24
+bit linear encoding and decoding is in the library.  You can still get
+raw data if you want to write your own compression routines.<P>
+
+<H1>Contents</H1>
+
+<A HREF="building.html">Step 1: Building the library</A><P>
+
+<A HREF="opening.html">Opening a file</A><P>
+
+<A HREF="reading.html">Reading a file</A><P>
+
+<A HREF="positioning.html">Positioning yourself in a file</A><P>
+
+<A HREF="writing.html">Writing a file</A><P>
+
+<A HREF="codecs.html">Information about specific codecs</A><P>
+
+<A HREF="firewire.html">Using the firewire support</A><P>
+
+<A HREF="util.html">Using the utilities</A><P>

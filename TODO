@@ -1,0 +1,17 @@
+Here's a list of things that the authors are working on in the short-term:
+
+* Add the OpenDivX MPEG-4 video codec as an option
+* Add an MP3 audio codec as an option
+* Support real MP4 file format in addition to the hinted Quicktime file format
+
+Here's a list of things that we would like to do in the future,
+however we're happy to have volunteers do them also ;-)
+
+* Port, port, port...
+* Integrate with other player skins like XMPS
+* Add the MPEG-4 CELP audio codec (low bitrate voice codec)
+* Add ability to easily tune into multicasts (the plumbing is all there)
+
+Further suggestions are of course welcome, 
+especially if you're willing to implement them!
+

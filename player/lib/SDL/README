@@ -1,0 +1,41 @@
+
+                         Simple DirectMedia Layer
+
+                                  (SDL)
+
+                                Version 1.1
+
+---
+http://www.libsdl.org/
+
+This is the Simple DirectMedia Layer, a generic API that provides low
+level access to audio, keyboard, mouse, joystick, 3D hardware via OpenGL,
+and 2D framebuffer across multiple platforms.
+
+The current version supports Linux X11, Linux framebuffer console,
+Win32 GDI, Win32 DirectX, BeOS BDirectWindow, MacOS toolkit, MacOS
+sprockets, FreeBSD 4.X X11, Solaris 2.X X11, and IRIX 6.X X11.
+
+The code contains support for Linux SVGAlib, Linux GGI, Linux AAlib,
+Linux DGA 2.0, OpenBSD X11, and AIX X11, but they are not yet officially
+supported.
+
+If you have a newer PC, SDL may be able to take advantage of MMX blit
+acceleration using assembly routines from the Hermes blit library. :)
+
+This library is distributed under GNU LGPL version 2, which can be
+found in the file  "COPYING".  I reserve the right to place future
+versions of this library under a different license.
+
+The best way to learn how to use SDL is to check out the header files in
+the "include" subdirectory and the programs in the "test" subdirectory.
+The header files and test programs are well commented and always up to date.
+More documentation is available in HTML format in "./docs/index.html"
+
+The test programs in the "test" subdirectory are in the public domain.
+
+March 1, 2000
+--
+Written by:
+	Sam Lantinga				(slouken@libsdl.org)
+

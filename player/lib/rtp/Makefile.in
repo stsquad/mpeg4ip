@@ -1,0 +1,63 @@
+#
+# Makefile for the common code library project. 
+# This probably requires GNU make.
+#
+
+DEFS   = @DEFS@
+CFLAGS = @CFLAGS@ $(DEFS)
+LIBS   = @LIBS@
+CC     = @CC@
+AR     = ar
+RANLIB = @RANLIB@
+HOST   = @host@
+TARGET = libuclmmbase.a
+
+exec_prefix=@exec_prefix@
+
+OBJS = crypt_random.o debug.o md5.o memory.o net_udp.o qfDES.o util.o hmac.o  \
+       base64.o ntp.o rtp.o drand48.o mbus_parser.o mbus_config.o mbus_addr.o \
+       mbus.o btree.o asarray.o @LIBOBJS@
+
+TEST_OBJS = test_base64.o test_des.o test_md5.o test_net_udp.o \
+            test_memory.o test_mbus_parser.o test_mbus_addr.o  \
+	    test.o
+
+SRCS = $(OBJS:%.o=%.c)
+
+all: version.h $(TARGET) test-libcommon
+
+test-libcommon: $(TEST_OBJS) $(TARGET)
+	$(CC) $(TEST_OBJS) $(CFLAGS) $(TARGET) $(LIBS) -o test-libcommon
+	
+$(TARGET): $(OBJS)
+	$(AR) r $(TARGET) $(OBJS)
+	$(RANLIB) $(TARGET)
+
+version.h:	VERSION
+	sed -e 's/.*/#define CCL_VERSION "v&"/' VERSION > version.h
+
+.c.o:
+	$(CC) $(CFLAGS) $(INC) -c $<
+
+clean:
+	-rm -f $(OBJS) $(TEST_OBJS) version.h $(TARGET) tags test-libcommon
+
+distclean:	clean
+	-rm -f Makefile config.status config.cache uclconf.h
+
+etags:
+	etags *.[ch]
+
+ctags:
+	ctags *.[ch]
+
+release:
+	cvs tag release-`cat VERSION | sed "s/\./-/g"`
+
+depend: $(SRCS)
+	makedepend $(DEFS) $(INC) $(SRCS)
+
+install:
+
+install-exec:
+

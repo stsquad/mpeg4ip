@@ -1,0 +1,304 @@
+Common Code Library: Modification history
+
+v1.0.0  - Initial version, based on RAT v3.2.7
+	* 14 November 1998
+
+v1.0.1  - Added HMAC authentication code
+	- Added timeout to udp_recv()
+	- Added authentication of Mbus messages
+	- Added RTP library
+	- Added select and fd_set functions to net_udp.[ch]
+	- IPv6 code now runs on the pre-release stack for Solaris 2.7
+	- Mbus code support a configuration file on Unix, and the registry
+	  on Win32, to save/restore settings
+	- Add udp_host_addr() to get a text-version of the address to which
+	  a socket is bound.
+	- Set IPv6 ttl and loopback state correctly on Solaris
+	- Move mbus hearbeat code into this library
+	- Remove key expiry from the mbus code, since it created race
+	  conditions when multiple tools for a single conference were
+	  started either side of the expiry time.
+	- Update mbus addressing scheme - names are now sets of tokens, if the
+	  set of tokens in the destination address is a subset of the address 
+	  of the entity receiving that message then the message is accepted. An
+	  empty set is a valid destination address for a message, and that will
+	  be accepted by all receivers (ie: a wildcard).
+	- Remove channel ID from mbus code.
+	- Fix configure script to work with solaris 2.7 where inet_aton() and 
+	  inet_pton() have prototypes but no implementation.
+	* 31 March 1999 [rat v4.0.0]
+
+v1.0.2  - Assorted fixes to RTP library
+	- Fix bounds overruns in memory.c - will now run with -DDEBUG_MEM
+	  with the bounds checker on.
+	- Add timestamp to mbus packet headers.
+	- Add mbus_qmsgf()
+	- Cleanup mbus transmission path
+	- Add support for DES encryption to the mbus (on by default)
+	- Fix DES code
+	- Mbus keeps a cache of other entities, and only allows sending of
+	  reliable messages to known unicast addresses. 
+	- Mbus error function now takes a "type of error" argument
+	- Added xrealloc()
+	- Fix reordering of mbus messages
+	* 14 May 1999 [rat v4.0.1]
+
+v1.0.3  - Fix inet_aton() in net_udp.c
+	* 15 May 1999 [rat v4.0.2]
+
+v1.0.4  - Fix compilation with Microsoft IPv6 stack
+	- Solaris 2.5.1 doesn't have vsnprintf(), use vsprintf() instead
+	  and don't worry about the possible buffer overflow problems. 
+	  Reported by Holger Wirtz.
+	- Added mbus_addr_valid()
+	- Added timeout to mbus_recv()
+	- Fixes to mbus code from Dirk Kutscher
+	* 2 June 1999 [rat v4.0.3]
+
+v1.0.5  - Not quite sure what happened with this version, but if you have
+	  it it's probably not a good idea to use it! :-)
+
+v1.0.6  - Add ability to send to one port whilst receiving on another, 
+	  requested by Henning Schulzrinne.
+	- Add mbus_cmd_handler() to change the function handling the
+	  reception of mbus commands.
+	- Compilation fixes for Irix 6.5 contributed by Bob Olson.
+	- Add extra sanity checking to mbus_recv()
+	- Add extra sanity checking to mbus_parse_*
+	- Fix source address passed to mbus_recv() callback - was missing
+	  the "(" and ")" around it.
+	- Fix memory leak in mbus_recv()
+	- Fixes for configure script on 64 bit IRIX from Peter Orbaek
+	- Move base64 tests into test_base64.c and integrate with the test suite
+	* Released 5 July 1999 
+
+v1.0.7  - Add udp_exit to close sockets and leave multicast groups if necessary.
+	- Fix mbus_exit close sockets.
+	- Move the code to deal with the mbus configuration into mbus_config.c
+	  which will make it easier to write an mbus packet logger without code 
+	  duplication (such a logger can't easily be part of mbus.c, since it's
+	  needs conflict with correct protocol operation).
+	- Note that v1.3 of the Microsoft Research IPv6 stack requires an explicit
+	  route to be added for multicast traffic before a group can be joined. If
+	  you get errors in the IPV6_ADD_MEMBERSHIP setsockopt, this is probably
+	  the reason. We could specify an interface explicitly, but which one to
+	  pick?
+	- Updates to the IPv6 code for the Detexis Musica IPv6 stack
+	- Updates to the RTP code from Markus Germeier: time-out and delete sources,
+	  fix X but in RTP header, add support for sending BYE packets.
+	- Add inet_pton() and inet_ntop() implementations, for those platforms
+	  which are missing them.
+	- Add gettimeofday() workaround for win32
+	- Add drand48() workaround for win32
+	* Released 20 August 1999
+
+v1.0.8  - Add mbus_sent_all()
+	- Add loop count to mbus_recv(), so it will always return after 10
+	  packets have been received. The prevents a denial of service attack
+	  if packets are sent faster than the timeout period.
+	- Add binary tree.
+	- Add OpenBSD fixes from Angelos D. Keromytis
+	- Add Jerry Isdale's debug_dump() routine.
+	- Add fix to RTP init_seq() to correct bug(?) in RFC1889 which
+	  means we incorrectly report the one packet lost in the first
+	  reporting interval. Fix by Bill Fenner.
+	- Make the RTP create_source() routine return a pointer to the
+	  source. Patch from Bill Fenner.
+	- Changes to the probation code in rtp.c from Bill Fenner.
+	- Fix types in the RTP source struct.
+	- Add a SOURCE_CREATED event to the RTP callback.
+	- Add option to accept RTP packets before a corresponding RTCP
+	  packet has been received.
+	- Add RX_RR_EMPTY event to the RTP code, to indicate that an empty
+	  reception report (ie: no report blocks) has been received.
+	- Add RX_RTCP_START and RX_RTCP_FINISH events to the RTP code.
+	- debug_msg() now displays the pid
+	- The mbus code now maintains the list of active sources more correctly, 
+	  making mbus_addr_valid() useful
+	- rtp_init() now takes separate rx_port and tx_port, instead of a
+	  single port for both sending and receiving.
+	- Add rtp_get_addr(), rtp_get_rx_port(), rtp_get_tx_port() and rtp_get_ttl()
+	- Change return type of rtp_recv to int (was void).  Returns TRUE if
+	  packets were processed, FALSE otherwise.
+	- Timeout RRs from the RTP database, if they're not refreshed for
+	  3 times the RTCP reporting interval
+	- rtp_update() only expires sources once per reporting interval, to
+	  avoid burning too many cycles.
+	- Mbus updates contributed by Markus Germeier
+		- we now can configure the multicast address and port which the
+		  mbus should use in ~/.mbus 
+		- honor the SCOPE setting in ~/.mbus
+		- expire sources we haven't heard from for a while
+		- fixes small memory leak in remove_other_addr
+		- mbus_exit now sends a mbus.quit and cleans up other_* structures
+	- RTP updates contributed by Timur Friedman.
+		- Add support for RTCP APP packets
+		- Add support for a promiscuous mode to the RTP code, when in
+		  promiscuous mode there is no wait for a minimum number of RTP
+		  packets before recognizing a source.
+		- Add the functions rtp_setopt() and rtp_getopt() that can be used
+		  to control various options (right now just promiscuous mode).
+		- Split rtp_recv_data() into two functions.
+	* 5 October 1999
+
+v1.0.9  - Ignore ECONNREFUSED in net_udp.c
+	- Add mbus_rendezvous_waiting() and mbus_rendezvous_go() to enable
+	  easy rendezvous between multiple processes.
+	- Change rtp_setopt() and rtp_getopt() to take boolean options only.
+	- Remove rtp_weak_validation(), use rtp_setopt(RTP_OPT_WEAK_VALIDATION)
+	  instead.
+	- Delete RTP database entries which haven't been heard from for
+	  more than 5 times the RTCP reporting interval.
+	* 2 November 1999 [rat v4.1.1]
+
+v1.0.10 - Mbus updates from Markus Germeier, which fix compatibility with
+	  the Uni Bremen implementation:
+		- mbus.bye() signals an entity when it leaves. (mbus.quit commands
+		  an entity to leave)
+		- Generate and work with 64 bit DES keys. Generate parity bits for key.
+		  Check if key in configuration file sets parity bits correctly.
+		- mbus_heartbeat(m, 1) should send an mbus.hello() every second and
+		  not every two seconds
+		- HMAC-MD5 should read HMAC-MD5-96
+		- Honor the MBUS environment variable for the MBUS configuration file
+		- The TZI Mbus implementations generate spaces in configuration file,
+		  which mislead the UCL Mbus to dump core. Allow Spaces in .mbus
+		- Address must be unique
+		- Delete failed reliable messages if err_handler is present
+	- Fix uninitialized use of session->last_update in RTP code
+	- Fix assertion failures in RTP library when sending RTCP packets
+	- Recognize, but ignore, profile specific extensions to RTCP SR/RR packets
+	- Update RTCP reporting interval calculation
+	- Implement reverse reconsideration of RTCP reporting interval
+	- Fix tv_diff in rtp.c to handle negative results
+	- Remove rtp_get_encryption_key(), the user of the library is assumed to 
+	  remember the passphrase used and doesn't need access to the internal
+	  form of the key.
+	- GNU autoconf modifications from Bill Fenner
+	- Global change of integer types, and removal of compatibility defines:
+		u_int8  -> u_int8_t
+		u_int16 -> u_int16_t
+		u_int32 -> u_int32_t
+	  and the same for the signed varients.
+	- Implement encryption in the RTP code
+	- Ignore connection refused errors in IPv4 UDP send.
+	- Hide definition of struct mbus_config
+	- Add a version number to the mbus config file
+	- Fixes for FreeBSD v3.2 with INRIA IPv6 stack from Fred Templin
+	- Add configure check for sin6_len in struct sockaddr_in6 (seems
+	  that FreeBSD has this, but many systems don't)
+	- Fix batching of multiple mbus messages into one packet.
+	* 13 December 1999 [rat v4.1.2]
+
+v1.1.0  - Changed autoconf generated header to uclconf.h.
+	- Changed library name to uclmmbase to be consistent with other libs.   
+	- Add RTP_OPT_FILTER_MY_PACKETS
+	- Cleanup test routines
+	- Fix various potential buffer overflow problems
+	- Update copyright notices to welcome in the new millennium
+	- Previous versions of udp_send() would sometimes return -1 on error, 
+	  and would sometimes abort(). We now always return -1 and never abort.
+	- Add test routines for code in net_udp.c
+	- Fix SCOPE parameter in mbus configuration on windows
+	- Fix sending of hearbeat messages whilst in mbus.waiting() and mbus.go() loops
+	- Tidy up mbus_qmsg();
+	- Add workaround for buffer overflow bug in _dprintf() which caused
+	  a crash under Windows NT service pack 6. This is not a real fix, we
+	  need to use vsnprintf() in there, but Windows doesn't implement it
+	  and I don't have time before we give the demo... Sigh, only two
+	  days wasted.
+	- Fix buffer overflow in _dprintf() on Windows, using _vsnprintf().
+	- Update IPv6 support for Microsoft Research IPv6 stack, v1.4
+		- Use the versions of inet_ntop() and inet_pton() provided with the 
+		  IPv6 stack, but retain our own implementation when building with 
+		  IPv4 support only.
+		- Use getaddrinfo() rather than getnodebyname() to get our IPv6 address if
+		  running with the Microsoft Research IPv6 stack. 
+		- We now require getaddrinfo() to be present in all IPv6 stacks: those which
+		  do not have this call (eg: the Musica IPv6 stack) MUST provide a workaround
+		  implementation.
+	  versions of MSR IPv6 prior to 1.4 are no longer supported.
+	- Update IPv6 support for Red Hat Linux 6.1
+	- Fix generation of version.h on Win32
+	- Add VC++ project file to build the test suite under Win32
+	- Add extra debug code to the mbus library
+	- Rewrite mbus code: mbus_parser.[ch] exist now, and include routines moved from the
+	  main mbus.[ch] files. Note that the interface to the mbus_parse_*() functions has
+	  now changed and is not backwards compatible.
+	- Remove the mbus_addr() function, add an extra parameter to mbus_init() instead.
+	* 28 January 2000
+
+v1.1.1  - Add extra debugging code
+	* 1 February 2000
+
+v1.1.2  - Add routines for handling NTP format timestamps, in ntp.[ch]
+	- Add udp_addr_valid.
+	- Fix cname setup for Win32.
+	- Add udp_init_if() call, to open a UDP/IP socket bound to a
+	  specific interface
+	- Add rtp_init_if() call, to open an RTP socket bound to a 
+	  specific interface
+	- Add asarray.[ch] string holding associative array.
+	- Fix compilation with -Wwrite-strings and -Wcast-align
+	- Split mbus_addr_match() and mbus_add_identical() into mbus_addr.[ch]
+	* 14 February 2000
+
+v1.1.3  - Fix debug_set_core_dir() when not debugging.
+	* 14 February 2000
+
+v1.1.4  - Add tests for mbus_parser.c/mbus_addr.c and fix bugs found
+	- Fix use of free()'d memory in mbus.c
+	* 24 February 2000
+
+v1.1.5  - Remove SunOS and Solaris defines from the configure script, they
+	  shouldn't be necessary any longer.
+	- Add workaround for missing getaddrinfo() on some platforms.
+	- Remove most of the abort() statements from udp_init(), we now
+	  return NULL in most cases of an error.
+	- Fix header extension handling when padding bit set for RTP packets.
+	- Change RTP event type #defines into rtp_event_type so compiler can
+	  check all cases are covered in decision blocks.
+	- Fix waiting_ack next is set to null when message is put on ack list.
+	- Add check for udp socket allocation success in mbus_init.
+	- Add get_appname to util.[ch].
+	- Bound ttl to max 127 in rtp.c rather than asserting <= 127.
+	- Change rtp_init to return NULL in rtp.c if ports or ttl 
+	  inappropriate.
+	- Clarify that rtp_recv(), rtp_send_data() and rtp_send_ctrl() take an
+	  RTP format timestamp for the current time.
+	* 17 April 2000
+
+v1.2.0	- Add udp_fd() function, to retrieve the underlying file descriptor.
+	- udp_get_host_addr4() will now return NULL on failure, and leave
+	  errno set.
+	- Workaround failure to get host IP address when setting the RTP
+	  CNAME (we use user@127.0.0.1 as the CNAME in this case). 
+	- Fix rtp_send_data() to correctly handle header extensions. This required
+	  a change to the API: the extn_len parameter now counts the length on the
+	  extension in 32 bit words minus one, and there is an additional extn_type
+	  parameter. If you don't use header extensions in your application, set the
+	  additional parameter to zero. 
+	- Fix reception of packets with RTP header extension.
+
+
+Still to do...
+	- IPv6 code sometimes doesn't get the correct interface address,
+	  since it does a gethostbyname() and looks that up, yet that can
+	  return the IPv4 hostname only on some machines.
+	- Doesn't do DNS AAAA lookups when given a name rather than an IP address.
+	- Mbus code should check timestamp in received headers, and discard
+	  messages if it decreases, as a hinderance to replay attacks.
+	- Mbus code should be more paranoid about handling garbage inputs, we
+	  can likely get all sorts of buffer overflows by feeding random data
+	  into it.
+	- rtp_recv should split into rtp_select and rtp_recv. Jitter issues
+	  otherwise, as pointed out by Orion.
+	- Allow a callback for background processing during mbus_rendezvous_*()
+	- mbus_exit() queues an mbus.bye() message, but that never gets sent.
+	- Handling of SSRC collisions is broken.
+	- When weak RTP validation is enabled, spurious sources can be
+	  added to the database (from the CSRC area of a packet?). Reported
+	  by Xiaotao Wu <xiaotaow@cs.columbia.edu>
+	- packets with a header extension are silently thrown away.
+	  Reported by Peter Parnes.
+

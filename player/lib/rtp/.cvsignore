@@ -1,0 +1,9 @@
+config.status
+config.log
+config.cache
+config.h
+Makefile
+test-libcommon
+version.h
+.pure
+.devel
