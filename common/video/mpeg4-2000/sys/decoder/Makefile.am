@@ -2,7 +2,7 @@ AM_CFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ @BILLS_CWARNINGS@
 
 AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -D_OBSS_
 
-INCLUDES = -I.. -I../../type -I../../tools -I../../../../../include
+INCLUDES = -I.. -I../../type -I../../tools -I../../idct -I../../../../../include
 
 noinst_LTLIBRARIES = libobj_sys_decoder.la
 libobj_sys_decoder_la_LDFLAGS = -static

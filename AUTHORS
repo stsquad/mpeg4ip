@@ -15,6 +15,14 @@ MPEG4IP original code and integration by:
     Alix Marchandise-Franquet   alix@cisco.com
     Bill May                    wmay@cisco.com
     Massimo Villari             mvillari@cisco.com
+    Waqar Mohsin
+
+MPEG4IP would like to thank the following people for their contributions
+to the project
+    Richard Chen
+    Rob Arnold
+    Howdy Pierce
+and many more.
 
 MPEG4IP would like to thank the following people for help in porting
 to other versions of *nux, windows and Mac OS X:

@@ -1,4 +1,4 @@
-/* $Id: wavelet.cpp,v 1.1 2003/05/05 21:23:41 wmaycisco Exp $ */
+/* $Id: wavelet.cpp,v 1.2 2003/11/04 21:33:21 wmaycisco Exp $ */
 /****************************************************************************/
 /*   MPEG4 Visual Texture Coding (VTC) Mode Software                        */
 /*                                                                          */
@@ -801,9 +801,9 @@ Void CVTCDecoder::perform_IDWT_Tile(FILTER **wvtfilter, Char *recImgFile, DATA *
 #if  PROGRESSIVE
     MinLevel = (nLevels[0] > nLevels[1])? nLevels[1]:nLevels[0];
     MinLevel = (MinLevel > nLevels[2])? nLevels[2]: MinLevel;
-#else PROGRESSIVE
+#else 
     MinLevel = mzte_codec.m_iSpatialLev - mzte_codec.m_iTargetSpatialLev;
-#endif PROGRESSIVE
+#endif 
 
     if (mzte_codec.m_extension_type==0) {
 

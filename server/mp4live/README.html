@@ -3,14 +3,15 @@
 <body bgcolor="#ffffff">
 <a name="top">
 <b><font color="#0000FF">MP4LIVE README</font></b><p>
-July 29, 2002 (and later)<br>  
+October, 2003<br>  
 Dave Mackie<br>
 Bill May<br>
 <P>
 <font face="Arial" color="#0000FF">
 <b>
 <a href="#mp4live">MP4LIVE</a><br>
-<a href="#0.9.10">Changes in Version 0.9.10</a><br>
+<a href="#1.0">Changes in Version 1.0</a><br>
+<a href="#0.9.10">Changes in Version 1.0RC1</a><br>
 <a href="#0.9.9">Changes in Version 0.9.9</a><br>
 <a href="#0.9.8">Changes in Version 0.9.8</a><br>
 <a href="#0.9.7">Changes in Version 0.9.7</a><br>
@@ -29,6 +30,7 @@ Bill May<br>
 <a href="#issues">Known Issues</a><br>
 <a href="#unknown">Unknowns</a><br>
 <a href="#links">Links</a><br>
+<a href="#config">Configuration Variables</a><br>
 </b>
 </font>
 <P>
@@ -49,8 +51,13 @@ enhancements, ask questions, etc. The URL is
 <P>
 <a href="#top">Back to top</a>
 <P>
+<a name="1.0">
+<b><font color="#0000FF">Changes in Version 1.0</font></b>
+<p>
+Generate correct Video Profile based on bitrate and frame rate<br>
+<p>
 <a name="0.9.10">
-<b><font color="#0000FF">Changes in Version 0.9.10</font></b>
+<b><font color="#0000FF">Changes in Version 1.0RC1</font></b>
 <p>
 Support for V4L2 drivers (recommended)<br>
 Fixed long term audio/video sync problems in transmission and file recording<br>
@@ -486,7 +493,7 @@ If it works and mp4live doesn't then I'd be glad to hear from you. If xawtv
 doesn't work with your capture card, then I can't help you. Something is 
 wrong with your capture card/system/bttv driver/kernel combination. I don't
 have the capability or inclination to debug that for you! 
-
+<p>
 <a href="#top">Back to top</a>
 <P>
 <a name="links">
@@ -517,12 +524,114 @@ have the capability or inclination to debug that for you!
   <td>LAME</td>			
   <td><a href="http://www.sourceforge.net/projects/lame">http://www.sourceforge.net/projects/lame</a></td>
 </tr>
+<tr>
+  <td>FAAC</td>			
+  <td><a href="http://www.audiocoding.com">http://www.audiocoding.com</a></td>
+</tr>
 </table>
 <P>
 <a href="#top">Back to top</a>
 <P>
+<a name="config">
+<b><font color="#0000FF">Configuration Variables</font></b>
+<P>
+<table border cellpadding=4>
+<tbody>
+<tr><th colspan=5 align=center><b>Application Level</b></th></tr></tbody>
+<tbody>
+<tr><th>Name</th><th>Type</th><th>Default</th><th>Does</th></tr>
+<tr align=center>
+<td>useRealTimeScheduler</td><td>bool</td><td>true</td><td>attempts to use real time features of the OS<br>Probably only suceeds as root</td></tr>
+<tr align=center><td>duration</td><td>int</td><td>1</td><td>duration in durationUnits</td></tr>
+<tr align=center><td>durationUnits</td><td>int</td><td>60</td><td>Number of seconds per duration unit (1, 60, 3600, 86400)</td></tr>
+<tr align=center><td>debug</td><td>bool</td><td>false</td><td>Enable debug output</td></tr>
+<tr align=center><td>signalHalt</td><td>string</td><td>sighup</td><td>Signal used in no gui mode to stop</td></tr>
+<tr> </tr>
+<tr> </tr>
 
-<b>
+<th colspan=5 align=center><b>Audio Options</b>
+<tbody>
+
+<tr align=center><td>audioEnable</td><td>bool</td><td>true</td><td>True if audio is enabled</td></tr>
+<tr align=center><td>audioSourceType</td><td>string</td><td>OSS</td><td>Audio Source Type (only OSS for now)</td></tr>
+<tr align=center><td>audioDevice</td><td>string</td><td>/dev/dsp</td><td>Audio Device to use</td></tr>
+<tr align=center><td>audioMixer</td><td>string</td><td>/dev/mixer</td><td>Audio Mixer to use</td></tr>
+<tr align=center><td>audioInput</td><td>string</td><td>mix</td><td>Audio Input Type to use</td></tr>
+<tr align=center><td>audioChannels</td><td>int</td><td>2</td><td>Number of Encoded Audio Channels (1 or 2)</td></tr>
+<tr align=center><td>audioSampleRate</td><td>int</td><td>44100</td><td>Audio Frequency Sample Rate</td></tr>
+<tr align=center><td>audioBitRate</td><td>int</td><td>128</td><td>Encoded Audio Bit Rate (in 1000 Hz)</td></tr>
+<tr align=center><td>audioBitRate</td><td>int</td><td>128</td><td>Encoded Audio Bit Rate (in 1000 Hz) (unused)</td></tr>
+<tr align=center><td>audioBitRateBps</td><td>int</td><td>128000</td><td>Encoded Audio Bit Rate</td></tr>
+<tr align=center><td>audioEncoding</td><td>string</td><td>MP3</td><td>Audio Encoding to use</tr>
+<tr align=center><td>audioEncoder</td><td>string</td><td>LAME</td><td>Audio Encoder to use</tr>
+<tr align=center><td>audioOssUseSmallFrags</td><td>bool</td><td>true</td><td>Enable small fragments size in OSS</tr>
+<tr align=center><td>audioOssFragments</td><td>int</td><td>128</td><td>Number of fragments</tr>
+<tr align=center><td>audioOssFragSize</td><td>int</td><td>8</td><td>Size of fragments</tr>
+<tr> </tr>
+<tr> </tr>
+<th colspan=5 align=center><b>Video Options</b>
+<tbody>
+<tr align=center><td>videoEnable</td><td>bool</td><td>true</td><td>Enable Video</tr>
+<tr align=center><td>videoSourceType</td><td>string</td><td>V4L</td><td>Video Source to use <br>(V4L is for both V4L and V4L2)</tr>
+<tr align=center><td>videoDevice</td><td>string</td><td>/dev/video0</td><td>Video Device to use</tr>
+<tr align=center><td>videoInput</td><td>int</td><td>1</td><td>Video Input to use (index from V4L)</tr>
+<tr align=center><td>videoSignal</td><td>int</td><td>1</td><td>PAL-0, NTSC-1, SECAM-2</tr>
+<tr align=center><td>videoChannelListIndex</td><td>int</td><td>0</td><td>Which channel list to use for tuner<br>see video_util_tv.cpp</tr>
+<tr align=center><td>videoChannelIndex</td><td>int</td><td>1</td><td>0 based index for channel in above list</tr>
+<tr align=center><td>videoPreview</td><td>bool</td><td>true</td><td>Show Video Preview in Gui</tr>
+<tr align=center><td>videoRawPreview</td><td>bool</td><td>false</td><td>Show Raw Video Preview in Gui</tr>
+<tr align=center><td>videoEncodedPreview</td><td>bool</td><td>true</td><td>Show Encoded Video Preview in Gui</tr>
+<tr align=center><td>videoEncoding</td><td>string</td><td>MPEG4</td><td>Video Encoding Type</tr>
+<tr align=center><td>videoRawWidth</td><td>int</td><td>320</td><td>Width of output frame in pixels</tr>
+<tr align=center><td>videoRawHeight</td><td>int</td><td>240</td><td>Height of output frame in pixels</tr>
+<tr align=center><td>videoAspectRatio</td><td>float</td><td>1.33</td><td>Aspect ratio</tr>
+<tr align=center><td>videoFrameRate</td><td>float</td><td>29.97</td><td>Frame Rate</tr>
+<tr align=center><td>videoKeyFrameInterval</td><td>float</td><td>2.0</td><td>Number of Seconds between Key Frames</tr>
+<tr align=center><td>videoBitRate</td><td>int</td><td>500</td><td>Encoded Video Bit Rate in 1000 bits per second</tr>
+<tr align=center><td>videoForceProfileId</td><td>bool</td><td>false</td><td>True to force MPEG4 Video Profile to videoProfileId</tr>
+<tr align=center><td>videoProfileId</td><td>int</td><td>3 (SP@L3)</td><td>MPEG4 Video Profile when forcing</tr>
+<tr align=center><td>videoBrightness</td><td>int</td><td>50</td><td>Brightness level (0 to 100)</tr>
+<tr align=center><td>videoHue</td><td>int</td><td>50</td><td>Hue level (0 to 100)</tr>
+<tr align=center><td>videoColor</td><td>int</td><td>50</td><td>Color level (0 to 100)</tr>
+<tr align=center><td>videoContrast</td><td>int</td><td>50</td><td>Contrast level (0 to 100)</tr>
+<tr align=center><td>videoTimestampCache</td><td>bool</td><td>true</td><td>Calculate timestamps, rather than read with timestamp<br>(V4L only)</tr>
+<tr align=center><td>videoH261Quality</td><td>int</td><td>10</td><td>Starting H.261 Video Quality</tr>
+<tr align=center><td>videoH261QualityAdjFrames</td><td>int</td><td>8</td><td>Number of frames to adjust H.261 Quality over</tr>
+<tr align=center><td>videoCaptureBuffersCount</td><td>int</td><td>16</td><td>Number of capture buffers to request<br>(V4L2 only)</tr>
+<tr> </tr>
+<tr> </tr>
+<th colspan=5 align=center><b>Recording Options</b>
+<tbody>
+<tr align=center><td>recordEnable</td><td>bool</td><td>true</td><td>True to record</tr>
+<tr align=center><td>recordRawAudio</td><td>bool</td><td>false</td><td>True to record raw audio <br>(PCM at encode frequency)</tr>
+<tr align=center><td>recordRawVideo</td><td>bool</td><td>false</td><td>True to record raw video <br>(YUV at height/width)</tr>
+<tr align=center><td>recordEncodedAudio</td><td>bool</td><td>true</td><td>True to record encoded audio</tr>
+<tr align=center><td>recordEncodedVideo</td><td>bool</td><td>true</td><td>True to record encoded video</tr>
+<tr align=center><td>recordMp4File</td><td>string</td><td>capture.mp4</td><td>Filename to create</tr>
+<tr align=center><td>recordMp4HintTracks</td><td>bool</td><td>true</td><td>Record hint tracks when recording completed</tr>
+<tr align=center><td>recordMp4Optimize</td><td>bool</td><td>false</td><td>Optimize mp4 file when recording completed</tr>
+<tr> </tr>
+<tr> </tr>
+<th colspan=5 align=center><b>Transmission (RTP) Options</b>
+<tbody>
+<tr align=center><td>rtpEnable</td><td>bool</td><td>false</td><td>True to transmit over the network</tr>
+<tr align=center><td>rtpDestAddress</td><td>string</td><td>224.1.2.3</td><td>Video Stream destination address</tr>
+<tr align=center><td>audioRtpDestAddress</td><td>string</td><td>224.1.2.3</td><td>Audio Stream destination address</tr>
+<tr align=center><td>rtpAudioDestPort</td><td>int</td><td>20002</td><td>Audio Stream destination port</tr>
+<tr align=center><td>rtpVideoDestPort</td><td>int</td><td>20000</td><td>Video Stream destination port</tr>
+<tr align=center><td>rtpPayloadSize</td><td>int</td><td>1460</td><td>max bytes of audio or video per packet</tr>
+<tr align=center><td>rtpMulticastTtl</td><td>int</td><td>15</td><td>Multicast TTl</tr>
+<tr align=center><td>rtpDisableTimestampOffset</td><td>bool</td><td>false</td><td>If true, start RTP timestamps at 0<br>if false, start at random offset</tr>
+<tr align=center><td>rtpUseSingleSourceMulticast</td><td>bool</td><td>false</td><td>Use SSM multicast</tr>
+<tr align=center><td>sdpFile</td><td>string</td><td>capture.sdp</td><td>Where to store sdp file describing session</tr>
+<tr align=center><td>rtpUseMp4RtpPayload14</td><td>bool</td><td>false</td><td>if true, use RTP payload 14 and 90000 timescale<br>if false, use dynamic payload and frequency timescale</tr>
+<tr align=center><td>rtpNoBRR0</td><td>bool</td><td>false</td><td>If true, do not include b=RR:0 in SDP</tr>
+</tbody>
+</table>
+
+<p>
+<a href="#top">Back to top</a>
+<p>
 Dave Mackie<br>
 Bill May<br>
 <a href="http://www.cisco.com">Cisco Systems, Inc.</a>

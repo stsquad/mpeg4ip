@@ -57,7 +57,7 @@ class CSDLVideoSync : public CVideoSync {
   void set_screen_size(int scaletimes2); // 1 gets 50%, 2, normal, 4, 2 times
   void set_fullscreen(int fullscreen);
   int get_fullscreen (void) { return m_fullscreen; };
-  void do_video_resize(int m_pixel_width = -1, int m_pixel_height = -1, int m_max_width = -1, int m_max_height = -1, bool resize = true); 
+  void do_video_resize(int m_pixel_width = -1, int m_pixel_height = -1, int m_max_width = -1, int m_max_height = -1);
   void double_width(void);
  private:
   int m_video_bpp;

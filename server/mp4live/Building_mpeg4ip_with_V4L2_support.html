@@ -116,18 +116,6 @@ Name<br>
   </tbody>
 </table>
 <br>
-<h4>Install LAME</h4>
-<ol>
-  <li>Go to <a href="http://rpmfind.net">http://rpmfind.net</a></li>
-  <li>Search for <span style="font-style: italic;">lame</span> and <span
- style="font-style: italic;">lame-devel</span> and download the RPMs to
-the home directory. I downloaded <code>lame-3.93.1-fr2.i386.rpm</code>
-and <code>lame-devel-3.93.1-fr2.i386.rpm</code>.<br>
-  </li>
-  <li><code>su<br>
-    </code></li>
-  <li><code>rpm -ivh lame*</code></li>
-</ol>
 <a name="build1">
 <h2>B. Build a Custom Kernel</h2>
 The instructions are given in <a
@@ -152,9 +140,11 @@ click <span style="font-style: italic;">Save and Exit</span>.</li>
 </ol>
 <h2>C. Install V4L2</h2>
 V4L2 is a work in progress. So far, I've only gotten the 20030717 CVS
-snapshot to work.<br>
+snapshot to work.<p>
+You should read the directions from the V4L2 web site - they only apply for the
+versions that we've specified.<br>
 <ol>
-  <li>Download <code><a href="v4l2-20030717.tar.gz">v4l2-20030717.tar.gz</a></code>
+  <li>Download <code>v4l2-20030717.tar.gz</code>
 to the home directory</li>
   <li><code>tar xvfz v4l2-20030717.tar.gz</code></li>
   <li>su</li>
@@ -169,8 +159,7 @@ to the home directory</li>
 </ol>
 <h2>D. Install New bttv Driver</h2>
 <ol>
-  <li>Download<code><a href="file:///home/wmohsin/v4l2-20030717.tar.gz"></a></code>
-    <code><a href="bttv9-20030717.tar.gz">bttv9-20030717.tar.gz</a></code>
+  <li>Download <code>bttv9-20030717.tar.gz</code>
 to the home directory</li>
   <li><code>tar xvfz bttv9-20030717.tar.gz</code><code></code></li>
   <li>su</li>
@@ -193,7 +182,7 @@ root&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 113484 Aug&nbsp; 4 18:54 bttv.o<br>
 -rw-r--r--&nbsp;&nbsp;&nbsp; 1 root&nbsp;&nbsp;&nbsp;&nbsp;
 root&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 15616 Jul 18 10:48
 v4l1-compat.o<br>
--rw-r--r--&nbsp;&nbsp;&nbsp; 1 root&nbsp;&nbsp;&nbsp;&nbsp;
+-rw-r--r--&nbsp;&nbsp;&nbsp; 1 root&nbsp;y&nbsp;&nbsp;&nbsp;
 root&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8084 Jul 18 10:48
 v4l2-common.o<br>
 -rw-r--r--&nbsp;&nbsp;&nbsp; 1 root&nbsp;&nbsp;&nbsp;&nbsp;
@@ -216,13 +205,15 @@ from the modules.dep file (bug ???). Since we want to load the bttv
 driver (and its dependencies) from the new location
 (/lib/modules/2.4.20-8custom/v4l2 directory), an easy way is to rename
 the original bttv LKM and remove its entry from the modules.dep file.
+We recommend removing all bttv.o files.  Do a <code>find . -name bttv.o -print</code> and make sure all copies of bttv.o are purged.
 The following steps do that:<br>
 <ol>
   <li><code>cd /lib/modules/2.4.20-8custom/kernel/drivers/media/video</code></li>
-  <li><code>mv bttv.o bttv.o.orig</code></li>
+  <li><code>mv bttv.o bttv.o.orig</code> &nbsp&nbsp(We recommend <code>rm bttv.o</code>)</li>
   <li><code>cd /lib/modules/2.4.20-8custom</code></li>
   <li>Edit <code>modules.dep</code> and delete <code>/lib/modules/2.4.20-8custom/kernel/drivers/media/video/bttv.o</code>
-and its dependencies.<br>
+and its dependencies.</li>
+  <li>Reboot and select the custom kernel when the kernel load screen appears.  Alternatively, change /etc/grub.conf to indicate a default of 0 (that will be the custom kernel you created, and will automatically select it when you reboot).<br>
   </li>
 </ol>
 Do a find to make sure that you've overwritten all bttv.o files.

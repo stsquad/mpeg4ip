@@ -683,7 +683,8 @@ int parse_name_for_session (CPlayerSession *psptr,
 				      errmsg, 
 				      errlen,
 				      have_audio_driver);
-  } else if (strcasecmp(suffix, ".mp4") == 0) {
+  } else if ((strcasecmp(suffix, ".mp4") == 0) ||
+	     (strcasecmp(suffix, ".m4a") == 0)) {
     err = create_media_for_mp4_file(psptr, 
 				    name, 
 				    errmsg, 

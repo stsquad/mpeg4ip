@@ -325,11 +325,9 @@ static int xvid_codec_check (lib_message_func_t message,
   if (compressor != NULL && 
       (strcasecmp(compressor, "MP4 FILE") == 0)) {
     if ((type == MP4_MPEG4_VIDEO_TYPE) &&
-	(profile >= 1 && profile <= 3)) {
+	((profile >= MPEG4_SP_L1 && profile <= MPEG4_SP_L3) ||
+	 (profile == MPEG4_SP_L0))) {
       return 3;
-    }
-    if (type == MP4_H263_VIDEO_TYPE) {
-      return 2;
     }
     return -1;
   }
@@ -339,14 +337,32 @@ static int xvid_codec_check (lib_message_func_t message,
     if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {
       if (strcasecmp(fptr->rtpmap->encode_name, "MP4V-ES") == 0) {
 	fmtp_parse_t *fmtp;
+	media_desc_t *mptr = fptr->media;
+	if (find_unparsed_a_value(mptr->unparsed_a_lines, "a=x-mpeg4-simple-profile-decoder") != NULL) {
+	  // our own special code for simple profile decoder
+	  return 3;
+	}
 	fmtp = parse_fmtp_for_mpeg4(fptr->fmt_param, message);
+	int retval = -1;
 	if (fmtp != NULL) {
 	  int profile = fmtp->profile_level_id;
+	  if ((profile >= MPEG4_SP_L1 && profile <= MPEG4_SP_L3) || 
+	      (profile == MPEG4_SP_L0)) {
+	    retval = 3;
+	  } else if (fmtp->config_binary != NULL) {
+	    // see if they indicate simple tools in VOL
+	    uint8_t *volptr;
+	    volptr = MP4AV_Mpeg4FindVol(fmtp->config_binary, 
+					fmtp->config_binary_len);
+	    if (volptr != NULL && 
+		((volptr[4] & 0x7f) == 0) &&
+		((volptr[5] & 0x80) == 0x80)) {
+	      retval = 3;
+	    }
+	  }
 	  free_fmtp_parse(fmtp);
-	  if (profile >= MPEG4_SP_L1 && profile <= MPEG4_SP_L3) return 3;
-	  if (profile == MPEG4_SP_L0) return 3;
 	}
-	return -1;
+	return retval;
       }
     }
     return -1;

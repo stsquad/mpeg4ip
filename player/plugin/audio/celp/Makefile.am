@@ -6,6 +6,7 @@ celp_plugin_la_SOURCES = \
 	celp.cpp celp.h
 celp_plugin_la_LIBADD = \
 	-lm \
+	$(top_srcdir)/player/lib/mp4util/libmp4util.la \
 	$(top_srcdir)/player/lib/audio/celp/BS/libcelpbs.la \
 	$(top_srcdir)/player/lib/audio/celp/dec/libcelp.la 
 

@@ -137,6 +137,7 @@ RTSP_HEADER_FUNC(rtsp_header_content_type)
 RTSP_HEADER_FUNC(rtsp_header_cseq)
 {
   dec->cseq = strtoul(lptr, NULL, 10);
+  dec->have_cseq = TRUE;
 }
 
 RTSP_HEADER_FUNC(rtsp_header_location)
@@ -709,7 +710,10 @@ int rtsp_get_response (rtsp_client_t *info)
       response_okay = TRUE;
       // Okay - we have a good response. - check the cseq, and return
       // the correct error code.
-      if (info->next_cseq == decode->cseq) {
+      if (decode->have_cseq == FALSE || info->next_cseq == decode->cseq) {
+	if (decode->have_cseq == FALSE) {
+	  rtsp_debug(LOG_ERR, "Did not receive CSEQ in RTSP response - this may cause problems");
+	}
 	info->next_cseq++;
 	if ((decode->retcode[0] == '4') ||
 	    (decode->retcode[0] == '5')) {

@@ -10,6 +10,8 @@ endif
 
 INCLUDES = \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/lib/mp4av \
+	-I$(top_srcdir)/lib/mp4v2 \
 	$(XVID_INC)
 
 LDADD = \

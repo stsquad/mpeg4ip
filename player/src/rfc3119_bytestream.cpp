@@ -298,6 +298,10 @@ void CRfc3119RtpByteStream::process_packet (void)
 		bytes = ((*ptr & 0x3f) << 8) + ptr[1];
 		from = ptr + 2;
 	      }
+	      bytes = pak->rtp_data_len - (from - pak->rtp_data);
+#ifdef DEBUG_3119
+	      mpa_message(LOG_DEBUG, "frag process pak seq %d %d %d %d", pak->rtp_pak_seq, bytes, copied, adu->aduDataSize);
+#endif
 	      memcpy(to, from, bytes);
 	      copied += bytes;
 	      to += bytes;

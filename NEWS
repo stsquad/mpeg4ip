@@ -1,4 +1,11 @@
-xx/xx/03 version x.x
+11/04/03 version 1.0RC2
+    Fixed V4L2 missing parameter to VIDIOC_QBUF parameter for 2.6 kernel
+    Fixed timestamp problem in mpeg1 reception - fix IPBPBP problem
+    Fixed fragmentation problem in RFC 3119 reception
+    Fixed profile/level problem in VOL header in mp4live
+    Added xvid decoding on simple tools indicated in VOL header
+
+10/23/03 version 1.0RC1
     Fixed non-compliance in mp4live created ISMA files with 0 length frames
     Updated profile @ level defines for audio and video
     Added V4L2 support for mp4live
@@ -6,6 +13,8 @@ xx/xx/03 version x.x
     Added support for ffmpeg encoder
     Added support for released verions of xvid and faac encoders
     User fixes for several areas - porting and others
+    ISO decoder speed up by Richard Chen
+    Support for iTunes metadata
 
 07/03/03 Version 0.9.9
     Added H.261 encoding for mp4live

@@ -541,18 +541,14 @@ int CPlayerMedia::do_play (double start_time_offset,
 
 	// only do range if we're not paused
 	range = get_range_from_media(m_media_info);
-	if (range == NULL) {
-	  if (errmsg != NULL) {
-	    snprintf(errmsg, errlen, "Can't find range in media play");
-	  }
-	  return (-1);
+	if (range != NULL) {
+	  if (start_time_offset < range->range_start || 
+	      start_time_offset > range->range_end) 
+	    start_time_offset = range->range_start;
+	  // need to check for smpte
+	  sprintf(buffer, "npt=%g-%g", start_time_offset, range->range_end);
+	  cmd.range = buffer;
 	}
-	if (start_time_offset < range->range_start || 
-	    start_time_offset > range->range_end) 
-	  start_time_offset = range->range_start;
-	// need to check for smpte
-	sprintf(buffer, "npt=%g-%g", start_time_offset, range->range_end);
-	cmd.range = buffer;
 
 	if (rtsp_send_play(m_rtsp_session, &cmd, &decode) != 0) {
 	  media_message(LOG_ERR, "RTSP play command failed");

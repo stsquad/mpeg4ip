@@ -86,6 +86,8 @@ static char BASED_CODE THIS_FILE[] = __FILE__;
 #define new DEBUG_NEW				   
 #endif // __MFC_
 
+#define ASSERT(a) if (!(a)) { printf("iso mbheaddec throw %d\n", __LINE__);throw((int)__LINE__);}
+
 Void CVideoObjectDecoder::skipAnyStuffing()
 {
 	if(m_vopmd.vopPredType==IVOP)
@@ -451,7 +453,9 @@ Void CVideoObjectDecoder::decodeMBTextureHeadOfBVOP (CMBMode* pmbmd, Int& iCurrQ
 				exit(2);
 			}
 		}
-		assert (iMbType >= 0 && iMbType <= 3);
+ 		//yrchen to throw severe exception caused by packet loss 10.21.2003
+ 		//assert (iMbType >= 0 && iMbType <= 3);
+ 		ASSERT (iMbType >= 0 && iMbType <= 3);
 		pmbmd->m_mbType = (MBType) iMbType;
 		iMODB = 1;
 	}												//MODB="00"
@@ -470,7 +474,9 @@ Void CVideoObjectDecoder::decodeMBTextureHeadOfBVOP (CMBMode* pmbmd, Int& iCurrQ
 				exit(2);
 			}
 		}
-		assert (iMbType >= 0 && iMbType <= 3);
+ 		//yrchen to throw severe exception caused by packet loss 10.21.2003
+ 		//assert (iMbType >= 0 && iMbType <= 3);
+ 		ASSERT (iMbType >= 0 && iMbType <= 3);
 		pmbmd->m_mbType = (MBType) iMbType;		
 		iMODB = 2;
 		uiCBPB = m_pbitstrmIn->getBits (cNonTrnspBlk + 2);

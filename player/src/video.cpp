@@ -110,7 +110,7 @@ void CVideoSync::set_fullscreen (int fullscreen)
 {
 }
 
-void CVideoSync::do_video_resize(int m_pixel_width, int m_pixel_height, int m_max_width, int m_max_height, bool resize)
+void CVideoSync::do_video_resize(int m_pixel_width, int m_pixel_height, int m_max_width, int m_max_height)
 {
 }
 

@@ -476,6 +476,7 @@ void CV4L2VideoSource::ReleaseFrame(uint8_t index)
 {
   struct v4l2_buffer buffer;
   buffer.index = index;
+  buffer.memory = V4L2_MEMORY_MMAP;
   buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
   int rc = ioctl(m_videoDevice, VIDIOC_QBUF, &buffer);

@@ -84,7 +84,7 @@ MediaType get_video_mp4_fileinfo_base (CLiveConfig *pConfig,
   if (!strcasecmp(encodingName, VIDEO_ENCODING_MPEG4)) {
     *createIod = true;
     *isma_compliant = true;
-    *videoProfile = pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_ID);
+    *videoProfile = pConfig->m_videoMpeg4ProfileId;
     *videoConfig = pConfig->m_videoMpeg4Config;
     *videoConfigLen = pConfig->m_videoMpeg4ConfigLength;
     if (mp4_video_type) {
@@ -138,6 +138,8 @@ media_desc_t *create_video_sdp_base(CLiveConfig *pConfig,
   if (mtype == MPEG4VIDEOFRAME) {
     sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines, 
 			   "a=mpeg4-esid:20");
+    sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines,
+			   "a=x-mpeg4-simple-profile-decoder");
     sdpMediaVideoFormat->fmt = strdup("96");
 	
     sdpVideoRtpMap->encode_name = strdup("MP4V-ES");
@@ -149,7 +151,7 @@ media_desc_t *create_video_sdp_base(CLiveConfig *pConfig,
 
     sprintf(videoFmtpBuf, 
 	    "profile-level-id=%u; config=%s;",
-	    pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_LEVEL_ID),
+	    pConfig->m_videoMpeg4ProfileId,
 	    sConfig); 
     free(sConfig);
 
@@ -210,9 +212,18 @@ static void Mpeg43016SendVideo (CMediaFrame *pFrame, CRtpDestination *list,
 {
   CRtpDestination *rdptr;
 
-  u_int8_t* pData = (u_int8_t*)pFrame->GetData();
+  u_int8_t* pData;
   u_int32_t bytesToSend = pFrame->GetDataLength();
   struct iovec iov;
+  // This will remove any headers other than the VOP header, if a VOP
+  // header appears in the stream
+  pData = MP4AV_Mpeg4FindVop((uint8_t *)pFrame->GetData(),
+			     bytesToSend);
+  if (pData) {
+    bytesToSend -= (pData - (uint8_t *)pFrame->GetData());
+  } else {
+    pData = (uint8_t *)pFrame->GetData();
+  }
 
   while (bytesToSend) {
     u_int32_t payloadLength;
@@ -231,7 +242,11 @@ static void Mpeg43016SendVideo (CMediaFrame *pFrame, CRtpDestination *list,
 
     rdptr = list;
     while (rdptr != NULL) {
-      rdptr->send_iov(&iov, 1, rtpTimestamp, lastPacket);
+      int rc = rdptr->send_iov(&iov, 1, rtpTimestamp, lastPacket);
+      rc -= sizeof(rtp_packet_header);
+      if (rc != (int)payloadLength) {
+	error_message("send_iov error - returned %d %d", rc, payloadLength);
+      }
       rdptr = rdptr->get_next();
     }
 

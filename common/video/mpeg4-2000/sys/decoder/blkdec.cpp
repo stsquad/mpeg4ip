@@ -65,6 +65,7 @@ Revision History
 #include "entropy/huffman.hpp"
 #include "grayf.hpp" // wmay
 #include "dct.hpp"
+#include "idct.hpp" // yrchen
 #include "vopses.hpp"
 #include "vopsedec.hpp"
 // RRV insertion
@@ -263,8 +264,10 @@ Void CVideoObjectDecoder::decodeIntraBlockTexture (PixelC* rgpxlcBlkDst,
 		pc_block8x8		= new PixelC [64];
 		pc_block16x16	= new PixelC [256];
 		// HHI Schueuer:  rgpxlcBlkShape, iBlkShapeWidth added
-		m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, pc_block8x8, BLOCK_SIZE, rgpxlcBlkShape, iBlkShapeWidth);
-		// m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, pc_block8x8, BLOCK_SIZE);
+		//m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, pc_block8x8, BLOCK_SIZE, rgpxlcBlkShape, iBlkShapeWidth);
+		// yrchen integer idct 10.21.2003
+ 		// extra care needed if adaptive shape decoding or non-8 bit idct is used
+ 		m_pinvdct->IDCTClip(m_rgiDCTcoef, BLOCK_SIZE, pc_block8x8, BLOCK_SIZE);		
 		MeanUpSampling(pc_block8x8, pc_block16x16, 8, 8);
 		writeCubicRct(16, iWidthDst, pc_block16x16, rgpxlcBlkDst);
 		delete pc_block8x8;
@@ -273,7 +276,10 @@ Void CVideoObjectDecoder::decodeIntraBlockTexture (PixelC* rgpxlcBlkDst,
 	else
 	{
 	// HHI Schueuer:  rgpxlcBlkShape, iBlkShapeWidth added
-		m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, rgpxlcBlkDst, iWidthDst, rgpxlcBlkShape, iBlkShapeWidth);
+	// m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, rgpxlcBlkDst, iWidthDst, rgpxlcBlkShape, iBlkShapeWidth);
+ 	  // yrchen integer idct 10.21.2003
+ 	  // extra care needed if adaptive shape decoding or non-8 bit idct is used
+ 	  m_pinvdct->IDCTClip(m_rgiDCTcoef, BLOCK_SIZE, rgpxlcBlkDst, iWidthDst);
 	//	m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, rgpxlcBlkDst, iWidthDst);
 	}
 //	m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, rgpxlcBlkDst, iWidthDst);
@@ -362,7 +368,10 @@ Void CVideoObjectDecoder::decodeTextureInterBlock (Int* rgiBlkCurrQ, Int iWidthD
 		pi_block16x16 = new PixelI [256];
 		// HHI Schueuer
 		// m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, rgiBlkCurrQ, iWidthDst);
-		m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, pi_block8x8, BLOCK_SIZE, rgpxlcBlkShape, iBlkShapeWidth, NULL);
+		// m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, pi_block8x8, BLOCK_SIZE, rgpxlcBlkShape, iBlkShapeWidth, NULL);
+ 		// yrchen integer idct 10.21.2003
+ 		// extra care needed if adaptive shape decoding or non-8 bit idct is used
+ 		m_pinvdct->IDCT (m_rgiDCTcoef, BLOCK_SIZE, rgiBlkCurrQ, iWidthDst);
 		MeanUpSampling(pi_block8x8, pi_block16x16, 8, 8); 
 		writeCubicRct(16, iWidthDst, pi_block16x16, rgiBlkCurrQ);
 		delete pi_block8x8;
@@ -372,7 +381,10 @@ Void CVideoObjectDecoder::decodeTextureInterBlock (Int* rgiBlkCurrQ, Int iWidthD
 	{
 		// HHI Schueuer
 		// m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, rgiBlkCurrQ, iWidthDst);
-		m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, rgiBlkCurrQ, iWidthDst, rgpxlcBlkShape, iBlkShapeWidth, NULL);
+	        //m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, rgiBlkCurrQ, iWidthDst, rgpxlcBlkShape, iBlkShapeWidth, NULL);
+ 		// yrchen integer idct 10.21.2003
+ 		// extra care needed if adaptive shape decoding or non-8 bit idct is used
+ 		m_pinvdct->IDCT(m_rgiDCTcoef, BLOCK_SIZE, rgiBlkCurrQ, iWidthDst);	
 	}
 // ~RRV
 }

@@ -64,6 +64,8 @@ static char BASED_CODE THIS_FILE[] = __FILE__;
 
 #define new DEBUG_NEW				   
 #endif // __MFC_
+#define ASSERT(a) if (!(a)) { printf("iso mvdec throw %d\n", __LINE__);throw((int)__LINE__);}
+
 
 Void CVideoObjectDecoder::decodeMV (const CMBMode* pmbmd, CMotionVector* pmv, 
 									Bool bLeftBndry, Bool bRightBndry, Bool bTopBndry, 
@@ -347,6 +349,7 @@ Void CVideoObjectDecoder::computeDirectForwardMV (CVector vctDiff, CMotionVector
 		Int iFullInterval = m_tFutureRef - m_tPastRef;
 		if (pmbmdRef->m_bhas4MVForward == FALSE)	{
 			CVector vctRefScaled = pmvRef->trueMVHalfPel () * iPartInterval;
+ 			ASSERT(iFullInterval);//yrchen to throw severe exception caused by packet loss 10.21.2003 
 			vctRefScaled.x /= iFullInterval;			//truncation as per vm
 			vctRefScaled.y /= iFullInterval;			//truncation as per vm
 			CVector vctDecode = vctDiff + vctRefScaled;
@@ -361,6 +364,7 @@ Void CVideoObjectDecoder::computeDirectForwardMV (CVector vctDiff, CMotionVector
 				pmv++;
 				pmvRef++;
 				CVector vctRefScaled = pmvRef->trueMVHalfPel () * iPartInterval;
+ 				ASSERT(iFullInterval);//yrchen to throw severe exception caused by packet loss 10.21.2003
 				vctRefScaled.x /= iFullInterval;			//truncation as per vm
 				vctRefScaled.y /= iFullInterval;			//truncation as per vm
 				CVector vctDecode = vctDiff + vctRefScaled;

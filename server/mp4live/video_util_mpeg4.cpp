@@ -31,7 +31,7 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 		&pMpeg4Config,
 		&mpeg4ConfigLength,
 		// profile_level_id, default is 3, Simple Profile @ Level 3
-		pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_LEVEL_ID));
+		pConfig->m_videoMpeg4ProfileId);
 
 	MP4AV_Mpeg4CreateVo(
 		&pMpeg4Config,
@@ -41,7 +41,7 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 	MP4AV_Mpeg4CreateVol(
 		&pMpeg4Config,
 		&mpeg4ConfigLength,
-		pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_ID),
+		1, // this should always indicate simple profile required
 		pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE),
 		pConfig->GetIntegerValue(CONFIG_VIDEO_TIMEBITS) == 0, 
 		// short time - true if we haven't set the # of bits

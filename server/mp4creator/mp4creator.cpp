@@ -63,7 +63,7 @@ int main(int argc, char** argv)
 #ifdef ISMACRYP
   printf("using ismacrypt\n");
 #else
-  printf("not using ismacrypt\n");
+  //  printf("not using ismacrypt\n");
 #endif
 
   char* usageString = 
@@ -493,6 +493,26 @@ int main(int argc, char** argv)
 	}
       }
     }
+    char *buffer;
+    char *value;
+    uint32_t newverbosity;
+    newverbosity = Verbosity & ~(MP4_DETAILS_ERROR);
+    MP4SetVerbosity(mp4File, newverbosity);
+    bool retval = MP4GetMetadataTool(mp4File, &value);
+    MP4SetVerbosity(mp4File, Verbosity);
+    if (retval && value != NULL) {
+      if (strncasecmp("mp4creator", value, strlen("mp4creator")) != 0) {
+	buffer = (char *)malloc(strlen(value) + 80);
+	sprintf(buffer, "%s mp4creator %s", value, VERSION);
+	MP4SetMetadataTool(mp4File, buffer);
+	free(buffer);
+      }
+    } else {
+      buffer = (char *)malloc(80);
+      sprintf(buffer, "mp4creator %s", VERSION);
+      MP4SetMetadataTool(mp4File, buffer);
+    }
+    
     MP4Close(mp4File);
     MP4MakeIsmaCompliant(mp4FileName, Verbosity, allMpeg4Streams);
 

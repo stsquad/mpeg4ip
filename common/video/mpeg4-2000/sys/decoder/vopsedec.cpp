@@ -98,6 +98,7 @@ Revision History:
 #include "tps_enhcbuf.hpp"	// Added by Sharp(1998-02-10)
 #include "enhcbufdec.hpp"	//	
 #include "vopsedec.hpp"
+#include "idct.hpp" // yrchen
 
 // NEWPRED
 #include "newpred.hpp"
@@ -137,6 +138,7 @@ CVideoObjectDecoder::~CVideoObjectDecoder ()
 	// HHI Schueuer
 	delete m_pscanSelector;
 	// end HHI
+	if (m_pinvdct) delete m_pinvdct;
 }
 
 
@@ -623,6 +625,11 @@ void CVideoObjectDecoder::postVO_VOLHeadInit (Int iDisplayWidth,
 	// Set sprite_transmit_mode to STOP	for the duration of VOL if (fSptUsage () == 0),
 	// and later set to PIECE by decode_init_sprite () if (fSptUsage () == 1)
 	m_vopmd.SpriteXmitMode = STOP;	  
+ 	//yrchen initialization of idct 10.21.2003
+ 	m_pinvdct=new idct;
+ 	assert(m_pinvdct);
+ 	m_pinvdct->init();
+	
 }
 
 // for back/forward shape	Added by Sharp(1998-02-10)
@@ -662,6 +669,11 @@ CVideoObjectDecoder::CVideoObjectDecoder (
 	m_pvopcRightMB = new CVOPU8YUVBA (m_volmd.fAUsage, CRct (0, 0, MB_SIZE, MB_SIZE), m_volmd.iAuxCompCount);
 	m_ppxlcRightMBBY = (PixelC*) m_pvopcRightMB->pixelsBY ();
 	m_ppxlcRightMBBUV = (PixelC*) m_pvopcRightMB->pixelsBUV ();
+ 	
+ 	//yrchen initialization of idct 10.21.2003
+ 	m_pinvdct = new idct;
+ 	assert(m_pinvdct);
+ 	m_pinvdct->init();
 }
 // for back/forward shape	End	 Sharp(1998-02-10)
 

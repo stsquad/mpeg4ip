@@ -319,7 +319,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
   int ix;
   codec_plugin_t *plugin;
   int ret_value = 0;
-
+  
   video_count = 0;
   do {
     trackId = MP4FindTrackId(m_mp4file, video_count, MP4_VIDEO_TRACK_TYPE);
@@ -466,6 +466,12 @@ int CMp4File::create_media (CPlayerSession *psptr,
 
   if (ret < 0) ret_value = -1;
 
+  char *name;
+  if (MP4GetMetadataName(m_mp4file, &name) &&
+      name != NULL) {
+    psptr->set_session_desc(0, name);
+    free(name);
+  }
   
   return (ret_value);
 }

@@ -24,7 +24,7 @@
 #define __LIVE_CONFIG_H__
 
 #include <sys/types.h>
-#include <linux/videodev.h>
+#include <mp4.h>
 
 #define CONFIG_SAFETY 0		// go fast, live dangerously
 #include "config_set.h"
@@ -150,8 +150,8 @@ DECLARE_CONFIG(CONFIG_VIDEO_ASPECT_RATIO);
 DECLARE_CONFIG(CONFIG_VIDEO_FRAME_RATE);
 DECLARE_CONFIG(CONFIG_VIDEO_KEY_FRAME_INTERVAL);
 DECLARE_CONFIG(CONFIG_VIDEO_BIT_RATE);
+DECLARE_CONFIG(CONFIG_VIDEO_FORCE_PROFILE_ID);
 DECLARE_CONFIG(CONFIG_VIDEO_PROFILE_ID);
-DECLARE_CONFIG(CONFIG_VIDEO_PROFILE_LEVEL_ID);
 DECLARE_CONFIG(CONFIG_VIDEO_BRIGHTNESS);
 DECLARE_CONFIG(CONFIG_VIDEO_HUE);
 DECLARE_CONFIG(CONFIG_VIDEO_COLOR);
@@ -267,8 +267,8 @@ static SConfigVariable MyConfigVariables[] = {
 	       2.0),
 
   CONFIG_INT(CONFIG_VIDEO_BIT_RATE, "videoBitRate",500),
-  CONFIG_INT(CONFIG_VIDEO_PROFILE_ID, "videoProfileId",1),
-  CONFIG_INT(CONFIG_VIDEO_PROFILE_LEVEL_ID, "videoProfileLevelId", 3),
+  CONFIG_BOOL(CONFIG_VIDEO_FORCE_PROFILE_ID, "videoForceProfileId", false),
+  CONFIG_INT(CONFIG_VIDEO_PROFILE_ID, "videoProfileId",MPEG4_SP_L3),
 
   CONFIG_INT(CONFIG_VIDEO_BRIGHTNESS, "videoBrightness", 50),
   CONFIG_INT(CONFIG_VIDEO_HUE, "videoHue", 50),
@@ -312,7 +312,7 @@ static SConfigVariable MyConfigVariables[] = {
 
   CONFIG_STRING(CONFIG_SDP_FILE_NAME, "sdpFile", "capture.sdp"),
 
-  CONFIG_BOOL(CONFIG_RTP_USE_MP3_PAYLOAD_14, "rtpUseMp4RtpPayload14", false),
+  CONFIG_BOOL(CONFIG_RTP_USE_MP3_PAYLOAD_14, "rtpUseMp3RtpPayload14", false),
   CONFIG_BOOL(CONFIG_RTP_NO_B_RR_0, "rtpNoBRR0", false),
 
   // RAW sink
@@ -340,6 +340,7 @@ public:
 	void UpdateFileHistory(const char* fileName);
 	void UpdateVideo();
 	void CalculateVideoFrameSize();
+	void UpdateVideoProfile(void);
 	void UpdateAudio();
 	void UpdateRecord();
 
@@ -383,6 +384,7 @@ public:
 	u_int32_t	m_videoMaxVopSize;
 	u_int8_t	m_videoTimeIncrBits;
 
+	u_int8_t        m_videoMpeg4ProfileId;
 	// derived, shared audio configuration
 	CAudioCapabilities* m_audioCapabilities;
 	bool		m_audioEncode;

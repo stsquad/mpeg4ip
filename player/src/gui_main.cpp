@@ -249,9 +249,13 @@ static void create_session_from_name (const char *name)
 	psptr->set_audio_volume(0);
       psptr->set_up_sync_thread();
       psptr->set_screen_location(x, y);
+      psptr->set_screen_size(master_screen_size / 50);
 
       master_fullscreen = config.get_config_value(CONFIG_FULL_SCREEN);
-      set_aspect_ratio(config.get_config_value(CONFIG_ASPECT_RATIO));
+      int old_aspect_ratio;
+      old_aspect_ratio = config.get_config_value(CONFIG_ASPECT_RATIO);
+      config.set_config_value(CONFIG_ASPECT_RATIO, old_aspect_ratio + 1);
+      set_aspect_ratio(old_aspect_ratio);
 
       if (psptr->play_all_media(TRUE, 0.0, errmsg,sizeof(errmsg)) < 0) {
 	delete psptr;
@@ -506,7 +510,7 @@ static void on_main_menu_about (GtkWidget *window, gpointer data)
   sprintf(buffer,
 	  "gmp4player Version %s.\n"
 	  "An open source file/streaming MPEG4 player\n"
-	  "Developed by cisco Systems using the\n"
+	  "Developed by Cisco Systems using the\n"
 	  "following open source packages:\n"
 	  "\n"
 	  "SDL, SMPEG audio (MP3) from lokigames\n"
@@ -1273,8 +1277,9 @@ printf("%s\n", *argv);
    */
   main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_policy(GTK_WINDOW(main_window), FALSE, TRUE, FALSE);
-  gtk_window_set_title(GTK_WINDOW(main_window), 
-		       "cisco Open Source MPEG4 Player");
+  char buffer[80];
+  sprintf(buffer, "Cisco Open Source Streaming Video Player %s", VERSION);
+  gtk_window_set_title(GTK_WINDOW(main_window), buffer);
   gtk_widget_set_uposition(GTK_WIDGET(main_window), 10, 10);
   gtk_widget_set_usize(main_window, 450, 185);
   gtk_window_set_default_size(GTK_WINDOW(main_window), 450, 185);

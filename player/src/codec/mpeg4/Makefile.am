@@ -27,6 +27,7 @@ mpeg4_iso_plugin_la_LIBADD = \
 	$(top_builddir)/$(mpeg4_dir)/vtc/main/libobj_vtc_main_dec.la \
 	$(top_builddir)/$(mpeg4_dir)/tools/entropy/libobj_tools_entropy.la \
 	$(top_builddir)/$(mpeg4_dir)/tools/sadct/libobj_tools_sadct.la \
+	$(top_builddir)/$(mpeg4_dir)/idct/libobj_idct.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la
 
 INCLUDES = -I.. \

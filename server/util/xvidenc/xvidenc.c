@@ -312,8 +312,6 @@ int main(int argc, char** argv)
 
     /* call xvid encoder */
     rc = xvid_encore(xvidHandle, XVID_ENC_ENCODE, &xvidFrame, &xvidResult);
-    fprintf(stderr, "frame %d ret %d len %d\n",
-	    frameNumber, rc, xvidFrame.length);
 
     if (rc != XVID_ERR_OK) {
       fprintf(stderr, 

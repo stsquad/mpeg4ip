@@ -96,18 +96,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "faac"=.\server\audio\faac\faac60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
 Project: "lboxcrop"=.\server\util\lboxcrop\lboxcrop60.dsp - Package Owner=<4>
 
 Package=<5>

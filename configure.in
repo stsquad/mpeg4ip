@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.9.7)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.0RC2)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -371,6 +371,7 @@ AC_OUTPUT( \
 	common/video/mpeg4-2000/app/convertpar/Makefile \
 	common/video/mpeg4-2000/app/decoder/Makefile \
 	common/video/mpeg4-2000/app/encoder/Makefile \
+	common/video/mpeg4-2000/idct/Makefile \
 	common/video/mpeg4-2000/sys/Makefile \
 	common/video/mpeg4-2000/sys/decoder/Makefile \
 	common/video/mpeg4-2000/sys/encoder/Makefile \

@@ -224,6 +224,7 @@ static struct {
   { MPEG4_ASP_L3, "MPEG-4 Adv Simple@L3"},
   { MPEG4_ASP_L4, "MPEG-4 Adv Simple@L4"},
   { MPEG4_ASP_L5, "MPEG-4 Adv Simple@L5"},
+  { MPEG4_ASP_L3B, "MPEG-4 Adv Simple@L3b"},
   { MPEG4_FGSP_L0, "MPEG-4 FGS @ L0" },
   { MPEG4_FGSP_L1, "MPEG-4 FGS @ L1" },
   { MPEG4_FGSP_L2, "MPEG-4 FGS @ L2" },

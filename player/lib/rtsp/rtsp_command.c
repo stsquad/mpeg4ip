@@ -208,7 +208,7 @@ int rtsp_send_setup (rtsp_client_t *info,
   *session_result = NULL;
   info->redirect_count = 0;
 
-  if (cmd == NULL || cmd->transport == NULL) {
+  if (cmd == NULL || cmd->transport == NULL || url == NULL) {
     return (RTSP_RESPONSE_MISSING_OR_BAD_PARAM);
   }
 

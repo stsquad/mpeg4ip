@@ -190,7 +190,6 @@ int CSDLVideoSync::initialize_video (const char *name, int x, int y)
 	}
 #endif
       }
-      SDL_WM_SetCaption(name, NULL);
       m_dstrect.x = 0;
       m_dstrect.y = 0;
       m_dstrect.w = m_screen->w;
@@ -199,22 +198,10 @@ int CSDLVideoSync::initialize_video (const char *name, int x, int y)
       video_message(LOG_DEBUG, "Created mscreen %p hxw %d %d", m_screen, m_height,
 			   m_width);
 #endif
-	do_video_resize();
-#ifdef OLD_SURFACE
-	if (video_scale == 4) {
-      m_image = SDL_CreateYUVOverlay(m_width << 1, 
-				     m_height << 1,
-				     SDL_YV12_OVERLAY, 
-				     m_screen);
-	} else {
-#else
-	  {
-#endif
-      m_image = SDL_CreateYUVOverlay(m_width, 
-				     m_height,
-				     SDL_YV12_OVERLAY, 
-				     m_screen);
-	}
+      do_video_resize();
+      if (strlen(name) != 0) {
+	SDL_WM_SetCaption(name, NULL);
+      }
       m_video_initialized = 1;
       return (1);
     } else {
@@ -630,8 +617,7 @@ void CSDLVideoSync::set_fullscreen (int fullscreen)
 void CSDLVideoSync::do_video_resize (int pixel_width, 
 				     int pixel_height, 
 				     int max_width, 
-				     int max_height, 
-				     bool resize)
+				     int max_height)
 {
 
 #if 0
@@ -644,11 +630,6 @@ void CSDLVideoSync::do_video_resize (int pixel_width,
   if (pixel_height > -1) m_pixel_height = pixel_height;
   if (max_width > -1) m_max_width = max_width;
   if (max_height > -1) m_max_height = max_height;
-
-  // Check and see if all we wanted was to transfer values.
-  if (!resize) {
-    return;
-  }
 
   if (m_image) {
     SDL_FreeYUVOverlay(m_image);
@@ -673,9 +654,9 @@ void CSDLVideoSync::do_video_resize (int pixel_width,
 #endif
   }
 
-  int w = m_width * video_scale / 2;
-  if (m_double_width) w *= 2;
-  int h = m_height * video_scale / 2;
+  int win_w = m_width * video_scale / 2;
+  if (m_double_width) win_w *= 2;
+  int win_h = m_height * video_scale / 2;
     
   // Check and see if we should use old values.
   if (pixel_width == -1 && m_pixel_width) pixel_width = m_pixel_width;
@@ -693,27 +674,27 @@ void CSDLVideoSync::do_video_resize (int pixel_width,
       // enable different handling of full screen versus non full screen
       if (m_fullscreen == 0) {
 	if (pixel_width > pixel_height)
-	  w = h * pixel_width / pixel_height;
-	else w = w * pixel_height / pixel_width;
+	  win_w = win_h * pixel_width / pixel_height;
+	else win_h = win_w * pixel_height / pixel_width;
       } else {
  
 	// For now we do the same as in non full screen.
 	if (pixel_width > pixel_height)
-	  w = h * pixel_width / pixel_height;
-	else w = w * pixel_height / pixel_width;
+	  win_w = win_h * pixel_width / pixel_height;
+	else win_h = win_w * pixel_height / pixel_width;
       }
     }
   }
   if (m_fullscreen == 1) {
-    if (max_width > 0 && w > max_width) w = max_width;
-    if (max_height > 0 && h > max_height) h = max_height;
+    if (max_width > 0 && win_w > max_width) win_w = max_width;
+    if (max_height > 0 && win_h > max_height) win_h = max_height;
   }
   video_message(LOG_DEBUG, "Setting video mode %d %d %x", 
-		w, h, mask);
-  m_screen = SDL_SetVideoMode(w, h, m_video_bpp, 
+		win_w, win_h, mask);
+  m_screen = SDL_SetVideoMode(win_w, win_h, m_video_bpp, 
 			      mask);
   if (m_screen == NULL) {
-    m_screen = SDL_SetVideoMode(w, h, m_video_bpp, mask);
+    m_screen = SDL_SetVideoMode(win_w, win_h, m_video_bpp, mask);
     if (m_screen == NULL) {
       video_message(LOG_CRIT, "sdl error message is %s", SDL_GetError());
       abort();
@@ -724,7 +705,6 @@ void CSDLVideoSync::do_video_resize (int pixel_width,
   m_dstrect.w = m_screen->w;
   m_dstrect.h = m_screen->h;
 
-  SDL_FreeYUVOverlay(m_image);
 #ifdef OLD_SURFACE
   if (video_scale == 4) {
     m_image = SDL_CreateYUVOverlay(m_width << 1, 

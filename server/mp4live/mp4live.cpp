@@ -20,6 +20,7 @@
  *		Bill May 		wmay@cisco.com
  */
 #define DECLARE_CONFIG_VARIABLES 1
+#include <mp4.h>
 #include "mp4live.h"
 #include "media_flow.h"
 

@@ -139,6 +139,20 @@ extern "C" uint8_t *MP4AV_Mpeg4FindVol (uint8_t *pBuf, uint32_t buflen)
   }
   return NULL;
 }
+extern "C" uint8_t *MP4AV_Mpeg4FindVop (uint8_t *pBuf, uint32_t buflen)
+{
+  while (buflen > 4) {
+    if (pBuf[0] == 0x0 &&
+	pBuf[1] == 0x0 &&
+	pBuf[2] == 0x1 &&
+	pBuf[3] == MP4AV_MPEG4_VOP_START) {
+      return pBuf;
+    }
+    pBuf++;
+    buflen--;
+  }
+  return NULL;
+}
 
 extern "C" bool MP4AV_Mpeg4ParseVol(
 	u_int8_t* pVolBuf, 

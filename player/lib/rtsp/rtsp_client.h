@@ -70,6 +70,7 @@ typedef struct rtsp_command_t {
 typedef struct rtsp_decode_t {
   uint32_t content_length;
   uint32_t cseq;
+  bool have_cseq;
   int close_connection;
   char retcode[4];         /* 3 byte return code - \0 delimited */
   char *retresp;

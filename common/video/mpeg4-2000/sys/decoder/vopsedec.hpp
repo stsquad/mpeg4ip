@@ -73,6 +73,7 @@ class CEntropyDecoderSet;
 class CEntropyDecoder;
 class CVOPU8YUVBA;
 class CEnhcBufferDecoder;
+class idct; // yrchen 10.21.2003
 
 // HHI Schueuer:  scan selection classes to support the sadct
 class CInvScanSelector {
@@ -469,6 +470,8 @@ public:
 // May.25 2000 for MB stuffing decoding on the last MB
 	Int	checkStartCode();
 // ~May.25 2000 for MB stuffing decoding on the last MB
+  // yrchen 10.21.2003
+  idct *m_pinvdct;
 };
 
 #endif // __VOPSEDEC_HPP_

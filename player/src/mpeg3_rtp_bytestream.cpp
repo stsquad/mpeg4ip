@@ -153,6 +153,7 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
   m_bytes_used = 0;
   *buffer = m_buffer + m_bytes_used;
   *buflen = m_buffer_len - m_bytes_used;
+  //  rtp_message(LOG_DEBUG, "frame type %d timestamp %u", frame_type, ts);
 #ifdef DEBUG_RTP_PAKS
   rtp_message(LOG_DEBUG, "%s buffer len %d", m_name, m_buffer_len);
 #endif
@@ -270,60 +271,80 @@ void CMpeg3RtpByteStream::rtp_done_buffering (void)
   int had_b;
   SDL_LockMutex(m_rtp_packet_mutex);
 
-#ifdef DEBUG_MPEG3_RTP_TIME 
+#ifdef DEBUG_MPEG3_RTP_TIME
   p = m_head;
   while (p->rtp_next != m_head) {
-    rtp_message(LOG_DEBUG, "seq %u ts %u %x %x %x %x",
+    rtp_message(LOG_DEBUG, "seq %u ts %u %x %x %x %x %x",
 		p->rtp_pak_seq,
 		p->rtp_pak_ts, 
 		p->rtp_data[0],
 		p->rtp_data[1],
 		p->rtp_data[2],
-		p->rtp_data[3]);
+		p->rtp_data[3],
+		p->rtp_data[2] & 0x7);
     p = p->rtp_next;
   }
 #endif
   p = m_head;
   had_b = 0;
+  uint8_t last_frame_type = 0;
   do {
     q = end_of_pak(p);
-    if ((q->rtp_data[2] & 0x7) == 3) {
-      // B frame 
-      had_b = 1;
-      if ((((q->rtp_pak_seq + 1) & 0xffff) == q->rtp_next->rtp_pak_seq) &&
-	  ((q->rtp_next->rtp_data[2] & 0x7) == 3)) {
-	// 2 consec b frames
-	m_rtp_frame_add  = q->rtp_next->rtp_pak_ts - p->rtp_pak_ts;
-#ifdef DEBUG_MPEG3_RTP_TIME
-	rtp_message(LOG_DEBUG, "seq %u %u data %x %x %x", 
-		    q->rtp_pak_seq, q->rtp_next->rtp_pak_seq,
-		    p->rtp_data[2],
-		    q->rtp_data[2], q->rtp_next->rtp_data[2]);
-	rtp_message(LOG_DEBUG, "2 consec b frames %d %d %d", 
-		    m_rtp_frame_add,
-		    p->rtp_pak_ts, q->rtp_pak_ts);
-#endif
-	SDL_UnlockMutex(m_rtp_packet_mutex);
-	return;
+    rtp_message(LOG_DEBUG, "frame type %d ts %u seq %u next %u", 
+		q->rtp_data[2] & 0x7, q->rtp_pak_ts,
+		q->rtp_pak_seq, q->rtp_next->rtp_pak_seq);
+    uint16_t next_seq = q->rtp_pak_seq + 1;
+    if (q->rtp_next->rtp_pak_seq == next_seq) {
+      uint8_t this_frame_type = q->rtp_data[2] & 0x7;
+      uint8_t next_frame_type = q->rtp_next->rtp_data[2] & 0x7;
+      switch (this_frame_type) {
+      case 1: // I frame
+	if (next_frame_type == 3) {
+	  // I followed by B - good
+	  m_rtp_frame_add = q->rtp_next->rtp_pak_ts - p->rtp_pak_ts;
+	  rtp_message(LOG_DEBUG, "I followed by B %u", m_rtp_frame_add);
+	  SDL_UnlockMutex(m_rtp_packet_mutex);
+	  return;
+	}
+	break;
+      case 2: // P frame
+	if (last_frame_type == 2 && next_frame_type == 2) {
+	  // P followed by P
+	  m_rtp_frame_add = q->rtp_next->rtp_pak_ts - p->rtp_pak_ts;
+	  rtp_message(LOG_DEBUG, "P followed by P %u", m_rtp_frame_add);
+	  SDL_UnlockMutex(m_rtp_packet_mutex);
+	  return;
+	}
+	break;
+      case 3: // B frame
+	if ((next_frame_type == 3) || (next_frame_type == 1)) {
+	  // good if we have I or B next
+	  m_rtp_frame_add = q->rtp_next->rtp_pak_ts - p->rtp_pak_ts;
+	  rtp_message(LOG_DEBUG, "B followed by %c %u", 
+		      next_frame_type == 3 ? 'B' : 'I', m_rtp_frame_add);
+	  SDL_UnlockMutex(m_rtp_packet_mutex);
+	  return;
+	};
+	if (next_frame_type == 2 && last_frame_type == 2) {
+	  // P B P
+	  // I'm not that sure of this...
+	  m_rtp_frame_add = p->rtp_prev->rtp_pak_ts - p->rtp_pak_ts;
+	  rtp_message(LOG_DEBUG, "P B P %u", m_rtp_frame_add);
+	  SDL_UnlockMutex(m_rtp_packet_mutex);
+	  return;
+	};
+	break;
+	
+      default:
+	break;
       }
+      last_frame_type = this_frame_type;
+    } else {
+      // discontinuity - we don't have a last type
+      last_frame_type = 0;
     }
     p = q->rtp_next;
   }  while (p != m_head);
-  rtp_message(LOG_DEBUG, "mpeg3 - no b frames found in buffer");
-  if (had_b == 0) {
-    // no b frames 
-    p = end_of_pak(m_head);
-    while (p != m_head) {
-      q = end_of_pak(p->rtp_next);
-      if (((q->rtp_pak_seq + 1) & 0xffff) == q->rtp_next->rtp_pak_seq) {
-	q = q->rtp_next;
-	m_rtp_frame_add  = q->rtp_pak_ts - p->rtp_pak_ts;
-	SDL_UnlockMutex(m_rtp_packet_mutex);
-	return;
-      }
-      p = q->rtp_next;
-    }
-  }
   rtp_message(LOG_DEBUG, "mpeg3 - flushing packets");
   m_buffering = 0;
   SDL_UnlockMutex(m_rtp_packet_mutex);

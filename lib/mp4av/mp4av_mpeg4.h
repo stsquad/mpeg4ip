@@ -23,8 +23,10 @@
 #define __MP4AV_MPEG4_INCLUDED__
 
 #define MP4AV_MPEG4_SYNC		0x000001
-#define MP4AV_MPEG4_VOSH_START	0xB0
 #define MP4AV_MPEG4_VOL_START	0x20
+#define MP4AV_MPEG4_VOSH_START	0xB0
+#define MP4AV_MPEG4_VOSH_END    0xB1
+#define MP4AV_MPEG4_USER_DATA_START 0xB2
 #define MP4AV_MPEG4_GOV_START	0xB3
 #define MP4AV_MPEG4_VO_START	0xB5
 #define MP4AV_MPEG4_VOP_START	0xB6
@@ -80,6 +82,7 @@ bool MP4AV_Mpeg4ParseGov(
 	u_int8_t* pMinutes, 
 	u_int8_t* pSeconds);
 
+  uint8_t *MP4AV_Mpeg4FindVop(uint8_t *pBuf, uint32_t buflen);
 bool MP4AV_Mpeg4ParseVop(
 	u_int8_t* pVopBuf, 
 	u_int32_t vopSize,

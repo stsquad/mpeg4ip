@@ -141,6 +141,16 @@ void CMp4Recorder::DoStartRecord()
   }
   MP4SetTimeScale(m_mp4File, m_movieTimeScale);
 
+  char buffer[80];
+  sprintf(buffer, "mp4live version %s %s", VERSION, 
+#ifdef HAVE_LINUX_VIDEODEV2_H
+		      "V4L2"
+#else
+		      "V4L"
+#endif
+	  );
+  MP4SetMetadataTool(m_mp4File, buffer);
+
   if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
 
     if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_VIDEO)) {
@@ -427,16 +437,26 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
 		  videoDurationInTimescaleFrame, m_encodedVideoDurationTimescale,
 		  GetTicksFromTimescale(m_encodedVideoDurationTimescale, 0, 0, m_videoTimeScale));
 #endif
-    bool isIFrame =
-      (MP4AV_Mpeg4GetVopType(
-                             (u_int8_t*) m_prevEncodedVideoFrame->GetData(),
-                             m_prevEncodedVideoFrame->GetDataLength()) == 'I');
+    bool isIFrame = false;
+    uint8_t *pData;
+    uint32_t dataLen;
+    dataLen = m_prevEncodedVideoFrame->GetDataLength();
+
+    pData = MP4AV_Mpeg4FindVop((uint8_t *)m_prevEncodedVideoFrame->GetData(),
+			       dataLen);
+    if (pData) {
+      dataLen -= (pData - (uint8_t *)m_prevEncodedVideoFrame->GetData());
+      isIFrame =
+	(MP4AV_Mpeg4GetVopType(pData,dataLen) == 'I');
+    } else {
+      pData = (uint8_t *)m_prevEncodedVideoFrame->GetData();
+    }
 
     MP4WriteSample(
                    m_mp4File,
                    m_encodedVideoTrackId,
-                   (u_int8_t*) m_prevEncodedVideoFrame->GetData(),
-                   m_prevEncodedVideoFrame->GetDataLength(),
+                   pData,
+		   dataLen,
 		   videoDurationInTimescaleFrame,
                    0,
                    isIFrame);

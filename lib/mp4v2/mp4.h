@@ -260,6 +260,7 @@ typedef u_int32_t	MP4EditId;
 #define MPEG4_ASP_L3 (0xF3)
 #define MPEG4_ASP_L4 (0xF4)
 #define MPEG4_ASP_L5 (0xF5)
+#define MPEG4_ASP_L3B (0xF7)
 #define MPEG4_FGSP_L0 (0xf8)
 #define MPEG4_FGSP_L1 (0xf9)
 #define MPEG4_FGSP_L2 (0xfa)

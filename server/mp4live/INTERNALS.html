@@ -3,7 +3,7 @@
 <body bgcolor="#ffffff">
 <a name="top">
 <b><font color="#0000FF">MP4LIVE INTERNALS</font></b><p>
-September 13, 2002
+October, 2003
 <P>
 <P>
 <font face="Arial" color="#0000FF">
@@ -120,6 +120,11 @@ the codec library.
 Each encoder type also has a number of calls to set various variables for
 rtp transmission or saving to an mp4 file.  These are also defined in
 audio_encoder.h and video_encoder.h
+<p>
+Encoders can be added dynamically by adding a new video encoder class, and 
+adding to the video_encoder_tables.cpp, or adding a new audio encoder 
+class and adding to the audio_encoder_tables.cpp.  You will also want to add
+the correct hooks to each routine in audio_encoder.cpp and video_encoder.cpp.
 <P>
 <a href="#top">Back to top</a>
 <P>
@@ -130,8 +135,9 @@ audio_encoder.h and video_encoder.h
 The output(s) of a media source is a "media frame" (media_frame.h). This is a
 reference counted structure that contains: a pointer to malloc'ed media data,
 the media data length, the media type, the timestamp of the media frame, the
-media frame duration, and the timescale of the media frame duration (ticks
-per second).
+media frame duration (used in audio only), and the timescale of the media frame duration (ticks
+per second).  If creating your own source, it is imperative to get a synchronized
+timestamp between sources.
 <P>
 A media source constructs one or more "media frames" during its processing for
 each acquired media frame. Each one of these output media frames is sent in
@@ -178,6 +184,9 @@ received media frame, and reject (free) any types that it does not want.
 <tr><td valign="top">V4L</td><td>video_v4l_source.cpp<br>
 	Acquires YUV12 images from a V4L (Video For Linux) device
 </td></tr>
+<tr><td valign="top">V4L2</td><td>video_v4l2_source.cpp<br>
+	Acquires YUV12 images from a V4L2 (Video For Linux) device (recommended)
+</td></tr>
 <tr><td valign="top">OSS</td><td>audio_oss_source.cpp<br>
 	Acquires PCM16 audio samples from an OSS (Open Sound System) device
 </td></tr>
@@ -191,9 +200,11 @@ received media frame, and reject (free) any types that it does not want.
 <P>
 Lame -&gt; MP3 - audio_lame.cpp, installed from lame version 3.92 or later
 <P>
-FAAC -&gt; AAC - audio_facc.cpp, mpeg4ip/server/audio/faac
+FAAC -&gt; AAC - audio_faac.cpp, installed from faac version 1.21 or later
 <P>
-Xvid -&gt; MPEG4 - video_xvid.cpp, mpeg4ip/lib/xvid
+Xvid -&gt; MPEG4 - video_xvid.cpp, mpeg4ip/lib/xvid, or from xvidcode 0.92 or later
+<P>
+ffmpeg-&gt; MPEG4 - video_ffmpeg.cpp, installed from ffmpeg version 0.4.7 or later (see main README for installation instructions.
 <P>
 <a href="#top">Back to top</a>
 <P>
