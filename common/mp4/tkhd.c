@@ -129,8 +129,8 @@ int quicktime_write_tkhd(quicktime_t *file, quicktime_tkhd_t *tkhd)
 		}
 		quicktime_write_int32(file, 0x40000000);
 		if (tkhd->is_video) {
-			quicktime_write_int32(file, 0x14000000);
-			quicktime_write_int32(file, 0xF0000000);
+			quicktime_write_int32(file, 0x01400000);
+			quicktime_write_int32(file, 0x00F00000);
 		} else {
 			quicktime_write_int32(file, 0x00000000);
 			quicktime_write_int32(file, 0x00000000);

@@ -749,15 +749,26 @@ int quicktime_has_video(quicktime_t *file)
 
 int quicktime_video_width(quicktime_t *file, int track)
 {
-	if(file->total_vtracks)
-		return file->vtracks[track].track->mdia.minf.stbl.stsd.table[0].width;
+	if(file->total_vtracks) {
+		int width = 
+			file->vtracks[track].track->mdia.minf.stbl.stsd.table[0].width;
+		if (width) {
+			return width;
+		}
+		return file->vtracks[track].track->tkhd.track_width;
+	}
 	return 0;
 }
 
 int quicktime_video_height(quicktime_t *file, int track)
 {
-	if(file->total_vtracks)
-		return file->vtracks[track].track->mdia.minf.stbl.stsd.table[0].height;
+	if(file->total_vtracks) {
+		int height = file->vtracks[track].track->mdia.minf.stbl.stsd.table[0].height;
+		if (height) {
+			return height;
+		}
+		return file->vtracks[track].track->tkhd.track_height;
+	}
 	return 0;
 }
 

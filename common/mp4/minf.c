@@ -91,6 +91,7 @@ int quicktime_minf_dump(quicktime_minf_t *minf)
 int quicktime_read_minf(quicktime_t *file, quicktime_minf_t *minf, quicktime_atom_t *parent_atom)
 {
 	quicktime_atom_t leaf_atom;
+	long pos = quicktime_position(file);
 
 	do
 	{
@@ -119,11 +120,20 @@ int quicktime_read_minf(quicktime_t *file, quicktime_minf_t *minf, quicktime_ato
 		if(quicktime_atom_is(&leaf_atom, "dinf"))
 			{ quicktime_read_dinf(file, &(minf->dinf), &leaf_atom); }
 		else
-		if(quicktime_atom_is(&leaf_atom, "stbl"))
-			{ quicktime_read_stbl(file, minf, &(minf->stbl), &leaf_atom); }
-		else
 			quicktime_atom_skip(file, &leaf_atom);
 	}while(quicktime_position(file) < parent_atom->end);
+
+	quicktime_set_position(file, pos);
+
+	do {
+		quicktime_atom_read_header(file, &leaf_atom);
+
+		if(quicktime_atom_is(&leaf_atom, "stbl")) {
+			quicktime_read_stbl(file, minf, &(minf->stbl), &leaf_atom);
+		} else {
+			quicktime_atom_skip(file, &leaf_atom);
+		}
+	} while(quicktime_position(file) < parent_atom->end);
 
 	return 0;
 }

@@ -84,8 +84,6 @@ int quicktime_read_esds(quicktime_t *file, quicktime_esds_t *esds)
 {
 	u_int32_t length;
 
-/* DJM DEBUG */
-printf("read esds, entered\n");
 	esds->version = quicktime_read_char(file);
 	esds->flags = quicktime_read_int24(file);
 
@@ -112,8 +110,6 @@ printf("read esds, entered\n");
 
 	/* read length */
 	esds->decoderConfigLen = quicktime_read_mp4_descr_length(file); 
-/* DJM DEBUG */
-printf("read esds, length is %u bytes\n", esds->decoderConfigLen);
 
 	free(esds->decoderConfig);
 	esds->decoderConfig = malloc(esds->decoderConfigLen);
