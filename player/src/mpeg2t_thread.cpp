@@ -72,7 +72,7 @@ static uint32_t mpeg2t_decode_buffer (mpeg2t_client_t *info,
 	CPlayerMedia *mptr;
 	mpeg2t_es_t *es_pid;
 	es_pid = (mpeg2t_es_t *)pidptr;
-	sptr = (mpeg2t_stream_t *)mpeg2t_es_get_userdata(es_pid);
+	sptr = (mpeg2t_stream_t *)mpeg2t_get_userdata(&es_pid->pid);
 	if (sptr != NULL) {
 	  if (sptr->m_buffering == 0) {
 	    // not buffering - if we're saving frames, indicate that to
@@ -591,7 +591,7 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
       stream->m_have_eof = 0;
       stream->next_stream = info->stream;
       info->stream = stream;
-      mpeg2t_es_set_userdata(es_pid, stream);
+      mpeg2t_set_userdata(&es_pid->pid, stream);
 
       CMpeg2tVideoByteStream *vbyte;
       vbyte = new CMpeg2tVideoByteStream(es_pid, info->m_have_rtsp);
@@ -688,7 +688,7 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
       stream->next_stream = info->stream;
       info->stream = stream;
 
-      mpeg2t_es_set_userdata(es_pid, stream);
+      mpeg2t_set_userdata(&es_pid->pid, stream);
 
       created = 1;
       CMpeg2tAudioByteStream *abyte;

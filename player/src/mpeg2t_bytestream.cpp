@@ -25,7 +25,7 @@
 #include "mpeg4ip.h"
 #include "mpeg2t_bytestream.h"
 #include "player_util.h"
-#include <mp4av.h>
+#include "mp4av.h"
 //#define DEBUG_MPEG2T_FRAME 1
 //#define DEBUG_MPEG2T_PSTS 1
 
@@ -106,7 +106,7 @@ CMpeg2tByteStream::CMpeg2tByteStream (mpeg2t_es_t *es_pid,
   m_output_file = fopen(buffer, "w");
 #endif
   m_es_pid = es_pid;
-  m_stream_ptr = (mpeg2t_stream_t *)mpeg2t_es_get_userdata(m_es_pid); 
+  m_stream_ptr = (mpeg2t_stream_t *)mpeg2t_get_userdata(&m_es_pid->pid); 
   m_has_video = has_video;
   m_timestamp_loaded = 0;
   m_frame = NULL;
