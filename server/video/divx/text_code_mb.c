@@ -160,10 +160,10 @@ Int QP, Int Mode, Int *qcoeff)
 		for (i = 0; i < 8; i++)
 			for (j = 0; j < 8; j++)
 				tmp[s++] = (SInt) fblock[k][i][j];
-#ifndef _MMX_
+#ifndef USE_MMX
 		fdct_enc(tmp);
 #else
-		fdct_mm32(tmp);
+		fdct_mmx(tmp);
 #endif
 		for (s = 0; s < 64; s++)
 			coeff_ind[s] = (Int) tmp[s];
@@ -178,10 +178,10 @@ Int QP, Int Mode, Int *qcoeff)
 
 		for (s = 0; s < 64; s++)
 			tmp[s] = (SInt) rcoeff_ind[s];
-#ifndef _MMX_
+#ifndef USE_MMX
 		idct_enc(tmp);
 #else
-		Fast_IDCT(tmp);
+		idct_mmx(tmp);
 #endif
 		s = 0;
 		for (i = 0; i < 8; i++)

@@ -1,1 +1,1 @@
-SUBDIRS = faac
+SUBDIRS = faac lame

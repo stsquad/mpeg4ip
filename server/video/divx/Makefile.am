@@ -1,11 +1,32 @@
+###########################################################################
+#
+# Some consistent rules for building asm files:
+
+STRIP_FPIC = sh $(top_srcdir)/strip_fPIC.sh
+
+SUFFIXES = .asm
+
+.asm.lo:
+	$(LIBTOOL) --mode=compile $(STRIP_FPIC) $(NASM) @NASMFLAGS@ $<
+
+###########################################################################
+
 bin_PROGRAMS = divxenc
 divxenc_SOURCES = divxenc.c
 
 INCLUDES = -I$(top_srcdir)/include
 LDADD = $(top_builddir)/server/video/divx/libdivxencore.la -lm
 
+AM_CFLAGS = -DMPEG4IP -D_REENTRANT -O3 -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
 
 lib_LTLIBRARIES = libdivxencore.la
+
+if USE_MMX
+EXTRA_libdivxencore_la_SOURCES = text_fdct_mmx.asm text_idct_mmx.asm
+else
+EXTRA_libdivxencore_la_SOURCES = text_dct.c
+endif
+
 libdivxencore_la_SOURCES = \
 	bitstream.c \
 	bitstream.h \
@@ -42,7 +63,6 @@ libdivxencore_la_SOURCES = \
 	text_code.h \
 	text_code_mb.c \
 	text_code_mb.h \
-	text_dct.c \
 	text_dct.h \
 	text_defs.h \
 	vlc.h \
@@ -50,7 +70,6 @@ libdivxencore_la_SOURCES = \
 	vm_enc_defs.h \
 	vop_code.c \
 	vop_code.h \
-	zigzag.h
-
-AM_CFLAGS = -D_REENTRANT -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
+	zigzag.h \
+	$(EXTRA_libdivxencore_la_SOURCES)
 

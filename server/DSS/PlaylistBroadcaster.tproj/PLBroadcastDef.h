@@ -44,6 +44,7 @@ limit_seq_length  10
 play_list_file /path/file
 sdp_file /path/file
 log_file /path/file
+ttl 15
 
 */
 
@@ -63,6 +64,8 @@ class PLBroadcastDef {
 										// * == default value, <r> required input
 		char*	mDestAddress;	 		// [0.0.0.0 | domain name?] *127.0.0.1 ( self )
 		char*	mBasePort;				// [ 0...32k?] *5004
+
+		char*	mTtl;					// [ 0...255] *1
 		
 		
 		char*	mPlayMode; 				// [sequential | *sequential_looped | weighted]

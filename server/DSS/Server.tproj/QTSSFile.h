@@ -27,8 +27,11 @@
 	Contains:	 
 					
 	$Log: QTSSFile.h,v $
-	Revision 1.1  2001/02/27 00:56:50  cahighlander
-	Initial revision
+	Revision 1.2  2001/05/09 21:04:37  cahighlander
+	Sync to 0.6.2
+	
+	Revision 1.1.1.1  2001/02/26 23:27:31  dmackie
+	Import of Apple Darwin Streaming Server 3 Public Preview
 	
 	Revision 1.1.1.1  2000/08/31 00:30:49  serenyi
 	Mothra Repository

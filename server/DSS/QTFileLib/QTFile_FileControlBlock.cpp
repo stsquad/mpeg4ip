@@ -22,7 +22,7 @@
  * @APPLE_LICENSE_HEADER_END@
  */
 
-// $Id: QTFile_FileControlBlock.cpp,v 1.1 2001/02/27 00:56:49 cahighlander Exp $
+// $Id: QTFile_FileControlBlock.cpp,v 1.2 2001/05/09 21:04:37 cahighlander Exp $
 //
 // QTFile:
 //   The central point of control for a file in the QuickTime File Format.

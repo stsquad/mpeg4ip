@@ -8,7 +8,7 @@
  * The target dependent functions should be defined in tailor.c.
  */
 
-/* $Id: tailor.h,v 1.1 2001/02/27 00:56:49 cahighlander Exp $ */
+/* $Id: tailor.h,v 1.2 2001/05/09 21:04:36 cahighlander Exp $ */
 
 #if defined(__MSDOS__) && !defined(MSDOS)
 #  define MSDOS

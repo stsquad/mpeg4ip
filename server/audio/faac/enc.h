@@ -1,7 +1,7 @@
 /**********************************************************************
 Header file: enc.h
 
-$Id: enc.h,v 1.1 2001/02/05 20:26:48 cahighlander Exp $
+$Id: enc.h,v 1.2 2001/05/09 21:04:37 cahighlander Exp $
 
 Authors:
 HP    Heiko Purnhagen, Uni Hannover <purnhage@tnt.uni-hannover.de>

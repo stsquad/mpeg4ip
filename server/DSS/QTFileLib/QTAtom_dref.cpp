@@ -23,7 +23,7 @@
  * 
  */
 
-// $Id: QTAtom_dref.cpp,v 1.1 2001/02/27 00:56:49 cahighlander Exp $
+// $Id: QTAtom_dref.cpp,v 1.2 2001/05/09 21:04:37 cahighlander Exp $
 //
 // QTAtom_dref:
 //   The 'dref' QTAtom class.

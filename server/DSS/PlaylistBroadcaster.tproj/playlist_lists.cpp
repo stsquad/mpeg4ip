@@ -118,7 +118,7 @@ void MediaStreamList::UpdateSenderReportsOnStreams()
 //
 // ************************
 
-SInt16 SocketList::OpenAndBind(UDPSocketPair *aPair, UInt16 rtpPort,UInt16 rtcpPort,char *destAddress) 
+SInt16 SocketList::OpenAndBind(UDPSocketPair *aPair, UInt16 rtpPort,UInt16 rtcpPort,char *destAddress, UInt8 ttl) 
 {
 	SInt16 err = -1;
 		
@@ -131,7 +131,7 @@ SInt16 SocketList::OpenAndBind(UDPSocketPair *aPair, UInt16 rtpPort,UInt16 rtcpP
 		err = aPair->Bind(INADDR_ANY);
 		if (err != 0) break;
 		
-		err = aPair->SetDestination (destAddress, rtpPort, rtcpPort);	
+		err = aPair->SetDestination (destAddress, rtpPort, rtcpPort, ttl);	
 		if (err != 0) break;
 		
 	} while (false);

@@ -46,13 +46,20 @@
 char* progName;
 
 /* extern declarations */
-extern bool loadNextAacFrame(FILE* inFile, u_char* buf, u_int* pBufSize);
+extern bool loadNextAacFrame(FILE* inFile, u_int8_t* buf, u_int* pBufSize, 
+	bool stripAdts);
+extern bool getAacProfile(FILE* inFile, u_int* pProfile);
 extern bool getAacSamplingRate(FILE* inFile, u_int* pSamplingRate);
+extern bool getAacSamplingRateIndex(FILE* inFile, u_int* pSamplingRateIndex);
+extern bool getAacChannelConfig(FILE* inFile, u_int* pChannelConfig);
 
 extern bool loadNextMp3Frame(FILE* inFile, u_char* buf, u_int* pBufSize);
 extern bool getMp3SamplingParams(FILE* inFile,
 	u_int* pSamplingRate, u_int* pSamplingWindow);
 extern bool getMpegLayer(FILE* inFile, u_int* pLayer);
+
+/* forward declarations */
+static char* binaryToAscii(u_char* pBuf, u_int bufSize);
 
 /*
  * mp4apkt
@@ -69,6 +76,7 @@ int main(int argc, char** argv)
 	u_int samplesPerSecond = 0;		/* --samplingrate=<uint> */
 	u_int samplesPerFrame = 0;		/* --samplingwindow=<uint> */
 	bool trace = FALSE;				/* --trace */
+	bool stripAdts = TRUE;			/* --adts */
 
 	/* internal variables */
 	char* mpegFileName = NULL;
@@ -93,6 +101,7 @@ int main(int argc, char** argv)
 		int c = -1;
 		int option_index = 0;
 		static struct option long_options[] = {
+			{ "adts", 0, 0, 'a' },
 			{ "dump", 2, 0, 'd' },
 			{ "force", 0, 0, 'f' },
 			{ "merge", 0, 0, 'm' },
@@ -103,13 +112,17 @@ int main(int argc, char** argv)
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "dfms:t",
+		c = getopt_long_only(argc, argv, "adfms:t",
 			long_options, &option_index);
 
 		if (c == -1)
 			break;
 
 		switch (c) {
+		case 'a': {
+			stripAdts = FALSE;
+			break;
+		}
 		case 'd': {
 			u_int i;
 			if (optarg) {
@@ -194,7 +207,7 @@ int main(int argc, char** argv)
 	/* check that we have at least two non-option arguments */
 	if ((argc - optind) < 2) {
 		fprintf(stderr, 
-			"usage: %s <mpeg-file> <mov-file>\n",
+			"usage: %s <audio-file> <mp4-file>\n",
 			progName);
 		exit(1);
 	}
@@ -345,10 +358,58 @@ int main(int argc, char** argv)
 	hintTrack = quicktime_set_audio_hint(qtFile, audioTrack, 
 		payloadName, &payloadNumber, maxPayloadSize); 
 
-	/*
-	 * TBD quicktime_add_audio_sdp()
-	 * if any codec specific parameters turn out to be necessary
-	 */
+	if (fileType == AAC_FILE) {
+		u_int8_t aacConfigBuf[2];
+		int aacConfigBufSize = sizeof(aacConfigBuf);
+		u_int profile, samplingRateIndex, channelConfig;
+		char 	sdpBuf[1024];
+		char*	sConfig;
+
+		/* create the appropriate MP4 decoder config */
+
+		/*
+		 * AudioObjectType 			5 bits
+		 * samplingFrequencyIndex 	4 bits
+		 * channelConfiguration 	4 bits
+		 * GA_SpecificConfig
+		 * 	FrameLengthFlag 		1 bit 1024 or 960
+		 * 	DependsOnCoreCoder		1 bit always 0
+		 * 	ExtensionFlag 			1 bit always 0
+		 */
+		memset(aacConfigBuf, 0, sizeof(aacConfigBuf));
+		getAacProfile(mpegFile, &profile);
+		getAacSamplingRateIndex(mpegFile, &samplingRateIndex);
+		getAacChannelConfiguration(mpegFile, &channelConfig);
+
+		aacConfigBuf[0] = 
+			((profile + 1) << 3) | ((samplingRateIndex & 0xe) >> 1);
+		aacConfigBuf[1] = 
+			((samplingRateIndex & 0x1) << 7) | (channelConfig << 3);
+		if (samplesPerFrame != 1024) {
+			aacConfigBuf[1] |= (1 << 2);
+		}
+
+		quicktime_set_mp4_audio_decoder_config(qtFile,
+			audioTrack, aacConfigBuf, aacConfigBufSize); 
+
+		/* convert the configuration object to ASCII form */
+		sConfig = binaryToAscii(aacConfigBuf, aacConfigBufSize);
+
+		/* create the appropriate SDP attribute */
+		if (sConfig) {
+			sprintf(sdpBuf,
+				"a=fmtp:%u config=%s\015\012",
+				payloadNumber,
+				sConfig); 
+
+			/* add this to the QT file's sdp atom */
+			quicktime_add_audio_sdp(qtFile, sdpBuf, 
+				audioTrack, hintTrack);
+
+			/* cleanup, don't want to leak memory */
+			free(sConfig);
+		}
+	}
 
 	if (trace) {
 		fprintf(stdout, "  Sample    Size  RTP Pkts (num size)\n");
@@ -402,7 +463,7 @@ int main(int argc, char** argv)
 		/* get the next frame from the file */
 		switch (fileType) {
 		case AAC_FILE:
-			rc = loadNextAacFrame(mpegFile, frameBuf, &frameBufSize);
+			rc = loadNextAacFrame(mpegFile, frameBuf, &frameBufSize, stripAdts);
 			break;
 		case MP3_FILE:
 			rc = loadNextMp3Frame(mpegFile, frameBuf, &frameBufSize);
@@ -613,5 +674,21 @@ int main(int argc, char** argv)
 	fclose(mpegFile);
 	quicktime_destroy(qtFile);
 	exit(0);
+}
+
+static char* binaryToAscii(u_char* pBuf, u_int bufSize)
+{
+	char* s = (char*)malloc(2 * bufSize + 1);
+	u_int i;
+
+	if (s == NULL) {
+		return NULL;
+	}
+
+	for (i = 0; i < bufSize; i++) {
+		sprintf(&s[i*2], "%02x", pBuf[i]);
+	}
+
+	return s;	/* N.B. caller is responsible for free'ing s */
 }
 

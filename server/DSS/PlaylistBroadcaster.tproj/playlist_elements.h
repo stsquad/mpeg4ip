@@ -172,7 +172,7 @@ class UDPSocketPair
 	void 	Close();
 	void	InitPorts(UInt32 addr);
 	SInt16 	Bind(UInt32 addr);
-	SInt16  SetDestination (char *destAddress,UInt16 destPortRTp, UInt16 destPortRTCp);
+	SInt16  SetDestination (char *destAddress,UInt16 destPortRTp, UInt16 destPortRTCp, UInt8 ttl);
 	
 	SInt16  SendTo(int socket, sockaddr *destAddrPtr, char* inBuffer, UInt32 inLength );
 	SInt16	SendRTp(char* inBuffer, UInt32 inLength);

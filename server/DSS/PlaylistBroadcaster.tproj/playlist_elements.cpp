@@ -562,7 +562,7 @@ SInt16 UDPSocketPair::SendRTCp(char* inBuffer, UInt32 inLength)
 	return SendTo(fSocketRTCp, (sockaddr*)&fDestAddrRTCp, inBuffer, inLength );
 }
 
-SInt16  UDPSocketPair::SetDestination (char *destAddress,UInt16 destPortRTp, UInt16 destPortRTCp)
+SInt16  UDPSocketPair::SetDestination (char *destAddress,UInt16 destPortRTp, UInt16 destPortRTCp, UInt8 ttl)
 {
 	SInt16 result = -1;
 
@@ -575,6 +575,13 @@ SInt16  UDPSocketPair::SetDestination (char *destAddress,UInt16 destPortRTp, UIn
 		fDestAddrRTCp = fLocalAddrRTCp;
 		fDestAddrRTCp.sin_port = htons(destPortRTCp);		
 		fDestAddrRTCp.sin_addr.s_addr = inet_addr(destAddress);
+
+		if (IN_MULTICAST(ntohl(inet_addr(destAddress)))) {
+			::setsockopt(fSocketRTp, 
+				IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
+			::setsockopt(fSocketRTCp, 
+				IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
+		}
 		
 		result = 0;
 	}

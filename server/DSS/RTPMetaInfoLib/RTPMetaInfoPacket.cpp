@@ -21,7 +21,7 @@
  * 
  * @APPLE_LICENSE_HEADER_END@
  */
-// $Id: RTPMetaInfoPacket.cpp,v 1.2 2001/02/28 23:41:35 cahighlander Exp $
+// $Id: RTPMetaInfoPacket.cpp,v 1.3 2001/05/09 21:04:37 cahighlander Exp $
 //
 // RTPMetaInfo.h:
 //   Some defs for RTP-Meta-Info payloads.

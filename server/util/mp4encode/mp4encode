@@ -1,0 +1,174 @@
+#!/bin/bash
+# mp4encode <avi-file>
+
+# Initialize default values for options
+let videoWidth=320
+let videoHeight=240
+let fps=24
+aspectRatio=1.33	# 4:3 standard definition TV aspect ratio
+let use_iso=0
+let vbitRate=500
+
+let use_mp3=0
+let abitRate=96
+
+let debug=0
+
+# Process command line options
+while getopts "A:IMV:a:dh:r:w:" opt; do
+	case $opt in
+		A ) let abitRate=$OPTARG ;;
+		I ) let use_iso=1 ;;
+		M ) let use_mp3=1 ;;
+		V ) let vbitRate=$OPTARG ;;
+		a ) aspectRatio=$OPTARG ;;
+		d ) let debug=1 ;;
+		h ) let videoHeight=$OPTARG ;;
+		r ) let fps=$OPTARG ;;
+		w ) let videoWidth=$OPTARG ;;
+		\? ) echo "usage: $0 [-w width] [-h height] [-r fps] [-a ratio] [-I] [-V kbps] [-M] [-A kbps] [-d] avifile [mp4file]"
+			exit 1 ;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+if [ $debug = 1 ]; then
+	set -o xtrace
+fi
+
+# The name of the AVI input file
+avifile=$1
+prefix=${avifile%.avi}
+
+# The name of the MP4 output file
+if [ -n "$2" ] ; then
+	mp4file=$2
+else
+	mp4file=${prefix}.mp4
+fi
+
+# Check that the input AVI file exists
+if [ ! -f "$avifile" ] ; then
+	echo "Input file $avifile does not exist"
+	exit 2
+fi
+
+# A few more initializations
+let rawframesize=(${videoWidth}*${videoHeight}*3)/2
+here=`pwd`
+
+# For Divx encoder, this generates 1 I frame every second (the rest being P's)
+let ifrequency=$fps
+
+if [ $use_iso = 1 ]; then 
+	# For ISO encoder, these default values 
+	# yield I P B B P B B ... for every 1 second period
+	let bfrequency=2
+	let pfrequency=$((($fps / ($bfrequency + 1)) - 1))
+fi
+
+# Create output directories for ISO video encoder if necessary
+if [ $use_iso = 1 ]; then 
+	if [ ! -d mp4vout ]; then
+		mkdir mp4vout
+	fi
+	if [ ! -d yuvout ]; then
+		mkdir yuvout
+	fi
+fi
+
+date
+echo "Starting encode of ${mp4file}"
+
+if [ ! -f $prefix.yuv ] || [ $prefix.avi -nt $prefix.yuv ]; then
+	echo "Splitting out video from avi"
+	avi2raw -v $prefix.avi $prefix.yuv
+
+	if [ $aspectRatio != 1.33 ] ; then
+		echo "Cropping video to ${aspectRatio}:1"
+		lboxcrop -w ${videoWidth} -h ${videoHeight} -a ${aspectRatio} ${prefix}.yuv ${prefix}_crop.yuv
+		mv ${prefix}_crop.yuv ${prefix}.yuv
+	fi
+fi
+
+if [ $aspectRatio != 1.33 ] ; then
+	videoHeight=`dc -e"$videoWidth $aspectRatio / p"`
+	temp=`dc -e"$videoHeight 16 % p"`
+	if [ $temp != 0 ] ; then
+		videoHeight=`dc -e"16 $temp - $videoHeight + p"`
+	fi
+fi
+
+numbytes=`wc -c ${prefix}.yuv`
+numbytes=${numbytes%${prefix}.yuv}
+let numframes=$((${numbytes}/${rawframesize}))
+let lastframe=${numframes}-1
+
+echo "Encoding ${numframes} frames of video"
+
+if [ $use_iso = 0 ]; then 
+	vfile=${prefix}.divx
+	divxenc -b ${vbitRate} -h ${videoHeight} -w ${videoWidth} -r ${fps} -i ${ifrequency} ${prefix}.yuv ${vfile}
+
+else
+	# Create video encoder parameters file from template
+	let isoBitRate="${vbitRate} * 100000"
+	sed -e "s?BASEDIR?${here}?" -e "s/FILEPREFIX/${prefix}/" -e "s/LASTFRAME/${lastframe}/" -e "s/FRAMEWIDTH/${videoWidth}/" -e "s/FRAMEHEIGHT/${videoHeight}/" -e "s/FRAMERATE/${fps}/" -e "s/BFREQUENCY/${bfrequency}/" -e "s/PFREQUENCY/${pfrequency}/" -e "s/BITRATE/${isoBitRate}/" /usr/local/share/mp4venc_template.par > ${prefix}.par 
+
+	mp4venc ${prefix}.par
+	vfile=${prefix}.cmp
+	mv ./mp4vout/01/${vfile} ./${vfile}
+	rm ./yuvout/01/${prefix}.yuv
+fi
+
+if [ $debug = 0 ]; then
+	rm -f ${prefix}.yuv
+fi
+
+echo "Finished encoding video"
+
+if [ ! -f $prefix.pcm ] || [ $prefix.avi -nt $prefix.pcm ]; then
+	echo "Splitting out audio from avi"
+	avi2raw -a ${prefix}.avi ${prefix}.pcm
+fi
+
+echo "Encoding audio"
+if [ $use_mp3 = 0 ]; then 
+	afile=${prefix}.aac
+	faac -r -pLOW -b${abitRate} ${prefix}.pcm
+else
+	afile=${prefix}.mp3
+	lame -r -x -h -b ${abitRate} ${prefix}.pcm ${afile}
+fi
+
+if [ $debug = 0 ]; then
+	rm -f ${prefix}.pcm
+fi
+
+rm -f ${mp4file}
+
+echo "Creating mp4 file with video"
+if [ $use_iso -eq 0 ]; then
+	mp4vpkt -height=${videoHeight} -width=${videoWidth} -rate=${fps} -profile="simple@L3" ${vfile} ${mp4file}
+else
+	mp4vpkt -bfrequency=${bfrequency} -height=${videoHeight} -width=${videoWidth} -rate=${fps} -profile="main@L2" ${vfile} ${mp4file}
+fi
+
+if [ $debug = 0 ]; then
+	rm -f ${vfile}
+fi
+
+echo "Merging audio with video in mp4 file"
+mp4apkt -merge ${afile} ${mp4file}
+
+if [ $debug = 0 ]; then
+	rm -f ${afile}
+fi
+
+if [ $debug = 1 ]; then
+	set +o xtrace
+fi
+
+date
+echo "Finished, results are in ${mp4file}"
+

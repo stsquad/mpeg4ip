@@ -256,7 +256,7 @@ int main(int argc, char** argv)
 	/* check that we have at least two non-option arguments */
 	if ((argc - optind) < 2) {
 		fprintf(stderr, 
-			"usage: %s <mp4-file> <mov-file>\n",
+			"usage: %s <video-file> <mp4-file>\n",
 			progName);
 		exit(1);
 	}

@@ -55,6 +55,11 @@ Bool16 PLBroadcastDef::ConfigSetter( const char* paramName, const char* paramVal
 		return broadcastParms->SetValue( &broadcastParms->mBasePort, paramValue[0] );
 
 	}
+	else if (!::strcmp( "ttl", paramName) )
+	{
+		return broadcastParms->SetValue( &broadcastParms->mTtl, paramValue[0] );
+
+	}
 	else if (!::strcmp( "play_mode", paramName) )
 	{
 			
@@ -153,6 +158,9 @@ Bool16 PLBroadcastDef::SetDefaults( const char* setupFileName )
 		didFail = this->SetValue( &mBasePort, "5004" );
 
 	if ( !didFail )	
+		didFail = this->SetValue( &mTtl, "1" );
+
+	if ( !didFail )	
 		didFail = this->SetValue( &mPlayMode, "sequential_looped" );
 
 	/*	removed at build 12 
@@ -214,6 +222,7 @@ Bool16 PLBroadcastDef::SetDefaults( const char* setupFileName )
 PLBroadcastDef::PLBroadcastDef( const char* setupFileName )
 	: mDestAddress(NULL)
 	, mBasePort(NULL)
+	, mTtl(NULL)
 	, mPlayMode(NULL)
 	// removed at build 12 , mLimitPlay(NULL)
 	, mLimitPlayQueueLength(NULL)
@@ -249,6 +258,7 @@ void PLBroadcastDef::ShowSettings()
 	::printf( "----------------------------\n" );
 	::printf( "destination_ip_address: %s\n", mDestAddress );
 	::printf( "destination_base_port: %s\n", mBasePort );
+	::printf( "ttl: %s\n", mTtl );
 	::printf( "play_mode: %s\n", mPlayMode );
 	// ::printf( "limit_play: %s\n", mLimitPlay );
 	::printf( "recent_movies_list_size: %s\n", mLimitPlayQueueLength );
@@ -264,6 +274,7 @@ PLBroadcastDef::~PLBroadcastDef()
 {
 	delete [] mDestAddress;
 	delete [] mBasePort;
+	delete [] mTtl;
 	delete [] mPlayMode;
 	// removed at build 12 delete [] mLimitPlay;
 	delete [] mLimitPlayQueueLength;

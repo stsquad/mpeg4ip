@@ -21,7 +21,7 @@
  * 
  * @APPLE_LICENSE_HEADER_END@
  */
-// $Id: QTAtom_stsc.cpp,v 1.1 2001/02/27 00:56:49 cahighlander Exp $
+// $Id: QTAtom_stsc.cpp,v 1.2 2001/05/09 21:04:37 cahighlander Exp $
 //
 // QTAtom_stsc:
 //   The 'stsc' QTAtom class.

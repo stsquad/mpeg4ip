@@ -60,7 +60,7 @@
 class SocketList : public ArrayList<UDPSocketPair> {
 	
 	public: 
-		SInt16 OpenAndBind(UDPSocketPair *aPair, UInt16 rtpPort,UInt16 rtcpPort,char *destAddress);
+		SInt16 OpenAndBind(UDPSocketPair *aPair, UInt16 rtpPort,UInt16 rtcpPort,char *destAddress, UInt8 ttl);
 
 };
 

@@ -137,14 +137,20 @@ int main(int argc, char** argv)
 
 	if (extractVideo) {
 
-		double videoFrameRate = AVI_frame_rate(aviFile);
-		u_int32_t numDesiredVideoFrames = floor(duration * videoFrameRate);
+		double videoFrameRate = AVI_video_frame_rate(aviFile);
 		u_int32_t numVideoFrames = AVI_video_frames(aviFile);
 		u_int32_t fileDuration = ceil(numVideoFrames / videoFrameRate);
+		u_int32_t numDesiredVideoFrames;
 		u_int32_t videoFramesRead = 0;
-
+		u_int32_t emptyFramesRead = 0;
 		/* get a buffer large enough to handle a frame of raw SDTV */
 		u_char* buf = (u_char*)malloc(768 * 576 * 4);
+
+		if (duration) {
+			numDesiredVideoFrames = floor(duration * videoFrameRate);
+		} else {
+			numDesiredVideoFrames = numVideoFrames;
+		}
 
 		if (buf == NULL) {
 			fprintf(stderr,
@@ -167,31 +173,58 @@ int main(int argc, char** argv)
 				progName, AVI_strerror());
 			exit(8);
 		}
-		if (AVI_set_video_position(aviFile, ROUND(start * videoFrameRate))) {
+		if (AVI_set_video_position(aviFile, ROUND(start * videoFrameRate), NULL)) {
 			fprintf(stderr,
 				"%s: bad seek: %s\n",
 				progName, AVI_strerror());
 			exit(9);
 		}
 
-		while ((numBytes = AVI_read_frame(aviFile, buf)) > 0) {
-			if (fwrite(buf, 1, numBytes, rawFile) != numBytes) {
-				fprintf(stderr,
-					"%s: error writing %s: %s\n",
-					progName, rawFileName, strerror(errno));
+		while (TRUE) {
+			numBytes = AVI_read_frame(aviFile, buf);
+
+			/* read error */
+			if (numBytes < 0) {
 				break;
 			}
 
+			/*
+			 * note some capture programs 
+			 * insert a zero length frame occasionally
+			 * hence numBytes == 0, but we're not a EOF
+			 */
+
+			if (numBytes) {
+				if (fwrite(buf, 1, numBytes, rawFile) != numBytes) {
+					fprintf(stderr,
+						"%s: error writing %s: %s\n",
+						progName, rawFileName, strerror(errno));
+					break;
+				}
+			} else {
+				emptyFramesRead++;
+			}
+
 			videoFramesRead++;
-			if (duration && videoFramesRead >= numDesiredVideoFrames) {
+			if (videoFramesRead >= numDesiredVideoFrames) {
 				break;
 			}
 		}
 
-		if (duration && videoFramesRead < numDesiredVideoFrames) {
+		if (numBytes < 0) {
+			printf("%s: error reading %s, frame %d, %s\n",
+				progName, aviFileName, videoFramesRead + 1, AVI_strerror());
+		}
+		if (videoFramesRead < numDesiredVideoFrames) {
 			fprintf(stderr,
-				"%s: warning: could only extract %u seconds of video\n",
-				progName, ceil(videoFramesRead / videoFrameRate));
+				"%s: warning: could only extract %u seconds of video (%u of %u frames)\n",
+				progName, ceil(videoFramesRead / videoFrameRate),
+				videoFramesRead, numDesiredVideoFrames);
+		}
+		if (emptyFramesRead) {
+			fprintf(stderr,
+				"%s: warning: %u zero length frames ignored\n",
+				progName, emptyFramesRead);
 		}
 
 		/* cleanup */

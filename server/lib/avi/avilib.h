@@ -1,6 +1,8 @@
 #ifndef AVILIB_H
 #define AVILIB_H
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct
 {
@@ -128,12 +130,12 @@ int  AVI_write_audio(avi_t *AVI, char *data, long bytes);
 long AVI_bytes_remain(avi_t *AVI);
 int  AVI_close(avi_t *AVI);
 
-avi_t *AVI_open_input_file(char *filename, int getIndex);
+avi_t *AVI_open_input_file(const char *filename, int getIndex);
 
 long AVI_video_frames(avi_t *AVI);
 int  AVI_video_width(avi_t *AVI);
 int  AVI_video_height(avi_t *AVI);
-double AVI_frame_rate(avi_t *AVI);
+double AVI_video_frame_rate(avi_t *AVI);
 char* AVI_video_compressor(avi_t *AVI);
 
 int  AVI_audio_channels(avi_t *AVI);
@@ -144,9 +146,10 @@ long AVI_audio_bytes(avi_t *AVI);
 
 long AVI_frame_size(avi_t *AVI, long frame);
 int  AVI_seek_start(avi_t *AVI);
-int  AVI_set_video_position(avi_t *AVI, long frame);
+int  AVI_set_video_position(avi_t *AVI, long frame, long *frame_len);
 long AVI_read_frame(avi_t *AVI, char *vidbuf);
 int  AVI_set_audio_position(avi_t *AVI, long byte);
+int  AVI_set_audio_frame(avi_t *AVI, long frame, long *frame_len);
 long AVI_read_audio(avi_t *AVI, char *audbuf, long bytes);
 
 int  AVI_read_data(avi_t *AVI, char *vidbuf, long max_vidbuf,
@@ -157,4 +160,7 @@ void AVI_print_error(char *str);
 char *AVI_strerror();
 char *AVI_syserror();
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -109,8 +109,10 @@ int encore(unsigned long handle, unsigned long enc_opt, void *param1, void *para
 	// initialize for a handle if requested
 	if (enc_opt & ENC_OPT_INIT)
 	{
+#ifndef USE_MMX
 		init_fdct_enc();
 		init_idct_enc();
+#endif
 
 		// initializing rate control
 		ref_curr->framerate = ((ENC_PARAM *)param1)->framerate;
@@ -197,11 +199,23 @@ int encore(unsigned long handle, unsigned long enc_opt, void *param1, void *para
 
 	Bitstream_Init((void *)(((ENC_FRAME *)param1)->bitstream));
 
+#ifdef MPEG4IP
+	if (ref_curr->seq == 0) {
+		headerbits = PutVoVolHeader(x_dim, y_dim, curr->time_increment_resolution, ref_curr->framerate);
+	}
+
+	if ((ref_curr->seq % ref_curr->rc_period) == 0) {
+		curr->prediction_type = I_VOP;
+	} else {
+		curr->prediction_type = P_VOP;
+	}
+#else
 	if (ref_curr->seq == 0) {
 		headerbits = PutVoVolHeader(x_dim, y_dim, curr->time_increment_resolution, ref_curr->framerate);
 		curr->prediction_type = I_VOP;
 	}
 	else curr->prediction_type = P_VOP;
+#endif
 
 #ifdef _RC_
 	fprintf(ftrace, "\nCoding frame #%d\n", ref_curr->seq);

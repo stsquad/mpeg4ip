@@ -139,7 +139,7 @@ int QTFileBroadcaster::SetUp(PLBroadcastDef *broadcastDefPtr)
 				rtpPort = mediaTypePtr->fPort;
 				rtcpPort = rtpPort + 1;
 				
-				result = fSocketlist.OpenAndBind(aSocketPair, rtpPort,rtcpPort,sdpIPAddress) ;
+				result = fSocketlist.OpenAndBind(aSocketPair, rtpPort,rtcpPort,sdpIPAddress, atoi(broadcastDefPtr->mTtl)) ;
 				if (result != 0) 
 				{ 
 					result = eSDPFileInvalidPort; 

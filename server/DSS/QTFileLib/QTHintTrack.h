@@ -32,7 +32,7 @@
  * "END MODIFICATION".
  * 
  */
-// $Id: QTHintTrack.h,v 1.3 2001/03/07 00:15:05 cahighlander Exp $
+// $Id: QTHintTrack.h,v 1.4 2001/05/09 21:04:37 cahighlander Exp $
 //
 // QTHintTrack:
 //   The central point of control for a hint track in a QTFile.

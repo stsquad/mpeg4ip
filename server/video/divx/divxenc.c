@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <math.h>
+#include <time.h>
 #include <mpeg4ip.h>
 #include "encore.h"
 
@@ -66,6 +67,7 @@ int main(int argc, char** argv)
 	u_int32_t yuvSize;
 	u_int8_t encVopBuffer[64 * 1024];
 	u_int32_t frameNumber = 0;
+	time_t startTime;
 
 	/* begin process command line */
 	progName = argv[0];
@@ -227,6 +229,7 @@ int main(int argc, char** argv)
 	yuvSize = (frameWidth * frameHeight * 3) / 2;
 	encFrame.image = (u_int8_t *)malloc(yuvSize);
 	encFrame.bitstream = encVopBuffer;
+	startTime = time(0);
 
 	while (!feof(rawFile)) {
 		int rc;
@@ -246,8 +249,6 @@ int main(int argc, char** argv)
 		}
 
 		encFrame.length = sizeof(encVopBuffer);
-
-		printf("Encoding frame %u to ", frameNumber);
 
 		/* call divx encoder */
 		rc = encore(myHandle, 0, &encFrame, &encResult);
@@ -272,13 +273,23 @@ int main(int argc, char** argv)
 		/* write results to output file */
 		rc = fwrite(encFrame.bitstream, 1, encFrame.length, divxFile);
 
-		printf("%lu bytes\n", encFrame.length);
-
 		if (rc != encFrame.length) {
 			fprintf(stderr, 
 				"%s: write error %s: %s\n",
 				progName, divxFileName, strerror(errno));
 			break;
+		}
+
+		/* DEBUG
+		printf("Encoding frame %u to %lu bytes", frameNumber, encFrame.length);
+	    */
+
+		if (frameNumber > 0 && (frameNumber % (10 * (int)frameRate)) == 0) {
+			int elapsed = time(0) - startTime;
+			printf("Encoded %u seconds of video in %u seconds, %u fps\n", 
+				(int)(frameNumber / frameRate),
+				elapsed, 
+				frameNumber / elapsed);
 		}
 	}
 

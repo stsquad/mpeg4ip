@@ -598,7 +598,7 @@ int AVI_close(avi_t *AVI)
    return 0; \
 }
 
-avi_t *AVI_open_input_file(char *filename, int getIndex)
+avi_t *AVI_open_input_file(const char *filename, int getIndex)
 {
    avi_t *AVI;
    long i, n, rate, scale, idx_type;
@@ -923,7 +923,7 @@ int  AVI_video_height(avi_t *AVI)
 {
    return AVI->height;
 }
-double AVI_frame_rate(avi_t *AVI)
+double AVI_video_frame_rate(avi_t *AVI)
 {
    return AVI->fps;
 }
@@ -971,13 +971,15 @@ int AVI_seek_start(avi_t *AVI)
    return 0;
 }
 
-int AVI_set_video_position(avi_t *AVI, long frame)
+int AVI_set_video_position(avi_t *AVI, long frame, long *frame_len)
 {
    if(AVI->mode==AVI_MODE_WRITE) { AVI_errno = AVI_ERR_NOT_PERM; return -1; }
    if(!AVI->video_index)         { AVI_errno = AVI_ERR_NO_IDX;   return -1; }
 
    if (frame < 0 ) frame = 0;
    AVI->video_pos = frame;
+   if (frame_len != NULL)
+     *frame_len = AVI->video_index[frame].len;
    return 0;
 }
       
@@ -1031,6 +1033,16 @@ int AVI_set_audio_position(avi_t *AVI, long byte)
    AVI->audio_posb = byte - AVI->audio_index[n0].tot;
 
    return 0;
+}
+
+int AVI_set_audio_frame (avi_t *AVI, long frame, long *frame_len)
+{
+  if (AVI->audio_posc >= AVI->audio_chunks - 1) { return -1; }
+  AVI->audio_posc = frame;
+  AVI->audio_posb = 0;
+  if (frame_len != NULL)
+    *frame_len = AVI->audio_index[frame].len;
+  return 0;
 }
 
 long AVI_read_audio(avi_t *AVI, char *audbuf, long bytes)

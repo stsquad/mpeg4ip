@@ -34,8 +34,8 @@ Copyright (c)1997.
 /**************************************************************************
   Version Control Information			Method: CVS
   Identifiers:
-  $Revision: 1.1 $
-  $Date: 2001/02/05 20:26:49 $ (check in)
+  $Revision: 1.2 $
+  $Date: 2001/05/09 21:04:37 $ (check in)
   $Author: cahighlander $
   *************************************************************************/
 

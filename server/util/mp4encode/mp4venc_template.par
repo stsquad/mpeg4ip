@@ -1,0 +1,166 @@
+!!!MS!!!
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+// This is the new parameter file format. The parameters in this file can be
+// specified in any order.
+
+// Some parameters can be specified differently for each Video Object.
+// For example, Scalability[0] refers to the first Visual Object, Scalability[1]
+// refers to the second VO, and so on.
+// If there is an enhancement layer, then the parameters for this follow after
+// those for the base layer VOs. E.g. if there are two VOs and temporal scalability,
+// then Scalability[2] refers to the parameter for the first VO's enhancement layer.
+// If there is one VO but there is an enhancement layer, then the index for the base
+// later parameters is [0] and the enhancement layer has index [1].
+
+// Texture.IntraDCThreshold
+// This has the values 0 to 7, 0 means never code Intra DC values using the AC coef VLC
+// table, 7 means always do that. 1 means do that when QP>=13, 2 when QP>=15, 3 when
+// QP>=17, 4 when QP>=19, 5 when QP>=21, 6 when QP>=23.
+
+// Temporal scalability information
+// Prediction types:
+// 0:      Enhn    P   P   ...
+//         Base  I   P   P ...
+// 1:      Enhn    B B   B B   ...
+//         Base  I     P     P ...
+// 2:      Enhn    P   B   B   ...
+//         Base  I   B   P   B ...
+// Enhancement types:
+// Full:   Entire region of the base layer is enhanced
+// PartC:  Partial region is enhanced (with background composition)
+// PartNC: Partial region is enhanced (with no background composition)
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+Version = 901
+
+// When VTC is enabled, the VTC parameter file is used instead of this one.
+VTC.Enable = 0
+VTC.Filename = ""
+
+Source.Width = FRAMEWIDTH
+Source.Height = FRAMEHEIGHT
+Source.FirstFrame = 0
+Source.LastFrame = LASTFRAME
+Source.ObjectIndex.First = 1
+Source.ObjectIndex.Last = 1
+Source.FilePrefix = "FILEPREFIX"
+Source.Directory = "BASEDIR"
+Source.BitsPerPel = 8
+Source.Format [0] = "420"			// One of "444", "422", "420"
+Source.FrameRate [0] = FRAMERATE
+Source.SamplingRate [0] = 1
+
+Output.Directory.Bitstream = "./mp4vout"
+Output.Directory.DecodedFrames = "./yuvout"
+
+Not8Bit.Enable = 0
+Not8Bit.QuantPrecision = 5
+
+RateControl.Type [0] = "MP4"			// One of "None", "MP4", "TM5"
+RateControl.BitsPerVOP [0] = BITRATE
+
+Scalability [0] = "None"			// One of "None", "Temporal", "Spatial"
+Scalability.Temporal.PredictionType [0] = 0		// Range 0 to 4
+Scalability.Temporal.EnhancementType [0] = "Full"	// One of "Full", "PartC", "PartNC"
+Scalability.Spatial.PredictionType [0] = "PBB"	// One of "PPP", "PBB"
+Scalability.Spatial.Width [0] = 352
+Scalability.Spatial.Height [0] = 288
+Scalability.Spatial.HorizFactor.N [0] = 2	// upsampling factor N/M
+Scalability.Spatial.HorizFactor.M [0] = 1
+Scalability.Spatial.VertFactor.N [0] = 2	// upsampling factor N/M
+Scalability.Spatial.VertFactor.M [0] = 1
+
+Quant.Type [0] = "H263"				// One of "H263", "MPEG"
+
+GOV.Enable [0] = 0
+GOV.Period [0] = 0				// Number of VOPs between GOV headers
+
+Alpha.Type [0] = "None"				// One of "None", "Binary", "Gray", "ShapeOnly"
+Alpha.Binary.RoundingThreshold [0] = 0
+Alpha.Binary.SizeConversion.Enable [0] = 0
+Alpha.QuantStep.IVOP [0] = 16
+Alpha.QuantStep.PVOP [0] = 16
+Alpha.QuantStep.BVOP [0] = 16
+Alpha.QuantDecouple.Enable [0] = 0
+Alpha.QuantMatrix.Intra.Enable [0] = 0
+Alpha.QuantMatrix.Intra [0] = {}		// { insert 64 comma-separated values }
+Alpha.QuantMatrix.Inter.Enable [0] = 0
+Alpha.QuantMatrix.Inter [0] = {}		// { insert 64 comma-separated values }
+
+Texture.IntraDCThreshold [0] = 0		// See note at top of file
+Texture.QuantStep.IVOP [0] = 16
+Texture.QuantStep.PVOP [0] = 16
+Texture.QuantStep.BVOP [0] = 16
+Texture.QuantMatrix.Intra.Enable [0] = 0
+Texture.QuantMatrix.Intra [0] = {}		// { insert 64 comma-separated values }
+Texture.QuantMatrix.Inter.Enable [0] = 0
+Texture.QuantMatrix.Inter [0] = {}		// { insert 64 comma-separated values }
+
+Motion.RoundingControl.Enable [0] = 1
+Motion.RoundingControl.StartValue [0] = 0
+Motion.PBetweenICount [0] = PFREQUENCY
+Motion.BBetweenPCount [0] = BFREQUENCY
+Motion.SearchRange [0] = 16
+Motion.SearchRange.DirectMode [0] = 2		// half-pel units
+Motion.AdvancedPrediction.Enable [0] = 0
+Motion.SkippedMB.Enable [0] = 1
+Motion.UseSourceForME.Enable [0] = 1
+Motion.DeblockingFilter.Enable [0] = 0
+Motion.Interlaced.Enable [0] = 0
+Motion.Interlaced.TopFieldFirst.Enable [0] = 0
+Motion.Interlaced.AlternativeScan.Enable [0] = 0
+Motion.ReadWriteMVs [0] = "Off"			// One of "Off", "Read", "Write"
+Motion.ReadWriteMVs.Filename [0] = "MyMVFile.dat"
+
+Trace.CreateFile.Enable [0] = 0
+Trace.DetailedDump.Enable [0] = 0
+
+Sprite.Type [0] = "None"			// One of "None", "Static"
+Sprite.WarpAccuracy [0] = "1/2"			// One of "1/2", "1/4", "1/8", "1/16"
+Sprite.Directory = "\\swinder1\sprite\brea\spt"
+Sprite.Points [0] = 0				// 0 to 4
+Sprite.Points.Directory = "\\swinder1\sprite\brea\pnt"
+Sprite.Mode [0] = "Basic"			// One of "Basic", "LowLatency", "PieceObject", "PieceUpdate"
+
+ErrorResil.RVLC.Enable [0] = 0
+ErrorResil.DataPartition.Enable [0] = 0
+ErrorResil.VideoPacket.Enable [0] = 0
+ErrorResil.VideoPacket.Length [0] = 0
+ErrorResil.AlphaRefreshRate [0] = 1
+
+Complexity.Enable [0] = 0			// Global enable flag
+Complexity.Opaque.Enable [0] = 1
+Complexity.Transparent.Enable [0] = 1
+Complexity.IntraCAE.Enable [0] = 1
+Complexity.InterCAE.Enable [0] = 1
+Complexity.NoUpdate.Enable [0] = 1
+Complexity.UpSampling.Enable [0] = 1
+Complexity.IntraBlocks.Enable [0] = 1
+Complexity.InterBlocks.Enable [0] = 1
+Complexity.Inter4VBlocks.Enable [0] = 1
+Complexity.NotCodedBlocks.Enable [0] = 1
+Complexity.DCTCoefs.Enable [0] = 1
+Complexity.DCTLines.Enable [0] = 1
+Complexity.VLCSymbols.Enable [0] = 1
+Complexity.VLCBits.Enable [0] = 1
+Complexity.APM.Enable [0] = 1
+Complexity.NPM.Enable [0] = 1
+Complexity.InterpMCQ.Enable [0] = 1
+Complexity.ForwBackMCQ.Enable [0] = 1
+Complexity.HalfPel2.Enable [0] = 1
+Complexity.HalfPel4.Enable [0] = 1
+
+VOLControl.Enable [0] = 0
+VOLControl.ChromaFormat [0] = 0
+VOLControl.LowDelay [0] = 0
+VOLControl.VBVParams.Enable [0] = 0
+VOLControl.Bitrate [0] = 0			// 30 bits
+VOLControl.VBVBuffer.Size [0] = 0		// 18 bits
+VOLControl.VBVBuffer.Occupancy [0] = 0		// 26 bits
+
+// Move your favorite settings below this line
+//////////////////////////////////////////////////////////////////////////////////////
+

@@ -21,7 +21,7 @@
  * 
  * @APPLE_LICENSE_HEADER_END@
  */
-// $Id: QTHintTrack.h,v 1.1 2001/04/10 20:58:30 cahighlander Exp $
+// $Id: QTHintTrack.h,v 1.2 2001/05/09 21:04:37 cahighlander Exp $
 //
 // QTHintTrack:
 //   The central point of control for a hint track in a QTFile.

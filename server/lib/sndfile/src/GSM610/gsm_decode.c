@@ -4,7 +4,7 @@
  * details.  THERE IS ABSOLUTELY NO WARRANTY FOR THIS SOFTWARE.
  */
 
-/* $Header: /cvsroot/mpeg4ip/mpeg4ip/server/lib/sndfile/src/GSM610/Attic/gsm_decode.c,v 1.1 2001/02/05 20:26:51 cahighlander Exp $ */
+/* $Header: /cvsroot/mpeg4ip/mpeg4ip/server/lib/sndfile/src/GSM610/Attic/gsm_decode.c,v 1.2 2001/05/09 21:04:38 cahighlander Exp $ */
 
 #include "private.h"
 

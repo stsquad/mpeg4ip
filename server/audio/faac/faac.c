@@ -90,19 +90,20 @@ int parse_arg(int argc, char *argv[],faacAACStream *as, char *InFileNames[100], 
   }
 
   for (i = 1; i < argc; i++) {
-    if ((argv[i][0] != '-')&&(argv[i][0] != '/')) {
-      if (strchr("-/", argv[i][0]))
-      	argp = &argv[i][1];
-      else
-        argp = argv[i];
+#ifdef WIN32
+    if ((argv[i][0] != '-')&&(argv[i][0] != '/')) 
+#else
+    if ((argv[i][0] != '-'))
+#endif
+	{
+	  argp = argv[i];
 
       if (!strchr(argp, '*') && !strchr(argp, '?')) {
 	InFileNames[FileCount] = (char*) malloc((strlen(argv[i])+1)*sizeof(char));
 	OutFileNames[FileCount] = (char*) malloc((strlen(argv[i])+1)*sizeof(char));
 	strcpy(InFileNames[FileCount], argv[i]);
 	FileCount++;
-      }
-      else {
+      } else {
 #ifdef _WIN32
 	HANDLE hFindFile;
 	WIN32_FIND_DATA fd;

@@ -21,7 +21,7 @@
  * 
  * @APPLE_LICENSE_HEADER_END@
  */
-// $Id: RTPMetaInfoPacket.h,v 1.1 2001/02/27 00:56:50 cahighlander Exp $
+// $Id: RTPMetaInfoPacket.h,v 1.2 2001/05/09 21:04:37 cahighlander Exp $
 //
 // RTPMetaInfoPacket.h:
 //   Some defs for RTP-Meta-Info payloads. This class also parses RTP meta info packets
@@ -145,3 +145,4 @@ class RTPMetaInfoPacket
 };
 
 #endif // __QTRTP_META_INFO_PACKET_H__
+
