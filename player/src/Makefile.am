@@ -27,6 +27,7 @@ libmp4player_la_SOURCES = \
 	avi_file.cpp \
 	ip_port.cpp \
 	media_utils.cpp \
+	mpeg4_audio_config.cpp \
 	our_bytestream_file.cpp \
 	our_bytestream_mem.cpp \
 	our_config_file.cpp \
@@ -59,7 +60,7 @@ gmp4player_SOURCES = \
 movplayer_SOURCES = player_util.c \
 	movplayer.cpp
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I../lib/SDL/include -I$(top_srcdir)/common/mp4 -I$(top_srcdir)/include @GLIB_INCLUDES@ @GTK_INCLUDES@ -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/common/lib
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I../lib/SDL/include -I$(top_srcdir)/common/mp4 -I$(top_srcdir)/include @GLIB_INCLUDES@ @GTK_INCLUDES@ -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/common/lib -I$(top_srcdir)/lib
 
 AM_CFLAGS= -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wmissing-prototypes 
 
@@ -89,6 +90,7 @@ LDADD = \
 	$(top_builddir)/lib/avi/libavi.la \
 	$(top_builddir)/common/lib/config_file/libconfig_file.la \
 	$(top_builddir)/common/lib/msg_queue/libmsg_queue.la \
+	$(top_builddir)/lib/bitstream/libbitstream.la \
 	-lpthread \
 	-lm \
 	$(top_builddir)/lib/avi/libavi.la \

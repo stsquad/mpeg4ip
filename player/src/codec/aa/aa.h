@@ -31,7 +31,7 @@
 #include "codec.h"
 #include "player_mem_bytestream.h"
 #include "audio.h"
-
+//#define DUMP_OUTPUT_TO_FILE 1
 class CAACodec : public CAudioCodecBase {
  public:
   CAACodec(CAudioSync *a,
@@ -45,21 +45,19 @@ class CAACodec : public CAudioCodecBase {
   void do_pause(void);
  private:
   faacDecHandle m_info;
-  CInByteStreamMem *m_local_bytestream;
-  CInByteStreamBase *m_orig_bytestream;
   int m_resync_with_header;
   int m_record_sync_time;
   uint64_t m_first_time_offset;
   uint64_t m_current_time;
   uint64_t m_last_rtp_ts;
+  uint64_t m_msec_per_frame;
   size_t m_current_frame;
   SDL_AudioSpec m_obtained;
   int m_audio_inited;
   int m_faad_inited;
-  size_t m_local_buffersize;
-  unsigned char *m_local_buffer;
   int m_freq;  // frequency
   int m_chans; // channels
+  int m_output_frame_size;
   unsigned char *m_temp_buff;
 #if DUMP_OUTPUT_TO_FILE
   FILE *m_outfile;

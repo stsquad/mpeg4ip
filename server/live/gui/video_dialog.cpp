@@ -16,391 +16,286 @@
  * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *              Bill May        wmay@cisco.com
+ *		Dave Mackie		dmackie@cisco.com
+ *		Bill May 		wmay@cisco.com
  */
-/*
- * video_dialog.cpp - video dialog
- */
-#include <stdlib.h>
-#include <stdio.h>
-#include <glib.h>
-#include <gtk/gtk.h>
-#include <errno.h>
-#include "gui_utils.h"
-#include "gui_private.h"
-#include "live_apis.h"
 
-static GtkWidget *vid_dialog;
-static GtkWidget *ok_button, *cancel_button, *apply_button;
-static GtkWidget *video_inputs_menu;
-static GtkWidget *height, *width, *fps;
-static GtkWidget *kbps;
-static GtkWidget *crop_height, *crop_width;
-static GtkWidget *crop_enabled_button;
+#define __STDC_LIMIT_MACROS
+#include "mp4live.h"
+#include "mp4live_gui.h"
+#include "video_source.h"
 
-static size_t local_capture_index;
-static size_t local_video_input_index;
-static size_t local_h, local_w, local_fps;
-static size_t local_video_encoder_index, local_kbps;
-static int local_crop_enabled;
-static size_t local_crop_h, local_crop_w;
+static GtkWidget *dialog;
 
+static GtkWidget *device_entry;
+static bool device_modified;
+static GtkWidget *signal_menu;
+static GtkWidget *size_menu;
+static GtkWidget *aspect_menu;
+static GtkWidget *frame_rate_spinner;
+static GtkWidget *bit_rate_spinner;
 
+static u_int16_t signalValues[] = {
+	VIDEO_MODE_NTSC, VIDEO_MODE_PAL, VIDEO_MODE_SECAM
+};
+static char* signalNames[] = {
+	"NTSC", "PAL", "SECAM"
+};
+static u_int8_t signalIndex;
+
+static u_int16_t sizeWidthValues[] = {
+	160, 176, 320, 352
+};
+static char* sizeNames[] = {
+	"160 x 120", "176 x 144", "320 x 240", "352 x 288"
+};
+static u_int8_t sizeIndex;
+
+static float aspectValues[] = {
+	VIDEO_STD_ASPECT_RATIO, VIDEO_LB1_ASPECT_RATIO, VIDEO_LB2_ASPECT_RATIO
+}; 
+static char* aspectNames[] = {
+	"Standard 4:3", "Letterbox 2.35", "Letterbox 1.75"
+};
+static u_int8_t aspectIndex;
 
 static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 {
-  gtk_grab_remove(vid_dialog);
-  gtk_widget_destroy(vid_dialog);
-  vid_dialog = NULL;
-}
- 
-static void on_capture_inputs (GtkWidget *widget, gpointer gdata)
+	gtk_grab_remove(dialog);
+	gtk_widget_destroy(dialog);
+	dialog = NULL;
+} 
+
+static void on_changed(GtkWidget *widget, gpointer *data)
 {
-  size_t data;
-  data = (size_t) gdata;
-  if (data != local_video_input_index) {
-    local_video_input_index = data;
-    gtk_widget_set_sensitive(apply_button, 1);
-  }
-}
-static void on_crop_enabled_button (GtkWidget *widget, gpointer gdata)
-{
-  if (local_crop_enabled != 
-      gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(crop_enabled_button))) {
-    if (local_crop_enabled) {
-      local_crop_enabled = FALSE;
-    } else {
-      local_crop_enabled = TRUE;
-    }
-    gtk_widget_set_sensitive(apply_button, 1);
-    gtk_editable_set_editable(GTK_EDITABLE(crop_height), local_crop_enabled);
-    gtk_editable_set_editable(GTK_EDITABLE(crop_width), local_crop_enabled);
-  }
-    
+	if (widget == device_entry) {
+		device_modified = true;
+	}
 }
 
-static void on_video_encoder (GtkWidget *widget, gpointer gdata)
+static void on_device_leave(GtkWidget *widget, gpointer *data)
 {
-  size_t data;
-  data = (size_t) gdata;
-  if (data != local_video_encoder_index) {
-    local_video_encoder_index = data;
-    gtk_widget_set_sensitive(apply_button, 1);
-  }
-}
-static void on_capture_device (GtkWidget *widget, gpointer gdata)
-{
-  size_t data;
-  data = (size_t) gdata;
-  if (data != local_capture_index) {
-    local_capture_index = data;
-    // We have a new capture device - make sure that we set the video capture
-    // inputs correctly.
-    const char **name;
-    size_t max;
-    name = get_video_capture_inputs(local_capture_index,
-				    max, 
-				    local_video_input_index);
-    video_inputs_menu = CreateOptionMenu(video_inputs_menu,
-					 name, 
-					 max, 
-					 local_video_input_index, 
-					 GTK_SIGNAL_FUNC(on_capture_inputs));
-    gtk_widget_set_sensitive(apply_button, 1);
-  }
+	if (!device_modified) {
+		return;
+	}
+	// TBD probe new device
+	CVideoCapabilities* pVideoCaps = new CVideoCapabilities(
+		gtk_entry_get_text(GTK_ENTRY(device_entry)));
 }
 
-static int check_values (void)
+static void on_signal_menu_activate(GtkWidget *widget, gpointer data)
 {
-  size_t old_capture, old_input;
-  size_t h, w, f, ch, cw, k;
-  size_t err = 0;
-  gboolean crop;
-  
-#define BAD_HEIGHT 0x01
-#define BAD_WIDTH  0x02
-#define BAD_FPS    0x04
-#define BAD_CROP_H 0x08
-#define BAD_CROP_W 0x10
-#define BAD_KBPS   0x20
-  if (GetNumberValueFromEntry(height, &h) == 0) {
-    err |= BAD_HEIGHT;
-  }
-
-  if (GetNumberValueFromEntry(width, &w) == 0) {
-    err |= BAD_WIDTH;
-  }
-
-  if (GetNumberValueFromEntry(fps, &f) == 0) {
-    err |= BAD_FPS;
-  }
-
-  if (GetNumberValueFromEntry(kbps, &k) == 0) {
-    err |= BAD_KBPS;
-  }
-
-  crop = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(crop_enabled_button));
-  if (crop) {
-    if (GetNumberValueFromEntry(crop_height, &ch) == 0) 
-      err |= BAD_CROP_H;
-    if (GetNumberValueFromEntry(crop_width, &cw) == 0)
-      err |= BAD_CROP_W;
-  } else {
-    cw = ch = 0;
-  }
-  
-  const char *errmsg;
-  if (err == 0) {
-    old_capture = get_capture_device_index();
-    old_input = get_video_capture_input_index();
-    set_capture_device(local_capture_index);
-    set_video_capture_inputs(local_video_input_index);
-    if (check_video_parameters(h, w, crop, ch, cw, f, 
-			       local_video_encoder_index, k, &errmsg) != 0) {
-      set_video_parameters(h, w, crop, ch, cw, f, local_video_encoder_index, k);
-      DisplayVideoSettings();  // display settings in main window
-      return (1);
-    } else {
-      set_capture_device(old_capture);
-      set_video_capture_inputs(old_input);
-      ShowMessage("Entry Error", errmsg);
-    }
-  } else {
-    errmsg = "????";
-
-    if (err & BAD_HEIGHT) 
-      errmsg = "Invalid Height";
-    else if (err & BAD_WIDTH)
-      errmsg = "Invalid Width";
-    else if (err & BAD_FPS) 
-      errmsg = "Invalid Frames Per Second";
-    else if (err & BAD_KBPS) 
-      errmsg = "Invalid Encoder KBits Per Second";
-    else if (crop) {
-      if (err & BAD_CROP_H)
-	errmsg = "Invalid Crop Height";
-      else errmsg = "Invalid Crop Width";
-
-    }
-    ShowMessage("Invalid Entry", errmsg);
-  }
-  return (0);
-}
-static void on_changed (GtkWidget *widget, gpointer *data)
-{
-  gtk_widget_set_sensitive(apply_button, 1);
 }
 
-static void on_apply_button (GtkWidget *widget, gpointer *data)
+static void on_size_menu_activate(GtkWidget *widget, gpointer data)
 {
-  check_values();
-  gtk_widget_set_sensitive(apply_button, 0);
+}
+
+static void on_aspect_menu_activate(GtkWidget *widget, gpointer data)
+{
+}
+
+static bool ValidateAndSave(void)
+{
+	// copy new values to config
+
+	free(MyConfig->m_videoDeviceName);
+	MyConfig->m_videoDeviceName = stralloc(
+		gtk_entry_get_text(GTK_ENTRY(device_entry)));
+
+	// TBD 
+
+	MyConfig->m_videoTargetFrameRate =
+		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(frame_rate_spinner));
+
+	MyConfig->m_videoTargetBitRate =
+		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(bit_rate_spinner));
+
+	DisplayVideoSettings();  // display settings in main window
+
+	return true;
 }
 
 static void on_ok_button (GtkWidget *widget, gpointer *data)
 {
-  if (check_values() != 0)
+	// check and save values
+	if (!ValidateAndSave()) {
+		return;
+	}
     on_destroy_dialog(NULL, NULL);
 }
 
 static void on_cancel_button (GtkWidget *widget, gpointer *data)
 {
-  on_destroy_dialog(NULL, NULL);
+	on_destroy_dialog(NULL, NULL);
 }
 
 void CreateVideoDialog (void) 
 {
-  GtkWidget *hbox, *label, *omenu;
+	GtkWidget* hbox;
+	GtkWidget* vbox;
+	GtkWidget* label;
+	GtkWidget* button;
+	GtkObject* adjustment;
 
-  vid_dialog = gtk_dialog_new();
-  gtk_signal_connect(GTK_OBJECT(vid_dialog),
-		     "destroy",
-		     GTK_SIGNAL_FUNC(on_destroy_dialog),
-		     &vid_dialog);
+	dialog = gtk_dialog_new();
+	gtk_signal_connect(GTK_OBJECT(dialog),
+		"destroy",
+		GTK_SIGNAL_FUNC(on_destroy_dialog),
+		&dialog);
 
-  gtk_window_set_title(GTK_WINDOW(vid_dialog), "Video Configuration");
-  
-  hbox = gtk_hbox_new(FALSE, 1);
-  gtk_widget_show(hbox);
-  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(vid_dialog)->vbox),
-		     hbox,
-		     TRUE,
-		     TRUE, 
-		     5);
+	gtk_window_set_title(GTK_WINDOW(dialog), "Video Settings");
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
-  label = gtk_label_new("Capture Device");
-  gtk_widget_ref(label);
-  gtk_widget_show(label);
-  gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	hbox = gtk_hbox_new(TRUE, 1);
+	gtk_widget_show(hbox);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox,
+		FALSE, FALSE, 5);
 
-  size_t max;
-  const char **names;
+	vbox = gtk_vbox_new(TRUE, 1);
+	gtk_widget_show(vbox);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
 
-  names = get_capture_devices(max, local_capture_index);
-  omenu = CreateOptionMenu(NULL, names, max, local_capture_index, 
-			   GTK_SIGNAL_FUNC(on_capture_device));
-  gtk_box_pack_start(GTK_BOX(hbox), omenu, TRUE, TRUE, 0);
+	label = gtk_label_new(" Device:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  // Video Capture inputs
-  hbox = gtk_hbox_new(FALSE, 1);
-  gtk_widget_show(hbox);
-  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(vid_dialog)->vbox),
-		     hbox,
-		     TRUE,
-		     TRUE, 
-		     5);
+	label = gtk_label_new(" Input Port:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  label = gtk_label_new("Video Inputs");
-  gtk_widget_ref(label);
-  gtk_widget_show(label);
-  gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-  names = get_video_capture_inputs(local_capture_index, 
-				   max, 
-				   local_video_input_index);
-  video_inputs_menu = CreateOptionMenu(NULL,
-				       names, 
-				       max, 
-				       local_video_input_index, 
-				       GTK_SIGNAL_FUNC(on_capture_inputs));
-  gtk_box_pack_start(GTK_BOX(hbox), video_inputs_menu, TRUE, TRUE, 0);
+	label = gtk_label_new(" Signal:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  // Height, Width, FPS
-  local_h = get_video_height();
-  local_w = get_video_width();
-  local_fps = get_video_frames_per_second();
-  local_crop_enabled = get_video_crop_enabled();
-  local_crop_h = get_video_crop_height();
-  local_crop_w = get_video_crop_width();
-  local_kbps = get_video_encoder_kbps();
+	label = gtk_label_new(" Channel List:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  height = AddNumberEntryBoxWithLabel(GTK_DIALOG(vid_dialog)->vbox,
-				      "Height:",
-				      local_h,
-				      4);
-  gtk_signal_connect(GTK_OBJECT(height),
-		     "changed",
-		     GTK_SIGNAL_FUNC(on_changed),
-		     NULL);
-  
-  width = AddNumberEntryBoxWithLabel(GTK_DIALOG(vid_dialog)->vbox,
-				     "Width:",
-				     local_w,
-				     4);
-  gtk_signal_connect(GTK_OBJECT(width),
-		     "changed",
-		     GTK_SIGNAL_FUNC(on_changed),
-		     NULL);
-  
-  fps = AddNumberEntryBoxWithLabel(GTK_DIALOG(vid_dialog)->vbox,
-				   "Frames Per Second:",
-				   local_fps,
-				   3);
-  gtk_signal_connect(GTK_OBJECT(fps),
-		     "changed",
-		     GTK_SIGNAL_FUNC(on_changed),
-		     NULL);
+	label = gtk_label_new(" Channel:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  GtkWidget *frame, *vbox;
-  frame = gtk_frame_new("Encoding");
-  gtk_frame_set_label_align(GTK_FRAME(frame), .5, 0);
-  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(vid_dialog)->vbox), frame, TRUE, TRUE, 5);
+	label = gtk_label_new(" Size:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  vbox = gtk_vbox_new(FALSE, 1);
-  gtk_widget_show(vbox);
-  // add encoder type...
+	label = gtk_label_new(" Aspect Ratio:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  hbox = gtk_hbox_new(FALSE, 1);
-  gtk_widget_show(hbox);
-  gtk_box_pack_start(GTK_BOX(vbox),
-		     hbox,
-		     TRUE,
-		     TRUE, 
-		     5);
+	label = gtk_label_new(" Frame Rate (fps):");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  label = gtk_label_new("Video Encoder:");
-  gtk_widget_ref(label);
-  gtk_widget_show(label);
-  gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	label = gtk_label_new(" Bit Rate (Kbps):");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  names = get_video_encoder_types(max, local_video_encoder_index);
-  omenu = CreateOptionMenu(NULL, names, max, local_video_encoder_index, 
-			   GTK_SIGNAL_FUNC(on_video_encoder));
-  gtk_box_pack_start(GTK_BOX(hbox), omenu, TRUE, TRUE, 0);
 
-  kbps = AddNumberEntryBoxWithLabel(vbox, 
-				    "KBits Per Second:",
-				    local_kbps,
-				    5);
-  gtk_signal_connect(GTK_OBJECT(kbps),
-		     "changed",
-		     GTK_SIGNAL_FUNC(on_changed),
-		     NULL);
+	vbox = gtk_vbox_new(TRUE, 1);
+	gtk_widget_show(vbox);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
 
-  gtk_container_add(GTK_CONTAINER(frame), vbox);
-  gtk_widget_show(frame);
-  
-  frame = gtk_frame_new("Cropping");
-  gtk_frame_set_label_align(GTK_FRAME(frame), .5, 0);
-  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(vid_dialog)->vbox), frame, TRUE, TRUE, 5);
-  
-  vbox = gtk_vbox_new(FALSE, 1);
-  gtk_widget_show(vbox);
+	device_entry = gtk_entry_new_with_max_length(128);
+	gtk_entry_set_text(GTK_ENTRY(device_entry), MyConfig->m_videoDeviceName);
+	device_modified = false;
+	SetEntryValidator(GTK_OBJECT(device_entry),
+		GTK_SIGNAL_FUNC(on_changed),
+		GTK_SIGNAL_FUNC(on_device_leave));
+	gtk_widget_show(device_entry);
+	gtk_box_pack_start(GTK_BOX(vbox), device_entry, TRUE, TRUE, 0);
 
-  hbox = gtk_hbox_new(FALSE, 1);
-  gtk_widget_show(hbox);
-  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 3);
+	label = gtk_label_new(" <Option Menu Here>");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  crop_enabled_button = gtk_check_button_new_with_label("Enabled");
-  gtk_box_pack_start(GTK_BOX(hbox), crop_enabled_button, TRUE, TRUE, 0);
-  gtk_signal_connect(GTK_OBJECT(crop_enabled_button),
-		     "toggled",
-		     GTK_SIGNAL_FUNC(on_crop_enabled_button),
-		     NULL);
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(crop_enabled_button),
-			       local_crop_enabled);
-  gtk_widget_show(crop_enabled_button);
-			    
-  crop_height = AddNumberEntryBoxWithLabel(vbox,
-					   "Height After Crop:",
-					   local_crop_h,
-					   4);
-  gtk_signal_connect(GTK_OBJECT(crop_height),
-		     "changed",
-		     GTK_SIGNAL_FUNC(on_changed),
-		     NULL);
-    
-    
-  crop_width = AddNumberEntryBoxWithLabel(vbox,
-					  "Width After Crop:",
-					  local_crop_w,
-					  4);
-  gtk_signal_connect(GTK_OBJECT(crop_width),
-		     "changed",
-		     GTK_SIGNAL_FUNC(on_changed),
-		     NULL);
-  if (local_crop_enabled == 0) {
-    gtk_editable_set_editable(GTK_EDITABLE(crop_height), FALSE);
-    gtk_editable_set_editable(GTK_EDITABLE(crop_width), FALSE);
-  }
-  
-  gtk_container_add(GTK_CONTAINER(frame), vbox);
-  gtk_widget_show(frame);
+	signalIndex = 0; 
+	for (u_int8_t i = 0; i < sizeof(signalValues) / sizeof(u_int16_t); i++) {
+		if (MyConfig->m_videoSignal == signalValues[i]) {
+			signalIndex = i;
+			break;
+		}
+	}
+	signal_menu = CreateOptionMenu (NULL,
+		(const char**) signalNames, 
+		sizeof(signalNames) / sizeof(char*),
+		signalIndex,
+		GTK_SIGNAL_FUNC(on_signal_menu_activate));
+	gtk_box_pack_start(GTK_BOX(vbox), signal_menu, TRUE, TRUE, 0);
 
-  // Add buttons at bottom
-  ok_button = AddButtonToDialog(vid_dialog, 
-				"Ok", 
-				GTK_SIGNAL_FUNC(on_ok_button));
-  cancel_button = AddButtonToDialog(vid_dialog,
-				    "Cancel", 
-				    GTK_SIGNAL_FUNC(on_cancel_button));
-  apply_button = AddButtonToDialog(vid_dialog,
-				   "Apply", 
-				   GTK_SIGNAL_FUNC(on_apply_button));
-  gtk_widget_set_sensitive(apply_button, 0);
-  gtk_widget_show(vid_dialog);
-  gtk_grab_add(vid_dialog);
+	label = gtk_label_new(" <Option Menu Here>");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
+
+	label = gtk_label_new(" <Option Menu Here>");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
+
+	sizeIndex = 0; 
+	for (u_int8_t i = 0; i < sizeof(sizeWidthValues) / sizeof(u_int16_t); i++) {
+		if (MyConfig->m_videoWidth == sizeWidthValues[i]) {
+			sizeIndex = i;
+			break;
+		}
+	}
+	size_menu = CreateOptionMenu (NULL,
+		(const char**) sizeNames, 
+		sizeof(sizeNames) / sizeof(char*),
+		sizeIndex,
+		GTK_SIGNAL_FUNC(on_size_menu_activate));
+	gtk_box_pack_start(GTK_BOX(vbox), size_menu, TRUE, TRUE, 0);
+
+	aspectIndex = 0; 
+	for (u_int8_t i = 0; i < sizeof(aspectValues) / sizeof(float); i++) {
+		if (MyConfig->m_videoAspectRatio == aspectValues[i]) {
+			aspectIndex = i;
+			break;
+		}
+	}
+	aspect_menu = CreateOptionMenu (NULL,
+		(const char**) aspectNames, 
+		sizeof(aspectNames) / sizeof(char*),
+		aspectIndex,
+		GTK_SIGNAL_FUNC(on_aspect_menu_activate));
+	gtk_box_pack_start(GTK_BOX(vbox), aspect_menu, TRUE, TRUE, 0);
+
+	adjustment = gtk_adjustment_new(MyConfig->m_videoTargetFrameRate,
+		1, 30, 1, 0, 0);
+	frame_rate_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 1, 0);
+	gtk_widget_show(frame_rate_spinner);
+	gtk_box_pack_start(GTK_BOX(vbox), frame_rate_spinner, TRUE, TRUE, 0);
+
+	adjustment = gtk_adjustment_new(MyConfig->m_videoTargetBitRate,
+		50, 1500, 50, 0, 0);
+	bit_rate_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 50, 0);
+	gtk_widget_show(bit_rate_spinner);
+	gtk_box_pack_start(GTK_BOX(vbox), bit_rate_spinner, TRUE, TRUE, 0);
+
+
+	// Add standard buttons at bottom
+	button = AddButtonToDialog(dialog,
+		" OK ", 
+		GTK_SIGNAL_FUNC(on_ok_button));
+	GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+
+	AddButtonToDialog(dialog,
+		" Cancel ", 
+		GTK_SIGNAL_FUNC(on_cancel_button));
+
+	gtk_widget_show(dialog);
 }
 
 /* end video_dialog.cpp */
-
-

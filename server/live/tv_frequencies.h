@@ -106,6 +106,8 @@ struct CHANLISTS {
 
 /* --------------------------------------------------------------------- */
 
-extern struct CHANLISTS   ChannelLists[];
+extern struct CHANLISTS   NtscChannelLists[];
+extern struct CHANLISTS   PalChannelLists[];
+extern struct CHANLISTS   SecamChannelLists[];
 
 #endif /* __FREQUENCIES_H__ */

@@ -942,21 +942,28 @@ static struct CHANLIST pal_bcast_za[] ={
 
 /* --------------------------------------------------------------------- */
 
-struct CHANLISTS ChannelLists[] = {
+struct CHANLISTS NtscChannelLists[] = {
     { "US Broadcast",     ntsc_bcast,        CHAN_COUNT(ntsc_bcast)        },
     { "US Cable",         ntsc_cable,        CHAN_COUNT(ntsc_cable)        },
     { "US Cable HRC",     ntsc_hrc,          CHAN_COUNT(ntsc_hrc)          },
     { "Japan Broadcast",  ntsc_bcast_jp,     CHAN_COUNT(ntsc_bcast_jp)     },
     { "Japan Cable",      ntsc_cable_jp,     CHAN_COUNT(ntsc_cable_jp)     },
+    { 0, 0, 0 } /* EOF */
+};
+
+struct CHANLISTS PalChannelLists[] = {
     { "Western Europe",   europe_west,       CHAN_COUNT(europe_west)       },
     { "Eastern Europe",   europe_east,       CHAN_COUNT(europe_east)       },
-    { "Italy",	          pal_italy,         CHAN_COUNT(pal_italy)         },
-    { "New Zealand",      pal_newzealand,    CHAN_COUNT(pal_newzealand)    },
-    { "Australia",        pal_australia,     CHAN_COUNT(pal_australia)     },
     { "Ireland",          pal_ireland,       CHAN_COUNT(pal_ireland)       },
-    { "France",           secam_france,      CHAN_COUNT(secam_france)      },
+    { "Italy",	          pal_italy,         CHAN_COUNT(pal_italy)         },
     { "China Broadcast",  pal_bcast_cn,      CHAN_COUNT(pal_bcast_cn)      },
+    { "Australia",        pal_australia,     CHAN_COUNT(pal_australia)     },
+    { "New Zealand",      pal_newzealand,    CHAN_COUNT(pal_newzealand)    },
     { "South Africa",     pal_bcast_za,      CHAN_COUNT(pal_bcast_za)      },
     { 0, 0, 0 } /* EOF */
 };
 
+struct CHANLISTS SecamChannelLists[] = {
+    { "France",           secam_france,      CHAN_COUNT(secam_france)      },
+    { 0, 0, 0 } /* EOF */
+};

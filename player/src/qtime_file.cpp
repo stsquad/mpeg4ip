@@ -30,11 +30,9 @@
 #include "quicktime.h"
 #include "qtime_bytestream.h"
 #include "qtime_file.h"
+#include "mpeg4_audio_config.h"
 
 CQtimeFile *QTfile1 = NULL;
-static long freq_index_to_freq[] = {
-  96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 
-  12000, 11025, 8000, 7350 };
 /*
  * Create the media for the quicktime file, and set up some session stuff.
  */
@@ -220,21 +218,21 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
     long len = quicktime_audio_length(m_qtfile, 0);
     ret = quicktime_get_mp4_audio_decoder_config(m_qtfile, 0, &foo, &bufsize);
     audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
+
     long sample_rate;
     int samples_per_frame;
     if (ret >= 0 && foo != NULL) {
-      unsigned char freq_index;
-      freq_index = ((foo[0] & 0x7) << 1) | (foo[1] >> 7);
-      if (freq_index == 0xf) {
-	sample_rate = ((foo[1] & 0x7f) << 17) |
-	  (foo[2] << 9) |
-	  (foo[3] << 1) |
-	  ((foo[4] & 0x80) >> 7);
-	
+      mpeg4_audio_config_t audio_config;
+
+      decode_mpeg4_audio_config(foo, bufsize, &audio_config);
+
+      sample_rate = audio_config.frequency;
+      if (audio_object_type_is_aac(&audio_config) != 0) {
+	samples_per_frame = audio_config.codec.aac.frame_len_1024 == 0 ? 
+	  960 : 1024;
       } else {
-	sample_rate = freq_index_to_freq[freq_index];
+	samples_per_frame = 1024;
       }
-      samples_per_frame = 1024;
       player_debug_message("From audio rate %ld samples %d", sample_rate, samples_per_frame);
     } else {
       sample_rate = quicktime_audio_sample_rate(m_qtfile, 0);

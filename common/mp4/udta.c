@@ -12,6 +12,9 @@ int quicktime_udta_init(quicktime_udta_t *udta)
 	udta->info = malloc(strlen(DEFAULT_INFO) + 1);
 	udta->info_len = strlen(DEFAULT_INFO);
 	sprintf(udta->info, DEFAULT_INFO);
+
+	quicktime_hnti_init(&(udta->hnti));
+
 	return 0;
 }
 
@@ -29,6 +32,8 @@ int quicktime_udta_delete(quicktime_udta_t *udta)
 	{
 		free(udta->info);
 	}
+	quicktime_hnti_delete(&(udta->hnti));
+
 	quicktime_udta_init(udta);
 	return 0;
 }
@@ -39,6 +44,7 @@ int quicktime_udta_dump(quicktime_udta_t *udta)
 	if(udta->copyright_len) printf("  copyright -> %s\n", udta->copyright);
 	if(udta->name_len) printf("  name -> %s\n", udta->name);
 	if(udta->info_len) printf("  info -> %s\n", udta->info);
+	quicktime_hnti_dump(&udta->hnti);
 }
 
 int quicktime_read_udta(quicktime_t *file, quicktime_udta_t *udta, quicktime_atom_t *udta_atom)
@@ -72,6 +78,9 @@ int quicktime_read_udta(quicktime_t *file, quicktime_udta_t *udta, quicktime_ato
 		{
 			result += quicktime_read_udta_string(file, &(udta->info), &(udta->info_len));
 		}
+		else if (quicktime_atom_is(&leaf_atom, "hnti")) {
+			quicktime_read_hnti(file, &(udta->hnti), &leaf_atom);
+		}
 		else
 		quicktime_atom_skip(file, &leaf_atom);
 	}while(quicktime_position(file) < udta_atom->end);
@@ -84,15 +93,17 @@ int quicktime_write_udta(quicktime_t *file, quicktime_udta_t *udta)
 	quicktime_atom_t atom, subatom;
 
 	/*
-	 * Empty udta atom make Darwin Streaming Server unhappy
+	 * Empty udta atom makes Darwin Streaming Server unhappy
 	 * so avoid it
 	 */
 	if (file->use_mp4) {
-		if (udta->copyright_len == 0) {
+		if (udta->copyright_len == 0
+		  && udta->hnti.sdp.string == NULL) {
 			return;
 		}
 	} else {
-		if (udta->copyright_len + udta->name_len + udta->info_len == 0) {
+		if (udta->copyright_len + udta->name_len + udta->info_len == 0
+		  && udta->hnti.sdp.string == NULL) {
 			return;
 		}
 	}
@@ -118,6 +129,9 @@ int quicktime_write_udta(quicktime_t *file, quicktime_udta_t *udta)
 		quicktime_atom_write_header(file, &subatom, "©inf");
 		quicktime_write_udta_string(file, udta->info, udta->info_len);
 		quicktime_atom_write_footer(file, &subatom);
+	}
+	if (udta->hnti.sdp.string != NULL) {
+		quicktime_write_hnti(file, &(udta->hnti));
 	}
 
 	quicktime_atom_write_footer(file, &atom);

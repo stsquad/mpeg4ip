@@ -92,6 +92,8 @@ void CAudioSource::DoStopCapture()
 		// lame can be holding onto a few MP3 frames
 		// get them and forward them to sinks
 
+		// TBD this can be multiple mp3 frames, must split!!!
+
 		u_int8_t* mp3FrameBuffer = (u_int8_t*)malloc(m_mp3MaxFrameSize);
 		if (mp3FrameBuffer == NULL) {
 			// TBD error
@@ -128,19 +130,24 @@ bool CAudioSource::Init(void)
 	}
 
 	m_samplesPerFrame = 1152;	// MP3 specific
-	m_rawFrameSize = m_samplesPerFrame *  m_pConfig->m_audioChannels * 2;
+	m_rawFrameSize = 
+		m_samplesPerFrame *  m_pConfig->m_audioChannels * sizeof(u_int16_t);
 	m_frameDuration = (m_samplesPerFrame * TimestampTicks) 
 		/ m_pConfig->m_audioSamplingRate;
 	// maximum number of passes in ProcessAudio, approx 1 sec.
 	m_maxPasses = m_pConfig->m_audioSamplingRate / m_samplesPerFrame;
 	m_rawFrameNumber = 0xFFFFFFFF;
 	m_mp3MaxFrameSize = (u_int)(1.25 * m_samplesPerFrame) + 7200;
+	m_mp3FrameBufferSize = 2 * m_mp3MaxFrameSize;
+	m_mp3FrameBufferLength = 0;
 
 	m_rawFrameBuffer = (u_int16_t*)malloc(m_rawFrameSize);
-	m_leftBuffer = (u_int16_t*)malloc(m_samplesPerFrame * 2);
-	m_rightBuffer = (u_int16_t*)malloc(m_samplesPerFrame * 2);
+	m_leftBuffer = (u_int16_t*)malloc(m_samplesPerFrame * sizeof(u_int16_t));
+	m_rightBuffer = (u_int16_t*)malloc(m_samplesPerFrame * sizeof(u_int16_t));
+	m_mp3FrameBuffer = (u_int8_t*)malloc(m_mp3FrameBufferSize);
 
-	if (!m_rawFrameBuffer || !m_leftBuffer || !m_rightBuffer) {
+	if (!m_rawFrameBuffer || !m_leftBuffer || !m_rightBuffer 
+	  || !m_mp3FrameBuffer) {
 		close(m_audioDevice);
 		m_audioDevice = -1;
 		return false;
@@ -206,33 +213,37 @@ bool CAudioSource::InitEncoder()
 	return true;
 }
 
+// TEMP
+bool Mp3FindNextFrame(u_int8_t* src, u_int32_t srcLength,
+	u_int8_t** frame, u_int32_t* frameSize, bool allowLayer4);
+
 void CAudioSource::ProcessAudio(void)
 {
 	// for efficiency, process 1 second before returning to check for commands
 	for (int pass = 0; pass < m_maxPasses; pass++) {
 
 		// read the a frame's worth of raw PCM data
-		if (read(m_audioDevice, m_rawFrameBuffer, m_rawFrameSize) <= 0) {
+		int bytesRead = read(m_audioDevice, m_rawFrameBuffer, m_rawFrameSize); 
+
+		if (bytesRead <= 0) {
 			continue;
 		}
 
 		// TBD timing might be better if we used
 		// frameTimestamp = m_startTimestamp 
 		// + m_rawFrameNumber * m_frameDuration;
+
 		Timestamp frameTimestamp = GetTimestamp() - m_frameDuration;
 		m_rawFrameNumber++;
 		if (m_rawFrameNumber == 0) {
 			m_startTimestamp = frameTimestamp;
 		}
+		if (m_mp3FrameBufferLength == 0) {
+			m_mp3FrameTimestamp = frameTimestamp;
+		}
 
 		// encode audio frame to MP3
 		if (m_pConfig->m_audioEncode) {
-			u_int32_t mp3FrameLength;
-			u_int8_t* mp3FrameBuffer = (u_int8_t*)malloc(m_mp3MaxFrameSize);
-			if (mp3FrameBuffer == NULL) {
-				// TBD error
-			}
-
 			// de-interleave raw frame buffer
 			u_int16_t* s = m_rawFrameBuffer;
 			for (int i = 0; i < m_samplesPerFrame; i++) {
@@ -241,32 +252,69 @@ void CAudioSource::ProcessAudio(void)
 			}
 
 			// call lame encoder
-			mp3FrameLength = lame_encode_buffer(&m_lameParams,
+			u_int32_t mp3DataLength = lame_encode_buffer(
+				&m_lameParams,
 				(short*)m_leftBuffer, (short*)m_rightBuffer, 
 				m_samplesPerFrame,
-				(char*)mp3FrameBuffer, m_mp3MaxFrameSize);
+				(char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
+				m_mp3FrameBufferSize - m_mp3FrameBufferLength);
 
-			// forward results to sinks
-			if (mp3FrameLength > 0) {
-				ForwardFrame(
-					new CMediaFrame(CMediaFrame::Mp3AudioFrame, 
-						mp3FrameBuffer, mp3FrameLength,
-						frameTimestamp, m_frameDuration)
-				);
+			if (mp3DataLength > 0) {
+				m_mp3FrameBufferLength += mp3DataLength;
+
+				u_int8_t* mp3Frame;
+				u_int32_t mp3FrameLength;
+
+				while (Mp3FindNextFrame(m_mp3FrameBuffer,
+				  m_mp3FrameBufferLength, &mp3Frame, &mp3FrameLength, false)) {
+
+					// check if we have all the bytes for the MP3 frame
+					if (mp3FrameLength > m_mp3FrameBufferLength) {
+						break;
+					}
+
+					// need a buffer for this MP3 frame
+					u_int8_t* newMp3Frame = (u_int8_t*)malloc(mp3FrameLength);
+					if (newMp3Frame == NULL) {
+						// TBD error
+						debug_message("malloc error");
+						break;
+					}
+					// copy the MP3 frame
+					memcpy(newMp3Frame, mp3Frame, mp3FrameLength);
+
+					// forward the copy of the MP3 frame to sinks
+					CMediaFrame* pFrame =
+						new CMediaFrame(CMediaFrame::Mp3AudioFrame, 
+							newMp3Frame, mp3FrameLength,
+							m_mp3FrameTimestamp, m_frameDuration);
+					ForwardFrame(pFrame);
+					delete pFrame;
+
+					// shift what remains in the buffer down
+					memcpy(m_mp3FrameBuffer, 
+						mp3Frame + mp3FrameLength, 
+						m_mp3FrameBufferLength - mp3FrameLength);
+					m_mp3FrameBufferLength -= mp3FrameLength;
+
+					m_mp3FrameTimestamp = frameTimestamp;
+				}
 			}
 		}
 
 		// if desired, forward raw audio to sinks
 		if (m_pConfig->m_recordRaw) {
-			ForwardFrame(
+			CMediaFrame* pFrame =
 				new CMediaFrame(CMediaFrame::PcmAudioFrame, 
 					m_rawFrameBuffer, m_rawFrameSize,
-					frameTimestamp, m_frameDuration)
-			);
+					frameTimestamp, m_frameDuration);
+			ForwardFrame(pFrame);
+			delete pFrame;
 
 			m_rawFrameBuffer = (u_int16_t*)malloc(m_rawFrameSize);
 			if (m_rawFrameBuffer == NULL) {
 				// TBD error
+				debug_message("malloc error");
 			}
 		}
 	}

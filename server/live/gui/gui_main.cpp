@@ -31,6 +31,7 @@
 #include "raw_recorder.h"
 #include "mp4_recorder.h"
 #include "rtp_transmitter.h"
+#include "gdk/gdkx.h"
 
 CLiveConfig* MyConfig;
 
@@ -43,7 +44,9 @@ static CRtpTransmitter* RtpTransmitter;
 
 /* Local variables */
 static GtkWidget *main_window;
-static GtkWidget *main_vbox;
+static GtkWidget *main_hbox;
+static GtkWidget *main_vbox1;
+static GtkWidget *main_vbox2;
 
 static GtkWidget *video_enabled_button;
 static GtkWidget *video_preview_button;
@@ -67,6 +70,16 @@ static GtkWidget *transmit_settings_button;
 
 static GtkWidget *start_button;
 static GtkWidget *start_button_label;
+static GtkWidget *duration_spinner;
+static GtkWidget *duration_units_menu;
+
+static u_int16_t durationUnitsValues[] = {
+	1, 60, 3600
+};
+static char* durationUnitsNames[] = {
+	"Seconds", "Minutes", "Hours"
+};
+static u_int8_t durationUnitsIndex = 1;
 
 static GtkWidget *start_time_label;
 static GtkWidget *start_time;
@@ -85,6 +98,7 @@ static GtkWidget *current_size;
 static GtkWidget *current_size_units;
 
 static Timestamp StartTime;
+static Timestamp StopTime;
 
 /*
  * delete_event - called when window closed
@@ -94,13 +108,56 @@ static void delete_event (GtkWidget *widget, gpointer *data)
   gtk_main_quit();
 }
 
-static void StartMedia()
+static char* mixerDeviceName = "/dev/mixer";
+
+void SetAudioInput(void)
+{
+	int mixer = open(mixerDeviceName, O_RDONLY);
+
+	if (mixer < 0) {
+		debug_message("Couldn't open mixer");
+		return;
+	}
+	int recmask = SOUND_MASK_LINE;
+	ioctl(mixer, SOUND_MIXER_WRITE_RECSRC, &recmask);
+
+	close(mixer);
+}
+
+void SetAudio(bool mute)
+{
+	static int muted = 0;
+	static int lastVolume;
+
+	int mixer = open(mixerDeviceName, O_RDONLY);
+
+	if (mixer < 0) {
+		debug_message("Couldn't open mixer");
+		return;
+	}
+
+	if (mute) {
+		ioctl(mixer, SOUND_MIXER_READ_LINE, &lastVolume);
+		ioctl(mixer, SOUND_MIXER_WRITE_LINE, &muted);
+	} else {
+		int newVolume;
+		ioctl(mixer, SOUND_MIXER_READ_LINE, &newVolume);
+		if (newVolume == 0) {
+			ioctl(mixer, SOUND_MIXER_WRITE_LINE, &lastVolume);
+		}
+	}
+
+	close(mixer);
+}
+
+static void StartMedia(void)
 {
 	if (Started) {
 		return;
 	}
 
 	if (MyConfig->m_audioEnable) {
+		SetAudioInput();
 		AudioSource = new CAudioSource();
 		AudioSource->SetConfig(MyConfig);
 		AudioSource->StartThread();
@@ -162,7 +219,7 @@ static void StartMedia()
 	}
 }
 
-static void StopMedia()
+static void StopMedia(void)
 {
 	if (!Started) {
 		return;
@@ -199,7 +256,7 @@ static void StopMedia()
 	}
 }
 
-static void StartVideoPreview()
+static void StartVideoPreview(void)
 {
 	if (VideoSource == NULL) {
 		VideoSource = new CVideoSource();
@@ -209,7 +266,7 @@ static void StartVideoPreview()
 	VideoSource->StartPreview();
 }
 
-static void StopVideoPreview()
+static void StopVideoPreview(void)
 {
 	if (VideoSource) {
 		if (!Started) {
@@ -220,36 +277,6 @@ static void StopVideoPreview()
 			VideoSource->StopPreview();
 		}
 	}
-}
-
-void SetAudio(bool mute)
-{
-	static char* mixerDeviceName = "/dev/mixer";
-	static int muted = 0;
-	static int lastVolume;
-
-	int mixer = open(mixerDeviceName, O_RDONLY);
-
-	if (mixer < 0) {
-debug_message("Couldn't open mixer");
-		return;
-	}
-
-	// TBD LINE vs VIDEO 
-	if (mute) {
-		ioctl(mixer, SOUND_MIXER_READ_LINE, &lastVolume);
-		ioctl(mixer, SOUND_MIXER_WRITE_LINE, &muted);
-debug_message("Muting, last volume %x", lastVolume);
-	} else {
-		int newVolume;
-		ioctl(mixer, SOUND_MIXER_READ_LINE, &newVolume);
-debug_message("UnMuting, new volume %x", newVolume);
-		if (newVolume == 0) {
-			ioctl(mixer, SOUND_MIXER_WRITE_LINE, &lastVolume);
-		}
-	}
-
-	close(mixer);
 }
 
 void DisplayVideoSettings(void)
@@ -267,7 +294,7 @@ void DisplayVideoSettings(void)
 	gtk_label_set_text(GTK_LABEL(video_settings_label1), buffer);
 	gtk_widget_show(video_settings_label1);
 
-	snprintf(buffer, sizeof(buffer), " %ux%u @ %u fps", 
+	snprintf(buffer, sizeof(buffer), " %ux%u at %u fps", 
 		MyConfig->m_videoWidth,
 		MyConfig->m_videoHeight,
 		MyConfig->m_videoTargetFrameRate);
@@ -306,7 +333,7 @@ void DisplayTransmitSettings (void)
 	gtk_widget_show(transmit_settings_label);
 }
 
-void DisplayRecordingSettings (void)
+void DisplayRecordingSettings(void)
 {
   char *fileName;
   char buffer[256];
@@ -334,6 +361,14 @@ static void on_video_enabled_button (GtkWidget *widget, gpointer *data)
 {
 	MyConfig->m_videoEnable = 
 		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+
+	if (MyConfig->m_videoEnable) {
+		if (MyConfig->m_videoPreview) {
+			StartVideoPreview();
+		}
+	} else {
+		StopVideoPreview();
+	}
 }
 
 static void on_video_preview_button (GtkWidget *widget, gpointer *data)
@@ -341,17 +376,17 @@ static void on_video_preview_button (GtkWidget *widget, gpointer *data)
 	MyConfig->m_videoPreview = 
 		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
 	
-	if (MyConfig->m_videoPreview) {
+	if (MyConfig->m_videoEnable && MyConfig->m_videoPreview) {
 		StartVideoPreview();
 	} else {
+		// whether preview is running or not
 		StopVideoPreview();
 	}
 }
 
 static void on_video_settings_button (GtkWidget *widget, gpointer *data)
 {
-  //CreateVideoDialog();
-  //DisplayVideoSettings();
+	CreateVideoDialog();
 }
 
 static void on_audio_enabled_button (GtkWidget *widget, gpointer *data)
@@ -392,7 +427,24 @@ static void on_transmit_settings_button (GtkWidget *widget, gpointer *data)
 	CreateTransmitDialog();
 }
 
+static void LockoutChanges(bool lockout)
+{
+	gtk_widget_set_sensitive(GTK_WIDGET(video_enabled_button), !lockout);
+	gtk_widget_set_sensitive(GTK_WIDGET(video_settings_button), !lockout);
+	gtk_widget_set_sensitive(GTK_WIDGET(audio_enabled_button), !lockout);
+	gtk_widget_set_sensitive(GTK_WIDGET(audio_settings_button), !lockout);
+	gtk_widget_set_sensitive(GTK_WIDGET(record_enabled_button), !lockout);
+	gtk_widget_set_sensitive(GTK_WIDGET(record_settings_button), !lockout);
+	gtk_widget_set_sensitive(GTK_WIDGET(transmit_enabled_button), !lockout);
+	gtk_widget_set_sensitive(GTK_WIDGET(transmit_settings_button), !lockout);
+	gtk_widget_set_sensitive(GTK_WIDGET(duration_spinner), !lockout);
+	gtk_widget_set_sensitive(GTK_WIDGET(duration_units_menu), !lockout);
+}
+
 static guint status_timer_id;
+
+// forward declaration
+static void on_start_button (GtkWidget *widget, gpointer *data);
 
 /*
  * Status timer routine
@@ -444,6 +496,12 @@ static gint status_timer (gpointer raw)
 		gtk_widget_show(current_size);
 	}
 
+	if (now >= StopTime) {
+		// automatically "press" stop button
+		on_start_button(start_button, NULL);
+		return (FALSE);
+	}
+
 	return (TRUE);  // keep timer going
 }
 
@@ -455,11 +513,15 @@ static void on_start_button (GtkWidget *widget, gpointer *data)
 			return;
 		}
 
-		// TBD lock out change to settings while media is running
+		// lock out change to settings while media is running
+		LockoutChanges(true);
 
 		StartMedia();
 
 		StartTime = GetTimestamp(); 
+		StopTime = StartTime +
+			gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(duration_spinner))
+			* durationUnitsValues[durationUnitsIndex] * TimestampTicks;
 
 		gtk_label_set_text(GTK_LABEL(start_button_label), "  Stop  ");
 
@@ -469,19 +531,25 @@ static void on_start_button (GtkWidget *widget, gpointer *data)
 	} else {
 		StopMedia();
 
-		// TBD unlock changes to settings
+		gtk_timeout_remove(status_timer_id);
+
+		// unlock changes to settings
+		LockoutChanges(false);
 
 		gtk_label_set_text(GTK_LABEL(start_button_label), "  Start  ");
-
-		gtk_timeout_remove(status_timer_id);
 
 		Started = false;
 	}
 }
 
+static void on_duration_units_menu_activate(GtkWidget *widget, gpointer data)
+{
+	durationUnitsIndex = (u_int8_t)data;
+}
+
 static gfloat frameLabelAlignment = 0.025;
 
-static void LayoutVideoFrame()
+static void LayoutVideoFrame(GtkWidget* box)
 {
 	GtkWidget *frame;
 	GtkWidget *vbox, *hbox;
@@ -489,7 +557,7 @@ static void LayoutVideoFrame()
 	frame = gtk_frame_new("Video");
 	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_start(GTK_BOX(main_vbox), frame, TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(box), frame, TRUE, TRUE, 5);
 
 	vbox = gtk_vbox_new(FALSE, 1);
 	gtk_widget_show(vbox);
@@ -529,12 +597,10 @@ static void LayoutVideoFrame()
 
 	video_settings_label1 = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(video_settings_label1), 0.0, 0.5);
-	gtk_widget_ref(video_settings_label1);
 	gtk_box_pack_start(GTK_BOX(vbox2), video_settings_label1, TRUE, TRUE, 0);
 
 	video_settings_label2 = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(video_settings_label2), 0.0, 0.5);
-	gtk_widget_ref(video_settings_label2);
 	gtk_box_pack_start(GTK_BOX(vbox2), video_settings_label2, TRUE, TRUE, 0);
 
 	// secondary vbox to match stacked labels
@@ -553,14 +619,13 @@ static void LayoutVideoFrame()
 
 	// empty label to get sizing correct
 	video_settings_label3 = gtk_label_new("");
-	gtk_widget_ref(video_settings_label3);
 	gtk_box_pack_start(GTK_BOX(vbox3), video_settings_label3, TRUE, TRUE, 0);
 
 	gtk_container_add(GTK_CONTAINER(frame), vbox);
 	gtk_widget_show(frame);
 }
 
-static void LayoutAudioFrame()
+static void LayoutAudioFrame(GtkWidget* box)
 {
 	GtkWidget *frame;
 	GtkWidget *vbox, *hbox;
@@ -568,7 +633,7 @@ static void LayoutAudioFrame()
 	frame = gtk_frame_new("Audio");
 	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_start(GTK_BOX(main_vbox), frame, TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(box), frame, TRUE, TRUE, 5);
 
 	vbox = gtk_vbox_new(FALSE, 1);
 	gtk_widget_show(vbox);
@@ -604,7 +669,6 @@ static void LayoutAudioFrame()
 	// settings summary
 	audio_settings_label = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(audio_settings_label), 0.0, 0.5);
-	gtk_widget_ref(audio_settings_label);
 	gtk_widget_show(audio_settings_label);
 	gtk_box_pack_start(GTK_BOX(hbox), audio_settings_label, TRUE, TRUE, 0);
 
@@ -622,7 +686,7 @@ static void LayoutAudioFrame()
 	gtk_widget_show(frame);
 }
 
-static void LayoutRecordingFrame()
+static void LayoutRecordingFrame(GtkWidget* box)
 {
 	GtkWidget *frame;
 	GtkWidget *vbox, *hbox;
@@ -630,7 +694,7 @@ static void LayoutRecordingFrame()
 	frame = gtk_frame_new("Recording");
 	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_start(GTK_BOX(main_vbox), frame, TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(box), frame, TRUE, TRUE, 5);
 
 	vbox = gtk_vbox_new(FALSE, 1);
 	gtk_widget_show(vbox);
@@ -657,7 +721,6 @@ static void LayoutRecordingFrame()
 	// settings summary
 	record_settings_label = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(record_settings_label), 0.0, 0.5);
-	gtk_widget_ref(record_settings_label);
 	gtk_widget_show(record_settings_label);
 	gtk_box_pack_start(GTK_BOX(hbox), record_settings_label, TRUE, TRUE, 0);
 
@@ -675,7 +738,7 @@ static void LayoutRecordingFrame()
 	gtk_widget_show(frame);
 }
 
-static void LayoutTransmitFrame()
+static void LayoutTransmitFrame(GtkWidget* box)
 {
 	GtkWidget *frame;
 	GtkWidget *vbox, *hbox;
@@ -683,7 +746,7 @@ static void LayoutTransmitFrame()
 	frame = gtk_frame_new("Transmission");
 	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_start(GTK_BOX(main_vbox), frame, TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(box), frame, TRUE, TRUE, 5);
 
 	vbox = gtk_vbox_new(FALSE, 1);
 	gtk_widget_show(vbox);
@@ -710,7 +773,6 @@ static void LayoutTransmitFrame()
 	// settings summary
 	transmit_settings_label = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(transmit_settings_label), 0.0, 0.5);
-	gtk_widget_ref(transmit_settings_label);
 	gtk_widget_show(transmit_settings_label);
 	gtk_box_pack_start(GTK_BOX(hbox), transmit_settings_label, TRUE, TRUE, 0);
 
@@ -729,7 +791,61 @@ static void LayoutTransmitFrame()
 }
 
 // Control frame
-void LayoutControlFrame()
+void LayoutControlFrame(GtkWidget* box)
+{
+	GtkWidget *frame;
+	GtkWidget *hbox;
+	GtkWidget *label;
+	GtkObject* adjustment;
+
+	frame = gtk_frame_new("Control");
+	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
+	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
+	gtk_box_pack_end(GTK_BOX(box), frame, FALSE, FALSE, 5);
+
+	hbox = gtk_hbox_new(FALSE, 1);
+	gtk_widget_show(hbox);
+	gtk_container_add(GTK_CONTAINER(frame), hbox);
+
+	label = gtk_label_new(" Duration:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
+
+	adjustment = gtk_adjustment_new(1, 1, 24 * 60 * 60, 1, 0, 0);
+	duration_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 1, 0);
+	gtk_widget_show(duration_spinner);
+	gtk_box_pack_start(GTK_BOX(hbox), duration_spinner, FALSE, FALSE, 5);
+
+	duration_units_menu = CreateOptionMenu(NULL,
+		(const char**) durationUnitsNames, 
+		sizeof(durationUnitsNames) / sizeof(char*),
+		durationUnitsIndex,
+		GTK_SIGNAL_FUNC(on_duration_units_menu_activate));
+	gtk_box_pack_start(GTK_BOX(hbox), duration_units_menu, FALSE, FALSE, 5);
+
+	// vertical separator
+	GtkWidget* sep = gtk_vseparator_new();
+	gtk_widget_show(sep);
+	gtk_box_pack_start(GTK_BOX(hbox), sep, FALSE, FALSE, 0);
+
+	start_button = gtk_button_new();
+	start_button_label = gtk_label_new("  Start  ");
+	gtk_misc_set_alignment(GTK_MISC(start_button_label), 0.5, 0.5);
+	gtk_container_add(GTK_CONTAINER(start_button), start_button_label);
+	gtk_widget_show(start_button_label);
+	gtk_box_pack_start(GTK_BOX(hbox), start_button, TRUE, TRUE, 5);
+	gtk_signal_connect(GTK_OBJECT(start_button), 
+		"clicked",
+		GTK_SIGNAL_FUNC(on_start_button),
+		NULL);
+	gtk_widget_show(start_button);
+
+	gtk_widget_show(frame); // show control frame
+}
+
+// Status frame
+void LayoutStatusFrame(GtkWidget* box)
 {
 	GtkWidget *frame;
 	GtkWidget *vbox, *hbox;
@@ -737,33 +853,12 @@ void LayoutControlFrame()
 	frame = gtk_frame_new("Status");
 	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_start(GTK_BOX(main_vbox), frame, TRUE, TRUE, 0);
+	gtk_box_pack_end(GTK_BOX(box), frame, TRUE, TRUE, 5);
 
 	// first row
 	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_widget_show(hbox);
 	gtk_container_add(GTK_CONTAINER(frame), hbox);
-
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 5);
-
-	start_button = gtk_button_new();
-	start_button_label = gtk_label_new("  Start  ");
-	gtk_misc_set_alignment(GTK_MISC(start_button_label), 0.5, 0.5);
-	gtk_container_add(GTK_CONTAINER(start_button), start_button_label);
-	gtk_widget_show(start_button_label);
-	gtk_box_pack_start(GTK_BOX(vbox), start_button, TRUE, TRUE, 5);
-	gtk_signal_connect(GTK_OBJECT(start_button), 
-		"clicked",
-		GTK_SIGNAL_FUNC(on_start_button),
-		NULL);
-	gtk_widget_show(start_button);
-
-	// vertical separator
-	GtkWidget* sep = gtk_vseparator_new();
-	gtk_widget_show(sep);
-	gtk_box_pack_start(GTK_BOX(hbox), sep, FALSE, FALSE, 0);
 
 	// vbox for labels
 	vbox = gtk_vbox_new(FALSE, 1);
@@ -772,25 +867,21 @@ void LayoutControlFrame()
 
 	start_time_label = gtk_label_new(" Start Time:");
 	gtk_misc_set_alignment(GTK_MISC(start_time_label), 0.0, 0.5);
-	gtk_widget_ref(start_time_label);
 	gtk_widget_show(start_time_label);
 	gtk_box_pack_start(GTK_BOX(vbox), start_time_label, TRUE, TRUE, 0);
 
-	duration_label = gtk_label_new(" Duration:");
+	duration_label = gtk_label_new(" Current Duration:");
 	gtk_misc_set_alignment(GTK_MISC(duration_label), 0.0, 0.5);
-	gtk_widget_ref(duration_label);
 	gtk_widget_show(duration_label);
 	gtk_box_pack_start(GTK_BOX(vbox), duration_label, TRUE, TRUE, 0);
 
 	current_time_label = gtk_label_new(" Current Time:");
 	gtk_misc_set_alignment(GTK_MISC(current_time_label), 0.0, 0.5);
-	gtk_widget_ref(current_time_label);
 	gtk_widget_show(current_time_label);
 	gtk_box_pack_start(GTK_BOX(vbox), current_time_label, TRUE, TRUE, 0);
 
 	current_size_label = gtk_label_new(" Current Size:");
 	gtk_misc_set_alignment(GTK_MISC(current_size_label), 0.0, 0.5);
-	gtk_widget_ref(current_size_label);
 	gtk_widget_show(current_size_label);
 	gtk_box_pack_start(GTK_BOX(vbox), current_size_label, TRUE, TRUE, 0);
 
@@ -801,25 +892,21 @@ void LayoutControlFrame()
 
 	start_time = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(start_time), 1.0, 0.5);
-	gtk_widget_ref(start_time);
 	gtk_widget_show(start_time);
 	gtk_box_pack_start(GTK_BOX(vbox), start_time, TRUE, TRUE, 0);
 
 	duration = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(duration), 1.0, 0.5);
-	gtk_widget_ref(duration);
 	gtk_widget_show(duration);
 	gtk_box_pack_start(GTK_BOX(vbox), duration, TRUE, TRUE, 0);
 
 	current_time = gtk_label_new("                 ");
 	gtk_misc_set_alignment(GTK_MISC(current_time), 1.0, 0.5);
-	gtk_widget_ref(current_time);
 	gtk_widget_show(current_time);
 	gtk_box_pack_start(GTK_BOX(vbox), current_time, TRUE, TRUE, 0);
 
 	current_size = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(current_size), 1.0, 0.5);
-	gtk_widget_ref(current_size);
 	gtk_widget_show(current_size);
 	gtk_box_pack_start(GTK_BOX(vbox), current_size, TRUE, TRUE, 0);
 
@@ -830,30 +917,25 @@ void LayoutControlFrame()
 
 	start_time_units = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(start_time_units), 1.0, 0.5);
-	gtk_widget_ref(start_time_units);
 	gtk_widget_show(start_time_units);
 	gtk_box_pack_start(GTK_BOX(vbox), start_time_units, TRUE, TRUE, 0);
 
 	duration_units = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(duration_units), 1.0, 0.5);
-	gtk_widget_ref(duration_units);
 	gtk_widget_show(duration_units);
 	gtk_box_pack_start(GTK_BOX(vbox), duration_units, TRUE, TRUE, 0);
 
 	current_time_units = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(current_time_units), 1.0, 0.5);
-	gtk_widget_ref(current_time_units);
 	gtk_widget_show(current_time_units);
 	gtk_box_pack_start(GTK_BOX(vbox), current_time_units, TRUE, TRUE, 0);
 
 	current_size_units = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(current_size_units), 1.0, 0.5);
-	gtk_widget_ref(current_size_units);
 	gtk_widget_show(current_size_units);
 	gtk_box_pack_start(GTK_BOX(vbox), current_size_units, TRUE, TRUE, 0);
 
 	gtk_widget_show(frame); // show control frame
-	gtk_container_add(GTK_CONTAINER(main_window), main_vbox);
 }
 
 /*
@@ -874,29 +956,60 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 		GTK_SIGNAL_FUNC(delete_event),
 		NULL);
 
-	// and the main vbox
-	main_vbox = gtk_vbox_new(FALSE, 1);
-	gtk_container_set_border_width(GTK_CONTAINER(main_vbox), 4);
-	gtk_widget_show(main_vbox);
+	// main boxes
+	main_hbox = gtk_hbox_new(FALSE, 1);
+	gtk_container_set_border_width(GTK_CONTAINER(main_hbox), 4);
+	gtk_widget_show(main_hbox);
+	gtk_container_add(GTK_CONTAINER(main_window), main_hbox);
 
+	main_vbox1 = gtk_vbox_new(FALSE, 1);
+	gtk_container_set_border_width(GTK_CONTAINER(main_vbox1), 4);
+	gtk_widget_show(main_vbox1);
+	gtk_box_pack_start(GTK_BOX(main_hbox), main_vbox1, FALSE, FALSE, 5);
+
+	main_vbox2 = gtk_vbox_new(TRUE, 1);
+	gtk_container_set_border_width(GTK_CONTAINER(main_vbox2), 4);
+	gtk_widget_show(main_vbox2);
+	gtk_box_pack_start(GTK_BOX(main_hbox), main_vbox2, TRUE, TRUE, 5);
+
+	// Video Preview
+	//
+	// We use the Gtk Preview widget to get the right type of window created
+	// and then hand it over to SDL to actually do the blitting
+
+	GtkWidget* preview = gtk_preview_new(GTK_PREVIEW_COLOR);
+	gtk_preview_size(GTK_PREVIEW(preview), 
+		MyConfig->m_videoWidth, MyConfig->m_videoHeight);
+	gtk_widget_show(preview);
+	gtk_box_pack_start(GTK_BOX(main_vbox1), preview, FALSE, FALSE, 5);
+
+	// Let video source know which window to draw into
+	gtk_widget_realize(preview);	// so XCreateWindow() is called
+	if (preview->window) {
+		MyConfig->m_videoPreviewWindowId = GDK_WINDOW_XWINDOW(preview->window);
+	}
+	
 	// Video Frame
-	LayoutVideoFrame();
+	LayoutVideoFrame(main_vbox2);
 	DisplayVideoSettings();
 
 	// Audio Frame
-	LayoutAudioFrame();
+	LayoutAudioFrame(main_vbox2);
 	DisplayAudioSettings();
 
 	// Recording Frame
-	LayoutRecordingFrame();
+	LayoutRecordingFrame(main_vbox2);
 	DisplayRecordingSettings();
 
 	// Transmission Frame
-	LayoutTransmitFrame();
+	LayoutTransmitFrame(main_vbox2);
 	DisplayTransmitSettings();
 
+	// Status frame
+	LayoutStatusFrame(main_vbox1);
+
 	// Control frame
-	LayoutControlFrame();
+	LayoutControlFrame(main_vbox1);
 
 	gtk_widget_show(main_window);
 

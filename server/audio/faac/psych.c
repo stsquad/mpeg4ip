@@ -1,23 +1,56 @@
-/*
- * FAAC - Freeware Advanced Audio Coder
- * Copyright (C) 2001 Menno Bakker
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * $Id: psych.c,v 1.4 2001/06/28 23:54:23 wmaycisco Exp $
- */
+/**********************************************************************
+MPEG-4 Audio VM
+
+
+
+This software module was originally developed by
+
+Fraunhofer Gesellschaft IIS / University of Erlangen (UER
+
+and edited by
+
+in the course of development of the MPEG-2 NBC/MPEG-4 Audio standard
+ISO/IEC 13818-7, 14496-1,2 and 3. This software module is an
+implementation of a part of one or more MPEG-2 NBC/MPEG-4 Audio tools
+as specified by the MPEG-2 NBC/MPEG-4 Audio standard. ISO/IEC gives
+users of the MPEG-2 NBC/MPEG-4 Audio standards free license to this
+software module or modifications thereof for use in hardware or
+software products claiming conformance to the MPEG-2 NBC/ MPEG-4 Audio
+standards. Those intending to use this software module in hardware or
+software products are advised that this use may infringe existing
+patents. The original developer of this software module and his/her
+company, the subsequent editors and their companies, and ISO/IEC have
+no liability for use of this software module or modifications thereof
+in an implementation. Copyright is not released for non MPEG-2
+NBC/MPEG-4 Audio conforming products. The original developer retains
+full right to use the code for his/her own purpose, assign or donate
+the code to a third party and to inhibit third party from using the
+code for non MPEG-2 NBC/MPEG-4 Audio conforming products. This
+copyright notice must be included in all copies or derivative works.
+
+Copyright (c) 1996.
+
+-----
+This software module was modified by
+
+Tadashi Araki (Ricoh Company, ltd.)
+Tatsuya Okada (Waseda Univ.)
+Itaru Kaneko (Graphics Communication Laboratories)
+
+and edited by
+
+in the course of development of the MPEG-2 NBC/MPEG-4 Audio standard
+ISO/IEC 13818-7, 14496-1,2 and 3.
+
+Almost all part of the function EncTf_psycho_acoustic() is made by
+T. Araki and T. Okada and its copyright belongs to Ricoh.
+The function psy_get_absthr() is made by I. Kaneko
+and its copyright belongs to Graphics Communication Laboratories.
+
+Copyright (c) 1997.
+
+**********************************************************************/
+/* CREATED BY :  Bernhard Grill -- August-96  */
 
 #include <math.h>
 #ifdef _DEBUG

@@ -561,7 +561,7 @@ static char *transport_parse_server_port (char *transport, CPlayerMedia *m)
   transport = convert_number(transport, fromport);
   ADV_SPACE(transport);
 
-  m->set_server_port(fromport);
+  m->set_server_port((uint16_t)fromport);
 
   if (*transport == ';') {
     transport++;
@@ -1062,7 +1062,7 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
  */
 int CPlayerMedia::determine_proto_from_rtp(void)
 {
-  char proto = m_head->pt, temp;
+  char proto = (char)m_head->pt, temp;
   format_list_t *fmt;
   uint64_t tickpersec;
 

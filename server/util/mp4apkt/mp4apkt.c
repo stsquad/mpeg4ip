@@ -33,6 +33,8 @@
 #define MIN_PKTSIZE	512
 #define MAX_PKTSIZE	64*1024
 
+#define NUM_BITS_IN_BYTE 8
+
 /* globals */
 char* progName;
 
@@ -52,6 +54,12 @@ extern bool getMpegLayer(FILE* inFile, u_int* pLayer);
 /* forward declarations */
 static char* binaryToAscii(u_char* pBuf, u_int bufSize);
 
+struct SampleHintData {
+  u_int frameNum;
+  u_int32_t curPos;
+  u_int32_t length;
+};
+
 /*
  * mp4apkt
  * required arg1 should be the AAC file (ADTS format) or MP3 file
@@ -68,6 +76,7 @@ int main(int argc, char** argv)
 	u_int samplesPerFrame = 0;		/* --samplingwindow=<uint> */
 	bool trace = FALSE;				/* --trace */
 	bool stripAdts = TRUE;			/* --adts */
+	bool interleave = FALSE;        /* --interleave */
 
 	/* internal variables */
 	char* mpegFileName = NULL;
@@ -100,6 +109,7 @@ int main(int argc, char** argv)
 			{ "samplingrate", 1, 0, 'r' },
 			{ "trace", 0, 0, 't' },
 			{ "samplingwindow", 1, 0, 'w' },
+			{ "interleave", 0, 0, 'i' },
 			{ NULL, 0, 0, 0 }
 		};
 
@@ -130,6 +140,10 @@ int main(int argc, char** argv)
 		case 'f': {
 			force = TRUE;
 			break;
+		}
+		case 'i': {
+		  interleave = TRUE;
+		  break;
 		}
 		case 'm': {
 			merge = TRUE;
@@ -222,7 +236,7 @@ int main(int argc, char** argv)
 		}
 		fprintf(stderr, "\n");
 	}
-
+	
 	/* end processing of command line */
 
 	/* open MPEG file for reading */
@@ -341,9 +355,10 @@ int main(int argc, char** argv)
 	/* create audio hint track */
 	switch (fileType) {
 	case AAC_FILE:
-		payloadName = "MPA-AAC";
-		payloadNumber = 0;	/* dynamically assign it */
-		break;
+	  /*payloadName = "MPA-AAC";*/
+	  payloadName = "mpeg4-simple-A2";
+	  payloadNumber = 0;	/* dynamically assign it */
+	  break;
 	case MP3_FILE:
 		payloadName = "MPA";
 		payloadNumber = 14;	
@@ -392,10 +407,12 @@ int main(int argc, char** argv)
 
 		/* create the appropriate SDP attribute */
 		if (sConfig) {
-			sprintf(sdpBuf,
-				"a=fmtp:%u config=%s\015\012",
-				payloadNumber,
-				sConfig); 
+		  sprintf(sdpBuf,
+				  "a=fmtp:%u streamtype=5; profile-level-id=15; "
+				  "config=%s; SizeLength=13; IndexLength=3; " 
+				  "IndexDeltaLength=3; Profile=1\015\012",
+				  payloadNumber,
+				  sConfig); 
 
 			/* add this to the QT file's sdp atom */
 			quicktime_add_audio_sdp(qtFile, sdpBuf, 
@@ -423,6 +440,19 @@ int main(int argc, char** argv)
 	u_int hintBufSize = 0;
 	u_int16_t zero16 = 0;
 	u_int32_t zero32 = 0;
+	struct SampleHintData ** sampleDataBuf = NULL; 
+	u_int numSamples = 0;
+	u_int frameHeadBufSize = 1024;
+	u_int16_t * frameHeadBuf;
+	u_int numFrameHeads = 0;
+	
+	if (fileType == AAC_FILE) {
+	   frameHeadBuf = (u_int16_t *)malloc (frameHeadBufSize * sizeof(u_int16_t));
+	   if (frameHeadBuf == NULL) {
+		 fprintf(stderr, "%s: error: memory allocation failed\n", progName);
+		 exit (EXIT_FAILURE);
+	   }
+	}
 
 	/* initialize the first hint sample */
 	quicktime_init_hint_sample(hintBuf, &hintBufSize);
@@ -436,6 +466,7 @@ int main(int argc, char** argv)
 	quicktime_add_hint_packet(hintBuf, &hintBufSize, payloadNumber, rtpPktNum);
 	switch (fileType) {
 	case AAC_FILE:
+	  /* need headers length header??*/
 		quicktime_add_hint_immed_data(hintBuf, &hintBufSize, 
 			(u_char*)&zero16, sizeof(u_int16_t));
 		break;
@@ -444,7 +475,8 @@ int main(int argc, char** argv)
 			(u_char*)&zero32, sizeof(u_int32_t));
 		break;
 	}
-	quicktime_add_hint_sample_data(hintBuf, &hintBufSize, 1, 0, 0);
+	/* amf: can add directly b/c already end of packet -- right? */
+	quicktime_add_hint_sample_data(hintBuf, &hintBufSize, 1, 0, 0); 
 	rtpPktNum++;
 
 	/* add a second packet to the first hint */
@@ -491,9 +523,46 @@ int main(int argc, char** argv)
 			/*
 			 * if the current RTP pkt has data in it
 			 * AND this frame will not fit into current RTP pkt
+			 * write the pkt, start next
 			 */
-			if (rtpPktSize > 0 && frameBufSize + sizeof(u_int16_t) > maxPayloadSize - rtpPktSize) {
-				/* start a new RTP pkt */
+			if (rtpPktSize > 0 && frameBufSize + sizeof(u_int16_t) 
+				> maxPayloadSize - rtpPktSize) {
+			  
+			  if (fileType == AAC_FILE) {
+				u_int i = 0;
+				u_int16_t frameLen = htons((u_int16_t)numFrameHeads * 
+										   sizeof(u_int16_t) * NUM_BITS_IN_BYTE);
+			
+				/* add frames headers length header */
+			  	quicktime_add_hint_immed_data(hintBuf, &hintBufSize, 
+											  (u_char*)&(frameLen), sizeof(u_int16_t));
+				
+				 /* add all AU headers for the packet */
+				for (i=0; i < numFrameHeads; i++) {
+				 quicktime_add_hint_immed_data(hintBuf, &hintBufSize, 
+				 							(u_char*)(frameHeadBuf+i), 
+				 								sizeof(u_int16_t)); 
+				 }
+								
+				/* reset counters */
+				numFrameHeads = 0;
+				
+				/* add sample data for current pkt into hint */
+				for (i=0; i < numSamples; i++) {
+				  quicktime_add_hint_sample_data(hintBuf, &hintBufSize, 
+												 (*(sampleDataBuf+i))->frameNum, 
+												 (*(sampleDataBuf+i))->curPos, 
+												 (*(sampleDataBuf+i))->length); 
+				}
+			  
+				/* reset buffer & counter */
+				for (i=0; i<numSamples; i++) {
+				  free(*(sampleDataBuf+i));
+				}
+				numSamples = 0;
+			  }
+			  
+			  /* start a new RTP pkt */
 				rtpPktNum++;
 				rtpPktSize = 0;
 
@@ -516,15 +585,32 @@ int main(int argc, char** argv)
 
 			framesThisHint++;
 
-			/* add payload header, as immediate data */
+			/* add payload header to buffer (will be added as immed data later) */
 			if (fileType == AAC_FILE) {
-				/* AAC payload is 2 byte frame size */
-				frameSize = htons((u_int16_t)frameBufSize);
-				quicktime_add_hint_immed_data(hintBuf, &hintBufSize, 
-					(u_char*)&frameSize, sizeof(u_int16_t));
-				rtpPktSize += sizeof(u_int16_t);
-				quicktime_set_hint_Mbit(hintBuf);
-
+			  /* AAC payload is 2 byte frame size */
+			  rtpPktSize += sizeof(u_int16_t); /* for AU header length field */
+			  frameSize = htons(((u_int16_t)frameBufSize) << 3);
+			  /* headers buffer */
+			  if (numFrameHeads >= frameHeadBufSize) {
+				/* reallocate mem */
+				u_int16_t * tmp;
+				frameHeadBufSize *= 2;
+				tmp = realloc(frameHeadBuf, frameHeadBufSize * sizeof(u_int16_t)); 
+				 if (tmp == NULL) {
+					/* clean up and exit */
+				   fprintf(stderr, 
+							"%s: error: memory allocation failed\n",
+							progName);
+				   exit (EXIT_FAILURE);
+				  }
+				 frameHeadBuf = tmp;
+			  }
+			  
+			  frameHeadBuf[numFrameHeads] = frameSize;
+			  numFrameHeads += 1;
+			  rtpPktSize += sizeof(u_int16_t);
+			  quicktime_set_hint_Mbit(hintBuf);
+			  
 			} else if (fileType == MP3_FILE) {
 				/* MP3 payload (RFC-2250) is 4 bytes of zeros */
 				quicktime_add_hint_immed_data(hintBuf, &hintBufSize, 
@@ -541,17 +627,93 @@ int main(int argc, char** argv)
 				nextPos = curPos + length; 
 
 				/* add sample data */
-				quicktime_add_hint_sample_data(hintBuf, &hintBufSize, 
-					frameNum, curPos, length);
+				if (fileType == AAC_FILE) {
+				  u_int16_t * tmp2;
+				  struct SampleHintData ** tmp = (struct SampleHintData **) 
+					realloc(sampleDataBuf, 
+							(numSamples+1) *
+							sizeof(struct SampleHintData *)); 
+				  if (tmp == NULL) {
+					/* clean up and exit */
+					int i=0;
+					for (i=0; i<numSamples; i++) {
+					   free((void *)*(sampleDataBuf+i));
+					 }
+					free ((void *)sampleDataBuf);
+					fclose(mpegFile);
+					quicktime_destroy(qtFile);
+					fprintf(stderr, 
+							"%s: error: memory allocation failed\n",
+							progName);
+					exit (EXIT_FAILURE);
+				  }
+				  sampleDataBuf = tmp;
+				  *(sampleDataBuf + numSamples) = 
+					(struct SampleHintData *) calloc (1, sizeof(struct SampleHintData));
+				  if (sampleDataBuf+numSamples == NULL) {
+					/* clean up and exit */
+					u_int i=0;
+					for (i=0; i<numSamples; i++) {
+					  free((void *)*(sampleDataBuf+i));
+					}
+					free ((void *)(sampleDataBuf));
+					fclose(mpegFile);
+					quicktime_destroy(qtFile);
+					fprintf(stderr, "%s: error: memory allocation failed\n", progName);
+					exit (EXIT_FAILURE);
+				  }
+				  /* finally buffer the sample hint data */
+				  (*(sampleDataBuf+numSamples))->frameNum = frameNum;
+				  (*(sampleDataBuf+numSamples))->curPos = curPos;
+				  (*(sampleDataBuf+numSamples))->length = length;
+				  numSamples++;
+				}
+				else if (fileType == MP3_FILE) {
+				  quicktime_add_hint_sample_data(hintBuf, &hintBufSize, 
+												 frameNum, curPos, length);
+				}
 				rtpPktSize += length;
 
 				if (trace) {
-					fprintf(stdout, " (%u %u)", rtpPktNum, length);
+				  fprintf(stdout, " (%u %u)", rtpPktNum, rtpPktSize);
 				}
-
+				
 				/* if there is more frame data */
 				if (nextPos < frameBufSize) {
-					/* start a new RTP pkt */
+				   if (fileType == AAC_FILE) {
+					 u_int i = 0;
+					 u_int16_t frameLen = htons((u_int16_t)numFrameHeads 
+												* sizeof(u_int16_t) * NUM_BITS_IN_BYTE);
+					 /* add frame headers length header */
+					 quicktime_add_hint_immed_data(hintBuf, &hintBufSize, 
+					  							   (u_char*)&frameLen, sizeof(u_int16_t));
+					 /* add all AU headers for the packet */
+					 for (i=0; i < numFrameHeads; i++) {
+					   quicktime_add_hint_immed_data(hintBuf, &hintBufSize, 
+					  							 (u_char*)(frameHeadBuf+i),
+					  							 sizeof(u_int16_t)); 
+					 }
+					  
+					 /* reset counter */
+					 numFrameHeads = 0;
+					  
+					 /* add sample data for current pkt into hint */
+					 for (i=0; i < numSamples; i++) {
+					   quicktime_add_hint_sample_data(hintBuf, &hintBufSize,
+													  (*(sampleDataBuf+i))->frameNum, 
+													  (*(sampleDataBuf+i))->curPos, 
+													  (*(sampleDataBuf+i))->length);
+					 }
+			  
+					 /* reset buffer & counter */
+					 for (i=0; i<numSamples; i++) {
+					   free((void *)*(sampleDataBuf+i));
+					 }
+					 numSamples = 0;
+				   }
+
+
+				  /* start a new RTP pkt */
 					rtpPktNum++;
 					rtpPktSize = 0;
 
@@ -585,32 +747,64 @@ int main(int argc, char** argv)
 			/* if we've fragmented the frame */
 			/* we aren't allowed to put more frames in this RTP pkt */
 			if (frameBufSize > maxPayloadSize - sizeof(u_int16_t)) {
-				/* start a new RTP pkt */
-				rtpPktNum++;
-				rtpPktSize = 0;
+			  /* start a new RTP pkt */
+			  rtpPktNum++;
+			  rtpPktSize = 0;
 			}
 
 			/* if we're ready to start a new RTP packet at this point */
 			if (rtpPktSize == 0) {
-				/* then write out hint sample */
-				quicktime_write_audio_hint(qtFile, hintBuf, hintBufSize, 
-					audioTrack, hintTrack, framesThisHint * frameDuration);
-				hintSampleNum++;
-				framesThisHint = 0;
-
-				if (dump > 1) {
-					fprintf(stdout, "\nhint sample %u\n", hintSampleNum - 1);
-					quicktime_dump_hint_sample(hintBuf);
+			  if (fileType == AAC_FILE) {
+				u_int i = 0;
+				u_int16_t frameLen = htons((u_int16_t)numFrameHeads 
+										   * sizeof(u_int16_t) * NUM_BITS_IN_BYTE); 
+				/* add header info */
+				quicktime_add_hint_immed_data(hintBuf, &hintBufSize, 
+				 						  (u_char*)&frameLen, sizeof(u_int16_t));
+				 
+				 /* add all AU headers for the packet */
+				for (i=0; i < numFrameHeads; i++) {
+				 quicktime_add_hint_immed_data(hintBuf, &hintBufSize, 
+				 							(u_char*)(frameHeadBuf+i),
+				 							sizeof(u_int16_t));
+				  
+				 }
+				numFrameHeads = 0;
+			
+				/* add sample data for current pkt into hint */
+				for (i=0; i < numSamples; i++) {
+				  quicktime_add_hint_sample_data(hintBuf, &hintBufSize,
+												 (*(sampleDataBuf+i))->frameNum, 
+												 (*(sampleDataBuf+i))->curPos, 
+												 (*(sampleDataBuf+i))->length); 
 				}
+			  
+				/* reset buffer & counter */
+				for (i=0; i<numSamples; i++) {
+				  free((void *)*(sampleDataBuf+i));
+				}
+				numSamples = 0;
+			  }
 
-				/* start a new hint sample */
-				quicktime_init_hint_sample(hintBuf, &hintBufSize);
-				quicktime_add_hint_packet(hintBuf, &hintBufSize, 
-					payloadNumber, rtpPktNum); 
+			  /* write out the hint sample */
+			  quicktime_write_audio_hint(qtFile, hintBuf, hintBufSize, 
+									 audioTrack, hintTrack, framesThisHint * frameDuration);
+			  hintSampleNum++;
+			  framesThisHint = 0;
+
+			  if (dump > 1) {
+				fprintf(stdout, "\nhint sample %u\n", hintSampleNum - 1);
+				quicktime_dump_hint_sample(hintBuf);
+			  }
+
+			  /* start a new hint sample */
+			  quicktime_init_hint_sample(hintBuf, &hintBufSize);
+			  quicktime_add_hint_packet(hintBuf, &hintBufSize, 
+										payloadNumber, rtpPktNum); 
 			} 
-
+			
 		} /* end of hint track processing block */
-
+		
 		if (trace) {
 			fprintf(stdout, "\n");
 		}
@@ -619,34 +813,65 @@ int main(int argc, char** argv)
 
 		/* if we're at the end of a 1 second period */
 		if ((frameNum % frameRate) == 0) {
-			/* compute how many RTP pkts were generated for this second */
-			u_int pktsThisSec = rtpPktNum - startRtpPktNumThisSec;
-
-			/* record the current maximum bytes in any given 1 second */
-			maxBytesPerSec = MAX(maxBytesPerSec,
-				(pktsThisSec * RTP_HEADER_STD_SIZE) + bytesThisSec);
-
-			/* reset counters */
-			bytesThisSec = 0;
-			startRtpPktNumThisSec = rtpPktNum;
+		  /* compute how many RTP pkts were generated for this second */
+		  u_int pktsThisSec = rtpPktNum - startRtpPktNumThisSec;
+		  
+		  /* record the current maximum bytes in any given 1 second */
+		  maxBytesPerSec = MAX(maxBytesPerSec,
+							   (pktsThisSec * RTP_HEADER_STD_SIZE) + bytesThisSec);
+		  
+		  /* reset counters */
+		  bytesThisSec = 0;
+		  startRtpPktNumThisSec = rtpPktNum;
 		}
 
 	} /* end of while (1) */
 
 	/* if we have a final pending hint */
 	if (rtpPktSize > 0) {
-		/* write out hint sample */
-		quicktime_write_audio_hint(qtFile, hintBuf, hintBufSize, 
-			audioTrack, hintTrack, framesThisHint * frameDuration);
-		hintSampleNum++;
-		framesThisHint = 0;
-
-		if (dump > 1) {
-			fprintf(stdout, "\nhint sample %u\n", hintSampleNum - 1);
-			quicktime_dump_hint_sample(hintBuf);
+	  if (fileType == AAC_FILE) {
+		u_int i = 0;
+		u_int16_t frameLen = htons((u_int16_t)numFrameHeads 
+								   * sizeof(u_int16_t) * NUM_BITS_IN_BYTE);
+		/* add frame headers length header */
+		quicktime_add_hint_immed_data(hintBuf, &hintBufSize, 
+									  (u_char*)&frameLen, sizeof(u_int16_t));
+		
+		/* add all AU headers for the packet */
+		for (i=0; i < numFrameHeads; i++) {
+		  quicktime_add_hint_immed_data(hintBuf, &hintBufSize, 
+										(u_char*)(frameHeadBuf+i),
+										sizeof(u_int16_t)); 
+		  
 		}
+		/* add sample data for current pkt into hint */
+		for (i=0; i < numSamples; i++) {
+		  quicktime_add_hint_sample_data(hintBuf, &hintBufSize,
+										 (*(sampleDataBuf+i))->frameNum, 
+										 (*(sampleDataBuf+i))->curPos, 
+										 (*(sampleDataBuf+i))->length); 
+		}
+		
+		/* free buffers */
+		for (i=0; i<numSamples; i++) {
+		  free((void *)*(sampleDataBuf+i));
+		}
+		free ((void *)(sampleDataBuf));
+		numSamples = 0;
+	  }
+	  
+	  /* write out hint sample */
+	  quicktime_write_audio_hint(qtFile, hintBuf, hintBufSize, 
+								 audioTrack, hintTrack, framesThisHint * frameDuration);
+	  hintSampleNum++;
+	  framesThisHint = 0;
+	  
+	  if (dump > 1) {
+		fprintf(stdout, "\nhint sample %u\n", hintSampleNum - 1);
+		quicktime_dump_hint_sample(hintBuf);
+	  }
 	}
-
+	
 	} /* end of data processing */
 
 	if (trace) {

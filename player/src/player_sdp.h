@@ -43,6 +43,26 @@ connect_desc_t *get_connect_desc_from_media(media_desc_t *media);
 range_desc_t *get_range_from_media(media_desc_t *media);
 range_desc_t *get_range_from_sdp(session_desc_t *sptr);
 
+  typedef struct fmtp_parse_t {
+    int stream_type;
+    int profile_level_id;
+    unsigned char *config_binary;
+    char *config_ascii;
+    size_t config_binary_len;
+    int constant_size;
+    int size_length;
+    int index_length;
+    int index_delta_length;
+    int CTS_delta_length;
+    int DTS_delta_length;
+    int auxiliary_data_size_length;
+    int bitrate;
+    int profile;
+  } fmtp_parse_t;
+  
+  fmtp_parse_t *parse_fmtp_for_mpeg4 (char *bptr);
+  void free_fmtp_parse (fmtp_parse_t *ptr);
+
 #ifdef __cplusplus
 }
 #endif

@@ -24,159 +24,252 @@
 #include "mp4live.h"
 #include "mp4live_gui.h"
 
-static GtkWidget *aud_dialog;
-static GtkWidget *aud_kbps;
-static GtkWidget *ok_button, *cancel_button, *apply_button;
+static GtkWidget *dialog;
 
-static size_t local_freq_index;
-static size_t local_codec_index, local_encoding_kbps;
+static GtkWidget *device_entry;
+static GtkWidget *mono_button;
+static GtkWidget *stereo_button;
+static GtkWidget *sampling_rate_menu;
+static GtkWidget *bit_rate_menu;
+
+// from mp3.cpp
+
+static u_int16_t bitRateValues[] = {
+	8, 16, 24, 32, 40, 48, 
+	56, 64, 80, 96, 112, 128, 
+	144, 160, 192, 224, 256, 320
+};
+static char* bitRateNames[] = {
+	"8", "16", "24", "32", "40", "48", 
+	"56", "64", "80", "96", "112", "128", 
+	"144", "160", "192", "224", "256", "320"
+};
+static u_int8_t bitRateIndex;
+
+static u_int32_t samplingRateValues[] = {
+	8000, 11025, 12000, 16000, 22050, 
+	24000, 32000, 44100, 48000
+};
+static char* samplingRateNames[] = {
+	"8000", "11025", "12000", "16000", "22050", 
+	"24000", "32000", "44100", "48000"
+};
+static u_int8_t samplingRateIndex;
 
 static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 {
-  gtk_grab_remove(aud_dialog);
-  gtk_widget_destroy(aud_dialog);
-  aud_dialog = NULL;
+	gtk_grab_remove(dialog);
+	gtk_widget_destroy(dialog);
+	dialog = NULL;
+} 
+
+static void on_sampling_rate_menu_activate (GtkWidget *widget, gpointer data)
+{
+	u_int8_t newIndex = (u_int8_t)data;
+
+	if (samplingRateIndex == newIndex) {
+		return;
+	}
+	samplingRateIndex = newIndex;
+
+	// ensure that bit rate is consistent with new sampling rate
+	if (samplingRateIndex < 6) {
+		// MPEG 2 or 2.5 mode only goes up to 160 Kbps
+		if (bitRateIndex >= 14) {
+			ShowMessage("Change Sampling Rate",
+				"New sampling rate requires that bit rate be lowered");
+			bitRateIndex = 13;
+			gtk_option_menu_set_history(GTK_OPTION_MENU(bit_rate_menu),
+				 bitRateIndex);
+		}
+	} else {
+		// MPEG 1
+		if (bitRateIndex < 3) {
+			ShowMessage("Change Sampling Rate",
+				"New sampling rate requires that bit rate be raised");
+			bitRateIndex = 3;
+			gtk_option_menu_set_history(GTK_OPTION_MENU(bit_rate_menu),
+				 bitRateIndex);
+		} else if (bitRateIndex == 12) {
+			ShowMessage("Change Sampling Rate",
+				"New sampling rate requires that bit rate be changed");
+			bitRateIndex = 13;
+			gtk_option_menu_set_history(GTK_OPTION_MENU(bit_rate_menu),
+				 bitRateIndex);
+		}
+	}
 }
 
-static int check_values (void)
+static void on_bit_rate_menu_activate (GtkWidget *widget, gpointer data)
 {
-  size_t kb;
+	u_int8_t newIndex = (u_int8_t)data;
 
-  if (GetNumberValueFromEntry(aud_kbps, &kb) == 0) {
-    ShowMessage("Entry Error", "Invalid Bitrate Entry");
-    return (0);
-  }
+	if (bitRateIndex == newIndex) {
+		return;
+	}
+	bitRateIndex = newIndex;
 
-  const char *errmsg;
-
-#ifdef NOTDEF
-  if (set_audio_parameters(local_codec_index, 
-			   local_freq_index, 
-			   kb, 
-			   &errmsg) < 0)
-    {
-      ShowMessage("Entry Error", errmsg);
-      return (0);
-    } 
-#endif
-
-  DisplayAudioSettings();  // display settings in main window
-  return (1);
+	// ensure that sampling rate is consistent with new bit rate
+	if (bitRateIndex < 3 || bitRateIndex == 12) {
+		if (samplingRateIndex > 5) {
+			ShowMessage("Change Bit Rate",
+				"New bit rate requires that sampling rate be lowered");
+			samplingRateIndex = 5;
+			gtk_option_menu_set_history(GTK_OPTION_MENU(sampling_rate_menu),
+				 samplingRateIndex);
+		}
+	} else if (bitRateIndex > 13) {
+		if (samplingRateIndex < 6) {
+			ShowMessage("Change Bit Rate",
+				"New bit rate requires that sampling rate be raised");
+			samplingRateIndex = 6;
+			gtk_option_menu_set_history(GTK_OPTION_MENU(sampling_rate_menu),
+				 samplingRateIndex);
+		}
+	}
 }
 
-
-static void on_apply_button (GtkWidget *widget, gpointer *data)
+static bool ValidateAndSave(void)
 {
-  check_values();
-  gtk_widget_set_sensitive(apply_button, 0);
+	// copy new values to config
+
+	free(MyConfig->m_audioDeviceName);
+	MyConfig->m_audioDeviceName = stralloc(
+		gtk_entry_get_text(GTK_ENTRY(device_entry)));
+
+	bool mono = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mono_button));
+	if (mono) {
+		MyConfig->m_audioChannels = 1;
+	} else {
+		MyConfig->m_audioChannels = 2;
+	}
+
+	MyConfig->m_audioSamplingRate = samplingRateValues[samplingRateIndex];
+	MyConfig->m_audioTargetBitRate = bitRateValues[bitRateIndex];
+
+	DisplayAudioSettings();  // display settings in main window
+
+	return true;
 }
 
 static void on_ok_button (GtkWidget *widget, gpointer *data)
 {
-  if (check_values() != 0)
+	// check and save values
+	if (!ValidateAndSave()) {
+		return;
+	}
     on_destroy_dialog(NULL, NULL);
 }
 
 static void on_cancel_button (GtkWidget *widget, gpointer *data)
 {
-  on_destroy_dialog(NULL, NULL);
+	on_destroy_dialog(NULL, NULL);
 }
-
-static void on_freq (GtkWidget *widget, gpointer *gdata)
-{
-  size_t data;
-  data = (size_t)gdata;
-  if (data != local_freq_index) {
-    local_freq_index = data;
-    gtk_widget_set_sensitive(apply_button, 1);
-  }
-}
-
-static void on_codec (GtkWidget *widget, gpointer *gdata)
-{
-  size_t data;
-  data = (size_t) gdata;
-  if (data != local_codec_index) {
-    local_codec_index = data;
-    gtk_widget_set_sensitive(apply_button, 1);
-  }
-}
-
-static void on_changed (GtkWidget *widget, gpointer *gdata)
-{
-  gtk_widget_set_sensitive(apply_button, 1);
-}
-
 
 void CreateAudioDialog (void) 
 {
-  GtkWidget *hbox, *label, *omenu;
-const char *samplingRates[] = { "32000", "44100", "48000", NULL };
-  const char **names = samplingRates;
-  size_t max;
+	GtkWidget* hbox;
+	GtkWidget* vbox;
+	GSList* radioGroup;
+	GtkWidget* label;
+	GtkWidget* button;
 
-  aud_dialog = gtk_dialog_new();
-  gtk_signal_connect(GTK_OBJECT(aud_dialog),
-		     "destroy",
-		     GTK_SIGNAL_FUNC(on_destroy_dialog),
-		     &aud_dialog);
+	dialog = gtk_dialog_new();
+	gtk_signal_connect(GTK_OBJECT(dialog),
+		"destroy",
+		GTK_SIGNAL_FUNC(on_destroy_dialog),
+		&dialog);
 
-  gtk_window_set_title(GTK_WINDOW(aud_dialog), "Audio Settings");
+	gtk_window_set_title(GTK_WINDOW(dialog), "Audio Settings");
 
-  hbox = gtk_hbox_new(FALSE, 1);
-  gtk_widget_show(hbox);
-  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(aud_dialog)->vbox), hbox, 
-	TRUE, TRUE, 5);
+	hbox = gtk_hbox_new(TRUE, 1);
+	gtk_widget_show(hbox);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox,
+		FALSE, FALSE, 5);
 
-  // Audio Sampling Frequency
-  label = gtk_label_new(" Sampling Rate:");
-  gtk_widget_ref(label);
-  gtk_widget_show(label);
-  gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	vbox = gtk_vbox_new(TRUE, 1);
+	gtk_widget_show(vbox);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
 
-#ifdef NOTDEF
-#ifdef NOTDEF
-  names = get_audio_frequencies(max, local_freq_index);
-#endif
-  omenu = CreateOptionMenu(NULL, names, max, local_freq_index, 
-			   GTK_SIGNAL_FUNC(on_freq));
-  gtk_box_pack_start(GTK_BOX(hbox), omenu, TRUE, TRUE, 0);
+	label = gtk_label_new(" Device:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  hbox = gtk_hbox_new(FALSE, 1);
-  gtk_widget_show(hbox);
-  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(aud_dialog)->vbox),
-		     hbox,
-		     TRUE,
-		     TRUE, 
-		     5);
-#endif
+	mono_button = gtk_radio_button_new_with_label(NULL, "Mono");
+	gtk_widget_show(mono_button);
+	gtk_box_pack_start(GTK_BOX(vbox), mono_button, TRUE, TRUE, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(mono_button), 
+		MyConfig->m_audioChannels == 1);
 
-	// Bitrate
-  local_encoding_kbps = MyConfig->m_audioTargetBitRate;
+	label = gtk_label_new(" Sampling Rate (Hz):");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  aud_kbps = AddNumberEntryBoxWithLabel(GTK_DIALOG(aud_dialog)->vbox,
-					"Encoded Bitrate (Kbps):",
-					local_encoding_kbps,
-					5);
-  
-  gtk_signal_connect(GTK_OBJECT(aud_kbps),
-		     "changed",
-		     GTK_SIGNAL_FUNC(on_changed),
-		     aud_kbps);
+	label = gtk_label_new(" Bit Rate (Kbps):");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  // Add buttons at bottom
-  ok_button = AddButtonToDialog(aud_dialog,
-				" Ok ", 
-				GTK_SIGNAL_FUNC(on_ok_button));
-  cancel_button = AddButtonToDialog(aud_dialog,
-				    " Cancel ", 
-				    GTK_SIGNAL_FUNC(on_cancel_button));
-  apply_button = AddButtonToDialog(aud_dialog,
-				   "Apply", 
-				   GTK_SIGNAL_FUNC(on_apply_button));
-  gtk_widget_set_sensitive(apply_button, 0);
-  gtk_widget_show(aud_dialog);
-  gtk_grab_add(aud_dialog);
+
+	vbox = gtk_vbox_new(TRUE, 1);
+	gtk_widget_show(vbox);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
+
+	device_entry = gtk_entry_new_with_max_length(128);
+	gtk_entry_set_text(GTK_ENTRY(device_entry), MyConfig->m_audioDeviceName);
+	gtk_widget_show(device_entry);
+	gtk_box_pack_start(GTK_BOX(vbox), device_entry, TRUE, TRUE, 0);
+
+	radioGroup = gtk_radio_button_group(GTK_RADIO_BUTTON(mono_button));
+	stereo_button = gtk_radio_button_new_with_label(radioGroup, "Stereo");
+	gtk_widget_show(stereo_button);
+	gtk_box_pack_start(GTK_BOX(vbox), stereo_button, TRUE, TRUE, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(stereo_button), 
+		MyConfig->m_audioChannels == 2);
+
+	samplingRateIndex = 0; 
+	for (u_int8_t i = 0; i < sizeof(samplingRateValues) / sizeof(u_int32_t); i++) {
+		if (MyConfig->m_audioSamplingRate == samplingRateValues[i]) {
+			samplingRateIndex = i;
+			break;
+		}
+	}
+	sampling_rate_menu = CreateOptionMenu (NULL,
+		(const char**) samplingRateNames, 
+		sizeof(samplingRateNames) / sizeof(char*),
+		samplingRateIndex,
+		GTK_SIGNAL_FUNC(on_sampling_rate_menu_activate));
+	gtk_box_pack_start(GTK_BOX(vbox), sampling_rate_menu, TRUE, TRUE, 0);
+
+	bitRateIndex = 0; 
+	for (u_int8_t i = 0; i < sizeof(bitRateValues) / sizeof(u_int16_t); i++) {
+		if (MyConfig->m_audioTargetBitRate == bitRateValues[i]) {
+			bitRateIndex = i;
+			break;
+		}
+	}
+	bit_rate_menu = CreateOptionMenu (NULL,
+		(const char**) bitRateNames, 
+		sizeof(bitRateNames) / sizeof(char*),
+		bitRateIndex,
+		GTK_SIGNAL_FUNC(on_bit_rate_menu_activate));
+	gtk_box_pack_start(GTK_BOX(vbox), bit_rate_menu, TRUE, TRUE, 0);
+
+
+	// Add standard buttons at bottom
+	button = AddButtonToDialog(dialog,
+		" OK ", 
+		GTK_SIGNAL_FUNC(on_ok_button));
+	GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+
+	AddButtonToDialog(dialog,
+		" Cancel ", 
+		GTK_SIGNAL_FUNC(on_cancel_button));
+
+	gtk_widget_show(dialog);
+	gtk_grab_add(dialog);
 }
 
 /* end audio_dialog.cpp */

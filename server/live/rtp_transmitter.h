@@ -41,8 +41,6 @@ public:
 		m_videoRtpSession = NULL;
 		m_videoPayloadNumber = 96;
 		m_videoTimeScale = 90000;
-
-		srandom(time(NULL));
 	}
 
 	void StartTransmit(void) {
@@ -61,6 +59,45 @@ public:
 		free(e->data);
 	}
 
+	static void SeedRandom(void) {
+		static bool once = false;
+		if (!once) {
+			srandom(time(NULL));
+			once = true;
+		}
+	}
+
+	static uint32_t GetRandomMcastAddress(void) {
+		SeedRandom();
+
+		// pick a random number in the multicast range
+		uint32_t mcast = ((random() & 0x0FFFFFFF) | 0xE0000000);
+
+		// screen out undesirable values
+		// introduces small biases in the results
+
+		// stay away from 224.0.0
+		if ((mcast & 0x0FFFFF00) == 0) {
+			mcast |= 0x00000100;	// move to 224.0.1
+		} 
+		// stay away from .0 .1 and .255
+		if ((mcast & 0xFF) == 0 || (mcast & 0xFF) == 1 
+		  || (mcast & 0xFF) == 255) {
+			mcast = (mcast & 0xFFFFFFF0) | 0x4;	// move to .4 or .244
+		}
+
+		return htonl(mcast);
+	}
+
+	static u_int16_t GetRandomPortBlock(void) {
+		// Get random block of 4 port numbers between 32768 and 65532
+		// Conventional wisdom is that higher order bits of
+		// pseudo-random number generators are more random so we use those 
+		SeedRandom();
+
+		return (u_int16_t)(((random() >> 16) & 0x0000FFFC) | 0x00008000);
+	}
+
 protected:
 	static const int MSG_START_TRANSMIT	= 1;
 	static const int MSG_STOP_TRANSMIT	= 2;
@@ -76,13 +113,6 @@ protected:
 	void SendMp3JumboFrame(CMediaFrame* pFrame);
 
 	void SendMpeg4VideoWith3016(CMediaFrame* pFrame);
-
-	u_int16_t GetRandomPortBlock(void) {
-		// Get random block of 4 port numbers between 32768 and 65532
-		// Conventional wisdom is that higher order bits of
-		// pseudo-random number generators are more random so we use those 
-		return (u_int16_t)(((random() >> 16) & 0x0000FFFC) | 0x00008000);
-	}
 
 	u_int32_t ConvertAudioTimestamp(Timestamp t) {
 		return (u_int32_t)(((t - m_startTimestamp) 

@@ -31,7 +31,7 @@
 #define _WIN32_WINNT 0x0400
 #include <windows.h>
 #include <time.h>
-
+#include <limits.h>
 
 typedef unsigned __int64 uint64_t;
 typedef unsigned __int32 uint32_t;

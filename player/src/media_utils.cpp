@@ -31,16 +31,16 @@
 #include "codec/mpeg4/mpeg4_file.h"
 #include "codec/divx/divx.h"
 #include "codec/divx/divx_file.h"
-#if 1
 #include "codec/mp3/mp3.h"
 #include "codec/mp3/mp3_file.h"
-#endif
 #include "codec/wav/ourwav.h"
 #include "codec/wav/wav_file.h"
 #include "avi_file.h"
 #include "qtime_file.h"
 #include "our_config_file.h"
 #include "rtp_bytestream.h"
+#include "codec/aa/aac_rtp_bytestream.h"
+#include "codec/aa/isma_rtp_bytestream.h"
 /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
@@ -78,10 +78,11 @@ static struct codec_list_t {
     {"MPA-AAC", AUDIO_AAC},
     {"mp4a", AUDIO_AAC },
     {"aac ", AUDIO_AAC },
-#if 1
+    {"mpeg-simple-a0", AUDIO_AAC },
+    {"mpeg-simple-a1", AUDIO_AAC }, // for now - will have to choose
+    {"mpeg4-simple-a2", AUDIO_AAC }, // between this and celp.
     {"mp3 ", AUDIO_MP3 },
     {"MPA", AUDIO_MP3 },
-#endif
     {"wav ", AUDIO_WAV },
     {NULL, -1},
   };
@@ -91,7 +92,7 @@ static int lookup_codec_by_name (const char *name,
 				 int *val)
 {
   for (struct codec_list_t *cptr = codec_list; cptr->name != NULL; cptr++) {
-    if (strcmp(name, cptr->name) == 0) {
+    if (strcasecmp(name, cptr->name) == 0) {
       if (val != NULL) *val = cptr->val;
       return (0);
     }
@@ -359,10 +360,8 @@ int parse_name_for_session (CPlayerSession *psptr,
   } else if (strstr(name, ".mp3") != NULL) {
     player_debug_message("starting %s", name);
     err = create_media_for_mp3_file(psptr, name, errmsg);
-#if 1
   } else if (strstr(name, ".avi") != NULL) {
     err = create_media_for_avi_file(psptr, name, errmsg);
-#endif
   } else {
     *errmsg = "Illegal or unknown file type";
     player_error_message("Illegal or unknown file type - %s", name);
@@ -410,7 +409,6 @@ CCodecBase *start_audio_codec (const char *codec_name,
 			    aud,
 			    userdata,
 			    userdata_size));
-#if 1
     if (val == AUDIO_MP3)
       return (new CMP3Codec(audio_sync,
 			    pbytestream,
@@ -418,7 +416,6 @@ CCodecBase *start_audio_codec (const char *codec_name,
 			    aud, 
 			    userdata, 
 			    userdata_size));
-#endif
   }
   return (NULL);
 }
@@ -503,18 +500,44 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 						       uint32_t rtp_ts)
 {
   CRtpByteStreamBase *rtp_byte_stream;
-#if 0
+
   int codec;
   if (strcmp("video", fmt->media->media) == 0) {
-    codec = lookup_video_codec_by_name(fmt->rtpmap->encode_name);
-    player_debug_message("rtp video codec is %s %d", 
-			 fmt->rtpmap->encode_name, codec);
+    if (lookup_codec_by_name(fmt->rtpmap->encode_name, 
+			     video_codecs, 
+			     &codec) != 0) {
+      return (NULL);
+    }
   } else {
-    codec = lookup_audio_codec_by_name(fmt->rtpmap->encode_name);
-    player_debug_message("rtp audio codec is %s %d", fmt->rtpmap->encode_name,
-			 codec);
+    if (lookup_codec_by_name(fmt->rtpmap->encode_name, 
+			     audio_codecs, 
+			     &codec) != 0) {
+      return (NULL);
+    }
+    switch (codec) {
+    case AUDIO_AAC:
+      rtp_byte_stream = 
+	create_aac_rtp_bytestream(fmt, 
+				  rtp_proto,
+				  ondemand,
+				  tps,
+				  head,
+				  tail,
+				  rtpinfo_received,
+				  rtp_rtptime,
+				  rtcp_received,
+				  ntp_frac,
+				  ntp_sec,
+				  rtp_ts);
+      if (rtp_byte_stream != NULL) {
+	return (rtp_byte_stream);
+      }
+      // Otherwise, create default...
+      break;
+    default:
+      break;
+    }
   }
-#endif
   rtp_byte_stream = new CRtpByteStreamBase(rtp_proto,
 					   ondemand,
 					   tps,

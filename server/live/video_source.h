@@ -30,7 +30,6 @@
 
 #include "media_node.h"
 
-// TBD make these const int
 #define NTSC_INT_FPS	30
 #define PAL_INT_FPS		25
 #define SECAM_INT_FPS	25
@@ -69,8 +68,6 @@ public:
 		m_myMsgQueue.send_message(MSG_STOP_PREVIEW,
 			NULL, 0, m_myMsgQueueSemaphore);
 	}
-
-	bool ProbeDevice(void);
 
 protected:
 	static const int MSG_START_CAPTURE	= 1;
@@ -147,6 +144,58 @@ protected:
 	SDL_Surface*		m_sdlScreen;
 	SDL_Rect			m_sdlScreenRect;
 	SDL_Overlay*		m_sdlImage;
+};
+
+class CVideoCapabilities {
+public:
+	CVideoCapabilities(char* deviceName) {
+		m_deviceName = stralloc(deviceName);
+		m_driverName = NULL;
+		m_numInputs = 0;
+		m_inputNames = NULL;
+		m_inputSignalTypes = NULL;
+		m_inputHasTuners = NULL;
+		m_inputTunerSignalTypes = NULL;
+
+		ProbeDevice();
+	}
+
+	~CVideoCapabilities() {
+		free(m_deviceName);
+		free(m_driverName);
+		for (int i = 0; i < m_numInputs; i++) {
+			free(m_inputNames[i]);
+		}
+		free(m_inputNames);
+		free(m_inputSignalTypes);
+		free(m_inputHasTuners);
+		free(m_inputTunerSignalTypes);
+	}
+
+public:
+	char*		m_deviceName; 
+	bool		m_canOpen;
+	bool		m_canCapture;
+
+	// N.B. the rest of the fields are only valid 
+	// if m_canOpen and m_canCapture are both true
+
+	char*		m_driverName; 
+	u_int16_t	m_numInputs;
+
+	u_int16_t	m_minWidth;
+	u_int16_t	m_minHeight;
+	u_int16_t	m_maxWidth;
+	u_int16_t	m_maxHeight;
+
+	// each of these points at m_numInputs values
+	char**		m_inputNames;
+	u_int8_t*	m_inputSignalTypes;			// current signal type of input
+	bool*		m_inputHasTuners;
+	u_int8_t*	m_inputTunerSignalTypes;	// possible signal types from tuner
+
+protected:
+	bool ProbeDevice(void);
 };
 
 #endif /* __VIDEO_SOURCE_H__ */

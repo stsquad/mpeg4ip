@@ -426,6 +426,16 @@ int quicktime_set_video_hint(quicktime_t *file, int videoTrack,
 	return (pMap->totalHintTracks - 1);
 }
 
+char* quicktime_get_session_sdp(quicktime_t *file)
+{
+	return file->moov.udta.hnti.sdp.string;
+}
+
+int quicktime_set_session_sdp(quicktime_t *file, char* sdpString)
+{
+	return quicktime_sdp_set(&(file->moov.udta.hnti.sdp), sdpString);
+}
+
 int quicktime_add_audio_sdp(quicktime_t *file, char* sdpString, int track, int hintTrack)
 {
 	quicktime_trak_t* hintTrak = 

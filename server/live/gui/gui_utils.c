@@ -316,7 +316,7 @@ GtkWidget *CreateOptionMenu (GtkWidget *omenu,
   return (omenu);
 }
 
-void SetNumberEntryBoxValue (GtkWidget *entry,
+void SetNumberEntryValue (GtkWidget *entry,
 			     size_t value)
 {
   char buffer[80];
@@ -340,9 +340,9 @@ GtkWidget *AddNumberEntryBoxWithLabel (GtkWidget *vbox,
   gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
 
   ret = gtk_entry_new_with_max_length(value_len);
-  SetNumberEntryBoxValue(ret, value);
+  SetNumberEntryValue(ret, value);
   gtk_widget_show(ret);
-  gtk_box_pack_start(GTK_BOX(hbox), ret, TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), ret, TRUE, TRUE, 5);
 
   gtk_box_pack_start(GTK_BOX(vbox),
 		     hbox,
@@ -352,7 +352,7 @@ GtkWidget *AddNumberEntryBoxWithLabel (GtkWidget *vbox,
   return (ret);
 }
 
-int GetNumberValueFromEntry (GtkWidget *entry, size_t *result)
+int GetNumberEntryValue (GtkWidget *entry, size_t *result)
 {
   const char *text;
   char *endptr;
@@ -382,7 +382,7 @@ GtkWidget *AddButtonToDialog (GtkWidget *dialog,
 
     /* --- Add the button to the dialog --- */
   gtk_box_pack_start (GTK_BOX(GTK_DIALOG(dialog)->action_area),
-		      button, FALSE, FALSE, 0);
+		      button, TRUE, TRUE, 5);
 
   /* --- Make the button visible --- */
   gtk_widget_show (button);
@@ -407,7 +407,7 @@ GtkWidget *AddEntryBoxWithLabel (GtkWidget *vbox,
   gtk_entry_set_text(GTK_ENTRY(ret),
 		     initial_value == NULL ? "" : initial_value);
   gtk_widget_show(ret);
-  gtk_box_pack_start(GTK_BOX(hbox), ret, TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), ret, TRUE, TRUE, 5);
 
   gtk_box_pack_start(GTK_BOX(vbox),
 		     hbox,
@@ -433,3 +433,18 @@ void FreeChild (GtkWidget *widget)
                NULL);
 
 }
+
+void SetEntryValidator(GtkObject* object, 
+	GtkSignalFunc changed_func, GtkSignalFunc leave_func)
+{
+	gtk_signal_connect(object,
+		     "changed",
+		     GTK_SIGNAL_FUNC(changed_func),
+		     object);
+
+	gtk_signal_connect(object,
+		     "focus_out_event",
+		     GTK_SIGNAL_FUNC(leave_func),
+		     object);
+}
+

@@ -19,7 +19,8 @@
  *              Bill May        wmay@cisco.com
  */
 #include "aa.h"
-
+#include "mpeg4_audio_config.h"
+#include "player_sdp.h"
 #define DEBUG_SYNC 2
 /*
  * C interfaces for faac callbacks
@@ -50,10 +51,11 @@ CAACodec::CAACodec (CAudioSync *a,
 		    size_t userdata_size) : 
   CAudioCodecBase(a, pbytestrm, media_fmt, audio, userdata, userdata_size)
 {
-  m_orig_bytestream = pbytestrm;
+  fmtp_parse_t *fmtp = NULL;
   // Start setting up FAAC stuff...
   m_info = faacDecOpen();
-   
+  m_bytestream = pbytestrm;
+
   m_resync_with_header = 1;
   m_record_sync_time = 1;
   
@@ -65,36 +67,39 @@ CAACodec::CAACodec (CAudioSync *a,
   // streaming packet for use locally.  This will allow us, if we need
   // to skip, to get the next frame.
   if (media_fmt != NULL) {
-    m_local_bytestream = new CInByteStreamMem;
-    m_bytestream = m_local_bytestream;
-    m_local_buffersize = 4096;
-    m_local_buffer = (unsigned char *)malloc(m_local_buffersize);
     // haven't checked for null buffer
-    if (media_fmt) 
-      m_freq = media_fmt->rtpmap->clock_rate;
-    else 
-      m_freq = audio->freq;
+    // This is not necessarilly right - it is, for the most part, but
+    // we should be reading the fmtp statement, and looking at the config.
+    // (like we do below in the userdata section...
+    m_freq = media_fmt->rtpmap->clock_rate;
+    fmtp = parse_fmtp_for_mpeg4(media_fmt->fmt_param);
+    if (fmtp != NULL) {
+      userdata = fmtp->config_binary;
+      userdata_size = fmtp->config_binary_len;
+    }
   } else {
-    m_bytestream = m_orig_bytestream;
-    m_local_bytestream = NULL;
-    m_local_buffersize = 0;
-    m_local_buffer = NULL;
     if (audio != NULL) {
       m_freq = audio->freq;
     } else {
       m_freq = 44100;
     }
   }
-  m_chans = 2;
-  if (userdata != NULL) {
-    unsigned char freq_index;
-    freq_index = ((userdata[0] & 0x7) << 1) | (userdata[1] >> 7);
-    if (freq_index == 0xf) {
-      m_chans = (userdata[4] >> 3) & 0xf;
-    } else {
-      m_chans = (userdata[1] >> 3) & 0xf;
+  m_chans = 2; // this may be wrong - the isma spec, Appendix A.1.1 of
+  m_output_frame_size = 1024;
+  // Appendix H says the default is 1 channel...
+  if (userdata != NULL || fmtp != NULL) {
+    mpeg4_audio_config_t audio_config;
+    decode_mpeg4_audio_config(userdata, userdata_size, &audio_config);
+    m_freq = audio_config.frequency;
+    m_chans = audio_config.channels;
+    if (audio_config.codec.aac.frame_len_1024 == 0) {
+      m_output_frame_size = 960;
     }
   }
+
+  m_msec_per_frame = m_output_frame_size;
+  m_msec_per_frame *= M_LLU;
+  m_msec_per_frame /= m_freq;
 
   faad_init_bytestream(&m_info->ld, c_read_byte, c_bookmark, m_bytestream);
 
@@ -102,6 +107,9 @@ CAACodec::CAACodec (CAudioSync *a,
 #if DUMP_OUTPUT_TO_FILE
   m_outfile = fopen("temp.raw", "w");
 #endif
+  if (fmtp != NULL) {
+    free_fmtp_parse(fmtp);
+  }
 }
 
 CAACodec::~CAACodec()
@@ -109,14 +117,6 @@ CAACodec::~CAACodec()
   faacDecClose(m_info);
   m_info = NULL;
 
-  if (m_local_bytestream != NULL) {
-    delete m_local_bytestream;
-    m_local_bytestream = NULL;
-  }
-  if (m_local_buffer != NULL) {
-    free(m_local_buffer);
-    m_local_buffer = NULL;
-  }
   if (m_temp_buff) {
     free(m_temp_buff);
     m_temp_buff = NULL;
@@ -156,7 +156,7 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
     m_last_rtp_ts = rtpts;
   } else {
     if (m_last_rtp_ts == rtpts) {
-      m_current_time += ((1024 * 1000) / m_freq);
+      m_current_time += m_msec_per_frame;
       m_current_frame++;
     } else {
       m_last_rtp_ts = rtpts;
@@ -172,44 +172,6 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
     // later...
   }
   // player_debug_message("AA at " LLD, m_current_time);
-  try {
-    if (m_local_bytestream) {
-      // This means that we have a bytestream that's different from
-      // a straight file read.  In the rtp case, we've got a 2 byte
-      // length field, then no adts header field.  It does make syncing
-      // a bit easier if we lose sync, but we're doing an extra move of
-      // the data.
-      uint16_t length;
-      // read 2 byte length
-      length = (m_orig_bytestream->get() & 0xff) << 8;
-      length |= (m_orig_bytestream->get() & 0xff);
-      if (length == 0) {
-	return (0);
-      }
-      if (length > m_local_buffersize) {
-	free(m_local_buffer);
-	m_local_buffersize = length * 2;
-	m_local_buffer = (unsigned char *)malloc(m_local_buffersize);
-      }
-      /*
-       * copy from the original bytestream to local memory
-       */
-      m_orig_bytestream->read(m_local_buffer, length);
-
-      m_local_bytestream->set_memory(m_local_buffer, length);
-    }
-  } catch (const char *err) {
-#ifdef DEBUG_SYNC
-    player_error_message("AA Got exception %s at "LLU, err, m_current_time);
-#endif
-    m_resync_with_header = 1;
-    m_record_sync_time = 1;
-    return (bits);
-  } catch (...) {
-    m_resync_with_header = 1;
-    m_record_sync_time = 1;
-    return (bits);
-  }
 
   if (m_faad_inited == 0) {
     /*
@@ -270,10 +232,10 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
 			       tempchans, m_chans);
 	  m_chans = tempchans;
 	}
-	m_audio_sync->set_config(m_freq, m_chans, AUDIO_S16LSB, 1024);
+	m_audio_sync->set_config(m_freq, m_chans, AUDIO_S16LSB, m_output_frame_size);
 	unsigned char *now = m_audio_sync->get_audio_buffer();
 	if (now != NULL) {
-	  memcpy(now, buff, tempchans * 1024 * sizeof(int16_t));
+	  memcpy(now, buff, tempchans * m_output_frame_size * sizeof(int16_t));
 	}
 	free(m_temp_buff);
 	m_temp_buff = NULL;
@@ -283,7 +245,7 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
        * good result - give it to audio sync class
        */
 #if DUMP_OUTPUT_TO_FILE
-      fwrite(buff, 1024 * 4, 1, m_outfile);
+      fwrite(buff, m_output_frame_size * 4, 1, m_outfile);
 #endif
       m_audio_sync->filled_audio_buffer(m_current_time, 
 					m_resync_with_header);

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dspaudio.c,v 1.2 2001/05/09 21:15:05 cahighlander Exp $";
+ "@(#) $Id: SDL_dspaudio.c,v 1.3 2001/07/12 23:33:39 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -75,7 +75,7 @@ static void DSP_WaitAudio(_THIS);
 static void DSP_PlayAudio(_THIS);
 static Uint8 *DSP_GetAudioBuf(_THIS);
 static void DSP_CloseAudio(_THIS);
-
+static int DSP_AudioDelayMsec(_THIS);
 /* Audio driver bootstrap functions */
 
 static int Audio_Available(void)
@@ -125,6 +125,7 @@ static SDL_AudioDevice *Audio_CreateDevice(int devindex)
 	this->PlayAudio = DSP_PlayAudio;
 	this->GetAudioBuf = DSP_GetAudioBuf;
 	this->CloseAudio = DSP_CloseAudio;
+	this->AudioDelayMsec = DSP_AudioDelayMsec;
 
 	this->free = Audio_DeleteDevice;
 
@@ -217,6 +218,7 @@ static void DSP_PlayAudio(_THIS)
 	if ( written < 0 ) {
 		this->enabled = 0;
 	}
+
 #ifdef DEBUG_AUDIO
 	fprintf(stderr, "Wrote %d bytes of audio data\n", written);
 #endif
@@ -447,4 +449,23 @@ static int DSP_OpenAudio(_THIS, SDL_AudioSpec *spec)
 
 	/* We're ready to rock and roll. :-) */
 	return(0);
+}
+
+static int DSP_AudioDelayMsec (_THIS)
+{
+  int odelay;
+  ioctl(audio_fd, SNDCTL_DSP_GETODELAY, &odelay);
+  if (odelay > 0) {
+    /*
+     * delay in msec is bytes  * 1000 / (bytes per sample * channels * freq)
+     */
+    odelay *= 1000;
+    odelay /= this->spec.channels;
+    if (!(this->spec.format == AUDIO_U8 ||
+	  this->spec.format == AUDIO_S8)) {
+      odelay /= 2; // 2 bytes per sample
+    }
+    odelay /= this->spec.freq;
+  }
+  return (odelay);
 }

@@ -1,1 +1,1 @@
-SUBDIRS = avi
+SUBDIRS = avi bitstream

@@ -61,18 +61,35 @@ protected:
 	void DoStopRecord(void);
 	void DoWriteFrame(CMediaFrame* pFrame);
 
+	void Write2250Hints(CMediaFrame* pFrame);
+
+	void Write3016Hints(CMediaFrame* pFrame);
+	void Write3016Hints(u_int32_t frameLength, bool isIFrame);
+
 protected:
 	bool			m_record;
 	char*			m_mp4FileName;
 	quicktime_t*	m_mp4File;
 
 	int				m_audioTrack;
+	u_int32_t		m_audioFrameNum;
 	int				m_audioHintTrack;
+	u_int8_t		m_audioHintBuf[4*1024];
+	u_int32_t 		m_audioHintBufLength;
+	u_int32_t		m_audioRtpPktNum;
+	u_int32_t		m_audioFramesThisHint;
+	u_int32_t		m_audioBytesThisHint;
+
 	int				m_videoTrack;
+	u_int32_t		m_videoFrameNum;
 	int				m_videoHintTrack;
+	u_int8_t		m_videoHintBuf[4*1024];
+	u_int32_t 		m_videoHintBufLength;
+	u_int32_t		m_videoRtpPktNum;
 
 	u_int32_t		m_movieTimeScale;
 	u_int32_t		m_audioTimeScale;
+	u_int32_t		m_audioFrameDuration;
 	u_int32_t		m_videoTimeScale;
 
 	u_int32_t		m_audioPayloadNumber;

@@ -120,6 +120,7 @@ AC_OUTPUT( \
 	Makefile \
 	lib/Makefile \
 	lib/avi/Makefile \
+	lib/bitstream/Makefile \
 	common/Makefile \
 	common/lib/Makefile \
 	common/lib/config_file/Makefile \

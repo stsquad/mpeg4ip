@@ -185,7 +185,7 @@ void CRtpByteStreamBase::init (void)
   m_bookmark_set = 0;
 }
 
-void CRtpByteStreamBase::check_for_end_of_pak (void)
+void CRtpByteStreamBase::check_for_end_of_pak (int nothrow)
 {
   rtp_packet *p;
   uint16_t nextseq;
@@ -228,7 +228,9 @@ void CRtpByteStreamBase::check_for_end_of_pak (void)
   if (SDL_mutexP(m_rtp_packet_mutex) == -1) {
       player_error_message("SDL Lock mutex failure in decode thread");
       m_pak = NULL;
-      throw "SDL lock failure";
+      if (nothrow == 0) {
+	throw "SDL lock failure";
+      }
       return;
   }
 
@@ -243,7 +245,9 @@ void CRtpByteStreamBase::check_for_end_of_pak (void)
   }
   if (SDL_mutexV(m_rtp_packet_mutex) == -1) {
     player_error_message("SDL unlock mutex failure in decode thread");
-    throw "SDL unlock";
+    if (nothrow == 0) {
+      throw "SDL unlock";
+    }
     return;
   }
   nextseq = p->seq + 1;
@@ -265,7 +269,9 @@ void CRtpByteStreamBase::check_for_end_of_pak (void)
   }
   m_pak = NULL;
   init();
-  throw err;
+  if (nothrow == 0) {
+    throw err;
+  }
 }
 
 unsigned char CRtpByteStreamBase::get (void)
@@ -541,7 +547,8 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	  }
 	  m_buffering = 1;
 #if 1
-	  player_debug_message("buffering complete - head %u tail %u "LLU, 
+	  player_debug_message("buffering complete - seq %d head %u tail %u "LLU, 
+			       m_head->seq,
 			       head_ts, tail_ts, calc);
 #endif
 	  

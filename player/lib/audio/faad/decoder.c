@@ -1,24 +1,3 @@
-/*
- * FAAD - Freeware Advanced Audio Decoder
- * Copyright (C) 2001 Menno Bakker
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
-
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * $Id: decoder.c,v 1.4 2001/06/28 23:54:22 wmaycisco Exp $
- */
-
 #ifdef WIN32
 #include <windows.h>
 #endif
@@ -53,7 +32,7 @@ faacDecHandle FAADAPI faacDecOpen()
 	/* set defaults */
     hDecoder->current_program = -1;
     hDecoder->default_config = 1;
-    hDecoder->mc_info.object_type = AACLC; /* assumed defaults */
+    hDecoder->mc_info.object_type = AACLTP; /* assumed defaults */
     hDecoder->mc_info.sampling_rate_idx = Fs_44;
 	hDecoder->dolbyShortOffset_f2t = 1;
 	hDecoder->dolbyShortOffset_t2f = 1;

@@ -10,7 +10,8 @@ liblive_gui_la_SOURCES = \
 	gui_utils.h \
 	audio_dialog.cpp \
 	recording_dialog.cpp \
-	transmit_dialog.cpp
+	transmit_dialog.cpp \
+	video_dialog.cpp
 
 INCLUDES=@GLIB_INCLUDES@ @GTK_INCLUDES@ \
 	-I.. \

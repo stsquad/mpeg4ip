@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysaudio.h,v 1.3 2001/05/09 21:15:05 cahighlander Exp $";
+ "@(#) $Id: SDL_sysaudio.h,v 1.4 2001/07/12 23:33:39 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_sysaudio_h
@@ -57,7 +57,7 @@ struct SDL_AudioDevice {
 	Uint8 *(*GetAudioBuf)(_THIS);
 	void (*WaitDone)(_THIS);
 	void (*CloseAudio)(_THIS);
-
+        int (*AudioDelayMsec)(_THIS);
 	/* * * */
 	/* Data common to all devices */
 

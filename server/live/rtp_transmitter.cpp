@@ -105,6 +105,9 @@ void CRtpTransmitter::DoStartTransmit()
 	}
 
 	if (m_audioRtpSession || m_videoRtpSession) {
+		// automatic sdp file generation
+		GenerateSdpFile(m_pConfig);
+
 		m_transmit = true;
 	}
 }
@@ -132,11 +135,15 @@ void CRtpTransmitter::DoStopTransmit()
 
 void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 {
-	if (pFrame->GetType() == CMediaFrame::Mp3AudioFrame) {
+	if (pFrame == NULL) {
+		return;
+	}
+
+	if (pFrame->GetType() == CMediaFrame::Mp3AudioFrame && m_audioRtpSession) {
 		SendMp3AudioWith2250(pFrame);
 	}
 
-	if (pFrame->GetType() == CMediaFrame::Mpeg4VideoFrame) {
+	if (pFrame->GetType() == CMediaFrame::Mpeg4VideoFrame && m_videoRtpSession) {
 		SendMpeg4VideoWith3016(pFrame);
 	}
 }
@@ -151,7 +158,7 @@ void CRtpTransmitter::SendMp3AudioWith2250(CMediaFrame* pFrame)
 		SendMp3QueuedFrames();
 	}
 
-	// TBD might want to treat greater than 1/2 payload size as jumbo
+	// OPTION might want to treat greater than 1/2 payload size as jumbo
 
 	if (pFrame->GetDataLength() + mp3PayloadHeaderSize 
 	  < m_pConfig->m_rtpPayloadSize) {

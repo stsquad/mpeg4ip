@@ -37,6 +37,9 @@ uint64_t CPlayerSession::get_current_time ()
 {
   uint64_t current_time;
 
+  if (m_waiting_for_audio != 0) {
+    return 0;
+  }
   current_time = get_time_of_day();
 #if 0
   player_debug_message("current time %llx m_start %llx", 
@@ -59,6 +62,7 @@ uint64_t CPlayerSession::get_current_time ()
     }
   }
 #endif
+  if (current_time < m_start) return 0;
   return(current_time - m_start);
 }
 
@@ -263,6 +267,7 @@ int CPlayerSession::sync_thread_wait_sync (void)
 	   * If we have audio, we use that for syncing.  Start it up
 	   */
 	  m_current_time = astart;
+	  player_debug_message("Astart is %llu", astart);
 	  m_waiting_for_audio = 1;
 	  state = SYNC_STATE_WAIT_AUDIO;
 	  m_audio_sync->play_audio();
@@ -308,6 +313,7 @@ int CPlayerSession::sync_thread_wait_audio (void)
       } else {
 	// make sure we set the current time
 	m_current_time = get_current_time();
+	player_debug_message("Current time is %llx", m_current_time);
 	return (SYNC_STATE_PLAYING);
       }
     }
@@ -515,7 +521,6 @@ int CPlayerSession::sync_thread (void)
  */
 void CPlayerSession::audio_is_ready (uint64_t latency, uint64_t time)
 {
-  m_waiting_for_audio = 0;
   m_start = get_time_of_day();
   m_start -= time;
   m_start += latency;
@@ -523,8 +528,16 @@ void CPlayerSession::audio_is_ready (uint64_t latency, uint64_t time)
     m_clock_wrapped = -1;
   }
   player_debug_message("Audio is ready "LLU" - latency "LLU, time, latency);
-  player_debug_message("m_start is "LLU, m_start);
+  player_debug_message("m_start is "LLX, m_start);
+  m_waiting_for_audio = 0;
   SDL_SemPost(m_sync_sem);
 }
 
+void CPlayerSession::adjust_start_time (int64_t time)
+{
+  m_start -= time;
+  m_clock_wrapped = -1;
+  player_debug_message("Adjusting start time "LLD, time);
+  SDL_SemPost(m_sync_sem);
+}
 /* end sync.cpp */

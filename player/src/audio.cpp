@@ -66,6 +66,7 @@ CAudioSync::CAudioSync (CPlayerSession *psptr, int volume)
   m_buffer_latency = 0;
   m_volume = (volume * SDL_MIX_MAXVOLUME)/100;
   m_first_time = 1;
+  m_first_filled = 1;
 }
 
 /*
@@ -148,42 +149,85 @@ unsigned char *CAudioSync::get_audio_buffer (void)
  */
 void CAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 {
-  size_t temp, temp2;
+  size_t fill_index, temp2;
   // m_dont_fill will be set when we have a pause
   if (m_dont_fill == 1) {
     return;
   }
+  fill_index = m_fill_index;
+  m_fill_index++;
+  m_fill_index %= DECODE_BUFFERS_MAX;
+
   SDL_LockAudio();
-
-  if (m_audio_paused == 0 && 
-      m_first_time != 0 && 
-      ts < m_play_time + m_buffer_latency) {
-    SDL_UnlockAudio();
-    m_didnt_fill_buffers++;
-    player_debug_message("Audio eliminating past time " LLU " " LLU, 
-			 ts, m_play_time);
-    return;
+  if (m_first_filled != 0) {
+    m_first_filled = 0;
+  } else {
+    uint64_t diff;
+    diff = ts - m_last_fill_timestamp;
+    if (diff > m_msec_per_frame + 1) {
+      // have a hole here - don't want to resync
+#ifdef DEBUG_AUDIO_FILL
+      player_debug_message("Filling - last %llu new %llu", m_last_fill_timestamp, ts);
+#endif
+      if (diff > ((m_msec_per_frame + 1) * 4)) {
+	resync = 1;
+      } else {
+	// try to fill the holes
+	m_last_fill_timestamp += m_msec_per_frame + 1; // fill plus extra
+	SDL_UnlockAudio();
+	int64_t ts_diff;
+	do {
+	  unsigned char *retbuffer;
+	  // Get and swap buffers.
+	  retbuffer = get_audio_buffer();
+	  if (retbuffer == NULL) {
+	    return;
+	  }
+	  if (retbuffer != m_sample_buffer[m_fill_index]) {
+	    player_error_message("retbuffer not fill index in audio sync");
+	    return;
+	  }
+	  SDL_LockAudio();
+	  m_sample_buffer[m_fill_index] = m_sample_buffer[fill_index];
+	  m_sample_buffer[fill_index] = retbuffer;
+	  memset(retbuffer, m_obtained.silence, m_buffer_size);
+	  m_buffer_time[fill_index] = m_last_fill_timestamp;
+	  m_buffer_filled[fill_index] = 1;
+	  m_samples_loaded += m_buffer_size;
+	  fill_index++;
+	  fill_index %= DECODE_BUFFERS_MAX;
+	  m_fill_index++;
+	  m_fill_index %= DECODE_BUFFERS_MAX;
+	  SDL_UnlockAudio();
+	  player_debug_message("Filling timestamp %llu with silence",
+			       m_last_fill_timestamp);
+	  m_last_fill_timestamp += m_msec_per_frame + 1; // fill plus extra
+	  ts_diff = ts - m_last_fill_timestamp;
+	  player_debug_message("diff is %lld", ts_diff);
+	} while (ts_diff > 0);
+	SDL_LockAudio();
+      }
+    }
   }
-
-  m_buffer_filled[m_fill_index] = 1;
+  m_last_fill_timestamp = ts;
+  m_buffer_filled[fill_index] = 1;
   temp2 = m_samples_loaded += m_buffer_size;
-  m_buffer_time[m_fill_index] = ts;
+  m_buffer_time[fill_index] = ts;
   if (resync) {
     m_resync_required = 1;
-    m_resync_buffer = m_fill_index;
+    m_resync_buffer = fill_index;
 #ifdef DEBUG_SYNC
     player_debug_message("Resync from filled_audio_buffer");
 #endif
   }
   SDL_UnlockAudio();
-  temp = m_fill_index;
-  m_fill_index++;
-  m_fill_index %= DECODE_BUFFERS_MAX;
+
   // Check this - we might not want to do this unless we're resyncing
   if (resync)
     SDL_SemPost(m_sync_sem);
 #ifdef DEBUG_AUDIO_FILL
-  player_debug_message("Filling " LLU " %u %u", ts, temp, m_samples_loaded);
+  player_debug_message("Filling " LLU " %u %u", 
+		       ts, fill_index, m_samples_loaded);
 #endif
 }
 
@@ -246,6 +290,7 @@ int CAudioSync::initialize_audio (int have_video)
 #endif
 
       m_audio_initialized = 1;
+      m_use_SDL_delay = SDL_HasAudioDelayMsec();
     } else {
       return 0; // check again pretty soon...
     }
@@ -274,7 +319,12 @@ uint64_t CAudioSync::check_audio_sync (uint64_t current_time, int &have_eof)
   if (m_resync_required) {
     if (m_audio_paused && m_buffer_filled[m_resync_buffer]) {
       // Calculate the current time based on the latency
-      current_time += m_buffer_latency;
+      SDL_LockAudio();
+      if (m_use_SDL_delay) {
+	current_time +=SDL_AudioDelayMsec();
+      } else {
+	current_time += m_buffer_latency;
+      }
       uint64_t cmptime;
       // Compare with times in buffer - we may need to skip if we fell
       // behind.
@@ -286,19 +336,18 @@ uint64_t CAudioSync::check_audio_sync (uint64_t current_time, int &have_eof)
 	  player_debug_message("Passed time " LLU " " LLU " %u", 
 			       cmptime, current_time, m_resync_buffer);
 #endif
-	  SDL_LockAudio();
 	  m_buffer_filled[m_resync_buffer] = 0;
 	  m_resync_buffer++;
 	  m_resync_buffer %= DECODE_BUFFERS_MAX;
-	  SDL_UnlockAudio();
-	  if (m_audio_waiting_buffer) {
-	    m_audio_waiting_buffer = 0;
-	    SDL_SemPost(m_audio_waiting);
-	  }
 	}
       } while (m_buffer_filled[m_resync_buffer] == 1 && 
 	       cmptime < current_time);
 
+      if (m_audio_waiting_buffer) {
+	m_audio_waiting_buffer = 0;
+	SDL_SemPost(m_audio_waiting);
+      }
+      SDL_UnlockAudio();
       if (m_buffer_filled[m_resync_buffer] == 0) {
 	return (0);
       }
@@ -326,6 +375,8 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
   int freed_buffer = 0;
   size_t len = (size_t)ilen;
   uint64_t time;
+  int delay = 0;
+
   if (m_resync_required) {
     // resync required from codec side.  Shut down, and notify sync task
     if (m_resync_buffer == m_play_index) {
@@ -340,6 +391,13 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
   }
 
   m_play_time = m_psptr->get_current_time();
+  if (m_use_SDL_delay != 0) {
+    delay = SDL_AudioDelayMsec();
+    if (delay < 0) delay = 0;
+#ifdef DEBUG_SYNC
+    player_debug_message("Audio delay is %d", delay);
+#endif
+  }
 
   if (m_first_time == 0) {
     /*
@@ -359,12 +417,17 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 	temp /= (uint64_t) m_buffer_size;
 	buffertime += temp;
       }
-      playtime = m_play_time + m_buffer_latency;
-      if (buffertime + m_msec_per_frame < playtime) {
+
+      if (m_use_SDL_delay != 0) 
+	playtime = m_play_time + delay; // m_buffer_latency;
+      else 
+	playtime = m_play_time + m_buffer_latency;
+
+      if (m_play_time != 0 && buffertime + m_msec_per_frame < playtime) {
 	player_debug_message("Skipped audio buffer " LLU "("LLU") at " LLU, 
 			     m_buffer_time[m_play_index],
 			     buffertime,
-			     m_play_time + m_buffer_latency);
+			     playtime);
 	m_buffer_filled[m_play_index] = 0;
 	m_play_index++;
 	m_play_index %= DECODE_BUFFERS_MAX;
@@ -430,10 +493,10 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 		 m_volume);
     len -= thislen;
     stream += thislen;
-	if (thislen <= m_samples_loaded)
-		m_samples_loaded -= thislen;
-	else 
-		m_samples_loaded = 0;
+    if (thislen <= m_samples_loaded)
+      m_samples_loaded -= thislen;
+    else 
+      m_samples_loaded = 0;
     m_play_sample_index += thislen;
     if (m_play_sample_index >= m_buffer_size) {
       m_buffer_filled[m_play_index] = 0;
@@ -449,45 +512,80 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
     // First time through - tell the sync task we've started, so it can
     // keep sync time.
     m_first_time = 0;
-    m_psptr->audio_is_ready(0, time);
+    if (m_use_SDL_delay != 0) 
+      m_buffer_latency = delay;
+    else
+      m_buffer_latency = 0;
+    m_psptr->audio_is_ready(m_buffer_latency, time);
     m_consec_wrong_latency = 0;
     m_wrong_latency_total = 0;
   } 
   else if (m_do_sync) {
-    // Okay - now we check for latency changes.
 #define ALLOWED_LATENCY 2
-    // we have a latency number - see if it really is correct
-    uint64_t index_time = m_buffer_latency + m_play_time;
-#if DEBUG_SYNC
-    player_debug_message("latency - time " LLU " index " LLU " latency " LLU " %u", 
-			 time, index_time, m_buffer_latency, m_samples_loaded);
-#endif
-    if (time > index_time + ALLOWED_LATENCY || 
-	time < index_time - ALLOWED_LATENCY) {
-      m_consec_wrong_latency++;
-      m_wrong_latency_total += time - index_time;
-      int64_t test;
-      test = m_wrong_latency_total / m_consec_wrong_latency;
-      if (test > ALLOWED_LATENCY || test < -ALLOWED_LATENCY) {
-	if (m_consec_wrong_latency > 20) {
-	  m_consec_wrong_latency = 0;
-	  if (test < 0 && test + m_buffer_latency > 0) {
-	    m_buffer_latency = 0;
-	  } else {
-	    m_buffer_latency += test; 
+    if (m_use_SDL_delay != 0) {
+      // Here, we're using the delay value from the audio buffers,
+      // rather than the calculated time...
+      // Okay - now we check for latency changes.
+      uint64_t index_time = delay + m_play_time;
+
+      if (time > index_time + ALLOWED_LATENCY || 
+	  time < index_time - ALLOWED_LATENCY) {
+	//player_debug_message("potential change - index time %llu time %llu", 
+	//index_time, time);
+	m_consec_wrong_latency++;
+	m_wrong_latency_total += time - index_time;
+	int64_t test;
+	test = m_wrong_latency_total / m_consec_wrong_latency;
+	if (test > ALLOWED_LATENCY || test < -ALLOWED_LATENCY) {
+	  if (m_consec_wrong_latency > 3) {
+	    m_consec_wrong_latency = 0;
+	    m_psptr->adjust_start_time(test);
 	  }
-	  m_psptr->audio_is_ready(m_buffer_latency, time);
-	  player_debug_message("Latency off by " LLD " - now is " LLU, 
-			       test, m_buffer_latency);
+	} else {
+	  // average wrong latency is not greater than allowed latency
+	  m_consec_wrong_latency = 0;
+	  m_wrong_latency_total = 0;
 	}
       } else {
-	// average wrong latency is not greater 5 or less -5
 	m_consec_wrong_latency = 0;
 	m_wrong_latency_total = 0;
       }
     } else {
-      m_consec_wrong_latency = 0;
-      m_wrong_latency_total = 0;
+      // We're using the calculate latency values - they're not very
+      // accurate, but better than nothing...
+      // we have a latency number - see if it really is correct
+      uint64_t index_time = delay + m_play_time;
+#if DEBUG_SYNC
+      player_debug_message("latency - time " LLU " index " LLU " latency " LLU " %u", 
+			   time, index_time, m_buffer_latency, m_samples_loaded);
+#endif
+      if (time > index_time + ALLOWED_LATENCY || 
+	  time < index_time - ALLOWED_LATENCY) {
+	m_consec_wrong_latency++;
+	m_wrong_latency_total += time - index_time;
+	int64_t test;
+	test = m_wrong_latency_total / m_consec_wrong_latency;
+	if (test > ALLOWED_LATENCY || test < -ALLOWED_LATENCY) {
+	  if (m_consec_wrong_latency > 20) {
+	    m_consec_wrong_latency = 0;
+	    if (test < 0 && test + m_buffer_latency > 0) {
+	      m_buffer_latency = 0;
+	    } else {
+	      m_buffer_latency += test; 
+	    }
+	    m_psptr->audio_is_ready(m_buffer_latency, time);
+	    player_debug_message("Latency off by " LLD " - now is " LLU, 
+				 test, m_buffer_latency);
+	  }
+	} else {
+	  // average wrong latency is not greater 5 or less -5
+	  m_consec_wrong_latency = 0;
+	  m_wrong_latency_total = 0;
+	}
+      } else {
+	m_consec_wrong_latency = 0;
+	m_wrong_latency_total = 0;
+      }
     }
   } else {
 #ifdef DEBUG_SYNC
@@ -536,6 +634,7 @@ void CAudioSync::flush_sync_buffers (void)
 void CAudioSync::flush_decode_buffers (void)
 {
   m_dont_fill = 0;
+  m_first_filled = 1;
   SDL_LockAudio();
   for (int ix = 0; ix < DECODE_BUFFERS_MAX; ix++) {
     m_buffer_filled[ix] = 0;

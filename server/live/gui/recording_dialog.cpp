@@ -120,6 +120,8 @@ static void on_changed (GtkWidget *widget, gpointer *data)
 {
 }
 
+void AddOkCancel(GtkWidget* dialog);
+
 void CreateRecordingDialog (void) 
 {
   GtkWidget *hbox, *label;
@@ -163,19 +165,17 @@ void CreateRecordingDialog (void)
   gtk_box_pack_start(GTK_BOX(hbox), browse_button, FALSE, FALSE, 10);
   gtk_widget_show(browse_button);
   
-  // Add buttons at bottom
-  GtkWidget *button;
-  button = AddButtonToDialog(dialog,
-			     "   OK   ", 
-			     GTK_SIGNAL_FUNC(on_ok_button));
-  GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
-
-  button = AddButtonToDialog(dialog,
-			     " Cancel ", 
-			     GTK_SIGNAL_FUNC(on_cancel_button));
+  // Add standard buttons at bottom
+  AddButtonToDialog(dialog,
+	" Ok ", 
+	GTK_SIGNAL_FUNC(on_ok_button));
+  AddButtonToDialog(dialog,
+	" Cancel ", 
+	GTK_SIGNAL_FUNC(on_cancel_button));
 
   gtk_widget_show(dialog);
   gtk_grab_add(dialog);
 }
+
 
 /* end recording_dialog.cpp */

@@ -39,11 +39,13 @@ public:
 		m_rawFrameBuffer = NULL;
 		m_leftBuffer = NULL;
 		m_rightBuffer = NULL;
+		m_mp3FrameBuffer = NULL;
 	}
 	~CAudioSource() {
 		free(m_rawFrameBuffer);
 		free(m_leftBuffer);
 		free(m_rightBuffer);
+		free(m_mp3FrameBuffer);
 	}
 
 	void StartCapture(void) {
@@ -85,6 +87,10 @@ protected:
 	u_int16_t*			m_rightBuffer;
 	lame_global_flags	m_lameParams;
 	u_int32_t			m_mp3MaxFrameSize;
+	u_int8_t*			m_mp3FrameBuffer;
+	u_int32_t			m_mp3FrameBufferLength;
+	u_int32_t			m_mp3FrameBufferSize;
+	Timestamp			m_mp3FrameTimestamp;
 };
 
 #endif /* __AUDIO_SOURCE_H__ */

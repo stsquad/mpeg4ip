@@ -133,6 +133,7 @@ class CPlayerSession {
   int sync_thread(void);
   uint64_t get_current_time(void);
   void audio_is_ready (uint64_t latency, uint64_t time);
+  void adjust_start_time(int64_t delta);
   int session_control_is_aggregate (void) {
     return m_session_control_is_aggregate;
   };
@@ -188,8 +189,8 @@ class CPlayerSession {
     struct timezone z;
     gettimeofday(&t, &z);
 #ifndef _WINDOWS
-    return (((uint64_t)t.tv_sec * 1000LLU) +
-	    ((uint64_t)t.tv_usec / 1000LLU));
+    return ((((uint64_t)t.tv_sec) * 1000LLU) +
+	    (((uint64_t)t.tv_usec) / 1000LLU));
 #else
 	return (((uint64_t)t.tv_sec * 1000) + 
 			((uint64_t)t.tv_usec / 1000));

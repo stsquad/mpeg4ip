@@ -58,10 +58,9 @@ GtkWidget *CreateOptionMenu(GtkWidget *old,
 			    size_t current_index,
 			    GtkSignalFunc on_activate);
   
-int GetNumberValueFromEntry(GtkWidget *entry, size_t *result);
+int GetNumberEntryValue(GtkWidget *entry, size_t *result);
   
-void SetNumberEntryBoxValue(GtkWidget *entry,
-			    size_t value);
+void SetNumberEntryValue(GtkWidget *entry, size_t value);
   
 GtkWidget *AddNumberEntryBoxWithLabel(GtkWidget *vbox,
 				      const char *label_name,
@@ -78,6 +77,9 @@ GtkWidget *AddEntryBoxWithLabel(GtkWidget *vbox,
 				size_t value_len);
   
 void FreeChild(GtkWidget *widget);
+
+void SetEntryValidator(GtkObject* object, 
+	GtkSignalFunc changed_func, GtkSignalFunc leave_func);
 
   // from gui_showmsg.c
 void ShowMessage (const char *szTitle, const char *szMessage);

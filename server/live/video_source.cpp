@@ -131,6 +131,17 @@ void CVideoSource::DoStartPreview()
 		}
 	}
 
+	u_int32_t sdlVideoFlags = SDL_SWSURFACE | SDL_ASYNCBLIT;
+
+	if (m_pConfig->m_videoPreviewWindowId) {
+		char buffer[16];
+		snprintf(buffer, sizeof(buffer), "%u", 
+			m_pConfig->m_videoPreviewWindowId);
+		setenv("SDL_WINDOWID", buffer, 1);
+		setenv("SDL_VIDEO_CENTERED", "1", 1);
+		sdlVideoFlags |= SDL_NOFRAME;
+	}
+
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 		error_message("Could not init SDL video: %s", SDL_GetError());
 	}
@@ -140,7 +151,7 @@ void CVideoSource::DoStartPreview()
 	}
 
 	m_sdlScreen = SDL_SetVideoMode(m_pConfig->m_videoWidth, 
-		m_pConfig->m_videoHeight, 32, SDL_SWSURFACE | SDL_ASYNCBLIT);
+		m_pConfig->m_videoHeight, 32, sdlVideoFlags);
 
 	m_sdlScreenRect.x = 0;
 	m_sdlScreenRect.y = 0;
@@ -167,75 +178,6 @@ void CVideoSource::DoStopPreview()
 	m_sdlScreen = NULL;
 
 	m_preview = false;
-}
-
-bool CVideoSource::ProbeDevice(void)
-{
-	int rc;
-
-	int videoDevice = open(m_pConfig->m_videoDeviceName, O_RDWR);
-	if (videoDevice < 0) {
-		error_message("Failed to open %s", 
-			m_pConfig->m_videoDeviceName);
-		return false;
-	}
-
-	// get device capabilities
-	struct video_capability videoCapability;
-	rc = ioctl(videoDevice, VIDIOCGCAP, &videoCapability);
-	if (rc < 0) {
-		error_message("Failed to get video capabilities for %s",
-			m_pConfig->m_videoDeviceName);
-		close(videoDevice);
-		return false;
-	}
-
-	if (!(videoCapability.type & VID_TYPE_CAPTURE)) {
-		error_message("Device %s is not capable of video capture!",
-			m_pConfig->m_videoDeviceName);
-		close(videoDevice);
-		return false;
-	}
-
-	// TBD where to put results of probe
-	videoCapability.minwidth;
-	videoCapability.minheight;
-	videoCapability.maxwidth;
-	videoCapability.maxheight;
-
-	for (int i = 0; i < videoCapability.channels; i++) {
-		// N.B. "channel" here is really an input source
-		struct video_channel videoChannel;
-		videoChannel.channel = i;
-		rc = ioctl(videoDevice, VIDIOCGCHAN, &videoChannel);
-		if (rc < 0) {
-			error_message("Failed to get video channel info for %s:%u",
-				m_pConfig->m_videoDeviceName, i);
-			continue;
-		}
-		videoChannel.name;
-		videoChannel.norm;
-
-		if (videoChannel.flags & VIDEO_VC_TUNER) {
-			for (int j = 0; j < videoChannel.tuners; j++) {
-				struct video_tuner videoTuner;
-				videoTuner.tuner = j;
-				rc = ioctl(m_videoDevice, VIDIOCGTUNER, &videoTuner);
-				if (rc < 0) {
-					error_message("Failed to get video tuner info for %s:%u:%u",
-						m_pConfig->m_videoDeviceName, i, j);
-					continue;
-				}
-				
-				videoTuner.name;
-				videoTuner.flags;
-				videoTuner.mode;
-			}
-		}
-	}
-
-	close(videoDevice);
-	return true;
 }
 
 bool CVideoSource::Init(void)
@@ -476,12 +418,13 @@ bool CVideoSource::InitEncoder()
 		divxParams.rc_reaction_ratio = 20;
 		divxParams.max_key_interval = m_pConfig->m_videoTargetFrameRate * 2;
 		divxParams.search_range = 16;
-		// TBD divxParams.search_range = 0;
+		// INVESTIGATE divxParams.search_range = 0;
 		divxParams.max_quantizer = 15;
 		divxParams.min_quantizer = 2;
 		divxParams.enable_8x8_mv = 0;
 
 		if (encore(m_divxHandle, ENC_OPT_INIT, &divxParams, NULL) != ENC_OK) {
+			error_message("Counldn't initialize Divx encoder");
 			return false;
 		}
 				
@@ -607,7 +550,7 @@ debug_message("skipping frame #%u ts %llu >= ts %llu",
 				divxFrame.length = m_maxVopSize;
 				if (encore(m_divxHandle, 0, &divxFrame, &divxResult)
 				  != ENC_OK) {
-					debug_message("Divx can't encode!");
+					debug_message("Divx can't encode frame!");
 					goto release;
 				}
 				vopBufLength = divxFrame.length;
@@ -653,12 +596,13 @@ debug_message("skipping frame #%u ts %llu >= ts %llu",
 
 			// forward previously encoded vop to sinks
 			if (m_prevVopBuf) {
-				ForwardFrame(
+				CMediaFrame* pFrame =
 					new CMediaFrame(CMediaFrame::Mpeg4VideoFrame, 
 						m_prevVopBuf, m_prevVopBufLength,
 						m_prevVopTimestamp, 
-						(m_skippedFrames + 1) * m_targetFrameDuration)
-				);
+						(m_skippedFrames + 1) * m_targetFrameDuration);
+				ForwardFrame(pFrame);
+				delete pFrame;
 			}
 
 			// hold onto this encoded vop until next one is ready
@@ -680,11 +624,12 @@ debug_message("skipping frame #%u ts %llu >= ts %llu",
 			memcpy(yuvBuf + m_ySize, uImage, m_uvSize);
 			memcpy(yuvBuf + m_ySize + m_uvSize, vImage, m_uvSize);
 
-			ForwardFrame(
+			CMediaFrame* pFrame =
 				new CMediaFrame(CMediaFrame::YuvVideoFrame, 
 					yuvBuf, m_yuvSize,
-					frameTimestamp, m_targetFrameDuration)
-			);
+					frameTimestamp, m_targetFrameDuration);
+			ForwardFrame(pFrame);
+			delete pFrame;
 		}
 
 		// release video frame buffer back to video capture device
@@ -695,5 +640,89 @@ release:
 			debug_message("Couldn't release capture buffer!");
 		}
 	}
+}
+
+bool CVideoCapabilities::ProbeDevice()
+{
+	int rc;
+
+	int videoDevice = open(m_deviceName, O_RDWR);
+	if (videoDevice < 0) {
+		m_canOpen = false;
+		return false;
+	}
+
+	// get device capabilities
+	struct video_capability videoCapability;
+	rc = ioctl(videoDevice, VIDIOCGCAP, &videoCapability);
+	if (rc < 0) {
+		debug_message("Failed to get video capabilities for %s", m_deviceName);
+		m_canOpen = false;
+		close(videoDevice);
+		return false;
+	}
+
+	if (!(videoCapability.type & VID_TYPE_CAPTURE)) {
+		debug_message("Device %s is not capable of video capture!", 
+			m_deviceName);
+		m_canCapture = false;
+		close(videoDevice);
+		return false;
+	}
+
+	m_driverName = stralloc(videoCapability.name);
+	m_numInputs = videoCapability.channels;
+
+	m_minWidth = videoCapability.minwidth;
+	m_minHeight = videoCapability.minheight;
+	m_maxWidth = videoCapability.maxwidth;
+	m_maxHeight = videoCapability.maxheight;
+
+	m_inputNames = (char**)malloc(m_numInputs * sizeof(char*));
+	memset(m_inputNames, 0, m_numInputs * sizeof(char*));
+
+	m_inputSignalTypes = (u_int8_t*)malloc(m_numInputs * sizeof(u_int8_t));
+	memset(m_inputSignalTypes, 0, m_numInputs * sizeof(u_int8_t));
+
+	m_inputHasTuners = (bool*)malloc(m_numInputs * sizeof(bool));
+	memset(m_inputHasTuners, 0, m_numInputs * sizeof(bool));
+
+	m_inputTunerSignalTypes = (u_int8_t*)malloc(m_numInputs * sizeof(u_int8_t));
+	memset(m_inputTunerSignalTypes, 0, m_numInputs * sizeof(u_int8_t));
+
+
+	for (int i = 0; i < m_numInputs; i++) {
+		// N.B. "channel" here is really an input source
+		struct video_channel videoChannel;
+		videoChannel.channel = i;
+		rc = ioctl(videoDevice, VIDIOCGCHAN, &videoChannel);
+		if (rc < 0) {
+			debug_message("Failed to get video channel info for %s:%u",
+				m_deviceName, i);
+			continue;
+		}
+		m_inputNames[i] = stralloc(videoChannel.name);
+		m_inputSignalTypes[i] = videoChannel.norm;
+
+		if (videoChannel.flags & VIDEO_VC_TUNER) {
+			// ignore videoChannel.tuners for now
+			// current bt drivers only support 1 tuner per input port
+
+			struct video_tuner videoTuner;
+			videoTuner.tuner = 0;
+			rc = ioctl(videoDevice, VIDIOCGTUNER, &videoTuner);
+			if (rc < 0) {
+				debug_message("Failed to get video tuner info for %s:%u",
+					m_deviceName, i);
+				continue;
+			}
+				
+			m_inputHasTuners[i] = true;
+			m_inputTunerSignalTypes[i] = videoTuner.flags & 0x7;
+		}
+	}
+
+	close(videoDevice);
+	return true;
 }
 

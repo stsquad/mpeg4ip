@@ -51,7 +51,8 @@ class CRtpByteStreamBase : public COurInByteStream
   unsigned char get(void);
   unsigned char peek(void);
   void bookmark(int Bset);
-  void reset(void) {
+  virtual void reset(void) {
+    player_debug_message("rtp bytestream reset");
     init();
     m_buffering = 0;
   };
@@ -75,7 +76,7 @@ class CRtpByteStreamBase : public COurInByteStream
   int rtp_ready (void) {
     return (m_stream_ondemand | m_wallclock_offset_set);
   };
-  void check_for_end_of_pak(void); // used by read and get
+  void check_for_end_of_pak(int nothrow = 0); // used by read and get
   void recv_callback(struct rtp *session, rtp_event *e);
   void flush_rtp_packets(void);
   int recv_task(int waiting);

@@ -23,14 +23,28 @@
  * to access
  */
 
-#ifndef __AAC_RTP_BYTESTREAM_H__
-#define __AAC_RTP_BYTESTREAM_H__ 1
+#ifndef __ISMA_RTP_BYTESTREAM_H__
+#define __ISMA_RTP_BYTESTREAM_H__ 1
 #include "rtp_bytestream.h"
+#include "player_sdp.h"
+#include "bitstream/bitstream.h"
+//#define ISMA_RTP_DUMP_OUTPUT_TO_FILE 1
 
-class CAacRtpByteStream : public CRtpByteStreamBase
+typedef struct isma_pak_data_t {
+  struct isma_pak_data_t *pak_data_next;
+  rtp_packet *pak;
+  char *frame_ptr;
+  size_t frame_len;
+  int last_in_pak;
+  uint32_t rtp_timestamp;
+} isma_pak_data_t;
+
+class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
 {
  public:
-  CAacRtpByteStream(unsigned int rtp_proto,
+  CIsmaAudioRtpByteStream(format_list_t *media_fmt,
+			  fmtp_parse_t *fmtp,
+			  unsigned int rtp_proto,
 		    int ondemand,
 		    uint64_t tickpersec,
 		    rtp_packet **head, 
@@ -41,7 +55,7 @@ class CAacRtpByteStream : public CRtpByteStreamBase
 		    uint32_t ntp_frac,
 		    uint32_t ntp_sec,
 		    uint32_t rtp_ts);
-
+  ~CIsmaAudioRtpByteStream();
   unsigned char get(void);
   unsigned char peek(void);
   void bookmark(int Bset);
@@ -57,18 +71,32 @@ class CAacRtpByteStream : public CRtpByteStreamBase
   size_t m_offset_in_frame;
   size_t m_frame_len;
   size_t m_bookmark_offset_in_frame;
+#ifdef ISMA_RTP_DUMP_OUTPUT_TO_FILE
+  FILE *m_outfile;
+#endif
+  isma_pak_data_t *m_pak_data_head;
+  isma_pak_data_t *m_pak_data_free;
+  size_t m_pak_data_max;
+  uint32_t m_rtp_ts_add;
+  void process_packet_header(void);
+  int insert_pak_data(isma_pak_data_t *pak);
+  void remove_packet(rtp_packet *pak);
+  isma_pak_data_t *get_pak_data (void) {
+    isma_pak_data_t *pak;
+    if (m_pak_data_free == NULL) {
+      player_debug_message("Mallocing m_pak_data");
+      pak = (isma_pak_data_t *)malloc(sizeof(isma_pak_data_t));
+      if (pak == NULL) return NULL;
+    } else {
+      pak = m_pak_data_free;
+      m_pak_data_free = pak->pak_data_next;
+    }
+    pak->pak_data_next = NULL;
+    pak->last_in_pak = 0;
+    return (pak);
+  }
+  CBitstream m_header_bitstream;
 };
 
-CRtpByteStreamBase *create_aac_rtp_bytestream (format_list_t *media_fmt,
-					       unsigned int rtp_proto,
-					       int ondemand,
-					       uint64_t tickpersec,
-					       rtp_packet **head, 
-					       rtp_packet **tail,
-					       int rtpinfo_received,
-					       uint32_t rtp_rtptime,
-					       int rtcp_received,
-					       uint32_t ntp_frac,
-					       uint32_t ntp_sec,
-					       uint32_t rtp_ts);
 #endif
+

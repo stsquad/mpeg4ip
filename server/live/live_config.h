@@ -30,6 +30,22 @@
 #include "tv_frequencies.h"
 
 #define VIDEO_STD_ASPECT_RATIO 	1.33
+#define VIDEO_LB1_ASPECT_RATIO 	2.35
+#define VIDEO_LB2_ASPECT_RATIO 	1.75
+
+// some configuration utility routines
+class CLiveConfig;
+void GenerateMpeg4VideoConfig(CLiveConfig* pConfig);
+char* BinaryToAscii(u_int8_t* buf, u_int32_t bufSize);
+bool GenerateSdpFile(CLiveConfig* pConfig);
+
+inline char* stralloc(const char* src) {
+	char* dst = (char*)malloc(strlen(src)+1);
+	if (dst) {
+		strcpy(dst, src);
+	}
+	return dst;
+}
 
 class CLiveConfig {
 public:
@@ -56,26 +72,25 @@ public:
 	}
 
 	void SetDefaults(void) {
-		// TBD strings should be malloc'd
-
 		m_audioEnable = true;
 		m_audioEncode = true;
-		m_audioDeviceName = "/dev/dsp";
+		m_audioDeviceName = stralloc("/dev/dsp");
 		m_audioChannels = 2;
 		m_audioSamplingRate = 44100; // Hz
-		m_audioTargetBitRate = 96;	// Kbps
+		m_audioTargetBitRate = 128;	// Kbps
 
 		m_videoEnable = true;
 		m_videoEncode = true;
-		m_videoDeviceName = "/dev/video";
+		m_videoDeviceName = stralloc("/dev/video0");
 		m_videoInput = 0;
 		m_videoSignal = VIDEO_MODE_NTSC;
 		m_videoTuner = -1;		
-		m_videoChannelList = &ChannelLists[0];			// US Broadcast
+		m_videoChannelList = &NtscChannelLists[0];		// US Broadcast
 		m_videoChannel = &m_videoChannelList->list[1];	// Channel 3
 		m_videoPreview = true;
 		m_videoRawPreview = false;
 		m_videoEncodedPreview = true;
+		m_videoPreviewWindowId = 0;
 		m_videoUseDivxEncoder = false;
 		m_videoRawWidth = 320;
 		m_videoRawHeight = 240;
@@ -84,25 +99,28 @@ public:
 		m_videoTargetFrameRate = 24;
 		m_videoTargetBitRate = 750;	// Kbps
 		m_videoAspectRatio = VIDEO_STD_ASPECT_RATIO;
+		m_videoProfileId = 1;		// Simple Profile
 		m_videoProfileLevelId = 3;	// Simple Profile @ L3
 		m_videoMpeg4ConfigLength = 0;
 		m_videoMpeg4Config = NULL;
+		GenerateMpeg4VideoConfig(this);
 
 		m_recordEnable = true;
 		m_recordRaw = false;
-		m_recordPcmFileName = "capture.pcm";
-		m_recordYuvFileName = "capture.yuv";
+		m_recordPcmFileName = stralloc("capture.pcm");
+		m_recordYuvFileName = stralloc("capture.yuv");
 		m_recordMp4 = true;
-		m_recordMp4FileName = "capture.mp4";
+		m_recordMp4FileName = stralloc("capture.mp4");
 
 		m_rtpEnable = false;
-		m_rtpDestAddress = "224.1.2.3";
-		m_rtpAudioDestPort = 0;
-		m_rtpVideoDestPort = 0;
+		m_rtpDestAddress = stralloc("224.1.2.3");
+		m_rtpAudioDestPort = 32770;
+		m_rtpVideoDestPort = 32768;
 		m_rtpPayloadSize = 1460;
 		m_rtpMulticastTtl = 15;
 		m_rtpDisableTimestampOffset = false;
 		m_rtpUseSSM = false;
+		m_sdpFileName = stralloc("capture.sdp");
 	}
 
 public:
@@ -126,6 +144,7 @@ public:
 	bool		m_videoPreview;
 	bool		m_videoRawPreview;
 	bool		m_videoEncodedPreview;
+	u_int32_t	m_videoPreviewWindowId;
 	// Note use of SDL means one must choose raw xor encoded preview
 	bool		m_videoUseDivxEncoder;
 	u_int16_t	m_videoRawWidth;
@@ -135,6 +154,7 @@ public:
 	u_int16_t	m_videoTargetFrameRate;
 	u_int16_t	m_videoTargetBitRate;
 	float		m_videoAspectRatio;
+	u_int8_t	m_videoProfileId;
 	u_int8_t	m_videoProfileLevelId;
 	u_int16_t	m_videoMpeg4ConfigLength;
 	u_int8_t*	m_videoMpeg4Config;
@@ -156,7 +176,7 @@ public:
 	u_int8_t	m_rtpMulticastTtl;
 	bool		m_rtpDisableTimestampOffset;
 	bool		m_rtpUseSSM;
-
+	char*		m_sdpFileName;
 };
 
 #endif /* __LIVE_CONFIG_H__ */

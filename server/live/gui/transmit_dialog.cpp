@@ -27,232 +27,373 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include "sdp.h"
+#include "rtp_transmitter.h"
 
 static GtkWidget *dialog;
+
+static GtkWidget *unicast_button;
+static GtkWidget *mcast_button;
 static GtkWidget *address_entry;
+static bool address_modified;
 static GtkWidget *video_port_entry;
+static bool video_port_modified;
 static GtkWidget *audio_port_entry;
-static GtkWidget *ok_button, *cancel_button;
+static bool audio_port_modified;
+static GtkWidget *mcast_ttl_menu;
+static GtkWidget *sdp_file_entry;
+static GtkWidget *address_generate_button;
+static GtkWidget *sdp_generate_button;
+
+static u_int8_t ttlValues[] = {
+	1, 15, 63, 127
+};
+static char* ttlNames[] = {
+	"LAN - 1", "Organization - 15", "Regional - 63", "Worldwide - 127"
+};
+static u_int8_t ttlIndex;
 
 static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 {
-  gtk_grab_remove(dialog);
-  gtk_widget_destroy(dialog);
-  dialog = NULL;
+	gtk_grab_remove(dialog);
+	gtk_widget_destroy(dialog);
+	dialog = NULL;
 } 
 
-static void generate_sdp()
+static void on_unicast (GtkWidget *widget, gpointer *data)
 {
-	session_desc_t sdp;
-	char* sdpFileName = "capture.sdp";	// TEMP
-
-	memset(&sdp, 0, sizeof(sdp));
-	// o=
-	sdp.session_id = GetTimestamp();
-	sdp.session_version = GetTimestamp();
-	sdp.create_addr_type = "IP4";
-	sdp.create_addr = "171.71.97.173";	// TEMP
-
-	// s=
-	sdp.session_name = "mp4live capture";	// TEMP
-
-	// c=
-	sdp.session_connect.conn_type = "IP4";
-	sdp.session_connect.conn_addr = sdp.create_addr;
-	sdp.session_connect.ttl = MyConfig->m_rtpMulticastTtl;
-	sdp.session_connect.used = 1;
-
-	// m=	
-	media_desc_t sdpMedia;
-	memset(&sdpMedia, 0, sizeof(sdpMedia));
-	sdp.media = &sdpMedia;
-	sdpMedia.parent = &sdp;
-	sdpMedia.media = "video";
-	sdpMedia.port = MyConfig->m_rtpVideoDestPort;
-	sdpMedia.proto = "RTP/AVP";
-
-	format_list_t sdpMediaFormat;
-	memset(&sdpMediaFormat, 0, sizeof(sdpMediaFormat));
-	sdpMediaFormat.media = &sdpMedia;
-	sdpMediaFormat.fmt = "96";
-	
-	rtpmap_desc_t sdpRtpMap;
-	memset(&sdpRtpMap, 0, sizeof(sdpRtpMap));
-	sdpRtpMap.encode_name = "MP4V-ES";
-	sdpRtpMap.clock_rate = 90000;
-
-	sdpMediaFormat.rtpmap = &sdpRtpMap;
-	// TBD config=VOL
-	sdpMediaFormat.fmt_param = "profile-level-id=3;";
-	sdpMedia.fmt = &sdpMediaFormat;
-
-	sdp_encode_one_to_file(&sdp, sdpFileName, 0);
+	bool enabled = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+	gtk_widget_set_sensitive(GTK_WIDGET(address_generate_button), !enabled);
+	gtk_widget_set_sensitive(GTK_WIDGET(mcast_ttl_menu), !enabled);
 }
 
-static int check_values (void)
+static void on_changed (GtkWidget *widget, gpointer *data)
 {
-  size_t temp;
-  uint16_t vport, aport;
-  const char *address;
-  struct in_addr temp_addr;
+	if (widget == address_entry) {
+		address_modified = true;
+	} else if (widget == video_port_entry) {
+		video_port_modified = true;
+	} else if (widget == audio_port_entry) {
+		audio_port_modified = true;
+	}
+}
 
-  if ((GetNumberValueFromEntry(video_port_entry, &temp) == 0) ||
-      (temp > UINT16_MAX)) {
-    ShowMessage("Entry Error", "Invalid Video Port Entry");
-    return (0);
-  }
+bool ValidateAddress(GtkWidget* widget)
+{
+	const char* address = gtk_entry_get_text(GTK_ENTRY(widget));
 
-  if (temp & 0x1) {
-    ShowMessage("Video Port Error", "Video port must be even");
-    return (0);
-  }
+	struct in_addr in;
 
-  vport = temp & UINT16_MAX;
+	if (inet_aton(address, &in) != 0) {
+		return true;
+	}
 
-  if ((GetNumberValueFromEntry(audio_port_entry, &temp) == 0) ||
-      (temp > UINT16_MAX)) {
-    ShowMessage("Entry Error", "Invalid Audio Port Entry");
-    return (0);
-  }
+	// Might have a DNS address...
+	if (gethostbyname(address) != NULL) {
+		return true;
+	}
 
-  if (temp & 0x1) {
-    ShowMessage("Audio Port Error", "Audio port must be even");
-    return (0);
-  }
+	ShowMessage("Transmission Address", "Invalid address entered");
+	return false;
+}
 
-  aport = temp & UINT16_MAX;
+static void on_address_leave(GtkWidget *widget, gpointer *data)
+{
+	if (!address_modified) {
+		return;
+	}
+	ValidateAddress(widget);
+}
 
-  if (aport == vport) {
-    ShowMessage("Entry Error", "Audio port and Video port must be different");
-    return (0);
-  }
-  address = gtk_entry_get_text(GTK_ENTRY(address_entry));
-  if (inet_aton(address, &temp_addr) == 0) {
-    // Might have a DNS address...
-    if (gethostbyname(address) == NULL) {
-      // have an error
-      ShowMessage("Audio Address Error", "Invalid address entered");
-      return (0);
-    }
-  }
+bool ValidatePort(GtkWidget* entry, u_int16_t* port)
+{
+	int value = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(entry));
 
-	// TBD stralloc(), and free old value
-	MyConfig->m_rtpDestAddress = (char*)malloc(strlen(address)+1);
-	strcpy(MyConfig->m_rtpDestAddress, address);
-	MyConfig->m_rtpVideoDestPort = vport;
-	MyConfig->m_rtpAudioDestPort = aport;
+	if (value < 1024 || value > 65534 || (value & 1)) {
+		ShowMessage("Transmission Port Number",
+			"Please enter an even number between 1024 and 65534");
+		// TBD gtk_widget_grab_focus(widget);
+		return false;
+	}
+	if (port) {
+		*port = value;
+	}
+	return true;
+}
 
-  DisplayTransmitSettings();  // display settings in main window
-  return (1);
+static void on_port_leave(GtkWidget *widget, gpointer *data)
+{
+	if (widget == video_port_entry) {
+		if (!video_port_modified) {
+			return;
+		}
+	} else { // widget == audio_port_entry
+		if (!audio_port_modified) {
+			return;
+		}
+	}
+	
+	ValidatePort(widget, NULL);
+}
+
+static void on_ttl_menu_activate (GtkWidget *widget, gpointer data)
+{
+	ttlIndex = (u_int8_t)data;
+}
+
+static void on_address_generate (GtkWidget *widget, gpointer *data)
+{
+	struct in_addr in;
+	in.s_addr = CRtpTransmitter::GetRandomMcastAddress();
+	gtk_entry_set_text(GTK_ENTRY(address_entry), inet_ntoa(in));
+
+	u_int16_t portBlock = CRtpTransmitter::GetRandomPortBlock();
+	SetNumberEntryValue(video_port_entry, portBlock);
+	SetNumberEntryValue(audio_port_entry, portBlock + 2);
+}
+
+static bool ValidateAndSave(void)
+{
+	if (!ValidateAddress(address_entry)) {
+		return false;
+	}
+
+	u_int16_t videoPort;
+ 	if (!ValidatePort(video_port_entry, &videoPort)) {
+		return false;
+	}
+
+	u_int16_t audioPort;
+ 	if (!ValidatePort(audio_port_entry, &audioPort)) {
+		return false;
+	}
+
+	if (videoPort == audioPort) {
+		ShowMessage("Port Error", 
+			"Video and audio ports must be different");
+		return false;
+	}
+
+	// copy new values to config
+	free(MyConfig->m_rtpDestAddress);
+	MyConfig->m_rtpDestAddress = stralloc(
+		gtk_entry_get_text(GTK_ENTRY(address_entry)));
+
+	MyConfig->m_rtpVideoDestPort = videoPort;
+	MyConfig->m_rtpAudioDestPort = audioPort;
+	MyConfig->m_rtpMulticastTtl = ttlValues[ttlIndex];
+
+	free(MyConfig->m_sdpFileName);
+	MyConfig->m_sdpFileName = stralloc(
+		gtk_entry_get_text(GTK_ENTRY(sdp_file_entry)));
+
+	DisplayTransmitSettings();  // display settings in main window
+
+	return true;
+}
+
+static void on_sdp_generate (GtkWidget *widget, gpointer *data)
+{
+	// check and save values
+	if (!ValidateAndSave()) {
+		return;
+	}
+
+	if (GenerateSdpFile(MyConfig)) {
+		char buffer[256];
+		snprintf(buffer, sizeof(buffer), "SDP file %s written",
+			MyConfig->m_sdpFileName);
+		ShowMessage("Generate SDP file", buffer); 
+	} else {
+		ShowMessage("Generate SDP file", 
+			"SDP file couldn't be written, check file name");
+	}
 }
 
 static void on_ok_button (GtkWidget *widget, gpointer *data)
 {
-  if (check_values() != 0) {
-	generate_sdp();	// TEMP
+	// check and save values
+	if (!ValidateAndSave()) {
+		return;
+	}
     on_destroy_dialog(NULL, NULL);
-  }
 }
 
 static void on_cancel_button (GtkWidget *widget, gpointer *data)
 {
-  on_destroy_dialog(NULL, NULL);
-}
-
-static int audio_port_modified;
-
-static void on_changed (GtkWidget *widget, gpointer *data)
-{
-  if (widget == audio_port_entry) {
-    audio_port_modified = 1;
-  }
-}
-
-static void on_video_port_left (GtkWidget *widget, gpointer *data)
-{
-  if (audio_port_modified == 0) {
-    size_t result;
-    if (GetNumberValueFromEntry(video_port_entry, &result) != 0) {
-      if ((result < (UINT16_MAX - 2)) && 
-	  ((result & 0x1) == 0)) {
-	uint16_t value;
-	value = result & UINT16_MAX;
-	SetNumberEntryBoxValue(audio_port_entry, value + 2);
-	gtk_widget_show(audio_port_entry);
-	audio_port_modified = 0;
-      }
-    }
-  }
+	on_destroy_dialog(NULL, NULL);
 }
 
 void CreateTransmitDialog (void) 
 {
-  audio_port_modified = 0;
+	GtkWidget* hbox;
+	GtkWidget* vbox;
+	GSList* radioGroup;
+	GtkWidget* label;
+	GtkWidget* button;
+	GtkObject* adjustment;
 
-  dialog = gtk_dialog_new();
-  gtk_signal_connect(GTK_OBJECT(dialog),
-		     "destroy",
-		     GTK_SIGNAL_FUNC(on_destroy_dialog),
-		     &dialog);
+	dialog = gtk_dialog_new();
+	gtk_signal_connect(GTK_OBJECT(dialog),
+		"destroy",
+		GTK_SIGNAL_FUNC(on_destroy_dialog),
+		&dialog);
 
-  gtk_window_set_title(GTK_WINDOW(dialog), "Transmission Settings");
+	gtk_window_set_title(GTK_WINDOW(dialog), "Transmission Settings");
 
-  // Address
-  address_entry = AddEntryBoxWithLabel(GTK_DIALOG(dialog)->vbox,
-				       "Address:",
-						MyConfig->m_rtpDestAddress,
-				       64);
+	hbox = gtk_hbox_new(TRUE, 1);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox,
+		FALSE, FALSE, 5);
+	gtk_widget_show(hbox);
 
-  gtk_signal_connect(GTK_OBJECT(address_entry),
-		     "changed",
-		     GTK_SIGNAL_FUNC(on_changed),
-		     video_port_entry);
+	// Unicast/Multicast radio
+	bool isMcast = true;
+	if (MyConfig->m_rtpDestAddress != NULL) {
+		struct in_addr in;
+		if (inet_aton(MyConfig->m_rtpDestAddress, &in)) {
+			isMcast = IN_MULTICAST(ntohl(in.s_addr));
+		} else {
+			isMcast = false;
+		}
+	}
 
-  // Video Port
-    video_port_entry = AddNumberEntryBoxWithLabel(GTK_DIALOG(dialog)->vbox,
-						  "Video Port:",
-						  MyConfig->m_rtpVideoDestPort,
-						  5);
+	unicast_button = gtk_radio_button_new_with_label(NULL, "Unicast");
+	gtk_widget_show(unicast_button);
+	gtk_signal_connect(GTK_OBJECT(unicast_button), 
+		"toggled",
+		 GTK_SIGNAL_FUNC(on_unicast),
+		 NULL);
+	gtk_box_pack_start(GTK_BOX(hbox), unicast_button,
+		FALSE, FALSE, 5);
 
-  gtk_signal_connect(GTK_OBJECT(video_port_entry),
-		     "changed",
-		     GTK_SIGNAL_FUNC(on_changed),
-		     video_port_entry);
+	radioGroup = gtk_radio_button_group(GTK_RADIO_BUTTON(unicast_button));
+	mcast_button = gtk_radio_button_new_with_label(radioGroup, "Multicast");
+	gtk_widget_show(mcast_button);
+	gtk_box_pack_start(GTK_BOX(hbox), mcast_button,
+		FALSE, FALSE, 5);
 
-  gtk_signal_connect(GTK_OBJECT(video_port_entry),
-		     "focus-out-event",
-		     GTK_SIGNAL_FUNC(on_video_port_left),
-		     video_port_entry);
+	hbox = gtk_hbox_new(FALSE, 1);
+	gtk_widget_show(hbox);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox,
+		FALSE, FALSE, 5);
 
-  gtk_signal_connect(GTK_OBJECT(video_port_entry),
-		     "leave-notify-event",
-		     GTK_SIGNAL_FUNC(on_video_port_left),
-		     video_port_entry);
+	vbox = gtk_vbox_new(TRUE, 1);
+	gtk_widget_show(vbox);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox,
+		FALSE, FALSE, 5);
 
-    audio_port_entry = AddNumberEntryBoxWithLabel(GTK_DIALOG(dialog)->vbox,
-						  "Audio Port:",
-						  MyConfig->m_rtpAudioDestPort,
-						  5);
+	label = gtk_label_new(" Address:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  gtk_signal_connect(GTK_OBJECT(audio_port_entry),
-		     "changed",
-		     GTK_SIGNAL_FUNC(on_changed),
-		     video_port_entry);
+	label = gtk_label_new(" Video Port:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  
-  // Add buttons at bottom
-  ok_button = AddButtonToDialog(dialog,
-				"Ok", 
-				GTK_SIGNAL_FUNC(on_ok_button));
-  GTK_WIDGET_SET_FLAGS(ok_button, GTK_CAN_DEFAULT);
+	label = gtk_label_new(" Audio Port:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  cancel_button = AddButtonToDialog(dialog,
-				    "Cancel", 
-				    GTK_SIGNAL_FUNC(on_cancel_button));
+	label = gtk_label_new(" TTL:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-  gtk_widget_show(dialog);
-  gtk_grab_add(dialog);
+	label = gtk_label_new(" SDP File:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
+
+	vbox = gtk_vbox_new(TRUE, 1);
+	gtk_widget_show(vbox);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox,
+		TRUE, TRUE, 5);
+
+	address_entry = gtk_entry_new_with_max_length(128);
+	gtk_entry_set_text(GTK_ENTRY(address_entry), MyConfig->m_rtpDestAddress);
+	address_modified = false;
+	SetEntryValidator(GTK_OBJECT(address_entry),
+		GTK_SIGNAL_FUNC(on_changed),
+		GTK_SIGNAL_FUNC(on_address_leave));
+	gtk_widget_show(address_entry);
+	gtk_box_pack_start(GTK_BOX(vbox), address_entry, TRUE, TRUE, 0);
+
+	adjustment = gtk_adjustment_new(MyConfig->m_rtpVideoDestPort,
+		1024, 65534, 2, 0, 0);
+	video_port_entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 2, 0);
+	video_port_modified = false;
+	SetEntryValidator(GTK_OBJECT(video_port_entry),
+		GTK_SIGNAL_FUNC(on_changed),
+		GTK_SIGNAL_FUNC(on_port_leave));
+	gtk_widget_show(video_port_entry);
+	gtk_box_pack_start(GTK_BOX(vbox), video_port_entry, FALSE, FALSE, 0);
+
+	adjustment = gtk_adjustment_new(MyConfig->m_rtpAudioDestPort,
+		1024, 65534, 2, 0, 0);
+	audio_port_entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 2, 0);
+	audio_port_modified = false;
+	SetEntryValidator(GTK_OBJECT(audio_port_entry),
+		GTK_SIGNAL_FUNC(on_changed),
+		GTK_SIGNAL_FUNC(on_port_leave));
+	gtk_widget_show(audio_port_entry);
+	gtk_box_pack_start(GTK_BOX(vbox), audio_port_entry, TRUE, TRUE, 0);
+
+	ttlIndex = 0; 
+	for (u_int8_t i = 0; i < sizeof(ttlValues) / sizeof(u_int8_t); i++) {
+		if (MyConfig->m_rtpMulticastTtl == ttlValues[i]) {
+			ttlIndex = i;
+			break;
+		}
+	}
+	mcast_ttl_menu = CreateOptionMenu (NULL,
+		(const char**) ttlNames, sizeof(ttlNames) / sizeof(char*),
+		ttlIndex,
+		GTK_SIGNAL_FUNC(on_ttl_menu_activate));
+	gtk_box_pack_start(GTK_BOX(vbox), mcast_ttl_menu, TRUE, TRUE, 0);
+
+	sdp_file_entry = gtk_entry_new_with_max_length(128);
+	gtk_entry_set_text(GTK_ENTRY(sdp_file_entry), MyConfig->m_sdpFileName);
+	gtk_widget_show(sdp_file_entry);
+	gtk_box_pack_start(GTK_BOX(vbox), sdp_file_entry, TRUE, TRUE, 0);
+
+	vbox = gtk_vbox_new(FALSE, 1);
+	gtk_widget_show(vbox);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 5);
+
+	address_generate_button = gtk_button_new_with_label(" Generate ");
+	gtk_signal_connect(GTK_OBJECT(address_generate_button), 
+		"clicked",
+		 GTK_SIGNAL_FUNC(on_address_generate),
+		 NULL);
+	gtk_widget_show(address_generate_button);
+	gtk_box_pack_start(GTK_BOX(vbox), address_generate_button, FALSE, FALSE, 0);
+
+	sdp_generate_button = gtk_button_new_with_label(" Generate ");
+	gtk_signal_connect(GTK_OBJECT(sdp_generate_button), 
+		"clicked",
+		 GTK_SIGNAL_FUNC(on_sdp_generate),
+		 NULL);
+	gtk_widget_show(sdp_generate_button);
+	gtk_box_pack_end(GTK_BOX(vbox), sdp_generate_button, FALSE, FALSE, 0);
+
+	// do these now so other widget sensitivies will be changed appropriately
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(unicast_button), !isMcast);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(mcast_button), isMcast);
+
+	// Add standard buttons at bottom
+	button = AddButtonToDialog(dialog,
+		" OK ", 
+		GTK_SIGNAL_FUNC(on_ok_button));
+	GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+
+	AddButtonToDialog(dialog,
+		" Cancel ", 
+		GTK_SIGNAL_FUNC(on_cancel_button));
+
+	gtk_widget_show(dialog);
+	gtk_grab_add(dialog);
 }
 
 /* end transmit_dialog.cpp */

@@ -96,11 +96,11 @@ void CRawRecorder::DoStopRecord()
 
 void CRawRecorder::DoWriteFrame(CMediaFrame* pFrame)
 {
-	if (pFrame->GetType() == CMediaFrame::PcmAudioFrame) {
+	if (pFrame->GetType() == CMediaFrame::PcmAudioFrame && m_pcmFile != -1) {
 		write(m_pcmFile, pFrame->GetData(), pFrame->GetDataLength());
 	}
 
-	if (pFrame->GetType() == CMediaFrame::YuvVideoFrame) {
+	if (pFrame->GetType() == CMediaFrame::YuvVideoFrame && m_yuvFile != -1) {
 		write(m_yuvFile, pFrame->GetData(), pFrame->GetDataLength());
 	}
 

@@ -175,6 +175,9 @@ int quicktime_set_mp4_video_decoder_config(quicktime_t *file, int track, u_char*
 int quicktime_get_mp4_audio_decoder_config(quicktime_t *file, int track, u_char** ppBuf, int* pBufSize);
 int quicktime_set_mp4_audio_decoder_config(quicktime_t *file, int track, u_char* pBuf, int bufSize);
 
+char* quicktime_get_session_sdp(quicktime_t *file);
+int quicktime_set_session_sdp(quicktime_t *file, char* sdpString);
+
 int quicktime_add_audio_sdp(quicktime_t *file, char* sdpString, int track, int hintTrack);
 
 int quicktime_add_video_sdp(quicktime_t *file, char* sdpString, int track, int hintTrack);

@@ -546,6 +546,7 @@ typedef struct
 	int name_len;
 	char *info;
 	int info_len;
+	quicktime_hnti_t hnti;
 } quicktime_udta_t;
 
 

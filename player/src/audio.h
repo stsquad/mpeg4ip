@@ -63,6 +63,7 @@ class CAudioSync {
   size_t m_fill_index, m_play_index;
   volatile int m_buffer_filled[DECODE_BUFFERS_MAX];
   uint64_t m_buffer_time[DECODE_BUFFERS_MAX];
+  uint64_t m_last_fill_timestamp;
   uint64_t m_play_time;
   SDL_AudioSpec m_obtained;
   unsigned char *m_sample_buffer[DECODE_BUFFERS_MAX];
@@ -76,12 +77,14 @@ class CAudioSync {
   int m_consec_no_buffers;
   int m_audio_waiting_buffer;
   int m_eof_found;
+  int m_use_SDL_delay;
   size_t m_resync_buffer;
   SDL_sem *m_sync_sem, *m_audio_waiting;
   CPlayerSession *m_psptr;
   size_t m_skipped_buffers;
   size_t m_didnt_fill_buffers;
   int m_first_time;
+  int m_first_filled;
   size_t m_msec_per_frame;
   uint64_t m_buffer_latency;
   int m_consec_wrong_latency;

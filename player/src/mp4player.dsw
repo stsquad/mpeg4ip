@@ -30,6 +30,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "bitstream"=..\..\lib\bitstream\bitstream.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "common"=..\lib\rtp\common.dsp - Package Owner=<4>
 
 Package=<5>
@@ -42,7 +54,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libavi"=..\..\SERVER\LIB\AVI\libavi.dsp - Package Owner=<4>
+Project: "libavi"=..\..\lib\avi\libavi.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -223,6 +235,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libavi
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name bitstream
     End Project Dependency
 }}}
 

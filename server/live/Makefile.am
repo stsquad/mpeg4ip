@@ -9,12 +9,15 @@ mp4live_SOURCES = \
 	media_node.h \
 	audio_source.cpp \
 	audio_source.h \
+	mp3.cpp \
 	mp4_recorder.cpp \
 	mp4_recorder.h \
+	mpeg4vhdr.cpp \
 	raw_recorder.cpp \
 	raw_recorder.h \
 	rtp_transmitter.cpp \
 	rtp_transmitter.h \
+	sdp_file.cpp \
 	video_source.cpp \
 	video_source.h \
 	timestamp.h \
