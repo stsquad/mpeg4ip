@@ -22,7 +22,13 @@
 
 #include "mp4live.h"
 #include "file_mp4_recorder.h"
+
+#ifdef HAVE_LINUX_VIDEODEV2_H
+#include "video_v4l2_source.h"
+#else
 #include "video_v4l_source.h"
+#endif
+
 #include "audio_encoder.h"
 
 int CMp4Recorder::ThreadMain(void) 
@@ -363,6 +369,12 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
         return;
       }
 
+      // make sure this frame was captured after the first audio frame
+      if (pFrame->GetTimestamp() < m_rawAudioStartTimestamp) {
+        if (pFrame->RemoveReference()) delete pFrame;
+        return;
+      }
+
       // if we're also recording encoded video
       if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO)) {
         // media source will send encoded video frame first
@@ -423,13 +435,20 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
       if (!m_canRecordEncodedVideo) {
         if (pFrame->RemoveReference()) delete pFrame;
         return;
-      } else {
-        if (! MP4AV_Mpeg4GetVopType((u_int8_t*)pFrame->GetData(),
-                                    pFrame->GetDataLength()) == 'I') {
-          if (pFrame->RemoveReference()) delete pFrame;
-          return;
-        }
       }
+
+      // make sure this frame was captured after the first audio frame
+      if (pFrame->GetTimestamp() < m_encodedAudioStartTimestamp) {
+        if (pFrame->RemoveReference()) delete pFrame;
+        return;
+      }
+
+      if (! MP4AV_Mpeg4GetVopType((u_int8_t*)pFrame->GetData(),
+                                  pFrame->GetDataLength()) == 'I') {
+        if (pFrame->RemoveReference()) delete pFrame;
+        return;
+      }
+
       m_encodedVideoStartTimestamp = pFrame->GetTimestamp();
       m_prevEncodedVideoFrame = pFrame;
       m_encodedVideoFrameNumber++;

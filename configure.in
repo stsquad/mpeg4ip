@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.9.2)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.9.3)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -40,15 +40,16 @@ AC_SUBST(CCASFLAGS)
 
 dnl Checks for libraries.
 
-AC_CHECK_LIB(sndfile, sf_open_read)
-AC_CHECK_LIB(sndfile, sf_open_read,
-	     [AM_CONDITIONAL(HAVE_LIBSNDFILE, true)],
-	     [AM_CONDITIONAL(HAVE_LIBSNDFILE, false)])
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_TIME
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
 AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h sys/time.h)
+use_mpeg4ip_xvid=false
+AC_CHECK_HEADER(xvid.h, [AC_DEFINE(HAVE_XVID_H, [1], [have xvid.h])], [use_mpeg4ip_xvid=true])
+
+AM_CONDITIONAL(USE_MPEG4IP_XVID, $use_mpeg4ip_xvid)
+
 dnl check for Sun, BSD/OS libraries
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(gnugetopt, getopt_long)
@@ -176,25 +177,42 @@ else
 fi
 
 AC_ARG_ENABLE(mp4live,
-[  --enable-mp4live       enable mp4live build on Linux [default=yes]],
-                  , enable_mp4live=yes)
-    if test x$enable_mp4live = xyes; then
-		case "$target" in
-		*-*-linux*)
-			AM_CONDITIONAL(MP4LIVE, true)
-                        AC_CHECK_HEADERS(linux/videodev2.h,
-                                        [AM_CONDITIONAL(HAVE_V4L2, true)],
-                                        [AM_CONDITIONAL(HAVE_V4L2, false)],
-                                        [#include <sys/time.h>
- #include <linux/videodev.h>])
-			;;
-		*)
-			AM_CONDITIONAL(MP4LIVE, false)
-			;;
-		esac
-	else
-		AM_CONDITIONAL(MP4LIVE, false)
-    fi
+              [  --enable-mp4live       enable mp4live build on Linux [default=yes]],
+              , enable_mp4live=yes)
+
+have_mp4live=false
+have_v4l2=false
+have_ffmpeg=false
+if test x$enable_mp4live = xyes; then
+   case "$target" in
+   *-*-linux*)
+	have_mp4live=true
+        AC_CHECK_HEADERS(linux/videodev2.h,
+			 [have_v4l2=true],
+			 [have_v4l2=false],
+                         [#include <sys/time.h>
+#include <linux/videodev.h>])
+	 AC_ARG_ENABLE(ffmpeg,
+		       [ --enable-ffmpeg=<directory>  enable ffmpeg for mp4live, and specify ffmpeg home directory],
+		       have_ffmpeg=true,
+		       have_ffmpeg=false)
+	;;
+    *)
+	;;
+   esac
+fi
+
+AM_CONDITIONAL(MP4LIVE, [test x$have_mp4live = xtrue])
+AM_CONDITIONAL(HAVE_V4L2, [test x$have_v4l2 = xtrue])
+if test x$have_ffmpeg = xtrue; then
+      AC_MSG_NOTICE([have enable ffmpeg $enable_ffmpeg])
+      FFMPEG_INC=-I${enable_ffmpeg}/libavcodec
+      FFMPEG_LIB=${enable_ffmpeg}/libavcodec/libavcodec.a
+   AC_SUBST(FFMPEG_INC)
+   AC_SUBST(FFMPEG_LIB)
+   AC_DEFINE(HAVE_FFMPEG, 1, [enable ffmpeg for mp4live])
+fi
+
 
 AC_ARG_ENABLE(ipv6,
 [   --enable-ipv6       enable IPv6],
@@ -233,19 +251,16 @@ AC_ARG_ENABLE(ppc,
               , 
 	      enable_ppc=yes)
 
+test_use_ppc=false
 if test x$enable_ppc = xyes; then
-case $target in
-*powerpc*) 
+   case $target in
+   *powerpc*) 
 	AC_DEFINE(ARCH_PPC, 1, [Power PC Architecture])
-        AM_CONDITIONAL(USE_PPC, true)
+	test_use_ppc=true
 	;;
-*)
-	AM_CONDITIONAL(USE_PPC, false)
-	;;
-esac
-else
-   AM_CONDITIONAL(USE_PPC, false)
+   esac
 fi
+AM_CONDITIONAL(USE_PPC, test x$test_use_ppc = xtrue)
 
 dnl read out glib and gtk paths and flags.  Will need to dummy this
 dnl out for a glibless system
@@ -289,6 +304,7 @@ AC_ARG_ENABLE(mmx,
               , 
 	      enable_mmx=yes)
 
+test_use_mmx=false
 if test x$enable_mmx = xyes; then
    AC_CHECK_PROG(USENASM, nasm, true, false)
 
@@ -307,7 +323,6 @@ if test x$enable_mmx = xyes; then
    fi
    if test x$USENASM = xtrue; then
         AC_PATH_PROG(NASM, nasm)
-        AM_CONDITIONAL(USE_MMX, true)
 	case $target in
 	i?86*)
 		CFLAGS="$CFLAGS -DUSE_MMX"
@@ -321,20 +336,14 @@ if test x$enable_mmx = xyes; then
 		  ;;
 		esac
 		AC_SUBST(NASMFLAGS)
-		AM_CONDITIONAL(USE_MMX, true)
+		test_use_mmx=true
 		arch_x86=:
 		AC_DEFINE(ARCH_X86, 1, [have intel processor])
 		;;
-	*)
-		AM_CONDITIONAL(USE_MMX, false)
-		;;
 	esac
-    else
-        AM_CONDITIONAL(USE_MMX, false)
     fi
-else
-    AM_CONDITIONAL(USE_MMX, false)
 fi
+AM_CONDITIONAL(USE_MMX, test x$test_use_mmx = xtrue)
 
 dnl Get SDL cflags and SDL libraries to include
 SDL_LIBS="`sh lib/SDL/sdl-config --libs | sed 's,-L.* -lSDL,\$(top_builddir)/lib/SDL/src/libSDL.la,'`"
@@ -421,8 +430,6 @@ AC_OUTPUT( \
 	common/video/libmpeg32/Makefile \
 	common/video/libmpeg32/video/Makefile \
 	server/Makefile \
-	server/audio/Makefile \
-	server/audio/faac/Makefile \
 	server/video/Makefile \
 	server/video/H26L/Makefile \
 	server/mp4live/Makefile \

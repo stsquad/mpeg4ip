@@ -665,7 +665,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
     default:
       if ((stream_id == 0xbd) ||
 	    (stream_id >= 0xf3 && stream_id <= 0xf7) ||
-	    (stream_id >= 0xf9 && stream_id <= 0xff)) {
+	    (stream_id >= 0xf9)) {
 	read_pes_options = 1;
 	break;
       }

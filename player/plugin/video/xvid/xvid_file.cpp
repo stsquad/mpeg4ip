@@ -24,7 +24,8 @@
  */
 #include "ourxvid.h"
 #include "xvid.h"
-#include "divx4.h"
+#include <mp4av.h>
+//#include "divx4.h"
 
 /*
  * xvid_find_header
@@ -82,6 +83,7 @@ static int xvid_reset_buffer (xvid_codec_t *xvid)
  * xvid_buffer_load
  * Make sure we have at least 1 full VOP frame in the buffer
  */
+
 static int xvid_buffer_load (xvid_codec_t *xvid, uint8_t *ftype) 
 {
   int next_hdr, left, value;
@@ -207,10 +209,6 @@ codec_data_t *xvid_file_check (lib_message_func_t message,
   xvid_param.cpu_flags = 0;
   xvid_init(NULL, 0, &xvid_param, NULL);
 
-  XVID_DEC_PARAM dec_param;
-  xvid_decore(NULL, XVID_DEC_ALLOC, &dec_param, NULL);
-  xvid->m_xvid_handle = dec_param.handle;
-
   xvid->m_decodeState = XVID_STATE_VO_SEARCH;
 
   xvid->m_ifile = fopen(name, FOPEN_READ_BINARY);
@@ -229,28 +227,49 @@ codec_data_t *xvid_file_check (lib_message_func_t message,
    */
   int havevol = 0;
   int nextframe;
+
   uint8_t ftype;
   nextframe = xvid_buffer_load(xvid, &ftype);
 
   do {
     if (havevol == 0) {
-      XVID_DEC_FRAME frame;
+      
+      uint8_t *volptr;
+      uint32_t vollen;
+      uint8_t timeBits;
+      uint16_t timeTicks, dur, width, height;
+
+      volptr = MP4AV_Mpeg4FindVol(xvid->m_buffer, xvid->m_buffer_size);
+      vollen = xvid->m_buffer_size - (volptr - xvid->m_buffer);
+      if (volptr == NULL ||
+	  (MP4AV_Mpeg4ParseVol(volptr, 
+			       vollen, 
+			       &timeBits, 
+			       &timeTicks,
+			       &dur,
+			       &width,
+			       &height) == false)) {
+	xvid_clean_up(xvid);
+	return NULL;
+      }
+
       XVID_DEC_PARAM param;
-
-      frame.bitstream = (void *)&xvid->m_buffer[xvid->m_buffer_on];
-      frame.length = xvid->m_buffer_size - xvid->m_buffer_on;
-
-      int ret = xvid_decore(xvid->m_xvid_handle,
-			    XVID_DEC_FIND_VOL,
-			    &frame, 
-			    &param);
+      param.width = width;
+      param.height = height;
+      xvid->m_width = width;
+      xvid->m_height = height;
+      int ret = xvid_decore(NULL,
+			    XVID_DEC_CREATE,
+			    &param,
+			    NULL);
       if (ret == XVID_ERR_OK) {
 	havevol = 1;
 	message(LOG_DEBUG, "xvid", "Found vol in xvid file");
 	// we really need the frames per second from the timestamps...
+	xvid->m_xvid_handle = param.handle;
 	xvid->m_buffer_on = nextframe;
-      } else
-	xvid->m_buffer_on = xvid->m_buffer_size - 3;
+      } 
+      //      xvid->m_buffer_on = xvid->m_buffer_size - 3;
     } else {
       // If we have an I_VOP, mark it.
       if (ftype == 0) {

@@ -1,14 +1,12 @@
 SUBDIRS = bitstream dct image motion prediction quant utils
 
-noinst_LTLIBRARIES = libxvid.la
-
-libxvid_la_LDFLAGS = -static
+lib_LTLIBRARIES = libmpeg4ip_xvid.la
 
 AM_CFLAGS= -O3
 
 INCLUDES=-I../../include
 
-libxvid_la_SOURCES = \
+libmpeg4ip_xvid_la_SOURCES = \
 	decoder.h \
 	decoder.c \
 	divx4.h \
@@ -20,7 +18,7 @@ libxvid_la_SOURCES = \
 	xvid.h \
 	xvid.c
 
-libxvid_la_LIBADD = \
+libmpeg4ip_xvid_la_LIBADD = \
 	bitstream/libxvidbitstream.la \
 	dct/libxviddct.la \
 	image/libxvidimage.la \

@@ -110,6 +110,7 @@ CH261Encoder::CH261Encoder() :
   m_head = NULL;
   frame_data_ = NULL;
   m_framesEncoded = 0;
+  m_localbuffer = NULL;
 	for (int q = 0; q < 32; ++q) {
 		llm_[q] = 0;
 		clm_[q] = 0;
@@ -121,6 +122,7 @@ void CH261Encoder::Stop(void)
 		if (llm_[q] != 0) delete[] llm_[q];
 		if (clm_[q] != 0) delete[] clm_[q];
 	}
+	CHECK_AND_FREE(m_localbuffer);
 }
 
 CH261PixelEncoder::CH261PixelEncoder() : CH261Encoder(), 
@@ -652,14 +654,24 @@ CH261PixelEncoder::EncodeImage(uint8_t *pY,
   uint32_t y;
   uint8_t *pFrame;
   // check if everything is all together
+  pFrame = pY;
   if (yStride != width_ ||
       uvStride != (width_ / 2) ||
       pY + framesize_ != pU ||
       pU + (framesize_ / 4) != pV) {
     // for now... later - just copy
-    abort();
+    if (m_localbuffer == NULL) {
+      m_localbuffer = (uint8_t *)malloc(framesize_ + (framesize_ / 2));
+    }
+    if (yStride == width_) {
+      memcpy(m_localbuffer, pY, framesize_);
+      memcpy(m_localbuffer + framesize_, pU, framesize_ / 4);
+      memcpy(m_localbuffer + framesize_ + framesize_ / 4, pV, framesize_ / 4);
+    } else {
+      abort();
+    }
+    pFrame = m_localbuffer;
   }
-  pFrame = pY;
 
   // check if we should adjust quality
   if (m_framesEncoded == 0) {

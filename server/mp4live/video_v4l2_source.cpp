@@ -647,12 +647,14 @@ bool CVideoCapabilities::ProbeDevice()
     }
     m_inputNames[i] = stralloc((char*)input.name);
 
+    error_message("type %d %s type %x", i, m_inputNames[i], input.type);
     if (input.type == V4L2_INPUT_TYPE_TUNER) {
+      error_message("Has tuner");
       m_inputHasTuners[i] = true;
 
-      if (input.std & V4L2_STD_PAL) m_inputTunerSignalTypes[i] &= 0x1;
-      if (input.std & V4L2_STD_NTSC) m_inputTunerSignalTypes[i] &= 0x2;
-      if (input.std & V4L2_STD_SECAM) m_inputTunerSignalTypes[i] &= 0x4;
+      if (input.std & V4L2_STD_PAL) m_inputTunerSignalTypes[i] |= 0x1;
+      if (input.std & V4L2_STD_NTSC) m_inputTunerSignalTypes[i] |= 0x2;
+      if (input.std & V4L2_STD_SECAM) m_inputTunerSignalTypes[i] |= 0x4;
     }
   }
 

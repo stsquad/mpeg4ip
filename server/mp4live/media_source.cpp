@@ -48,6 +48,7 @@ CMediaSource::CMediaSource()
   m_source = false;
   m_sourceVideo = false;
   m_sourceAudio = false;
+  m_maxAheadDuration = TimestampTicks / 20;    // 50 msec
 
   m_videoSource = this;
   m_videoSrcYImage = NULL;
@@ -354,27 +355,28 @@ void CMediaSource::ProcessVideoYUVFrame(
                 m_videoEncodingDrift);
 #endif
 
-  // check if source is falling behind
+  // destination gets ahead of source
   // drop src frames as needed to match target frame rate
-  if (m_videoDstElapsedDuration > m_videoSrcElapsedDuration + m_videoDstFrameDuration) {
+  if (m_videoSrcElapsedDuration + m_videoDstFrameDuration < m_videoDstElapsedDuration) {
     debug_message("video: dropping frame, SrcElapsedDuration=%llu DstElapsedDuration=%llu",
                   m_videoSrcElapsedDuration, m_videoDstElapsedDuration);
     return;
   }
 
-  // check if destination is falling behind
-  if (m_sourceRealTime) {
-    // check our duration against destination duration,
-    // calculated for destination frame rate
-    Duration lag = m_videoSrcElapsedDuration - m_videoDstElapsedDuration;
-    if (lag >= m_videoDstFrameDuration) {
-      m_videoDstFrameNumber += (lag / m_videoDstFrameDuration) + 1;
-      m_videoDstElapsedDuration = VideoDstFramesToDuration();
-      debug_message("video: destination falling behind, advancing by %d frames: source=%llu destination=%llu",
-                    (int)(lag / m_videoDstFrameDuration),
-                    m_videoSrcElapsedDuration, m_videoDstElapsedDuration);
-    }
+  Duration lag = m_videoSrcElapsedDuration - m_videoDstElapsedDuration;
 
+  // source gets ahead of destination
+  if (lag > 3 * m_videoDstFrameDuration) {
+    int j = (lag - (2 * m_videoDstFrameDuration)) / m_videoDstFrameDuration;
+    m_videoDstFrameNumber += j;
+    m_videoDstElapsedDuration = VideoDstFramesToDuration();
+    debug_message("video: advancing dst by %d frames", j);
+  }
+
+  // Disabled since we are not taking into account audio drift anymore
+  // and the new algorithm automatically factors in any drift due
+  // to video encoding
+  /*
     // add any external drift (i.e. audio encoding drift)
     //to our drift measurement
     m_videoEncodingDrift += m_otherTotalDrift - m_otherLastTotalDrift;
@@ -395,13 +397,13 @@ void CMediaSource::ProcessVideoYUVFrame(
 
       return;
     }
-  }
+  */
 
   m_videoEncodedFrames++;
   m_videoDstFrameNumber++;
   m_videoDstElapsedDuration = VideoDstFramesToDuration();
 
-  Timestamp encodingStartTimestamp = GetTimestamp();
+  //Timestamp encodingStartTimestamp = GetTimestamp();
 
   // this will either never happen (live capture)
   // or just happen once at startup when we discover
@@ -475,7 +477,6 @@ void CMediaSource::ProcessVideoYUVFrame(
     m_videoWantKeyFrame = false;
   }
 
-
   // forward encoded video to sinks
   if (m_pConfig->m_videoEncode) {
     m_videoEncoder->GetEncodedImage(&m_videoDstPrevFrame,
@@ -543,6 +544,8 @@ void CMediaSource::ProcessVideoYUVFrame(
     ForwardFrame(pFrame);
   }
 
+  // Disabled since we are not taking into account audio drift anymore
+  /*
   // update the video encoding drift
   if (m_sourceRealTime) {
     Duration drift = GetTimestamp() - encodingStartTimestamp;
@@ -557,6 +560,7 @@ void CMediaSource::ProcessVideoYUVFrame(
       }
     }
   }
+  */
 
   if (mallocedYuvImage) free(mallocedYuvImage);
 }
@@ -621,7 +625,6 @@ bool CMediaSource::InitAudio(
 
   m_audioSrcElapsedDuration = 0;
   m_audioDstElapsedDuration = 0;
-  m_audioEncodingElapsedDuration = 0;
 
   return true;
 }
@@ -720,17 +723,30 @@ void CMediaSource::ProcessAudioFrame(
     if (!m_sourceVideo || m_videoSrcFrameNumber == 0) {
       m_encodingStartTimestamp = GetTimestamp();
     }
-  } 
-
-  if (m_audioDstFrameNumber == 0) {
     m_audioStartTimestamp = srcFrameTimestamp;
 #ifdef DEBUG_AUDIO_SYNC
     debug_message("m_audioStartTimestamp = %llu", m_audioStartTimestamp);
 #endif
   }
 
+  if (m_audioDstFrameNumber == 0) {
+    // we wait until we see the first encoded frame.
+    // this is because encoders usually buffer the first few
+    // raw audio frames fed to them, and this number varies
+    // from one encoder to another
+    m_audioEncodingStartTimestamp = srcFrameTimestamp;
+  }
+
+  // we calculate audioSrcElapsedDuration by taking the current frame's
+  // timestamp and subtracting the audioEncodingStartTimestamp (and NOT
+  // the audioStartTimestamp).
+  // this way, we just need to compare audioSrcElapsedDuration with 
+  // audioDstElapsedDuration (which should match in the ideal case),
+  // and we don't have to compensate for the lag introduced by the initial
+  // buffering of source frames in the encoder, which may vary from
+  // one encoder to another
+  m_audioSrcElapsedDuration = srcFrameTimestamp - m_audioEncodingStartTimestamp;
   m_audioSrcFrameNumber++;
-  m_audioSrcElapsedDuration = srcFrameTimestamp - m_audioStartTimestamp;
 
   if (resync) {
     // flush preEncodingBuffer
@@ -837,14 +853,24 @@ void CMediaSource::ProcessAudioFrame(
                   m_audioEncodingElapsedDuration);
 #endif
 
-    // destination goes ahead by more than one frame
+    // destination gets ahead of source
+    // This has been observed as a result of clock frequency drift between
+    // the sound card oscillator and the system mainbord oscillator
+    // Example: If the sound card oscillator has a 'real' frequency that
+    // is slightly larger than the 'rated' frequency, and we are sampling
+    // at 32kHz, then the 32000 samples acquired from the sound card
+    // 'actually' occupy a duration of slightly less than a second.
+    // 
+    // The clock drift is usually fraction of a Hz and takes a long
+    // time (~ 20-30 minutes) before we are off by one frame duration
+
     if (m_audioSrcElapsedDuration + frametime < m_audioDstElapsedDuration) {
       debug_message("audio: dropping frame, SrcElapsedDuration=%llu DstElapsedDuration=%llu",
                     m_audioSrcElapsedDuration, m_audioDstElapsedDuration);
       return;
     }
 
-    // source goes ahead by more than one frame
+    // source gets ahead of destination
     // We tolerate a difference of 3 frames since A/V sync is usually
     // noticeable after that. This way we give the encoder a chance to pick up
     if (m_audioSrcElapsedDuration > (3 * frametime) + m_audioDstElapsedDuration) {
@@ -869,6 +895,7 @@ void CMediaSource::ProcessAudioFrame(
       return;
     }
 
+    // Disabled since we are not taking into account audio drift anymore
     /*
     Duration encodingTime =  (GetTimestamp() - encodingStartTimestamp);
     if (m_sourceRealTime && m_videoSource) {

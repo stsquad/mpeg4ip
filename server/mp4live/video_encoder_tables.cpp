@@ -75,6 +75,25 @@ const video_encoder_table_t video_encoder_table[] = {
     mpeg4SizeNames,
     mpeg4SizeNames
   },
+#ifdef HAVE_FFMPEG
+  { 
+    "Mpeg4 - ffmpeg",
+    VIDEO_ENCODING_MPEG4,
+    VIDEO_ENCODER_FFMPEG,
+    MPEG4_SIZES - 2, // can't use last 2 sizes
+    MPEG4_SIZES,
+    MPEG4_SIZES,
+    mpeg4SizeWidthValues,
+    mpeg4SizeWidthValues,
+    mpeg4SizeWidthValues,
+    mpeg4SizeHeightValues,
+    mpeg4SizeHeightValues,
+    mpeg4SizeHeightValues,
+    mpeg4SizeNames,
+    mpeg4SizeNames,
+    mpeg4SizeNames
+  },
+#endif
   {
     "H261",
     VIDEO_ENCODING_H261,

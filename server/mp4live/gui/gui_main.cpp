@@ -183,8 +183,9 @@ void DisplayVideoSettings(void)
 		MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)
 		&& MyConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW));
 
-	snprintf(buffer, sizeof(buffer), " %s at %u kbps",
+	snprintf(buffer, sizeof(buffer), " %s(%s) at %u kbps",
 		 MyConfig->GetStringValue(CONFIG_VIDEO_ENCODING),
+		 MyConfig->GetStringValue(CONFIG_VIDEO_ENCODER),
 		 MyConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE));
 	gtk_label_set_text(GTK_LABEL(video_settings_label1), buffer);
 	gtk_widget_show(video_settings_label1);
@@ -1376,7 +1377,13 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 	gtk_window_set_policy(GTK_WINDOW(main_window), FALSE, FALSE, TRUE);
 
 	char buffer[80];
-	snprintf(buffer, sizeof(buffer), "cisco %s %s", argv[0], VERSION);
+	snprintf(buffer, sizeof(buffer), "cisco %s %s %s", argv[0], VERSION,
+#ifdef HAVE_LINUX_VIDEODEV2_H
+		 "V4L2"
+#else
+		 "V4L"
+#endif
+		 );
 	gtk_window_set_title(GTK_WINDOW(main_window), buffer);
 	gtk_signal_connect(GTK_OBJECT(main_window),
 		"delete_event",

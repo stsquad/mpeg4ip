@@ -28,7 +28,6 @@
 #include <gnu/strcasestr.h>
 #include <mp4v2/mp4.h>
 #include <xvid.h>
-#include <divx4.h>
 #include <mp4av/mp4av.h>
 
 #define xvid_message (xvid->m_vft->log_msg)
@@ -44,12 +43,12 @@ static char tohex (char a)
 // Parse the format config passed in.  This is the vo vod header
 // that we need to get width/height/frame rate
 static int parse_vovod (xvid_codec_t *xvid,
-			const char *vovod,
+			char *vovod,
 			int ascii,
 			uint32_t len)
 {
   unsigned char buffer[255];
-  const char *bufptr;
+  uint8_t *bufptr;
   int ret;
 
   if (ascii == 1) {
@@ -81,28 +80,54 @@ static int parse_vovod (xvid_codec_t *xvid,
       write++;
     }
     len /= 2;
-    bufptr = (const char *)buffer;
+    bufptr = buffer;
   } else {
-    bufptr = vovod;
+    bufptr = (uint8_t *)vovod;
   }
-  
+
+  uint8_t *volptr;
+  uint32_t vollen;
+  volptr = MP4AV_Mpeg4FindVol(bufptr, len);
+  if (volptr == NULL) {
+    return 0;
+  }
+  vollen = len - (volptr - bufptr);
+
+  uint8_t timeBits;
+  uint16_t timeTicks, dur, width, height;
+
+  if (MP4AV_Mpeg4ParseVol(volptr, 
+			  vollen, 
+			  &timeBits, 
+			  &timeTicks,
+			  &dur,
+			  &width,
+			  &height) == false) {
+    return 0;
+  }
+
   // Get the VO/VOL header.  If we fail, set the bytestream back
   ret = 0;
-  XVID_DEC_FRAME frame;
   XVID_DEC_PARAM param;
-  frame.bitstream = (void *)bufptr;
-  frame.length = len;
-  ret = xvid_decore(xvid->m_xvid_handle, XVID_DEC_FIND_VOL,
-		    &frame, &param);
+  param.width = width;
+  param.height = height;
 
+  ret = xvid_decore(NULL, XVID_DEC_CREATE,
+		    &param, NULL);
   if (ret == XVID_ERR_OK) {
-    xvid_message(LOG_DEBUG, "xvid", "found vol %d %d", 
-		 param.width, param.height);
+    xvid->m_xvid_handle = param.handle;
     xvid->m_vft->video_configure(xvid->m_ifptr, 
 				 param.width,
 				 param.height,
 				 VIDEO_FORMAT_YUV);
   }
+  // we need to then run the VOL through the decoder.
+  XVID_DEC_FRAME frame;
+  frame.bitstream = (void *)volptr;
+  frame.length = vollen;
+  frame.colorspace = XVID_CSP_USER;
+  xvid_decore(xvid->m_xvid_handle, XVID_DEC_DECODE, &frame, NULL);
+  
   return ret;
 }
 
@@ -128,11 +153,6 @@ static codec_data_t *xvid_create (const char *compressor,
   xvid_param.cpu_flags = 0;
   xvid_init(NULL, 0, &xvid_param, NULL);
 
-  XVID_DEC_PARAM dec_param;
-
-  xvid_decore(NULL, XVID_DEC_ALLOC, &dec_param, NULL);
-  xvid->m_xvid_handle = dec_param.handle;
-
   xvid->m_decodeState = XVID_STATE_VO_SEARCH;
   if (media_fmt != NULL && media_fmt->fmt_param != NULL) {
     // See if we can decode a passed in vovod header
@@ -140,7 +160,7 @@ static codec_data_t *xvid_create (const char *compressor,
       xvid->m_decodeState = XVID_STATE_WAIT_I;
     }
   } else if (userdata != NULL) {
-    if (parse_vovod(xvid, (const char *)userdata, 0, ud_size) == XVID_ERR_OK) {
+    if (parse_vovod(xvid, (char *)userdata, 0, ud_size) == XVID_ERR_OK) {
       xvid->m_decodeState = XVID_STATE_WAIT_I;
     }
   } 
@@ -149,6 +169,7 @@ static codec_data_t *xvid_create (const char *compressor,
   xvid->m_num_wait_i = 0;
   xvid->m_num_wait_i_frames = 0;
   xvid->m_total_frames = 0;
+  xvid_message(LOG_DEBUG, "xvid", "created xvid");
   return ((codec_data_t *)xvid);
 }
 
@@ -237,41 +258,8 @@ static int xvid_decode (codec_data_t *ptr,
 #endif
   xvid->m_total_frames++;
 
-  frame.bitstream = buffer;
-  frame.length = buflen;
   
   switch (xvid->m_decodeState) {
-  case XVID_STATE_VO_SEARCH:
-    XVID_DEC_PARAM param;
-    ret = xvid_decore(xvid->m_xvid_handle, 
-		      XVID_DEC_FIND_VOL,
-		      &frame,
-		      &param);
-
-    if (ret == XVID_ERR_OK) {
-	xvid->m_decodeState = XVID_STATE_WAIT_I;
-	xvid->m_vft->video_configure(xvid->m_ifptr, 
-				     param.width,
-				     param.height,
-				     VIDEO_FORMAT_YUV);
-    } else {
-      xvid_decore(xvid->m_xvid_handle, XVID_DEC_DESTROY, NULL, NULL);
-
-      xvid->m_xvid_handle = NULL;
-      XVID_DEC_PARAM dec_param;
-      dec_param.width = xvid->m_vinfo->width;
-      dec_param.height = xvid->m_vinfo->height;
-      xvid_decore(NULL, XVID_DEC_CREATE, &dec_param, NULL);
-
-      xvid->m_xvid_handle = dec_param.handle;
-
-      xvid->m_vft->video_configure(xvid->m_ifptr, 
-				   xvid->m_vinfo->width,
-				   xvid->m_vinfo->height,
-				   VIDEO_FORMAT_YUV);
-      xvid->m_decodeState = XVID_STATE_NORMAL;
-    } 
-    break;
   case XVID_STATE_WAIT_I:
     do_wait_i = 1;
     break;
@@ -279,11 +267,20 @@ static int xvid_decode (codec_data_t *ptr,
     break;
   }
   
+  frame.bitstream = buffer;
+  frame.length = buflen;
   frame.colorspace = XVID_CSP_USER;
-  DEC_PICTURE decpict;
+  XVID_DEC_PICTURE decpict;
   frame.image = &decpict;
 
   ret = xvid_decore(xvid->m_xvid_handle, XVID_DEC_DECODE, &frame, NULL);
+  if (xvid->m_decodeState == XVID_STATE_VO_SEARCH) {
+    xvid->m_vft->video_configure(xvid->m_ifptr, 
+				 xvid->m_width,
+				 xvid->m_height,
+				 VIDEO_FORMAT_YUV);
+    xvid->m_decodeState = XVID_STATE_NORMAL;
+  }
 
   if (ret == XVID_ERR_OK) {
     xvid->m_vft->video_have_frame(xvid->m_ifptr,
@@ -291,7 +288,7 @@ static int xvid_decode (codec_data_t *ptr,
 				  (const uint8_t *)decpict.u,
 				  (const uint8_t *)decpict.v,
 				  decpict.stride_y,
-				  decpict.stride_uv,
+				  decpict.stride_u,
 				  ts);
     ret = frame.length;
   } else {

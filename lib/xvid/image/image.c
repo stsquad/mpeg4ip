@@ -501,7 +501,7 @@ int image_output(IMAGE * image, uint32_t width, int height, uint32_t edged_width
                 ((DEC_PICTURE*)dst)->u = image->u;
                 ((DEC_PICTURE*)dst)->v = image->v;
                 ((DEC_PICTURE*)dst)->stride_y = edged_width;
-                ((DEC_PICTURE*)dst)->stride_uv = edged_width/2;
+                ((DEC_PICTURE*)dst)->stride_u = edged_width/2;
                 return 0;
                                  
 	case XVID_CSP_NULL :

@@ -8,12 +8,12 @@ found_libfaac=no
 for i in `cat $1`
 do
   word=`echo $i | tr '[a-z]' '[A-Z]'`
-  if test $found_libfaac == 'no'; then
-     if test $word == "LIBFAAC"; then
+  if test $found_libfaac = 'no'; then
+     if test $word = "LIBFAAC"; then
         found_libfaac=yes
      fi
   else
-     if test $word == "VERSION"; then
+     if test $word = "VERSION"; then
         echo "yes"
         exit 0
      fi

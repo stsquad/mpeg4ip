@@ -377,7 +377,23 @@ int rtsp_is_url_my_stream (rtsp_session_t *session,
   return (is_match);
 }
 
-struct in_addr get_server_ip_address (rtsp_session_t *session)
+struct in_addr rtsp_get_server_ip_address (rtsp_session_t *session)
 {
   return session->parent->server_addr;
+}
+
+//  dan works for IPv6 servers
+char  *rtsp_get_server_ip_address_string(rtsp_session_t *session)
+{ 
+  char *str = NULL;
+  str = (char *)malloc(INET6_ADDRSTRLEN +1);
+
+  if ( inet_ntop(session->parent->addr_info->ai_family, 
+		 &(((struct sockaddr_in6 *)session->parent->addr_info->ai_addr))->sin6_addr, 
+		 str, 
+		 INET6_ADDRSTRLEN) != NULL) {
+    return str; 
+  } 
+  strcpy(str, "oops");
+  return str; 
 }

@@ -30,6 +30,14 @@ else
   ed1= video_v4l2_source.cpp video_v4l2_source.h
 endif
 
+if USE_MPEG4IP_XVID
+  XVID_LIB=$(top_builddir)/lib/xvid/libmpeg4ip_xvid.la
+  XVID_INC=-I$(top_srcdir)/lib/xvid
+else
+  XVID_LIB=-lxvidcore
+  XVID_INC=
+endif
+
 libmp4live_la_LDFLAGS = -static
 libmp4live_la_SOURCES = \
 	audio_encoder_base.cpp \
@@ -78,6 +86,8 @@ libmp4live_la_SOURCES = \
 	video_encoder.h \
 	video_encoder_base.h \
 	video_encoder_base.cpp \
+	video_ffmpeg.cpp \
+	video_ffmpeg.h \
 	video_xvid.h \
 	video_xvid.cpp 
 
@@ -102,12 +112,13 @@ INCLUDES=\
 	-I$(top_srcdir)/lib/rtp \
 	-I$(top_srcdir)/lib/sdp \
 	-I$(top_srcdir)/lib \
-	-I$(top_srcdir)/lib/xvid \
+	$(XVID_INC) \
 	-I$(top_srcdir)/server/video/H26L \
 	-I$(top_srcdir)/common/video/libmpeg32 \
 	-I$(top_srcdir)/player/lib \
 	-I$(top_srcdir)/player/src \
-	-I./h261
+	-I./h261 \
+	@FFMPEG_INC@
 
 AM_CXXFLAGS = -DADD_XVID_ENCODER \
 	-DADD_LAME_ENCODER -DADD_FAAC_ENCODER \
@@ -117,9 +128,10 @@ mp4live_LDADD = \
 	@GTK_LIBS@ @GLIB_LIBS@ \
 	$(GUIADD) \
 	libmp4live.la \
+	@FFMPEG_LIB@ \
 	-lfaac \
 	-lmp3lame \
-	$(top_builddir)/lib/xvid/libxvid.la \
+	$(XVID_LIB) \
 	$(top_builddir)/server/video/H26L/libh26lenc.la \
 	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \

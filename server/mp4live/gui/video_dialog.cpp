@@ -23,7 +23,13 @@
 #define __STDC_LIMIT_MACROS
 #include "mp4live.h"
 #include "mp4live_gui.h"
+
+#ifdef HAVE_LINUX_VIDEODEV2_H
+#include "video_v4l2_source.h"
+#else
 #include "video_v4l_source.h"
+#endif
+
 
 static GtkWidget *dialog;
 

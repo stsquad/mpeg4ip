@@ -346,6 +346,11 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
      * process the transport they sent.  They need to send port numbers, 
      * addresses, rtptime information, that sort of thing
      */
+    if (m_source_addr == NULL) {
+      m_source_addr = rtsp_get_server_ip_address_string(m_rtsp_session);
+      media_message(LOG_INFO, "setting default source address from rtsp %s", m_source_addr);
+    }
+
     if (process_rtsp_transport(decode->transport) != 0) {
       snprintf(errmsg, errlen, "Couldn't process transport information in RTSP response: %s", decode->transport);
       free_decode_response(decode);
@@ -546,10 +551,7 @@ int CPlayerMedia::do_play (double start_time_offset,
 	    start_time_offset > range->range_end) 
 	  start_time_offset = range->range_start;
 	// need to check for smpte
-	uint64_t stime = (uint64_t)(start_time_offset * 1000.0);
-	uint64_t etime = (uint64_t)(range->range_end * 1000.0);
-	sprintf(buffer, "npt="LLU"."LLU"-"LLU"."LLU, 
-		stime / 1000, stime % 1000, etime / 1000, etime % 1000);
+	sprintf(buffer, "npt=%g-%g", start_time_offset, range->range_end);
 	cmd.range = buffer;
 
 	if (rtsp_send_play(m_rtsp_session, &cmd, &decode) != 0) {
@@ -579,7 +581,7 @@ int CPlayerMedia::do_play (double start_time_offset,
       }
       if (m_source_addr == NULL) {
 	// get the ip address of the server from the rtsp stack
-	m_source_addr = strdup(inet_ntoa(get_server_ip_address(m_rtsp_session)));
+	m_source_addr = rtsp_get_server_ip_address_string(m_rtsp_session);
 	media_message(LOG_INFO, "Setting source address from rtsp - %s", 
 		      m_source_addr);
       }

@@ -124,12 +124,15 @@ make install (needs root privileges).<br>
 </code>
 </blockquote>
 <P>
-We no longer include lame in our distribution; however, we require
-lame version 3.92 or later for mp4live.  This may change at some point, 
+We no longer include lame or faac in our distribution; however, we require
+lame version 3.92 or later for mp4live and faac as of version 1.20.1.  This may change at some point, 
 but for now, it is required.  If you wish to make without mp4live, you 
 can give the <code>--disable-mp4live</code> or <code>--disable-server</code> arguments.  Neither
 the bootstrap or cvs_bootstrap scripts will allow you to build without
 lame installed or one of the above arguments.
+<P>
+We also support ffmpeg as an optional mpeg4 encoder for mp4live.  To do this, 
+enter the argument<code>--enable-ffmpeg=directory</code> to the bootstrap or cvs_bootstrap.  <code>directory</code> is required and must be the absolute path to where the ffmpeg code has been compiled - do not use ~.  We've tested with ffmpeg version 0.4.7.
 <P>
 If you don't have root privileges, but still wish to install the 
 distribution to a directory to which you do have write permission,

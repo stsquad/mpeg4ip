@@ -36,13 +36,17 @@
 #include "video_h26l.h"
 #endif
 
+#ifdef HAVE_FFMPEG
+#include "video_ffmpeg.h"
+#endif
+
 #include "h261/encoder-h261.h"
 #include "rtp_transmitter.h"
 CVideoEncoder* VideoEncoderCreateBase(CLiveConfig *pConfig)
 {
   const char *encoderName = pConfig->GetStringValue(CONFIG_VIDEO_ENCODER);
 	if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
-#ifdef ADD_FFMPEG_ENCODER
+#ifdef HAVE_FFMPEG
 		return new CFfmpegVideoEncoder();
 #else
 		error_message("ffmpeg encoder not available in this build");

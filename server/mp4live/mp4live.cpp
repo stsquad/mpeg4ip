@@ -189,7 +189,13 @@ int main(int argc, char** argv)
 	// other cases:
 
 	SetupRealTimeFeatures(pConfig);
-
+	error_message("%s version %s %s\n", argv[0], VERSION,
+#ifdef HAVE_LINUX_VIDEODEV2_H
+		      "V4L2"
+#else
+		      "V4L"
+#endif
+		      );
 #ifndef HAVE_GTK
 	rc = nogui_main(pConfig);
 #else

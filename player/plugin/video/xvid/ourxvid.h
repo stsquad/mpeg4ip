@@ -50,6 +50,7 @@ typedef struct xvid_codec_t {
   video_info_t *m_vinfo;
   int m_short_headers;
   void *m_xvid_handle;
+  uint32_t m_width, m_height;
 } xvid_codec_t;
 
 #define m_vft c.v.video_vft

@@ -159,6 +159,9 @@ void initialize_plugins (void)
 #endif
     if (handle != NULL) {
       cptr = (codec_plugin_t *)DLL_GET_SYM(handle, "mpeg4ip_codec_plugin");
+      if (cptr == NULL) {
+	cptr = (codec_plugin_t *)DLL_GET_SYM(handle, "_mpeg4ip_codec_plugin");
+      }
       if (cptr != NULL) {
 	if (strcmp(cptr->c_version, PLUGIN_VERSION) == 0) {
 	  codec_plugin_list_t *p;
@@ -190,6 +193,9 @@ void initialize_plugins (void)
 	}
       }
       rptr = (rtp_plugin_t *)DLL_GET_SYM(handle, RTP_PLUGIN_EXPORT_NAME_STR);
+      if (rptr == NULL) {
+	rptr = (rtp_plugin_t *)DLL_GET_SYM(handle, "_" RTP_PLUGIN_EXPORT_NAME_STR);
+      }
       if (rptr != NULL) {
 	if (strcmp(rptr->version, RTP_PLUGIN_VERSION) == 0) {
 	  rtp_plugin_list_t *p;

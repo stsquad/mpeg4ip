@@ -89,57 +89,57 @@ extern mpeg3_VLCtab_t mpeg3_DCchromtab1[32];
 /* Table B-14, DCT coefficients table zero,
  * codes 0100 ... 1xxx (used for first (DC) coefficient)
  */
-mpeg3_DCTtab_t mpeg3_DCTtabfirst[12];
+extern mpeg3_DCTtab_t mpeg3_DCTtabfirst[12];
 
 /* Table B-14, DCT coefficients table zero,
  * codes 0100 ... 1xxx (used for all other coefficients)
  */
-mpeg3_DCTtab_t mpeg3_DCTtabnext[12];
+extern mpeg3_DCTtab_t mpeg3_DCTtabnext[12];
 
 /* Table B-14, DCT coefficients table zero,
  * codes 000001xx ... 00111xxx
  */
-mpeg3_DCTtab_t mpeg3_DCTtab0[60];
+extern mpeg3_DCTtab_t mpeg3_DCTtab0[60];
 
 /* Table B-15, DCT coefficients table one,
  * codes 000001xx ... 11111111
 */
-mpeg3_DCTtab_t mpeg3_DCTtab0a[252];
+extern mpeg3_DCTtab_t mpeg3_DCTtab0a[252];
 
 /* Table B-14, DCT coefficients table zero,
  * codes 0000001000 ... 0000001111
  */
-mpeg3_DCTtab_t mpeg3_DCTtab1[8];
+extern mpeg3_DCTtab_t mpeg3_DCTtab1[8];
 
 /* Table B-15, DCT coefficients table one,
  * codes 000000100x ... 000000111x
  */
-mpeg3_DCTtab_t mpeg3_DCTtab1a[8];
+extern mpeg3_DCTtab_t mpeg3_DCTtab1a[8];
 
 /* Table B-14/15, DCT coefficients table zero / one,
  * codes 000000010000 ... 000000011111
  */
-mpeg3_DCTtab_t mpeg3_DCTtab2[16];
+extern mpeg3_DCTtab_t mpeg3_DCTtab2[16];
 
 /* Table B-14/15, DCT coefficients table zero / one,
  * codes 0000000010000 ... 0000000011111
  */
-mpeg3_DCTtab_t mpeg3_DCTtab3[16];
+extern mpeg3_DCTtab_t mpeg3_DCTtab3[16];
 
 /* Table B-14/15, DCT coefficients table zero / one,
  * codes 00000000010000 ... 00000000011111
  */
-mpeg3_DCTtab_t mpeg3_DCTtab4[16];
+extern mpeg3_DCTtab_t mpeg3_DCTtab4[16];
 
 /* Table B-14/15, DCT coefficients table zero / one,
  * codes 000000000010000 ... 000000000011111
  */
-mpeg3_DCTtab_t mpeg3_DCTtab5[16];
+extern mpeg3_DCTtab_t mpeg3_DCTtab5[16];
 
 /* Table B-14/15, DCT coefficients table zero / one,
  * codes 0000000000010000 ... 0000000000011111
  */
-mpeg3_DCTtab_t mpeg3_DCTtab6[16];
+extern mpeg3_DCTtab_t mpeg3_DCTtab6[16];
 
 
 #endif

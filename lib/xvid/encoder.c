@@ -392,7 +392,7 @@ int encoder_encode(Encoder * pEnc, XVID_ENC_FRAME * pFrame, XVID_ENC_STATS * pRe
 		pResult->image_u = pEnc->sCurrent.u;
 		pResult->image_v = pEnc->sCurrent.v;
 		pResult->stride_y = pEnc->mbParam.edged_width;
-		pResult->stride_uv = pResult->stride_y / 2;
+		pResult->stride_u = pResult->stride_y / 2;
 #endif
 	}
    

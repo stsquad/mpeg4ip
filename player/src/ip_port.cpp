@@ -53,12 +53,8 @@ CIpPort::CIpPort (in_port_t startport, in_port_t maxport)
       m_sock = -1;
     }
   } 
- 
-#ifdef _WIN32
-  int socklen;
-#else
+
   socklen_t socklen;
-#endif
   socklen = sizeof(saddr);
   if (getsockname(m_sock, (struct sockaddr *)&saddr, &socklen) < 0) {
     closesocket(m_sock);

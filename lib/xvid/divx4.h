@@ -58,8 +58,8 @@ typedef struct
 	void *u;
 	void *v;
 	int stride_y;
-	int stride_uv;
-} DEC_PICTURE;
+	int stride_u;
+} XVID_DEC_PICTURE, DEC_PICTURE;
 
 typedef struct
 {

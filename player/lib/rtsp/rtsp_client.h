@@ -280,7 +280,8 @@ int rtsp_send_aggregate_teardown (rtsp_client_t *info,
 int rtsp_is_url_my_stream(rtsp_session_t *session, const char *url,
 						  const char *content_base, const char *session_name);
 
-  struct in_addr get_server_ip_address(rtsp_session_t *session);
+  struct in_addr rtsp_get_server_ip_address(rtsp_session_t *session);
+  char *rtsp_get_server_ip_address_string(rtsp_session_t *session);
 /*
  * rtsp_set_loglevel - set debug output level.
  * Input - loglevel - levels from syslog.h

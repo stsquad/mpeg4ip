@@ -234,6 +234,7 @@ protected:
 	bool			m_sourceAudio;
 	bool			m_sourceRealTime;
 	Timestamp		m_encodingStartTimestamp;
+        Duration                m_maxAheadDuration;
 
 	// video source info
 	CMediaSource*	m_videoSource; 
@@ -330,7 +331,6 @@ protected:
 	Timestamp               m_audioEncodingStartTimestamp;
 	Duration		m_audioSrcElapsedDuration;
 	Duration		m_audioDstElapsedDuration;
-        Duration                m_audioEncodingElapsedDuration;
 };
 
 #endif /* __MEDIA_SOURCE_H__ */

@@ -32,7 +32,7 @@
  */
 
 //static const char rcsid[] =
-//    "@(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/encoder-h261.h,v 1.2 2003/05/05 21:24:45 wmaycisco Exp $";
+//    "@(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/encoder-h261.h,v 1.3 2003/10/06 23:49:34 wmaycisco Exp $";
 
 #include "video_encoder.h"
 #include "crdef.h"
@@ -80,6 +80,7 @@ class CH261Encoder : public CVideoEncoder {
 		uint32_t width_;
 		uint32_t height_;
 		uint32_t framesize_;
+		uint8_t *m_localbuffer;
 
 		/* bit buffer */
 		BB_INT m_bitCache;

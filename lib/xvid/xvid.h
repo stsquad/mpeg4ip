@@ -2,6 +2,7 @@
 #define _XVID_H_
 
 #include <mpeg4ip.h>
+#include "divx4.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -230,7 +231,7 @@ typedef struct
 	void* image_u;
 	void* image_v;
 	int stride_y;
-	int stride_uv;
+	int stride_u;
 #endif
 
 } XVID_ENC_STATS;

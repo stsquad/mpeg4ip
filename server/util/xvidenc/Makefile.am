@@ -6,7 +6,7 @@ INCLUDES = \
 	-I$(top_srcdir)/lib/xvid
 
 LDADD = \
-	$(top_builddir)/lib/xvid/libxvid.la \
+	$(top_builddir)/lib/xvid/libmpeg4ip_xvid.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	 -lm
 EXTRA_DIST = xvidenc.dsp
