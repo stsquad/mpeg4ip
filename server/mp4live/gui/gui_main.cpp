@@ -889,7 +889,9 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 	// Setup main window
 	main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_policy(GTK_WINDOW(main_window), FALSE, TRUE, FALSE);
-	gtk_window_set_title(GTK_WINDOW(main_window), "cisco mp4live");
+	char buffer[80];
+	snprintf(buffer, sizeof(buffer), "cisco mp4live %s", VERSION);
+	gtk_window_set_title(GTK_WINDOW(main_window), buffer);
 	gtk_signal_connect(GTK_OBJECT(main_window),
 		"delete_event",
 		GTK_SIGNAL_FUNC(delete_event),

@@ -35,10 +35,11 @@ int main(int argc, char** argv)
 		int option_index = 0;
 		static struct option long_options[] = {
 			{ "verbose", 2, 0, 'v' },
+			{ "version", 0, 0, 'V' },
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "v::",
+		c = getopt_long_only(argc, argv, "v::V",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -62,6 +63,10 @@ int main(int argc, char** argv)
 		case '?':
 			fprintf(stderr, usageString, progName);
 			exit(0);
+		case 'V':
+		  fprintf(stderr, "%s - %s version %s\n", 
+			  progName, PACKAGE, VERSION);
+		  exit(0);
 		default:
 			fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
 				progName, c);
@@ -87,6 +92,9 @@ int main(int argc, char** argv)
 	}
 
 	/* end processing of command line */
+	if (verbosity != 0) {
+	  fprintf(stdout, "%s version %s\n", progName, VERSION);
+	}
 
 	MP4FileHandle mp4File = MP4Read(mp4FileName, verbosity);
 

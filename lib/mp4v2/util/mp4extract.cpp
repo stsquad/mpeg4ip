@@ -50,10 +50,11 @@ int main(int argc, char** argv)
 			{ "track", 1, 0, 't' },
 			{ "samples", 0, 0, 's' },
 			{ "verbose", 2, 0, 'v' },
+			{ "version", 0, 0, 'V' },
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "lt:sv::",
+		c = getopt_long_only(argc, argv, "lt:sv::V",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -94,6 +95,10 @@ int main(int argc, char** argv)
 		case '?':
 			fprintf(stderr, usageString, ProgName);
 			exit(0);
+		case 'V':
+		  fprintf(stderr, "%s - %s version %s\n", 
+			  ProgName, PACKAGE, VERSION);
+		  exit(0);
 		default:
 			fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
 				ProgName, c);
@@ -105,7 +110,9 @@ int main(int argc, char** argv)
 		fprintf(stderr, usageString, ProgName);
 		exit(1);
 	}
-
+	
+	if (verbosity != 0)
+	  fprintf(stderr, "%s version %s\n", ProgName, VERSION);
 	/* point to the specified file names */
 	Mp4PathName = argv[optind++];
 

@@ -99,6 +99,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "libmissing"=..\..\lib\gnu\libmissing.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "libmp3"=..\lib\audio\mp3\libmp3.dsp - Package Owner=<4>
 
 Package=<5>
@@ -271,6 +283,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmp4v2
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmissing
     End Project Dependency
 }}}
 

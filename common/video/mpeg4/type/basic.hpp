@@ -74,14 +74,14 @@ Revision History:
 #define BBS             FALSE
 // End of Hyundai(1998-5-9)*/
 
-#ifdef TRANSPARENT
-#undef TRANSPARENT
+#ifdef MPEG4_TRANSPARENT
+#undef MPEG4_TRANSPARENT
 #endif
-#ifdef OPAQUE
-#undef OPAQUE
+#ifdef MPEG4_OPAQUE
+#undef MPEG4_OPAQUE
 #endif
-#define TRANSPARENT 0
-#define OPAQUE 255
+#define MPEG4_TRANSPARENT 0
+#define MPEG4_OPAQUE 255
 
 #define transpPixel CPixel(0,0,0,0)
 #define opaquePixel CPixel(255,255,255,255)

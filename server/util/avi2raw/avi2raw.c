@@ -59,10 +59,11 @@ int main(int argc, char** argv)
 			{ "quiet", 0, 0, 'q' },
 			{ "start", 1, 0, 's' },
 			{ "video", 0, 0, 'v' },
+			{ "version", 0, 0, 'V'},
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "al:qs:v",
+		c = getopt_long_only(argc, argv, "al:qs:vV",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -107,6 +108,10 @@ int main(int argc, char** argv)
 		}
 		case '?':
 			break;
+		case 'V':
+		  fprintf(stderr, "%s - %s version %s\n", progName,
+			  PACKAGE, VERSION);
+		  return(0);
 		default:
 			fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
 				progName, c);
@@ -145,6 +150,10 @@ int main(int argc, char** argv)
 		exit(4);
 	}
 
+	if (!quiet) {
+	  fprintf(stderr, "%s - %s version %s\n",
+		  progName, PACKAGE, VERSION);
+	}
 	/* open the RAW file */
 	rawFile = fopen(rawFileName, "wb");
 	if (rawFile == NULL) {

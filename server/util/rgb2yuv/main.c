@@ -59,10 +59,11 @@ int main(int argc, char** argv)
 			{ "flip", 0, 0, 'f' },
 			{ "height", 1, 0, 'h' },
 			{ "width", 1, 0, 'w' },
+			{ "version", 0, 0, 'V' },
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "fh:w:",
+		c = getopt_long_only(argc, argv, "fh:w:V",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -109,6 +110,10 @@ int main(int argc, char** argv)
 		}
 		case '?':
 			break;
+		case 'V':
+		  fprintf(stderr, "%s - %s version %s\n",
+			  progName, PACKAGE, VERSION);
+		  return (0);
 		default:
 			fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
 				progName, c);

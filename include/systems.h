@@ -23,6 +23,8 @@
 #ifdef WIN32
 #define HAVE_IN_PORT_T
 #define HAVE_SOCKLEN_T
+#define VERSION "0.9.2"
+#define PACKAGE "mpeg4ip"
 #else
 #include <config.h>
 #endif

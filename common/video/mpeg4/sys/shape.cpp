@@ -81,10 +81,10 @@ Void CVideoObject::downSampleShapeMCPred(const PixelC*ppxlcSrc,
 		2,3,MC_BAB_SIZE+2,MC_BAB_SIZE+3,
 		2*MC_BAB_SIZE,2*MC_BAB_SIZE+1,2*MC_BAB_SIZE+2,2*MC_BAB_SIZE+3,
 		3*MC_BAB_SIZE,3*MC_BAB_SIZE+1,3*MC_BAB_SIZE+2,3*MC_BAB_SIZE+3};
-	static Int rgiThresh[5] = {0,0,OPAQUE,0,7*OPAQUE};
+	static Int rgiThresh[5] = {0,0,MPEG4_OPAQUE,0,7*MPEG4_OPAQUE};
 	Int iBdrThresh=0;
 	if(iRate>2)
-		iBdrThresh=OPAQUE;
+		iBdrThresh=MPEG4_OPAQUE;
 	Int iThreshold = rgiThresh[iRate];
 
 #ifdef __TRACE_AND_STATS_
@@ -112,7 +112,7 @@ Void CVideoObject::downSampleShapeMCPred(const PixelC*ppxlcSrc,
 			iSum=0;
 			for(i=0;i<iRateSqd;i++)
 				iSum+=ppxlcSrcScan[rgiScan[i]];
-			*ppxlcDstScan=(iSum>iThreshold)?OPAQUE:TRANSPARENT;
+			*ppxlcDstScan=(iSum>iThreshold)?MPEG4_OPAQUE:MPEG4_TRANSPARENT;
 			ppxlcSrcScan+=iRate;
 		}
 		ppxlcDstScan+=2*MC_BAB_BORDER;
@@ -127,10 +127,10 @@ Void CVideoObject::downSampleShapeMCPred(const PixelC*ppxlcSrc,
 			iSum3+=ppxlcSrcBdr3[i];
 			iSum4+=ppxlcSrcBdr4[i];
 		}
-		*ppxlcDstBdr1=(iSum1>iBdrThresh)?OPAQUE:TRANSPARENT;
-		*ppxlcDstBdr2=(iSum2>iBdrThresh)?OPAQUE:TRANSPARENT;
-		*ppxlcDstBdr3++=(iSum3>iBdrThresh)?OPAQUE:TRANSPARENT;
-		*ppxlcDstBdr4++=(iSum4>iBdrThresh)?OPAQUE:TRANSPARENT;
+		*ppxlcDstBdr1=(iSum1>iBdrThresh)?MPEG4_OPAQUE:MPEG4_TRANSPARENT;
+		*ppxlcDstBdr2=(iSum2>iBdrThresh)?MPEG4_OPAQUE:MPEG4_TRANSPARENT;
+		*ppxlcDstBdr3++=(iSum3>iBdrThresh)?MPEG4_OPAQUE:MPEG4_TRANSPARENT;
+		*ppxlcDstBdr4++=(iSum4>iBdrThresh)?MPEG4_OPAQUE:MPEG4_TRANSPARENT;
 		ppxlcDstBdr1+=iDstSize;
 		ppxlcDstBdr2+=iDstSize;
 		ppxlcSrcBdr1+=MC_BAB_SIZE*iRate;
@@ -501,7 +501,7 @@ Int CVideoObject::contextIntra (const PixelC* ppxlcSrc)
 	rgiNeighbourIndx [8] = -2 * m_iWidthCurrBAB;
 	rgiNeighbourIndx [9] = -2 * m_iWidthCurrBAB - 1;
 	for (i = 0; i < 10; i++)
-		iContext += (ppxlcSrc [rgiNeighbourIndx [i]] == OPAQUE) << i;
+		iContext += (ppxlcSrc [rgiNeighbourIndx [i]] == MPEG4_OPAQUE) << i;
 	assert (iContext >= 0 && iContext < 1024);
 	return iContext;
 }
@@ -521,7 +521,7 @@ Int CVideoObject::contextIntraTranspose (const PixelC* ppxlcSrc)
 	rgiNeighbourIndx [8] = -2;
 	rgiNeighbourIndx [9] = -2 - m_iWidthCurrBAB;
 	for (i = 0; i < 10; i++)
-		iContext += (ppxlcSrc [rgiNeighbourIndx [i]] == OPAQUE) << i;
+		iContext += (ppxlcSrc [rgiNeighbourIndx [i]] == MPEG4_OPAQUE) << i;
 	assert (iContext >= 0 && iContext < 1024);
 	return iContext;
 }
@@ -543,11 +543,11 @@ Int CVideoObject::contextInter (const PixelC* ppxlcSrc, const PixelC* ppxlcPred)
 	rgiNeighbourIndx [8] = -iSizePredBAB;
 
 	for (i = 0; i < 4; i++)	{
-		iContext += (ppxlcSrc [rgiNeighbourIndx [i]] == OPAQUE) << i;
+		iContext += (ppxlcSrc [rgiNeighbourIndx [i]] == MPEG4_OPAQUE) << i;
 	}
 
 	for (i = 4; i < 9; i++)	{
-		iContext += (ppxlcPred [rgiNeighbourIndx [i]] == OPAQUE) << i;
+		iContext += (ppxlcPred [rgiNeighbourIndx [i]] == MPEG4_OPAQUE) << i;
 	}
 	assert (iContext >= 0 && iContext < 1024);
 	return iContext;
@@ -570,10 +570,10 @@ Int CVideoObject::contextInterTranspose (const PixelC* ppxlcSrc, const PixelC* p
 	rgiNeighbourIndx [8] = -1;	
 
 	for (i = 0; i < 4; i++)
-		iContext += (ppxlcSrc [rgiNeighbourIndx [i]] == OPAQUE) << i;
+		iContext += (ppxlcSrc [rgiNeighbourIndx [i]] == MPEG4_OPAQUE) << i;
 
 	for (i = 4; i < 9; i++)
-		iContext += (ppxlcPred [rgiNeighbourIndx [i]] == OPAQUE) << i;
+		iContext += (ppxlcPred [rgiNeighbourIndx [i]] == MPEG4_OPAQUE) << i;
 	assert (iContext >= 0 && iContext < 1024);
 	return iContext;
 }

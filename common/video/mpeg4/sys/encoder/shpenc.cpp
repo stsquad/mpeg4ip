@@ -87,10 +87,10 @@ Int CVideoObjectEncoder::codeIntraShape (PixelC* ppxlcSrcFrm, CMBMode* pmbmd, In
 		pmbmd->m_shpmd = ALL_OPAQUE;
 	else if (pmbmd->m_rgTranspStatus [0] == ALL)
 		pmbmd->m_shpmd = ALL_TRANSP;
-	else if (!isErrorLarge (m_ppxlcCurrMBBY, m_rgiSubBlkIndx16x16, 16, TRANSPARENT, pmbmd))
+	else if (!isErrorLarge (m_ppxlcCurrMBBY, m_rgiSubBlkIndx16x16, 16, MPEG4_TRANSPARENT, pmbmd))
 	{
 		pmbmd->m_shpmd = ALL_TRANSP;
-		if ( !isErrorLarge (m_ppxlcCurrMBBY, m_rgiSubBlkIndx16x16, 16, OPAQUE, pmbmd))
+		if ( !isErrorLarge (m_ppxlcCurrMBBY, m_rgiSubBlkIndx16x16, 16, MPEG4_OPAQUE, pmbmd))
 		{
 			// both opaque and transparent are good, so count pixels to decide
 			Int i,iSum=0;
@@ -100,7 +100,7 @@ Int CVideoObjectEncoder::codeIntraShape (PixelC* ppxlcSrcFrm, CMBMode* pmbmd, In
 				pmbmd->m_shpmd = ALL_OPAQUE;
 		}
 	}
-	else if (!isErrorLarge (m_ppxlcCurrMBBY, m_rgiSubBlkIndx16x16, 16, OPAQUE, pmbmd))
+	else if (!isErrorLarge (m_ppxlcCurrMBBY, m_rgiSubBlkIndx16x16, 16, MPEG4_OPAQUE, pmbmd))
 		pmbmd->m_shpmd = ALL_OPAQUE;
 	else
 		pmbmd->m_shpmd = round (ppxlcSrcFrm, pmbmd);
@@ -110,7 +110,7 @@ Int CVideoObjectEncoder::codeIntraShape (PixelC* ppxlcSrcFrm, CMBMode* pmbmd, In
 #ifdef __TRACE_AND_STATS_
 		m_pbitstrmOut->trace ("MB_ALL_TRANSP");
 #endif // __TRACE_AND_STATS_
-		copyReconShapeToMbAndRef (m_ppxlcCurrMBBY, ppxlcSrcFrm, TRANSPARENT);					
+		copyReconShapeToMbAndRef (m_ppxlcCurrMBBY, ppxlcSrcFrm, MPEG4_TRANSPARENT);					
 		return codeShapeModeIntra (ALL_TRANSP, pmbmd, iMBX, iMBY);
 	}
 	else if(pmbmd->m_shpmd==ALL_OPAQUE)
@@ -118,7 +118,7 @@ Int CVideoObjectEncoder::codeIntraShape (PixelC* ppxlcSrcFrm, CMBMode* pmbmd, In
 #ifdef __TRACE_AND_STATS_
 		m_pbitstrmOut->trace ("MB_ALL_OPAQUE");
 #endif // __TRACE_AND_STATS_
-		copyReconShapeToMbAndRef (m_ppxlcCurrMBBY, ppxlcSrcFrm, OPAQUE);					
+		copyReconShapeToMbAndRef (m_ppxlcCurrMBBY, ppxlcSrcFrm, MPEG4_OPAQUE);					
 		return codeShapeModeIntra (ALL_OPAQUE, pmbmd, iMBX, iMBY);
 	}
 	else
@@ -183,10 +183,10 @@ Int CVideoObjectEncoder::codeInterShape (PixelC* ppxlcSrcFrm,
 
 	if (pmbmd->m_rgTranspStatus [0] == ALL)
 		pmbmd->m_shpmd = ALL_TRANSP;
-	else if (!isErrorLarge (m_ppxlcCurrMBBY, m_rgiSubBlkIndx16x16, 16, TRANSPARENT, pmbmd))
+	else if (!isErrorLarge (m_ppxlcCurrMBBY, m_rgiSubBlkIndx16x16, 16, MPEG4_TRANSPARENT, pmbmd))
 	{
 		pmbmd->m_shpmd = ALL_TRANSP;
-		if ( !isErrorLarge (m_ppxlcCurrMBBY, m_rgiSubBlkIndx16x16, 16, OPAQUE, pmbmd))
+		if ( !isErrorLarge (m_ppxlcCurrMBBY, m_rgiSubBlkIndx16x16, 16, MPEG4_OPAQUE, pmbmd))
 		{
 			// both opaque and transparent are good, so count pixels to decide
 			Int i,iSum=0;
@@ -198,7 +198,7 @@ Int CVideoObjectEncoder::codeInterShape (PixelC* ppxlcSrcFrm,
 	}
 	else if(pmbmd->m_rgTranspStatus [0] == NONE)
 		pmbmd->m_shpmd = ALL_OPAQUE;
-	else if(!isErrorLarge (m_ppxlcCurrMBBY, m_rgiSubBlkIndx16x16, 16, OPAQUE, pmbmd))
+	else if(!isErrorLarge (m_ppxlcCurrMBBY, m_rgiSubBlkIndx16x16, 16, MPEG4_OPAQUE, pmbmd))
 		pmbmd->m_shpmd = ALL_OPAQUE;
 
 	if(pmbmd->m_shpmd!=ALL_TRANSP)
@@ -266,7 +266,7 @@ Int CVideoObjectEncoder::codeInterShape (PixelC* ppxlcSrcFrm,
 #endif // __TRACE_AND_STATS_
 		pmvBY->iMVX = NOT_MV;
 		pmvBY->iMVY = NOT_MV;
-		copyReconShapeToMbAndRef (m_ppxlcCurrMBBY, ppxlcSrcFrm, OPAQUE);					
+		copyReconShapeToMbAndRef (m_ppxlcCurrMBBY, ppxlcSrcFrm, MPEG4_OPAQUE);					
 		return (codeShapeModeInter (ALL_OPAQUE, shpmdColocatedMB));
 
 	case ALL_TRANSP:
@@ -275,7 +275,7 @@ Int CVideoObjectEncoder::codeInterShape (PixelC* ppxlcSrcFrm,
 #endif // __TRACE_AND_STATS_
 		pmvBY->iMVX = NOT_MV;
 		pmvBY->iMVY = NOT_MV;
-		copyReconShapeToMbAndRef (m_ppxlcCurrMBBY, ppxlcSrcFrm, TRANSPARENT);					
+		copyReconShapeToMbAndRef (m_ppxlcCurrMBBY, ppxlcSrcFrm, MPEG4_TRANSPARENT);					
 		return (codeShapeModeInter (ALL_TRANSP, shpmdColocatedMB));
 		
 	case INTER_CAE_MVDZ:
@@ -466,7 +466,7 @@ ShapeMode CVideoObjectEncoder::round (PixelC* ppxlcSrcFrm, const CMBMode* pmbmd)
 	{
 		// attempt to reduce bab size
 		m_bNoShapeChg = FALSE;
-		#define iThreshD4  (7 * OPAQUE)
+		#define iThreshD4  (7 * MPEG4_OPAQUE)
 		
 		// reduce by factor 4
 		downSampleShape (m_ppxlcCurrMBBY, 
@@ -495,7 +495,7 @@ ShapeMode CVideoObjectEncoder::round (PixelC* ppxlcSrcFrm, const CMBMode* pmbmd)
 			return shpmd;
 		}
 
-		#define iThreshD2 (OPAQUE)
+		#define iThreshD2 (MPEG4_OPAQUE)
 
 		// factor 4 failed, so try to reduce by factor 2
 		downSampleShape (m_ppxlcCurrMBBY, 
@@ -571,11 +571,11 @@ Int CVideoObjectEncoder::downSampleShape (const PixelC* ppxlcSrc,
 			}
 			i += MB_SIZE - iRate;
 		}
-		ppxlcDst [*piDstPxl] = (iSum > iThreshold) ? OPAQUE : TRANSPARENT;
+		ppxlcDst [*piDstPxl] = (iSum > iThreshold) ? MPEG4_OPAQUE : MPEG4_TRANSPARENT;
 		nOpaquePixel += ppxlcDst [*piDstPxl];
 		piDstPxl++;
 	}		
-	return (nOpaquePixel /= OPAQUE);
+	return (nOpaquePixel /= MPEG4_OPAQUE);
 }
 
 Bool CVideoObjectEncoder::isErrorLarge (const PixelC* rgppxlcSrc, const Int* rgiSubBlkIndx, Int iWidthSrc, PixelC pxlcRecon, const CMBMode* pmbmd)
@@ -648,7 +648,7 @@ UInt CVideoObjectEncoder::encodeCAEIntra (ShapeMode shpmd, CAEScanDirection shpd
 #ifdef __TRACE_AND_STATS_
 			//	m_pbitstrmOut->trace (iContext, "MB_CAE_Context");
 #endif // __TRACE_AND_STATS_
-				ArCodeSymbol ((*ppxlcSrc == OPAQUE), gCAEintraProb [iContext], m_parcodec, m_pbitstrmShapeMBOut);	
+				ArCodeSymbol ((*ppxlcSrc == MPEG4_OPAQUE), gCAEintraProb [iContext], m_parcodec, m_pbitstrmShapeMBOut);	
 				ppxlcSrc++;
 			}
 			ppxlcSrcRow += m_iWidthCurrBAB;
@@ -663,7 +663,7 @@ UInt CVideoObjectEncoder::encodeCAEIntra (ShapeMode shpmd, CAEScanDirection shpd
 #ifdef __TRACE_AND_STATS_
 				//m_pbitstrmOut->trace (iContext, "MB_CAE_Context");
 #endif // __TRACE_AND_STATS_
-				ArCodeSymbol ((*ppxlcSrc == OPAQUE), gCAEintraProb [iContext], m_parcodec, m_pbitstrmShapeMBOut);	
+				ArCodeSymbol ((*ppxlcSrc == MPEG4_OPAQUE), gCAEintraProb [iContext], m_parcodec, m_pbitstrmShapeMBOut);	
 				ppxlcSrc += m_iWidthCurrBAB ;
 			}
 			ppxlcSrcCol++;
@@ -708,7 +708,7 @@ UInt CVideoObjectEncoder::encodeCAEInter (ShapeMode shpmd, CAEScanDirection shpd
 #ifdef __TRACE_AND_STATS_
 				//m_pbitstrmOut->trace (iContext, "MB_CAE_Context");
 #endif // __TRACE_AND_STATS_
-				ArCodeSymbol ((*ppxlcSrc == OPAQUE), gCAEinterProb [iContext], m_parcodec, m_pbitstrmShapeMBOut);	
+				ArCodeSymbol ((*ppxlcSrc == MPEG4_OPAQUE), gCAEinterProb [iContext], m_parcodec, m_pbitstrmShapeMBOut);	
 				ppxlcSrc++;
 				ppxlcPred++;
 			}
@@ -727,7 +727,7 @@ UInt CVideoObjectEncoder::encodeCAEInter (ShapeMode shpmd, CAEScanDirection shpd
 #ifdef __TRACE_AND_STATS_
 				//m_pbitstrmOut->trace (iContext, "MB_CAE_Context");
 #endif // __TRACE_AND_STATS_
-				ArCodeSymbol ((*ppxlcSrc == OPAQUE), gCAEinterProb [iContext], m_parcodec, m_pbitstrmShapeMBOut);	
+				ArCodeSymbol ((*ppxlcSrc == MPEG4_OPAQUE), gCAEinterProb [iContext], m_parcodec, m_pbitstrmShapeMBOut);	
 				ppxlcSrc += m_iWidthCurrBAB;
 				ppxlcPred += iSizePredBAB;
 			}

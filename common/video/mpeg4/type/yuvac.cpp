@@ -157,14 +157,14 @@ CVOPU8YUVBA::CVOPU8YUVBA (const Char* sptFilename) :
 	m_ppxlcU = (PixelC*) m_puciU->pixels ();
 	m_ppxlcV = (PixelC*) m_puciV->pixels ();
 	if (m_fAUsage != RECTANGLE) {
-		m_puciBY = new CU8Image (m_rctY, TRANSPARENT);		//initialize so that outside VOP is transp
+		m_puciBY = new CU8Image (m_rctY, MPEG4_TRANSPARENT);		//initialize so that outside VOP is transp
 		assert (m_puciBY != NULL);
-		m_puciBUV = new CU8Image (m_rctUV, TRANSPARENT);	//initialize so that outside VOP is transp
+		m_puciBUV = new CU8Image (m_rctUV, MPEG4_TRANSPARENT);	//initialize so that outside VOP is transp
 		assert (m_puciBUV != NULL);
 		m_ppxlcBY = (PixelC*) m_puciBY->pixels ();
 		m_ppxlcBUV = (PixelC*) m_puciBUV->pixels ();
 		if (m_fAUsage == EIGHT_BIT) {
-			m_puciA = new CU8Image (m_rctY, TRANSPARENT);	//initialize so that outside VOP is transp
+			m_puciA = new CU8Image (m_rctY, MPEG4_TRANSPARENT);	//initialize so that outside VOP is transp
 			assert (m_puciA != NULL);
 			m_ppxlcA = (PixelC*) m_puciA->pixels ();
 		}
@@ -204,14 +204,14 @@ CVOPU8YUVBA::CVOPU8YUVBA (AlphaUsage fAUsage, const CRct& rc)
 	m_ppxlcU = (PixelC*) m_puciU->pixels ();
 	m_ppxlcV = (PixelC*) m_puciV->pixels ();
 	if (m_fAUsage != RECTANGLE) {
-		m_puciBY = new CU8Image (m_rctY, TRANSPARENT);		//initialize so that outside VOP is transp
+		m_puciBY = new CU8Image (m_rctY, MPEG4_TRANSPARENT);		//initialize so that outside VOP is transp
 		assert (m_puciBY != NULL);
-		m_puciBUV = new CU8Image (m_rctUV, TRANSPARENT);	//initialize so that outside VOP is transp
+		m_puciBUV = new CU8Image (m_rctUV, MPEG4_TRANSPARENT);	//initialize so that outside VOP is transp
 		assert (m_puciBUV != NULL);
 		m_ppxlcBY = (PixelC*) m_puciBY->pixels ();
 		m_ppxlcBUV = (PixelC*) m_puciBUV->pixels ();
 		if (m_fAUsage == EIGHT_BIT) {
-			m_puciA = new CU8Image (m_rctY, TRANSPARENT);	//initialize so that outside VOP is transp
+			m_puciA = new CU8Image (m_rctY, MPEG4_TRANSPARENT);	//initialize so that outside VOP is transp
 			assert (m_puciA != NULL);
 			m_ppxlcA = (PixelC*) m_puciA->pixels ();
 		}
@@ -511,15 +511,15 @@ Void CVOPU8YUVBA::addBYPlain ()
 
 Void CVOPU8YUVBA::addBYPlain (const CRct& rct, const CRct& rctUV)
 {
-	CU8Image* puciTemp = new CU8Image ( rct, OPAQUE );
+	CU8Image* puciTemp = new CU8Image ( rct, MPEG4_OPAQUE );
 	//m_puciBY = new CU8Image (m_rctY, 255);		//initialize so that outside VOP is transp
-	m_puciBY = new CU8Image (m_rctY, TRANSPARENT);		//initialize so that outside VOP is transp
+	m_puciBY = new CU8Image (m_rctY, MPEG4_TRANSPARENT);		//initialize so that outside VOP is transp
 	m_puciBY->CU8Image_or( *puciTemp );				// for background composition, mask of whole image is generated here
 	assert (m_puciBY != NULL);
 
-	CU8Image* puciTempUV = new CU8Image ( rctUV, OPAQUE );
+	CU8Image* puciTempUV = new CU8Image ( rctUV, MPEG4_OPAQUE );
 	//m_puciBUV = new CU8Image (m_rctUV, 255);		//initialize so that outside VOP is transp
-	m_puciBUV = new CU8Image (m_rctUV, TRANSPARENT);	//initialize so that outside VOP is transp
+	m_puciBUV = new CU8Image (m_rctUV, MPEG4_TRANSPARENT);	//initialize so that outside VOP is transp
 	m_puciBUV->CU8Image_or( *puciTempUV );				// for background composition, mask of whole image is generated here
 	assert (m_puciBUV != NULL);
 
@@ -527,7 +527,7 @@ Void CVOPU8YUVBA::addBYPlain (const CRct& rct, const CRct& rctUV)
 	m_ppxlcBUV = (PixelC*) m_puciBUV->pixels ();
 	if (m_fAUsage == EIGHT_BIT) {
 		//m_puciA = new CU8Image (m_rctY, 255);		//initialize so that outside VOP is transp
-		m_puciA = new CU8Image (m_rctY, TRANSPARENT);	//initialize so that outside VOP is transp
+		m_puciA = new CU8Image (m_rctY, MPEG4_TRANSPARENT);	//initialize so that outside VOP is transp
 		m_puciA->CU8Image_or( *puciTemp );
 		assert (m_puciA != NULL);
 		m_ppxlcA = (PixelC*) m_puciA->pixels ();

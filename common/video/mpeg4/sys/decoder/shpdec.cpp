@@ -101,14 +101,14 @@ Void CVideoObjectDecoder::decodeIntraShape (CMBMode* pmbmd, Int iMBX, Int iMBY, 
 	//printf("[%08x]",m_pbitstrmIn->peekBits(32));
 	if (iBits == rgiShapeMdCode [ALL_TRANSP])	{
 		pmbmd->m_shpmd = ALL_TRANSP;//printf("_");
-		pxlcmemset (ppxlcCurrMBBY, TRANSPARENT, MB_SQUARE_SIZE);
-		copyReconShapeToMbAndRef (ppxlcCurrMBBY, ppxlcCurrMBBYFrm, TRANSPARENT);
+		pxlcmemset (ppxlcCurrMBBY, MPEG4_TRANSPARENT, MB_SQUARE_SIZE);
+		copyReconShapeToMbAndRef (ppxlcCurrMBBY, ppxlcCurrMBBYFrm, MPEG4_TRANSPARENT);
 		pmbmd->m_rgTranspStatus [0] = pmbmd->m_rgTranspStatus [1] = pmbmd->m_rgTranspStatus [2] = pmbmd->m_rgTranspStatus [3] =
 		pmbmd->m_rgTranspStatus [4] = pmbmd->m_rgTranspStatus [5] = pmbmd->m_rgTranspStatus [6] = ALL;
 	}
 	else if (iBits == rgiShapeMdCode [ALL_OPAQUE])	{
 		pmbmd->m_shpmd = ALL_OPAQUE;//printf("X");
-		copyReconShapeToMbAndRef (ppxlcCurrMBBY, ppxlcCurrMBBYFrm, OPAQUE);
+		copyReconShapeToMbAndRef (ppxlcCurrMBBY, ppxlcCurrMBBYFrm, MPEG4_OPAQUE);
 		pmbmd->m_rgTranspStatus [0] = pmbmd->m_rgTranspStatus [1] = pmbmd->m_rgTranspStatus [2] = pmbmd->m_rgTranspStatus [3] =
 		pmbmd->m_rgTranspStatus [4] = pmbmd->m_rgTranspStatus [5] = pmbmd->m_rgTranspStatus [6] = NONE;
 	}
@@ -138,12 +138,12 @@ Void CVideoObjectDecoder::decodeInterShape (CVOPU8YUVBA* pvopcRefQ, CMBMode* pmb
 	pmbmd->m_shpmd = (ShapeMode) pentrdec->decodeSymbol ();
 	//printf("[%08x]",m_pbitstrmIn->peekBits(32));
 	if (pmbmd->m_shpmd == ALL_TRANSP)	{//printf("_");
-		copyReconShapeToMbAndRef (ppxlcMBBY, ppxlcMBBYFrm, TRANSPARENT);
+		copyReconShapeToMbAndRef (ppxlcMBBY, ppxlcMBBYFrm, MPEG4_TRANSPARENT);
 		pmbmd->m_rgTranspStatus [0] = pmbmd->m_rgTranspStatus [1] = pmbmd->m_rgTranspStatus [2] = pmbmd->m_rgTranspStatus [3] =
 		pmbmd->m_rgTranspStatus [4] = pmbmd->m_rgTranspStatus [5] = pmbmd->m_rgTranspStatus [6] = ALL;
 	}
 	else if (pmbmd->m_shpmd == ALL_OPAQUE)	{//printf("X");
-		copyReconShapeToMbAndRef (ppxlcMBBY, ppxlcMBBYFrm, OPAQUE);
+		copyReconShapeToMbAndRef (ppxlcMBBY, ppxlcMBBYFrm, MPEG4_OPAQUE);
 		pmbmd->m_rgTranspStatus [0] = pmbmd->m_rgTranspStatus [1] = pmbmd->m_rgTranspStatus [2] = pmbmd->m_rgTranspStatus [3] =
 		pmbmd->m_rgTranspStatus [4] = pmbmd->m_rgTranspStatus [5] = pmbmd->m_rgTranspStatus [6] = NONE;
 	}
@@ -284,7 +284,7 @@ Void CVideoObjectDecoder::decodeIntraCAEH ()
 		PixelC* ppxlcDst = ppxlcDstRow;
 		for (Int iCol = BAB_BORDER; iCol < m_iWidthCurrBAB - BAB_BORDER; iCol++)	{
 			Int iContext = contextIntra (ppxlcDst);//printf("%d ",iContext);
-			*ppxlcDst++ = (ArDecodeSymbol (gCAEintraProb [iContext], m_parcodec, m_pbitstrmIn)) ? OPAQUE : TRANSPARENT;
+			*ppxlcDst++ = (ArDecodeSymbol (gCAEintraProb [iContext], m_parcodec, m_pbitstrmIn)) ? MPEG4_OPAQUE : MPEG4_TRANSPARENT;
 		}
 		*ppxlcDst = *(ppxlcDst - 1);
 		*(ppxlcDst + 1) = *ppxlcDst;		//make right border on the fly
@@ -309,7 +309,7 @@ Void CVideoObjectDecoder::decodeIntraCAEV ()
 		PixelC* ppxlcDst = ppxlcDstCol;
 		for (Int iRow = BAB_BORDER; iRow < m_iWidthCurrBAB - BAB_BORDER; iRow++)	{
 			Int iContext = contextIntraTranspose (ppxlcDst);
-			*ppxlcDst = (ArDecodeSymbol (gCAEintraProb [iContext], m_parcodec, m_pbitstrmIn)) ? OPAQUE : TRANSPARENT;
+			*ppxlcDst = (ArDecodeSymbol (gCAEintraProb [iContext], m_parcodec, m_pbitstrmIn)) ? MPEG4_OPAQUE : MPEG4_TRANSPARENT;
 			ppxlcDst += m_iWidthCurrBAB;
 		}
 		*ppxlcDst = *(ppxlcDst - m_iWidthCurrBAB);
@@ -339,7 +339,7 @@ Void CVideoObjectDecoder::decodeInterCAEH (const PixelC *ppxlcPredBAB)
 		const PixelC* ppxlcPred = ppxlcPredRow;
 		for (Int iCol = 0; iCol < iSizeMB; iCol++)	{
 			Int iContext = contextInter (ppxlcDst, ppxlcPred);
-			*ppxlcDst++ = (ArDecodeSymbol (gCAEinterProb [iContext], m_parcodec, m_pbitstrmIn)) ? OPAQUE : TRANSPARENT;
+			*ppxlcDst++ = (ArDecodeSymbol (gCAEinterProb [iContext], m_parcodec, m_pbitstrmIn)) ? MPEG4_OPAQUE : MPEG4_TRANSPARENT;
 			ppxlcPred++;
 		}
 		*ppxlcDst = *(ppxlcDst - 1);
@@ -370,7 +370,7 @@ Void CVideoObjectDecoder::decodeInterCAEV (const PixelC *ppxlcPredBAB)
 		const PixelC* ppxlcPred = ppxlcPredCol;
 		for (Int iRow = 0; iRow < iSizeMB; iRow++)	{
 			Int iContext = contextInterTranspose (ppxlcDst, ppxlcPred);
-			*ppxlcDst = (ArDecodeSymbol (gCAEinterProb [iContext], m_parcodec, m_pbitstrmIn)) ? OPAQUE : TRANSPARENT;
+			*ppxlcDst = (ArDecodeSymbol (gCAEinterProb [iContext], m_parcodec, m_pbitstrmIn)) ? MPEG4_OPAQUE : MPEG4_TRANSPARENT;
 			ppxlcDst += m_iWidthCurrBAB;
 			ppxlcPred += iSizePredBAB;
 		}

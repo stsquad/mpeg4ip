@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: bits.c,v 1.2 2001/12/11 18:12:04 wmaycisco Exp $
+ * $Id: bits.c,v 1.3 2001/12/18 01:12:37 wmaycisco Exp $
  */
 
 #include <assert.h>
@@ -49,7 +49,7 @@ void faad_initbits(bitfile *ld, char *buffer, uint32_t buflen)
 
 
 /* return next n bits (right adjusted) */
-unsigned int faad_getbits(bitfile *ld, int n)
+uint32_t faad_getbits(bitfile *ld, int n)
 {
 	long l;
 
@@ -59,7 +59,7 @@ unsigned int faad_getbits(bitfile *ld, int n)
 	return l;
 }
 
-unsigned int faad_getbits_fast(bitfile *ld, int n)
+uint32_t faad_getbits_fast(bitfile *ld, int n)
 {
 	unsigned int l;
 
@@ -79,7 +79,7 @@ unsigned int faad_getbits_fast(bitfile *ld, int n)
 	return l;
 }
 
-unsigned int faad_get1bit(bitfile *ld)
+uint32_t faad_get1bit(bitfile *ld)
 {
 	unsigned char l;
 	check_buffer(ld, 1);
@@ -100,7 +100,7 @@ int faad_get_processed_bits(bitfile *ld)
 	return (ld->framebits);
 }
 
-unsigned int faad_byte_align(bitfile *ld)
+uint32_t faad_byte_align(bitfile *ld)
 {
   int i;
 

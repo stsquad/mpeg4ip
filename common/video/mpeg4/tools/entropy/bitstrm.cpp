@@ -671,7 +671,7 @@ Void COutBitStream::trace (const PixelC* rgpxlc, Int cCol, Int cRow, const Char*
 				(*m_pstrmTrace) << iRow << "|"; 
 			}
 			else
-				(*m_pstrmTrace) << (*rgpxlc++ == OPAQUE); 
+				(*m_pstrmTrace) << (*rgpxlc++ == MPEG4_OPAQUE); 
 		}
 		(*m_pstrmTrace) << "\n";		
 	}

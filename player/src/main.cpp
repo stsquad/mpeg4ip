@@ -146,6 +146,7 @@ int process_sdl_key_events (CPlayerSession *psptr,
 }
 static int start_session (const char *name, int max_loop)
 {
+  char buffer[80];
   int loopcount = 0;
   CPlayerSession *psptr;
 
@@ -153,10 +154,10 @@ static int start_session (const char *name, int max_loop)
   SDL_sem *master_sem;
 
   master_sem = SDL_CreateSemaphore(0);
- 
+  snprintf(buffer, sizeof(buffer), "%s %s - %s", PACKAGE, VERSION, name);
   psptr = new CPlayerSession(&master_queue, master_sem,
 			     // this should probably be name...
-			     "Cisco Open Source MPEG4 Player");
+			     buffer);
   if (psptr == NULL) {
     return (-1);
   }

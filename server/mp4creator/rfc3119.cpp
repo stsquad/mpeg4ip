@@ -29,17 +29,29 @@
 #include <mp3.h>
 
 // file globals
+static bool doInterleave;
+static u_int32_t samplesPerPacket;
+static u_int32_t samplesPerGroup;
+static u_int32_t* pFrameHeaders = NULL;
 static u_int8_t* pSideInfoSizes = NULL;
 static u_int16_t* pAduOffsets = NULL;
 
 static void GetFrameInfo(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId,
+	u_int32_t** ppFrameHeaders,
 	u_int8_t** ppSideInfoSizes,
 	u_int16_t** ppAduOffsets)
 {
+	// allocate memory to hold the frame info that we need
 	u_int32_t numSamples =
 		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
+
+	if (ppFrameHeaders) {
+		*ppFrameHeaders = 
+			(u_int32_t*)calloc((numSamples + 2), sizeof(u_int32_t));
+		ASSERT(*ppFrameHeaders);
+	};
 
 	*ppSideInfoSizes = 
 		(u_int8_t*)calloc((numSamples + 2), sizeof(u_int8_t));
@@ -49,10 +61,12 @@ static void GetFrameInfo(
 		(u_int16_t*)calloc((numSamples + 2), sizeof(u_int16_t));
 	ASSERT(*ppAduOffsets);
 
+	// for each sample
 	for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) { 
 		u_int8_t* pSample = NULL;
 		u_int32_t sampleSize = 0;
 
+		// read it
 		MP4ReadSample(
 			mp4File,
 			mediaTrackId,
@@ -60,8 +74,14 @@ static void GetFrameInfo(
 			&pSample,
 			&sampleSize);
 
+		// extract the MP3 frame header
 		u_int32_t mp3hdr = (pSample[0] << 24) | (pSample[1] << 16)
 			| (pSample[2] << 8) | pSample[3];
+
+		// store what we need
+		if (ppFrameHeaders) {
+			(*ppFrameHeaders)[sampleId] = mp3hdr;
+		}
 
 		(*ppSideInfoSizes)[sampleId] =
 			Mp3GetSideInfoSize(mp3hdr);
@@ -133,11 +153,36 @@ static void AddAdu(
 	MP4TrackId hintTrackId,
 	MP4SampleId sampleId)
 {
-	// TBD on interleave change sync word
+	// when interleaving we replace the 11 bit mp3 frame sync
+	if (doInterleave) {
+		// compute interleave index and interleave cycle from sampleId
+		u_int8_t interleaveIndex =
+			(sampleId - 1) % samplesPerGroup;
+		u_int8_t interleaveCycle =
+			((sampleId - 1) / samplesPerGroup) & 0x7;
 
-	// add mp3 header and side info from current mp3 frame
-	MP4AddRtpSampleData(mp4File, hintTrackId,
-		sampleId, 0, GetFrameHeaderSize(sampleId));
+		ASSERT(pFrameHeaders);
+		u_int8_t interleaveHeader[4];
+		interleaveHeader[0] = 
+			interleaveIndex;
+		interleaveHeader[1] = 
+			(interleaveCycle << 5) | ((pFrameHeaders[sampleId] >> 16) & 0x1F);
+		interleaveHeader[2] = 
+			(pFrameHeaders[sampleId] >> 8) & 0xFF;
+		interleaveHeader[3] = 
+			pFrameHeaders[sampleId] & 0xFF;
+
+		MP4AddRtpImmediateData(mp4File, hintTrackId,
+			interleaveHeader, 4);
+
+		// add side info from current mp3 frame
+		MP4AddRtpSampleData(mp4File, hintTrackId,
+			sampleId, 4, pSideInfoSizes[sampleId]);
+	} else {
+		// add mp3 header and side info from current mp3 frame
+		MP4AddRtpSampleData(mp4File, hintTrackId,
+			sampleId, 0, GetFrameHeaderSize(sampleId));
+	}
 
 	// now go back from sampleId until 
 	// accumulated data bytes can fill sample's ADU
@@ -175,14 +220,14 @@ static void AddAdu(
 		prevDataBytes += sizes[numSamples-1]; 
 	}
 
-	// now go forward, collecting the need blocks of data
+	// now go forward, collecting the needed blocks of data
 	u_int16_t dataSize = 0;
 	u_int16_t aduDataSize = GetAduDataSize(mp4File, mediaTrackId, sampleId);
 
 	for (int8_t i = numSamples - 1; i >= 0 && dataSize < aduDataSize; i--) {
 		u_int32_t blockSize = sizes[i];
 
-		if ((u_int32_t)(aduDataSize - dataSize) > blockSize) {
+		if ((u_int32_t)(aduDataSize - dataSize) < blockSize) {
 			blockSize = (u_int32_t)(aduDataSize - dataSize);
 		}
 
@@ -241,6 +286,10 @@ void Rfc3119Fragmenter(
 	u_int32_t aduSize, 
 	MP4Duration sampleDuration)
 {
+	printf("Error: Fragmentation not support for this payload yet\n");
+	throw;
+
+#ifdef NOTDEF
 	MP4AddRtpHint(mp4File, hintTrackId);
 	MP4AddRtpPacket(mp4File, hintTrackId, false);
 
@@ -250,7 +299,6 @@ void Rfc3119Fragmenter(
 	payloadHeader[0] = 0x40 | ((aduSize >> 8) & 0x3F);
 	payloadHeader[1] = aduSize & 0xFF;
 
-#ifdef NOTDEF
 	MP4AddRtpImmediateData(mp4File, hintTrackId,
 		(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
 
@@ -275,10 +323,10 @@ void Rfc3119Fragmenter(
 			}
 		}
 	} while (sampleOffset < sampleSize);
-#endif
 
 	// write the hint
 	MP4WriteRtpHint(mp4File, hintTrackId, sampleDuration);
+#endif
 }
 
 void Rfc3119Hinter(
@@ -287,6 +335,8 @@ void Rfc3119Hinter(
 	MP4TrackId hintTrackId,
 	bool interleave)
 {
+	doInterleave = interleave;
+
 	u_int8_t payloadNumber = 0;
 
 	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
@@ -301,11 +351,15 @@ void Rfc3119Hinter(
 		MP4GetSampleDuration(mp4File, mediaTrackId, 1);
 	ASSERT(sampleDuration != MP4_INVALID_DURATION);
 
-	GetFrameInfo(mp4File, mediaTrackId, &pSideInfoSizes, &pAduOffsets);
-
-	u_int32_t samplesPerPacket = 0;
+	// load mp3 frame information into memory
+	GetFrameInfo(
+		mp4File, 
+		mediaTrackId, 
+		(doInterleave ? &pFrameHeaders : NULL), 
+		&pSideInfoSizes, 
+		&pAduOffsets);
  
-	if (interleave) {
+	if (doInterleave) {
 		u_int32_t maxAduSize =
 			GetMaxAduSize(mp4File, mediaTrackId);
 
@@ -315,12 +369,12 @@ void Rfc3119Hinter(
 
 		// can't interleave if this number is 0 or 1
 		if (samplesPerPacket < 2) {
-			interleave = false;
+			doInterleave = false;
 		}
 	}
 
-	if (interleave) {
-		u_int32_t samplesPerGroup = maxLatency / sampleDuration;
+	if (doInterleave) {
+		samplesPerGroup = maxLatency / sampleDuration;
 
 		AudioInterleaveHinter(
 			mp4File, 
@@ -346,6 +400,8 @@ void Rfc3119Hinter(
 	}
 
 	// cleanup
+	free(pFrameHeaders);
+	pFrameHeaders = NULL;
 	free(pSideInfoSizes);
 	pSideInfoSizes = NULL;
 	free(pAduOffsets);

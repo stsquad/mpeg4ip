@@ -82,6 +82,7 @@ int main(int argc, char** argv)
 		"  -optimize               Optimize mp4 file layout\n"
 		"  -rate=<fps>             Video frame rate, e.g. 30 or 29.97\n"
 		"  -verbose[=[1-5]]        Enable debug messages\n"
+        "  -version                Display version information\n"
 		;
 
 	bool doCreate = false;
@@ -117,10 +118,11 @@ int main(int argc, char** argv)
 			{ "payload", 1, 0, 'p' },
 			{ "rate", 1, 0, 'r' },
 			{ "verbose", 2, 0, 'v' },
+			{ "version", 0, 0, 'V' },
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "c:d:H::Ilm:o:Op:v::",
+		c = getopt_long_only(argc, argv, "c:d:H::Ilm:o:Op:v::V",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -204,6 +206,10 @@ int main(int argc, char** argv)
 		case '?':
 			fprintf(stderr, usageString, ProgName);
 			exit(EXIT_SUCCESS);
+		case 'V':
+		  fprintf(stderr, "%s - %s version %s\n", 
+			  ProgName, PACKAGE, VERSION);
+		  exit(EXIT_SUCCESS);
 		default:
 			fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
 				ProgName, c);

@@ -120,11 +120,11 @@ Void CVideoObject::warpYA (const CPerspective2D& persp, const CRct& rctWarpedBou
 #ifdef _FOR_GSSP_
 						PixelC pxlcWarpedBY = puciSptBY -> pixel (src.s, accuracy);
 						if (pxlcWarpedBY >= 128) {
-							*ppxlcCurrQBY = OPAQUE;
+							*ppxlcCurrQBY = MPEG4_OPAQUE;
 #else
 						PixelC pxlcWarpedA = puciSptA -> pixel (src.s, accuracy);
 						if (pxlcWarpedA >= 128) {
-							*ppxlcCurrQA = OPAQUE;
+							*ppxlcCurrQA = MPEG4_OPAQUE;
 #endif
 							existOpaguePixelMB = TRUE;
 							*ppxlcCurrQY = puciSptY -> pixel (src.s, accuracy);
@@ -466,10 +466,10 @@ Void CVideoObject::FastAffineWarp (const CRct& rctWarpedBound,
 														uiScale, bias, accuracy2);
 #ifdef _FOR_GSSP_
 	  	        if (pxlcWarpedBY >= 128) {
-		 			*ppxlcCurrQBY = OPAQUE;
+		 			*ppxlcCurrQBY = MPEG4_OPAQUE;
 #else
 	  	        if (pxlcWarpedA >= 128) {
-		 			*ppxlcCurrQA = OPAQUE;
+		 			*ppxlcCurrQA = MPEG4_OPAQUE;
 #endif
                     *ppxlcCurrQY = CInterpolatePixelValue (	ppxlcSptQY, 
 															addr_offset, sprite_width, rx, ry,

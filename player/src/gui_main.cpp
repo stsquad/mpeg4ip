@@ -304,7 +304,7 @@ static void on_main_menu_about (GtkWidget *window, gpointer data)
 	  "ISO reference decoder for MPEG4\n"
 	  "FAAC decoder\n"
 	  "OpenDivx decore version 0.48\n"
-	  "Developed by Bill May, 10/00 to 3/01", VERSION);
+	  "Developed by Bill May, 10/00 to 12/01", VERSION);
 
   ShowMessage("About gmp4player",buffer);
 }
