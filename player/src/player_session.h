@@ -38,7 +38,8 @@
 typedef enum {
   SESSION_PAUSED,
   SESSION_BUFFERING,
-  SESSION_PLAYING
+  SESSION_PLAYING,
+  SESSION_DONE
 } session_state_t;
 
 class CPlayerSession {
@@ -58,7 +59,9 @@ class CPlayerSession {
    * API routine - create a rtsp session with the url.  After that, you
    * need to associate media
    */
-  int create_streaming(const char *url, const char **errmsg);
+  int create_streaming_broadcast(session_desc_t *sdp,
+				 const char **ermsg);
+  int create_streaming_ondemand(const char *url, const char **errmsg);
   /*
    * API routine - play at time.  If start_from_begin is FALSE, start_time
    * and we're paused, it will continue from where it left off.
@@ -113,7 +116,7 @@ class CPlayerSession {
   int session_has_video(void);
   void set_audio_volume(int volume);
   void set_screen_location(int x, int y);
-  void set_screen_size(int scaletimes2);
+  void set_screen_size(int scaletimes2, int fullscreen = 0);
   void session_set_seekable (int seekable) {
     m_seekable = seekable;
   };
@@ -130,7 +133,22 @@ class CPlayerSession {
   int sync_thread(void);
   uint64_t get_current_time(void);
   void audio_is_ready (uint64_t latency, uint64_t time);
+  int session_control_is_aggregate (void) {
+    return m_session_control_is_aggregate;
+  };
+  void set_session_control (int is_aggregate) {
+    m_session_control_is_aggregate = is_aggregate;
+  }
+  CPlayerMedia *rtsp_url_to_media (const char *url);
  private:
+  void process_sdl_events();
+  int process_msg_queue(int state);
+  int sync_thread_init(void);
+  int sync_thread_wait_sync(void);
+  int sync_thread_wait_audio(void);
+  int sync_thread_playing(void);
+  int sync_thread_paused(void);
+  int sync_thread_done(void);
   const char *m_session_name;
   int m_paused;
   int m_streaming;
@@ -149,15 +167,29 @@ class CPlayerSession {
   SDL_sem *m_master_msg_queue_sem;
   CMsgQueue m_sync_thread_msg_queue;
   range_desc_t *m_range;
+  int m_session_control_is_aggregate;
   int m_waiting_for_audio;
   int m_audio_volume;
   int m_screen_scale;
+  int m_fullscreen;
   int m_seekable;
   volatile int m_sync_pause_done;
   session_state_t m_session_state;
   int m_screen_pos_x;
   int m_screen_pos_y;
   int m_hardware_error;
+  __inline uint64_t get_time_of_day (void) {
+    struct timeval t;
+    struct timezone z;
+    gettimeofday(&t, &z);
+#ifndef _WINDOWS
+    return (((uint64_t)t.tv_sec * 1000LLU) +
+	    ((uint64_t)t.tv_usec / 1000LLU));
+#else
+	return (((uint64_t)t.tv_sec * 1000) + 
+			((uint64_t)t.tv_usec / 1000));
+#endif
+  }
 };
 
 #endif

@@ -27,7 +27,6 @@
 #include "player_media.h"
 #include "player_util.h"
 #include "media_utils.h"
-#define SORENSON 1
 #include "quicktime.h"
 #include "qtime_bytestream.h"
 #include "qtime_file.h"
@@ -117,8 +116,10 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
     if (vbyte == NULL) {
       return (-1);
     }
+    player_debug_message("qt file length %ld", quicktime_video_length(m_qtfile, ix));
     vbyte->config(quicktime_video_length(m_qtfile, ix),
 		  quicktime_video_frame_rate(m_qtfile, ix));
+    player_debug_message("Video Max time is %g", vbyte->get_max_playtime());
     int ret = mptr->create_from_file(psptr, vbyte, TRUE);
     if (ret != 0) {
       return (-1);
@@ -132,7 +133,7 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
     vinfo->width = quicktime_video_width(m_qtfile, ix);
     vinfo->frame_rate = (int)quicktime_video_frame_rate(m_qtfile, ix);
     vinfo->file_has_vol_header = 0;
-#if 0
+#if 1
     const char *compressor = quicktime_video_compressor(m_qtfile, ix);
     if (strstr(m_name, ".mp4") != NULL && 
 	strcasecmp(compressor, "mp4v") == 0) {
@@ -152,7 +153,8 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
 			 vinfo->height,
 			 vinfo->width,
 			 vinfo->frame_rate);
-#if 0
+#undef SORENSON
+#ifdef SORENSON
     int length = 0;
     ret = quicktime_video_sequence_header(m_qtfile, ix, NULL, &length);
     if (ret < 0) {
@@ -201,13 +203,14 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
     float sr = (float)sample_rate;
     long len = quicktime_audio_length(m_qtfile, 0);
     int duration = quicktime_audio_sample_duration(m_qtfile, 0);
-    player_debug_message("audio - rate %g len %ld", sr, len);
+    player_debug_message("audio - rate %g len %ld samples %d", sr, len, duration);
     audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
     audio->freq = (int)sr;
     audio->stream_has_length = 1;
     mptr->set_codec_type(quicktime_audio_compressor(m_qtfile, 0));
     mptr->set_audio_info(audio);
     abyte->config(len, sr, duration);
+    player_debug_message("audio Max time is %g", abyte->get_max_playtime());
     int ret = mptr->create_from_file(psptr, abyte, FALSE);
     if (ret != 0) {
       return (-1);

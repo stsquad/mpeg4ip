@@ -27,6 +27,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+void do_relative_url_to_absolute (char **control_string,
+				  const char *base_url,
+				  int dontfree);
+  
 void convert_relative_urls_to_absolute(session_desc_t *sdp,
 				       const char *base_url);
 

@@ -30,6 +30,7 @@
  */
 
 #include <gtk/gtk.h>
+#include <gdk/gdkkeysyms.h>
 #include <string.h>
 #include "gui_utils.h"
 #include <stdio.h>
@@ -107,13 +108,27 @@ GtkWidget *CreateMenuItem (GtkWidget *menu,
 
 
     /* --- If there was an accelerator --- */
-    if (szAccel && szAccel[0] == '^' && accel_group != NULL) {
-        gtk_widget_add_accelerator (menuitem, 
-                                    "activate", 
-                                    accel_group,
-                                    szAccel[1], 
-                                    GDK_CONTROL_MASK,
-                                    GTK_ACCEL_VISIBLE);
+    if (szAccel && accel_group != NULL) {
+      guint modifier = 0;
+      guint key;
+      if (szAccel[0] == '^') {
+	szAccel++;
+	modifier |= GDK_CONTROL_MASK;
+      }
+      if (strncmp(szAccel, "M-", 2) == 0) {
+	szAccel += 2;
+	modifier |= GDK_MOD1_MASK;
+      }
+      key = szAccel[0];
+      if (strncmp(szAccel,"<enter>", sizeof("<enter>")) == 0) {
+	key = GDK_Return;
+      }
+      gtk_widget_add_accelerator (menuitem, 
+				  "activate", 
+				  accel_group,
+				  key, 
+				  modifier,
+				  GTK_ACCEL_VISIBLE);
     }
 
     /* --- If there was a tool tip --- */

@@ -25,6 +25,8 @@
 #include "player_util.h"
 #include "video.h"
 #include <SDL_syswm.h>
+//#define VIDEO_SYNC_PLAY 1
+//#define VIDEO_SYNC_FILL 1
 
 CVideoSync::CVideoSync (void)
 {
@@ -59,10 +61,15 @@ CVideoSync::CVideoSync (void)
   m_calculated_frame_rate = 0;
   m_consec_skipped = 0;
   m_current_time = 0;
+  m_fullscreen = 0;
 }
 
 CVideoSync::~CVideoSync (void)
 {
+  if (m_fullscreen != 0) {
+    m_fullscreen = 0;
+    do_video_resize();
+  }
   if (m_image) {
     SDL_FreeYUVOverlay(m_image);
     m_image = NULL;
@@ -88,9 +95,9 @@ CVideoSync::~CVideoSync (void)
   player_debug_message("Video Sync Stats:");
   player_debug_message("Displayed-behind frames %d", m_behind_frames);
   player_debug_message("Total frames displayed %d", m_total_frames);
-  player_debug_message("Max behind time %llu", m_behind_time_max);
+  player_debug_message("Max behind time " LLU, m_behind_time_max);
   if (m_behind_frames > 0) 
-    player_debug_message("Average behind time %llu", m_behind_time / m_behind_frames);
+    player_debug_message("Average behind time "LLU, m_behind_time / m_behind_frames);
   player_debug_message("Skipped rendering %u", m_skipped_render);
 }
 
@@ -113,7 +120,7 @@ void CVideoSync::config (int w, int h, int frame_rate)
     m_msec_per_frame = 1000 / frame_rate;
   }
   m_config_set = 1;
-  player_debug_message("Config for %llu msec per video frame", m_msec_per_frame);
+  player_debug_message("Config for "LLU" msec per video frame", m_msec_per_frame);
 }
 
 /*
@@ -142,18 +149,12 @@ int CVideoSync::initialize_video (const char *name, int x, int y)
       ret = SDL_GetWMInfo(&info);
       // Oooh... fun... To scale the video, just pass the width and height
       // to this routine. (ie: m_width *2, m_height * 2).
-      int w, h;
-      if (m_video_scale == 1) {
-	w = m_width / 2;
-	h = m_height / 2;
-      } else {
-	w = m_width * m_video_scale / 2;
-	h = m_height * m_video_scale / 2;
-      }
+      int w = m_width * m_video_scale / 2;
+      int h = m_height * m_video_scale / 2;
       m_screen = SDL_SetVideoMode(w,
 				  h,
 				  m_video_bpp,
-				  SDL_SWSURFACE | SDL_ASYNCBLIT ); //| SDL_RESIZABLE);
+				  SDL_SWSURFACE | SDL_HWSURFACE | SDL_ASYNCBLIT ); //| SDL_RESIZABLE);
       if (ret > 0) {
 #ifdef unix
 	//	player_debug_message("Trying");
@@ -173,10 +174,17 @@ int CVideoSync::initialize_video (const char *name, int x, int y)
       player_debug_message("Created mscreen %p hxw %d %d", m_screen, m_height,
 			   m_width);
 #endif
+	if (m_video_scale == 4) {
+      m_image = SDL_CreateYUVOverlay(m_width << 1, 
+				     m_height << 1,
+				     SDL_YV12_OVERLAY, 
+				     m_screen);
+	} else {
       m_image = SDL_CreateYUVOverlay(m_width, 
 				     m_height,
 				     SDL_YV12_OVERLAY, 
 				     m_screen);
+	}
       m_video_initialized = 1;
       return (1);
     } else {
@@ -209,9 +217,9 @@ void CVideoSync::play_video (void)
  * video frame (if the timing is right
  */
 int64_t CVideoSync::play_video_at (uint64_t current_time, 
-				   uint64_t &play_this_at,
 				   int &have_eof)
 {
+  uint64_t play_this_at;
   m_current_time = current_time;
   /*
    * If we have end of file, indicate it
@@ -225,7 +233,14 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
    * If the next buffer is not filled, indicate that, as well
    */
   if (m_buffer_filled[m_play_index] == 0) {
-    return (m_msec_per_frame / 4);
+    if (current_time < m_next_time) {
+      //      player_debug_message("nf %llu", m_next_time - current_time);
+      return (m_next_time - current_time);
+    } else {
+      // Don't have a frame, and we're past the last time - delay 10 msec
+      //player_debug_message("nf 10");
+      return (10);
+    }
   }
   
   /*
@@ -234,12 +249,12 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
   play_this_at = m_play_this_at[m_play_index];
   if (play_this_at > current_time) {
 #if 0
-    player_debug_message("checking %llu at %llu", play_this_at, current_time);
+    player_debug_message("checking "LLU" at "LLU, play_this_at, current_time);
 #endif
     return (play_this_at - current_time);
   }
-#if 0
-  player_debug_message("play %llu", current_time);
+#if VIDEO_SYNC_PLAY
+  player_debug_message("play "LLU" at "LLU, play_this_at, current_time);
 #endif
 
   /*
@@ -252,7 +267,7 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
     if (behind > m_behind_time_max) m_behind_time_max = behind;
 #if 0
     if ((m_behind_frames % 64) == 0) {
-      player_debug_message("behind %llu avg %llu max %llu",
+      player_debug_message("behind "LLU" avg "LLU" max "LLU,
 			   behind, m_behind_time / m_behind_frames,
 			   m_behind_time_max);
     }
@@ -263,14 +278,16 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
    * If we're within 1/2 of the frame time, go ahead and display
    * this frame
    */
-#define CHECK_SYNC_TIME
+#define CHECK_SYNC_TIME 1
 #ifdef CHECK_SYNC_TIME
+  int showed = 0;
   if ((m_msec_per_frame == 0) || 
       ((play_this_at + m_msec_per_frame) > current_time) ||
       (m_consec_skipped > 10)) {
 #else
     {
 #endif
+      showed = 1;
       m_consec_skipped = 0;
     if (SDL_LockYUVOverlay(m_image)) {
       player_debug_message("Failed to lock image");
@@ -278,29 +295,41 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
     // Must always copy the buffer to memory.  This creates 2 copies of this
     // data (probably a total of 6 - libsock -> rtp -> decoder -> our ring ->
     // sdl -> hardware)
-    size_t bufsize = m_width * m_height * sizeof(Uint8);
-    memcpy(m_image->pixels[0], 
-	   m_y_buffer[m_play_index], 
-	   bufsize);
-    bufsize /= 4;
-    memcpy(m_image->pixels[1],
-	   m_v_buffer[m_play_index],
-	   bufsize);
-    memcpy(m_image->pixels[2],
-	   m_u_buffer[m_play_index],
-	   bufsize);
+
+	if (m_video_scale == 4) {
+      // when scaling to 200%, don't use SDL stretch blit
+      // use a smoothing (averaging) blit instead
+      smooth_doubling(m_y_buffer[m_play_index], m_image->pixels[0], 
+		m_width, m_height);
+      smooth_doubling(m_v_buffer[m_play_index], m_image->pixels[1], 
+		m_width >> 1, m_height >> 1);
+      smooth_doubling(m_u_buffer[m_play_index], m_image->pixels[2], 
+		m_width >> 1, m_height >> 1);
+	} else {
+      // let SDL blit, either 1:1 for 100% or decimating by 2:1 for 50%
+      size_t bufsize = m_width * m_height * sizeof(Uint8);
+      memcpy(m_image->pixels[0], 
+	    m_y_buffer[m_play_index], 
+	    bufsize);
+      bufsize /= 4;
+      memcpy(m_image->pixels[1],
+	    m_v_buffer[m_play_index],
+	    bufsize);
+      memcpy(m_image->pixels[2],
+	    m_u_buffer[m_play_index],
+	    bufsize);
+	}
 
     int rval = SDL_DisplayYUVOverlay(m_image, &m_dstrect);
     if (rval != 0) {
       player_error_message("Return from display is %d", rval);
     }
     SDL_UnlockYUVOverlay(m_image);
-    //player_debug_message("Show video at %llu", play_this_at);
   } 
 #ifdef CHECK_SYNC_TIME
 else {
 #if 0
-    player_debug_message("Video lagging current time %llu %llu %llu", 
+    player_debug_message("Video lagging current time "LLU" "LLU" "LLU, 
 			 play_this_at, current_time, m_msec_per_frame);
 #endif
     /*
@@ -316,7 +345,6 @@ else {
   m_buffer_filled[m_play_index] = 0;
   m_play_index++;
   m_play_index %= MAX_VIDEO_BUFFERS;
-  m_current_time = current_time;
   m_total_frames++;
   // 
   // okay - we need to signal the decode task to continue...
@@ -324,10 +352,16 @@ else {
     m_decode_waiting = 0;
     SDL_SemPost(m_decode_sem);
   }
+
   if (m_buffer_filled[m_play_index] == 1) {
-    return ((m_play_this_at[m_play_index] - m_current_time) / 2);
+    m_next_time = m_play_this_at[m_play_index];
+    if (m_next_time < m_current_time) 
+      return (0);
+    else 
+      return (m_next_time - m_current_time);
   }
-  return (m_msec_per_frame / 4);
+  m_next_time = play_this_at + m_msec_per_frame;
+  return (m_msec_per_frame);
 }
 
 int CVideoSync::get_video_buffer(unsigned char **y,
@@ -365,6 +399,9 @@ int CVideoSync::filled_video_buffers(uint64_t time, uint64_t &current_time)
   m_fill_index++;
   m_fill_index %= MAX_VIDEO_BUFFERS;
   SDL_SemPost(m_sync_sem);
+#ifdef VIDEO_SYNC_FILL
+  player_debug_message("Filled %llu", time);
+#endif
   return (1);
 }
 
@@ -420,7 +457,7 @@ int CVideoSync::set_video_frame(const Uint8 *y,
     } else {
       m_msec_per_frame = time - m_first_frame_time;
       m_calculated_frame_rate = 1;
-      player_debug_message("Calculate frame rate is %llu", m_msec_per_frame);
+      player_debug_message("Calculate frame rate is "LLU, m_msec_per_frame);
     }
   }
   src = y;
@@ -454,6 +491,9 @@ int CVideoSync::set_video_frame(const Uint8 *y,
   m_fill_index++;
   m_fill_index %= MAX_VIDEO_BUFFERS;
   SDL_SemPost(m_sync_sem);
+#ifdef VIDEO_SYNC_FILL
+  player_debug_message("filled %llu", time);
+#endif
   return (m_paused);
 }
 
@@ -466,7 +506,6 @@ void CVideoSync::flush_sync_buffers (void)
   m_eof_found = 0;
   m_paused = 1;
   if (m_decode_waiting) {
-    // player_debug_message("decode thread waiting - posted to it");
     SDL_SemPost(m_decode_sem);
     // start debug
   }
@@ -488,21 +527,97 @@ void CVideoSync::set_screen_size (int scaletimes2)
   m_video_scale = scaletimes2;
 }
 
+void CVideoSync::set_fullscreen (int fullscreen)
+{
+  m_fullscreen = fullscreen;
+}
+
 void CVideoSync::do_video_resize (void)
 {
-  int w, h;
-  if (m_video_scale == 1) {
-    w = m_width / 2;
-    h = m_height / 2;
-  } else {
-    w = m_width * m_video_scale / 2;
-    h = m_height * m_video_scale / 2;
+  int w = m_width * m_video_scale / 2;
+  int h = m_height * m_video_scale / 2;
+  int mask = SDL_SWSURFACE | SDL_ASYNCBLIT | SDL_RESIZABLE;
+  if (m_fullscreen != 0) {
+    mask |= SDL_FULLSCREEN;
   }
+    
   m_screen = SDL_SetVideoMode(w, h, m_video_bpp, 
-			      SDL_SWSURFACE | SDL_ASYNCBLIT | SDL_RESIZABLE);
+			      mask);
   m_dstrect.x = 0;
   m_dstrect.y = 0;
   m_dstrect.w = m_screen->w;
   m_dstrect.h = m_screen->h;
+
+  SDL_FreeYUVOverlay(m_image);
+  if (m_video_scale == 4) {
+    m_image = SDL_CreateYUVOverlay(m_width << 1, 
+				 m_height << 1,
+				 SDL_YV12_OVERLAY, 
+				 m_screen);
+  } else {
+    m_image = SDL_CreateYUVOverlay(m_width, 
+				 m_height,
+				 SDL_YV12_OVERLAY, 
+				 m_screen);
+  }
 }
+
+void CVideoSync::smooth_doubling(u_int8_t* pSrcPlane, u_int8_t* pDstPlane, 
+	u_int16_t srcWidth, u_int16_t srcHeight)
+{
+	register u_int8_t p00, p01, p10, p11;
+	register u_int32_t si0, si1, di0, di1;
+
+	/* initialize these to keep compiler happy at -Werror */
+	p00 = p01 = p10 = p11 = 0;
+
+	si0 = 0;
+	si1 = srcWidth;
+	di0 = 0;
+	di1 = srcWidth << 1;
+
+	for (u_int16_t row = 0; row < srcHeight - 1; row++) {
+		/* setup for first column */
+		p01 = pSrcPlane[si0++];
+		p11 = pSrcPlane[si1++];
+
+		for (u_int16_t col = 0; col < srcWidth-1; col++) {
+			p00 = p01;
+			p10 = p11; 
+			p01 = pSrcPlane[si0++];
+			p11 = pSrcPlane[si1++];
+
+			pDstPlane[di0++] = p00;
+			pDstPlane[di0++] = (p00 + p01) >> 1;
+			pDstPlane[di1++] = (p00 + p10) >> 1;
+			pDstPlane[di1++] = (p00 + p11) >> 1;
+		}
+		
+		/* last column */
+		pDstPlane[di0++] = p00;
+		pDstPlane[di0++] = p00;
+		p01 = (p00 + p10) >> 1;
+		pDstPlane[di1++] = p01;
+		pDstPlane[di1++] = p01;
+
+		di0 = di1;
+		di1 += srcWidth << 1;
+	}
+
+	/* last row */
+	for (u_int16_t col = 0; col < srcWidth-1; col++) {
+		pDstPlane[di0++] = p00;
+		pDstPlane[di1++] = p00;
+		p10 = (p00 + p01) >> 1;
+		pDstPlane[di0++] = p10;
+		pDstPlane[di1++] = p10;
+	}
+
+	/* last pixel */
+	pDstPlane[di0++] = p00;
+	pDstPlane[di0] = p00;
+	pDstPlane[di1++] = p00;
+	pDstPlane[di1] = p00;
+}
+
 /* end file video.cpp */    

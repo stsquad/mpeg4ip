@@ -245,15 +245,16 @@ static void on_main_menu_help (GtkWidget *window, gpointer data)
 static void on_main_menu_about (GtkWidget *window, gpointer data)
 {
   ShowMessage("About gmp4player",
-	      "gmp4player is a file/streaming MPEG4 player\n"
+	      "gmp4player is an open source file/streaming MPEG4 player\n"
 	      "Developed by cisco Systems using the\n"
 	      "following open source packages:\n"
 	      "\n"
-	      "SDL from lokigames\n"
+	      "SDL, SMPEG audio (MP3) from lokigames\n"
 	      "RTP from UCL\n"
 	      "ISO reference decoder for MPEG4\n"
 	      "FAAC decoder\n"
-	      "Developed by Bill May, 10/00 to 1/01");
+	      "OpenDivx decore version 0.48\n"
+	      "Developed by Bill May, 10/00 to 3/01");
 }
 
 static void on_main_menu_debug (GtkWidget *window, gpointer data)
@@ -470,6 +471,14 @@ static void on_video_radio (GtkWidget *window, gpointer data)
   }
 }
 
+static void on_video_fullscreen (GtkWidget *window, gpointer data)
+{
+  player_debug_message("Fullscreen");
+  if (psptr != NULL) {
+    psptr->set_screen_size(master_screen_size / 50, 1);
+  }
+}
+
 static void on_time_slider_pressed (GtkWidget *window, gpointer data)
 {
   time_slider_pressed = 1;
@@ -539,7 +548,15 @@ static gint main_timer (gpointer raw)
     gtk_label_set_text(GTK_LABEL(time_disp), buffer);
     
   }
-    
+  CMsg *newmsg;
+  while ((newmsg = master_queue.get_message()) != NULL) {
+    switch (newmsg->get_value()) {
+    case MSG_RECEIVED_QUIT:
+      //player_debug_message("received quit");
+      on_main_menu_close(NULL, 0);
+      break;
+    }
+  }
   return (TRUE);  // keep timer going
 }
 
@@ -637,6 +654,21 @@ int main (int argc, char **argv)
 			       &videosizelist,
 			       GTK_SIGNAL_FUNC(on_video_radio),
 			       GINT_TO_POINTER(200));
+
+  menuitem = CreateMenuItem(videosub, 
+			    accel_group, 
+			    tooltips, 
+			    NULL, NULL, NULL, 
+			    NULL, NULL);
+
+  menuitem = CreateMenuItem(videosub,
+			    accel_group,
+			    tooltips,
+			    "Full Screen",
+			    "M-<enter>",
+			    "Full Screen",
+			    GTK_SIGNAL_FUNC(on_video_fullscreen),
+			    NULL);
 
   menu = CreateBarSubMenu(menubar, "Help");
   menuitem = CreateMenuItem(menu,

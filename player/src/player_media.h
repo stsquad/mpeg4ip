@@ -112,6 +112,8 @@ class CPlayerMedia {
     m_user_data = udata;
     m_user_data_size = length;
   }
+  rtsp_session_t *get_rtsp_session(void) { return m_rtsp_session; };
+  void set_rtp_rtpinfo(void) { m_rtp_rtpinfo_received = 1; };
  private:
   int m_is_video;
   int m_paused;
@@ -155,6 +157,8 @@ class CPlayerMedia {
   // conversion from rtptime in rtp packet to relative time in packet
   uint32_t m_rtp_rtptime;
 
+  int m_rtp_rtpinfo_received;
+  
   // Decoder thread variables
   SDL_Thread *m_decode_thread;
   volatile int m_decode_thread_waiting;
@@ -166,7 +170,6 @@ class CPlayerMedia {
   CMsgQueue m_decode_msg_queue;
   // Private routines
   int process_rtsp_transport(char *transport);
-  int process_rtsp_rtpinfo(char *rtpinfo);
   int determine_proto_from_rtp(void);
   int add_packet_to_queue(rtp_packet *pak);
   void flush_rtp_packets(void);
@@ -180,6 +183,11 @@ class CPlayerMedia {
 
   const unsigned char *m_user_data;
   int m_user_data_size;
+  int check_rtp_frame_complete_for_proto(void);
 };
+
+int process_rtsp_rtpinfo(char *rtpinfo, 
+			 CPlayerSession *session,
+			 CPlayerMedia *media);
 
 #endif

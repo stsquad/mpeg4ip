@@ -34,7 +34,7 @@ class CPlayerMedia;
 class CInByteStreamRtp : public COurInByteStream
 {
  public:
-  CInByteStreamRtp(CPlayerMedia *m);
+  CInByteStreamRtp(CPlayerMedia *m, int ondemand);
   ~CInByteStreamRtp();
   int eof (void) { return 0; };
   char get(void);
@@ -44,6 +44,10 @@ class CInByteStreamRtp : public COurInByteStream
   int have_no_data(void);
   uint64_t start_next_frame(void);
   double get_max_playtime (void) { return 0.0; };
+  size_t read(char *buffer, size_t bytes);
+  size_t read(unsigned char *buffer, size_t bytes) {
+    return (read((char *)buffer, bytes));
+  };
   int still_same_ts(void);
 
   // various routines for RTP interface.
@@ -53,6 +57,17 @@ class CInByteStreamRtp : public COurInByteStream
   void set_rtp_config (uint64_t tps) {
     m_rtptime_tickpersec = tps;
   };
+  void set_skip_on_advance (size_t bytes_to_skip) {
+    m_skip_on_advance_bytes = bytes_to_skip;
+  };
+  void set_wallclock_offset (uint64_t wclock) {
+    m_wallclock_offset = wclock;
+    m_wallclock_offset_set = 1;
+  };
+  int rtp_ready (void) {
+    return (m_stream_ondemand | m_wallclock_offset_set);
+  };
+  void check_for_end_of_pak(void); // used by read and get
  private:
   void init(void);
   rtp_packet *m_pak;
@@ -60,12 +75,16 @@ class CInByteStreamRtp : public COurInByteStream
   rtp_packet *m_bookmark_pak;
   int m_bookmark_offset_in_pak;
   int m_bookmark_set;
+  size_t m_skip_on_advance_bytes;
   uint32_t m_ts;
   uint64_t m_total;
   uint64_t m_total_book;
   int m_dont_check_across_ts;
   uint32_t m_rtp_rtptime;
   uint64_t m_rtptime_tickpersec;
-
+  int m_stream_ondemand;
+  uint64_t m_wrap_offset;
+  int m_wallclock_offset_set;
+  uint64_t m_wallclock_offset;
 };
 #endif

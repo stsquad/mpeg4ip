@@ -38,8 +38,7 @@ class CVideoSync {
   int initialize_video(const char *name, int x, int y);  // from sync task
   int is_video_ready(uint64_t &disptime);  // from sync task
   int64_t play_video_at(uint64_t current_time, // from sync task
-		    uint64_t &play_this_at,
-		    int &have_eof);
+			 int &have_eof);
   int get_video_buffer(unsigned char **y,
 		       unsigned char **u,
 		       unsigned char **v);
@@ -59,12 +58,17 @@ class CVideoSync {
   void play_video(void);
   void set_eof(void) { m_eof_found = 1; };
   void set_screen_size(int scaletimes2); // 1 gets 50%, 2, normal, 4, 2 times
+  void set_fullscreen(int fullscreen);
+  int get_fullscreen (void) { return m_fullscreen; };
   void do_video_resize(void); // from sync
   uint64_t get_video_msec_per_frame (void) { return m_msec_per_frame; };
+  void smooth_doubling(u_int8_t* pSrcPlane, u_int8_t* pDstPlane, 
+	u_int16_t srcWidth, u_int16_t srcHeight);
  private:
   int m_eof_found;
   int m_video_bpp;
   int m_video_scale;
+  int m_fullscreen;
   unsigned int m_width, m_height;
   int m_video_initialized;
   int m_config_set;
@@ -82,6 +86,7 @@ class CVideoSync {
   Uint8 *m_v_buffer[MAX_VIDEO_BUFFERS];
   uint64_t m_play_this_at[MAX_VIDEO_BUFFERS];
   uint64_t m_current_time;
+  uint64_t m_next_time;
   SDL_sem *m_decode_sem;
   int m_dont_fill;
   size_t m_consec_skipped;

@@ -63,14 +63,29 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_screen_pos_y = 0;
   m_clock_wrapped = -1;
   m_hardware_error = 0;
+  m_fullscreen = 0;
+  m_session_control_is_aggregate = 0;
 }
 
 CPlayerSession::~CPlayerSession ()
 {
+#ifndef _WINDOWS
   if (m_sync_thread) {
     m_sync_thread_msg_queue.send_message(MSG_STOP_THREAD, NULL, 0, m_sync_sem);
     SDL_WaitThread(m_sync_thread, NULL);
     m_sync_thread = NULL;
+  }
+#endif
+
+  if (session_control_is_aggregate()) {
+    rtsp_command_t cmd;
+    rtsp_decode_t *decode;
+    memset(&cmd, 0, sizeof(rtsp_command_t));
+    rtsp_send_aggregate_teardown(m_rtsp_client,
+				 m_sdp_info->control_string,
+				 &cmd,
+				 &decode);
+    free_decode_response(decode);
   }
 
   while (m_my_media != NULL) {
@@ -108,14 +123,25 @@ CPlayerSession::~CPlayerSession ()
     free((void *)m_session_name);
     m_session_name = NULL;
   }
+    
   SDL_Quit();
 }
 
+int CPlayerSession::create_streaming_broadcast (session_desc_t *sdp,
+						const char **ermsg)
+{
+  session_set_seekable(0);
+  m_sdp_info = sdp;
+  m_range = get_range_from_sdp(m_sdp_info);
+  m_streaming = 1;
+  return (0);
+}
 /*
  * create_streaming - create a session for streaming.  Create an
  * RTSP session with the server, get the SDP information from it.
  */
-int CPlayerSession::create_streaming (const char *url, const char **errmsg)
+int CPlayerSession::create_streaming_ondemand (const char *url, 
+					       const char **errmsg)
 {
   rtsp_command_t cmd;
   rtsp_decode_t *decode;
@@ -146,9 +172,14 @@ int CPlayerSession::create_streaming (const char *url, const char **errmsg)
    */
   if (rtsp_send_describe(m_rtsp_client, &cmd, &decode) !=
       RTSP_RESPONSE_GOOD) {
-    int retval = (((decode->retcode[0] - '0') * 100) +
+    int retval;
+    if (decode != NULL) {
+    retval = (((decode->retcode[0] - '0') * 100) +
 	    ((decode->retcode[1] - '0') * 10) +
 	    (decode->retcode[2] - '0'));
+    } else {
+      retval = -1;
+    }
     *errmsg = "RTSP describe error";
     player_error_message("Describe response not good\n");
     free_decode_response(decode);
@@ -183,7 +214,9 @@ int CPlayerSession::create_streaming (const char *url, const char **errmsg)
   }
 
   m_range = get_range_from_sdp(m_sdp_info);
-
+  if (m_sdp_info->control_string != NULL) {
+    set_session_control(1);
+  }
   /*
    * Make sure we can use the urls in the sdp info
    */
@@ -241,7 +274,7 @@ int CPlayerSession::play_all_media (int start_from_begin, double start_time)
     start_time = (double) m_current_time;
 #endif
     start_time /= 1000.0;
-    player_debug_message("Restarting at %llu, %g", m_current_time, start_time);
+    player_debug_message("Restarting at " LLU ", %g", m_current_time, start_time);
   } else {
     /*
      * We might have been paused, but we're told to seek
@@ -252,6 +285,32 @@ int CPlayerSession::play_all_media (int start_from_begin, double start_time)
   m_paused = 0;
 
   m_sync_thread_msg_queue.send_message(MSG_START_SESSION, NULL, 0, m_sync_sem);
+  // If we're doing aggregate rtsp, send the play command...
+
+  if (session_control_is_aggregate()) {
+    char buffer[80];
+    rtsp_command_t cmd;
+    rtsp_decode_t *decode;
+
+    memset(&cmd, 0, sizeof(rtsp_command_t));
+    sprintf(buffer, "npt=%g-%g", start_time, m_range->range_end);
+    cmd.range = buffer;
+    if (rtsp_send_aggregate_play(m_rtsp_client,
+				 m_sdp_info->control_string,
+				 &cmd,
+				 &decode) != 0) {
+      player_debug_message("RTSP aggregate play command failed");
+      free_decode_response(decode);
+      return (-1);
+    }
+    int ret = process_rtsp_rtpinfo(decode->rtp_info, this, NULL);
+    free_decode_response(decode);
+    if (ret < 0) {
+      player_debug_message("rtsp aggregate rtpinfo failed");
+      return (-1);
+    }
+  }
+
   while (p != NULL) {
     ret = p->do_play(start_time);
     if (ret != 0) return (ret);
@@ -269,6 +328,21 @@ int CPlayerSession::pause_all_media (void)
   int ret;
   CPlayerMedia *p;
   m_session_state = SESSION_PAUSED;
+  if (session_control_is_aggregate()) {
+    rtsp_command_t cmd;
+    rtsp_decode_t *decode;
+
+    memset(&cmd, 0, sizeof(rtsp_command_t));
+    if (rtsp_send_aggregate_pause(m_rtsp_client,
+				  m_sdp_info->control_string,
+				  &cmd,
+				  &decode) != 0) {
+      player_debug_message("RTSP aggregate pause command failed");
+      free_decode_response(decode);
+      return (-1);
+    }
+    free_decode_response(decode);
+  }
   p = m_my_media;
   while (p != NULL) {
     ret = p->do_pause();
@@ -324,11 +398,13 @@ void CPlayerSession::set_screen_location (int x, int y)
   m_screen_pos_y = y;
 }
 
-void CPlayerSession::set_screen_size (int scaletimes2)
+void CPlayerSession::set_screen_size (int scaletimes2, int fullscreen)
 {
   m_screen_scale = scaletimes2;
+  m_fullscreen = fullscreen;
   if (m_video_sync) {
     m_video_sync->set_screen_size(scaletimes2);
+    m_video_sync->set_fullscreen(fullscreen);
     m_sync_thread_msg_queue.send_message(MSG_SYNC_RESIZE_SCREEN, 
 					 NULL, 
 					 0, 
@@ -351,4 +427,22 @@ double CPlayerSession::get_max_time (void)
   return (max);
 }
 
+CPlayerMedia *CPlayerSession::rtsp_url_to_media (const char *url)
+{
+  char *temp = strdup(url);
+  do_relative_url_to_absolute(&temp, m_session_name, 1);
+  CPlayerMedia *p;
+  p = m_my_media;
+  while (p != NULL) {
+    if (rtsp_is_url_my_stream(temp, p->get_rtsp_session()) != 0) {
+      free(temp);
+      return p;
+    }
+    p = p->get_next();
+  }
+  free(temp);
+  return (NULL);
+}
+       
+  
 /* end file player_session.cpp */

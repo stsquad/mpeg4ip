@@ -30,6 +30,8 @@
 #include "media_utils.h"
 #include <rtp/memory.h>
 
+//#define DEBUG_DECODE 1
+//#define DEBUG_DECODE_MSGS 1
 /*
  * CPlayerMedia::advance_head - move to the next rtp packet in the
  * bytestream.  This really should be in the rtp bytestream.
@@ -48,7 +50,7 @@ rtp_packet *CPlayerMedia::advance_head (int bookmark_set, const char **err)
       player_error_message("SDL Lock mutex failure in decode thread");
       return (NULL);
     }
-    if (m_head == NULL || m_head == m_head->next) {
+    if (m_head == NULL || m_head == m_head->next || m_head->next == NULL) {
       SDL_mutexV(m_rtp_packet_mutex);
       *err = "bookmark - advance past end";
       return (NULL);
@@ -77,8 +79,9 @@ rtp_packet *CPlayerMedia::advance_head (int bookmark_set, const char **err)
   }
 
   p = m_head;
-  if (m_head->next == m_head) {
+  if (m_head->next == NULL || m_head->next == m_head) {
     m_head = NULL;
+    m_tail = NULL;
   } else {
     m_head = p->next;
     m_head->prev = m_tail;
@@ -114,7 +117,9 @@ void CPlayerMedia::parse_decode_message (int &thread_stop, int &decoding)
   CMsg *newmsg;
 
   if ((newmsg = m_decode_msg_queue.get_message()) != NULL) {
-    //player_debug_message("Here's the decode message %d",newmsg->get_value());
+#ifdef DEBUG_DECODE_MSGS
+    player_debug_message("Here's the decode message %d",newmsg->get_value());
+#endif
     switch (newmsg->get_value()) {
     case MSG_STOP_THREAD:
       thread_stop = 1;
@@ -150,7 +155,7 @@ int CPlayerMedia::decode_thread (void)
   //  uint32_t msec_per_frame = 0;
   CCodecBase *codec = NULL;
   int ret = 0;
-#define TIME_DECODE
+
 #ifdef TIME_DECODE
   int64_t avg = 0, diff;
   int64_t max = 0;
@@ -162,7 +167,9 @@ int CPlayerMedia::decode_thread (void)
   while (thread_stop == 0) {
     // waiting here for decoding or thread stop
     ret = SDL_SemWait(m_decode_thread_sem);
-    //    player_debug_message("Decode thread awake");
+#ifdef DEBUG_DECODE
+    player_debug_message("Decode thread awake");
+#endif
     parse_decode_message(thread_stop, decoding);
 
     if (decoding == 1) {
@@ -213,7 +220,9 @@ int CPlayerMedia::decode_thread (void)
     /*
      * this is our main decode loop
      */
-    //player_debug_message("Into decode loop");
+#ifdef DEBUG_DECODE
+    player_debug_message("Into decode loop");
+#endif
     while ((thread_stop == 0) && decoding) {
       parse_decode_message(thread_stop, decoding);
       if (thread_stop != 0)
@@ -236,6 +245,9 @@ int CPlayerMedia::decode_thread (void)
 	// Indicate that we're waiting, and wait for a message from RTP
 	// task.
 	m_decode_thread_waiting = 1;
+#ifdef DEBUG_DECODE
+	player_debug_message("decode thread %s waiting", m_media_info->media);
+#endif
 	ret = SDL_SemWait(m_decode_thread_sem);
 	m_decode_thread_waiting = 0;
 	continue;
@@ -245,7 +257,9 @@ int CPlayerMedia::decode_thread (void)
       // Tell bytestream we're starting the next frame - they'll give us
       // the time.
       ourtime = m_byte_stream->start_next_frame();
-      //player_debug_message("Decoding frame %llu", ourtime);
+#ifdef DEBUG_DECODE
+      player_debug_message("Decoding %c frame " LLX, m_is_video ? 'v' : 'a', ourtime);
+#endif
       do {
 #ifdef TIME_DECODE
 	clock_t start, end;
@@ -261,7 +275,7 @@ int CPlayerMedia::decode_thread (void)
 	  avg_cnt++;
 #if 1
 	  if ((avg_cnt % 100) == 0) {
-	    player_debug_message("%s Decode avg time is %lld max %lld", 
+	    player_debug_message("%s Decode avg time is " LLD " max " LLD, 
 				 m_codec_type,
 				 avg / avg_cnt, max);
 	    max = 0;
@@ -283,11 +297,14 @@ int CPlayerMedia::decode_thread (void)
 #endif
 
     }
-    //player_debug_message("decode- out of inner loop");
+#ifdef DEBUG_DECODE
+    player_debug_message("decode- out of inner loop");
+#endif
   }
 #ifdef TIME_DECODE
   if (avg_cnt != 0)
-    player_debug_message("Decode avg time is %lld max %lld", avg / avg_cnt,
+    player_debug_message("Decode avg time is " LLD " max " LLD, 
+			 avg / avg_cnt,
 			 max);
 #endif
   delete codec;

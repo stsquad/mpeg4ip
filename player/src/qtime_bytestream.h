@@ -46,6 +46,11 @@ class CQTByteStreamBase : public COurInByteStream
   void bookmark(int bSet);
   virtual void reset(void) = 0;
   virtual uint64_t start_next_frame (void) = 0;
+  size_t read(char *buffer, size_t bytes);
+  size_t read (unsigned char *buffer, size_t bytes) {
+    return (read((char *)buffer, bytes));
+  };
+  void check_for_end_of_frame(void);
  protected:
   virtual void read_frame(void) = 0;
   CQtimeFile *m_parent;
@@ -65,8 +70,6 @@ class CQTByteStreamBase : public COurInByteStream
   uint64_t m_total, m_total_bookmark;
   int m_bookmark_read_frame;
   int m_bookmark_read_frame_size;
-  size_t m_decode_frame;
-  
 };
 
 /*
@@ -121,7 +124,7 @@ class CQTAudioByteStream : public CQTByteStreamBase
   uint64_t start_next_frame(void);
   void set_start_time(uint64_t start);
   double get_max_playtime (void) {
-    double ret = m_frames_max * 1024;
+    double ret = m_frames_max * m_samples_per_frame;
     ret /= m_frame_rate;
     return (ret);
   };

@@ -49,11 +49,17 @@ COurInByteStreamFile::~COurInByteStreamFile(void)
     free((void *)m_filename);
     m_filename = NULL;
   }
-  player_debug_message("bytes %llu, frames %llu, fps %llu",
+  player_debug_message("bytes " LLU ", frames "LLU", fps "LLU,
 		       m_total, m_frames, m_frame_per_sec);
   if (m_frames > 0)
-    player_debug_message("bits per sec %llu", 
+    player_debug_message("bits per sec "LLU, 
 			 (m_total * 8 * m_frame_per_sec) / m_frames);
+}
+
+void COurInByteStreamFile::set_start_time (uint64_t start) 
+{
+  m_frames = 0;
+  m_play_start_time = start;
 }
 
 uint64_t COurInByteStreamFile::start_next_frame (void) 
@@ -139,5 +145,31 @@ void COurInByteStreamFile::reset (void)
   fseek(m_file, 0, SEEK_SET); 
   m_bookmark_loaded = 0;
   m_bookmark = 0;
+  m_frames = 0;
   read_frame();
+}
+
+size_t COurInByteStreamFile::read (char *buffer, size_t bytestoread) 
+{
+  if (m_bookmark && bytestoread > m_buffer_size_max) {
+    // Can't do this...
+    return 0;
+  }
+  size_t inbuffer, readbytes = 0;
+  do {
+    inbuffer = m_buffer_size - m_index;
+    if (bytestoread < inbuffer)
+      inbuffer = bytestoread;
+    memcpy(buffer, &m_buffer_on[m_index], inbuffer);
+    readbytes += inbuffer;
+    buffer += inbuffer;
+    bytestoread -= inbuffer;
+    m_index += inbuffer;
+    if (m_index >= m_buffer_size) {
+      read_frame();
+    }
+    m_total += inbuffer;
+  } while (bytestoread > 0 && m_buffer_size > 0);
+
+  return (readbytes);
 }

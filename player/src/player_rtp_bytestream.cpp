@@ -25,11 +25,17 @@
 #include "player_rtp_bytestream.h"
 #include "player_media.h"
 
-CInByteStreamRtp::CInByteStreamRtp (CPlayerMedia *m) : COurInByteStream(m)
+CInByteStreamRtp::CInByteStreamRtp (CPlayerMedia *m, int ondemand) : 
+  COurInByteStream(m)
 {
   init();
+  m_ts = 0;
   m_total =0;
   m_dont_check_across_ts = 0;
+  m_skip_on_advance_bytes = 0;
+  m_stream_ondemand = ondemand;
+  m_wrap_offset = 0;
+  m_wallclock_offset_set = 0;
 }
 
 CInByteStreamRtp::~CInByteStreamRtp()
@@ -51,13 +57,30 @@ void CInByteStreamRtp::assign_pak (rtp_packet *pak)
     pak = m_media->advance_head(FALSE, &err);
   }
   m_pak = pak; 
-  m_offset_in_pak = 0;
+  m_offset_in_pak = m_skip_on_advance_bytes;;
+}
+
+void CInByteStreamRtp::check_for_end_of_pak (void)
+{
+  const char *err;
+
+  if (m_offset_in_pak >= m_pak->data_len) {
+    m_offset_in_pak = m_skip_on_advance_bytes;
+    m_pak = m_media->advance_head(m_bookmark_set, &err);
+
+    if (m_pak == NULL && m_bookmark_set == 0) {
+      init();
+      throw err;
+    } 
+    //player_debug_message("Advancing head");
+  } else {
+    //player_debug_message("Rtp offset %u", m_offset_in_pak);
+  }
 }
 
 char CInByteStreamRtp::get (void)
 {
   char ret;
-  const char *err;
 
   if (m_pak == NULL) {
     if (m_bookmark_set == 1) {
@@ -78,18 +101,7 @@ char CInByteStreamRtp::get (void)
   ret = m_pak->data[m_offset_in_pak];
   m_offset_in_pak++;
   m_total++;
-  if (m_offset_in_pak >= m_pak->data_len) {
-    m_offset_in_pak = 0;
-    m_pak = m_media->advance_head(m_bookmark_set, &err);
-
-    if (m_pak == NULL && m_bookmark_set == 0) {
-      init();
-      throw err;
-    } 
-    //player_debug_message("Advancing head");
-  } else {
-    //player_debug_message("Rtp offset %u", m_offset_in_pak);
-  }
+  check_for_end_of_pak();
   return (ret);
 }
 
@@ -117,27 +129,81 @@ void CInByteStreamRtp::bookmark (int bSet)
 
 uint64_t CInByteStreamRtp::start_next_frame (void)
 {
-  // We're going to have to handle wrap better...
-  m_ts = m_pak->ts;
   uint64_t timetick;
-  int neg = 0;
+  // We're going to have to handle wrap better...
+  if (m_stream_ondemand) {
+    m_ts = m_pak->ts;
+    int neg = 0;
     
-  if (m_ts >= m_rtp_rtptime) {
-    timetick = m_ts;
-    timetick -= m_rtp_rtptime;
+    if (m_ts >= m_rtp_rtptime) {
+      timetick = m_ts;
+      timetick -= m_rtp_rtptime;
+    } else {
+      timetick = m_rtp_rtptime - m_ts;
+      neg = 1;
+    }
+    timetick *= 1000;
+    timetick /= m_rtptime_tickpersec;
+    if (neg == 1) {
+      if (timetick > m_play_start_time) return (0);
+      return (m_play_start_time - timetick);
+    }
+    timetick += m_play_start_time;
   } else {
-    timetick = m_rtp_rtptime - m_ts;
-    neg = 1;
+    if (((m_ts & 0x80000000) == 0x80000000) &&
+	((m_pak->ts & 0x80000000) == 0)) {
+      m_wrap_offset += (I_LLU << 32);
+    }
+    m_ts = m_pak->ts;
+    timetick = m_ts + m_wrap_offset;
+    timetick *= 1000;
+    timetick /= m_rtptime_tickpersec;
+    timetick += m_wallclock_offset;
+#if 0
+	player_debug_message("time %x "LLX" "LLX" "LLX" "LLX,
+			m_ts, m_wrap_offset, m_rtptime_tickpersec, m_wallclock_offset,
+			timetick);
+#endif
   }
-  timetick *= 1000;
-  timetick /= m_rtptime_tickpersec;
-  if (neg == 1) {
-    if (timetick > m_play_start_time) return (0);
-    return (m_play_start_time - timetick);
-  }
-  return (timetick + m_play_start_time);
+  return (timetick);
+					   
 }
 
+size_t CInByteStreamRtp::read (char *buffer, size_t bytes_to_read)
+{
+  size_t inbuffer, readbytes = 0;
+
+  if (m_pak == NULL) {
+    if (m_bookmark_set == 1) {
+      return (0);
+    }
+    init();
+    throw "NULL when start";
+  }
+
+  do {
+    if ((m_offset_in_pak == 0) &&
+	(m_dont_check_across_ts == 0) &&
+	(m_ts != m_pak->ts)) {
+      if (m_bookmark_set == 1) {
+	return (0);
+      }
+      throw("DECODE ACROSS TS");
+    }
+    inbuffer = m_pak->data_len - m_offset_in_pak;
+    if (bytes_to_read < inbuffer) {
+      inbuffer = bytes_to_read;
+    }
+    memcpy(buffer, &m_pak->data[m_offset_in_pak], inbuffer);
+    buffer += inbuffer;
+    bytes_to_read -= inbuffer;
+    m_offset_in_pak += inbuffer;
+    m_total += inbuffer;
+    readbytes += inbuffer;
+    check_for_end_of_pak();
+  } while (bytes_to_read > 0 && m_pak != NULL);
+  return (readbytes);
+}
 
 int CInByteStreamRtp::have_no_data (void)
 {

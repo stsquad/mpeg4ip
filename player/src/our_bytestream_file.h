@@ -39,10 +39,16 @@ class COurInByteStreamFile : public COurInByteStream
   void reset(void);
   int have_no_data(void) { return eof(); };
   uint64_t start_next_frame(void);
+  double get_max_playtime (void) { return 0.0; };
+  void set_start_time(uint64_t start);
+  size_t read(char *buffer, size_t bytes);
+  size_t read(unsigned char *buffer, size_t bytes) {
+    return (read((char *)buffer, bytes));
+  };
+	    
   void config_for_file (uint64_t frame_per_sec) {
     m_frame_per_sec = frame_per_sec;
   };
-  double get_max_playtime (void) { return 0.0; };
  private:
   void read_frame (void);
   const char *m_filename;

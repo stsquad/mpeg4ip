@@ -29,12 +29,14 @@
 #include "codec/aa/aa_file.h"
 #include "codec/mpeg4/mpeg4.h"
 #include "codec/mpeg4/mpeg4_file.h"
-#if 0
 #include "codec/divx/divx.h"
 #include "codec/divx/divx_file.h"
+#if 1
 #include "codec/mp3/mp3.h"
 #include "codec/mp3/mp3_file.h"
 #endif
+#include "codec/wav/ourwav.h"
+#include "codec/wav/wav_file.h"
 #include "qtime_file.h"
 
 /*
@@ -45,15 +47,14 @@ CIpPort *global_invalid_ports = NULL;
 
 enum {
   VIDEO_MPEG4_ISO,
-#if 0
   VIDEO_DIVX,
   VIDEO_MPEG4_ISO_OR_DIVX,
-#endif
 };
 
 enum {
   AUDIO_AAC,
   AUDIO_MP3,
+  AUDIO_WAV,
 };
 /*
  * these are lists of supported audio and video codecs
@@ -65,21 +66,20 @@ static struct codec_list_t {
   {"mp4 ", VIDEO_MPEG4_ISO},
   {"mp4v", VIDEO_MPEG4_ISO},
   {"MPG4", VIDEO_MPEG4_ISO},
-#if 0
   {"MP4V-ES", VIDEO_MPEG4_ISO_OR_DIVX},
   {"divx", VIDEO_DIVX},
-#else
-  {"MP4V-ES", VIDEO_MPEG4_ISO},
-#endif
   {NULL, -1},
 },
   audio_codecs[] = {
     {"MP-AAC", AUDIO_AAC},
+    {"MPA-AAC", AUDIO_AAC},
     {"mp4a", AUDIO_AAC },
     {"aac ", AUDIO_AAC },
-#if 0
+#if 1
     {"mp3 ", AUDIO_MP3 },
+    {"MPA", AUDIO_MP3 },
 #endif
+    {"wav ", AUDIO_WAV },
     {NULL, -1},
   };
 
@@ -110,7 +110,7 @@ static int sdp_lookup_codec (media_desc_t *media,
 			     struct codec_list_t *codec_list)
 {
   for (format_list_t *fptr = media->fmt; fptr != NULL; fptr = fptr->next) {
-    if (fptr->rtpmap == NULL || fptr->rtpmap->encode_name == NULL) 
+    if (fptr->rtpmap == NULL || fptr->rtpmap->encode_name == NULL)
       continue;
     int ret = lookup_codec_by_name(fptr->rtpmap->encode_name,
 				   codec_list, 
@@ -122,6 +122,15 @@ static int sdp_lookup_codec (media_desc_t *media,
   return (-1);
 }
 
+static int sdp_lookup_audio_defaults (media_desc_t *media)
+{
+  for (format_list_t *fptr = media->fmt; fptr != NULL; fptr = fptr->next) {
+    if (strcmp(fptr->fmt, "14") == 0) {
+      return (AUDIO_MP3);
+    }
+  }
+  return (-1);
+}
 /*
  * sdp_is_valid_codec - look and see if a media session has valid codecs
  */
@@ -131,12 +140,58 @@ static int sdp_is_valid_codec (media_desc_t *media)
     return (sdp_lookup_codec(media, video_codecs));
   }
   if (strcmp(media->media, "audio") == 0) {
+    int ret;
+
+    ret = sdp_lookup_audio_defaults(media);
+    if (ret > 0) {
+      return (ret);
+    }
     return (sdp_lookup_codec(media, audio_codecs));
   }
   return (-1);
 }
 
-
+static int create_media_for_streaming_broadcast (CPlayerSession *psptr,
+						 const char *name,
+						 session_desc_t *sdp,
+						 const char **errmsg)
+{
+  int valid_count = 0;
+  int invalid_count = 0;
+  int err;
+  // need to set range in player session...
+  err = psptr->create_streaming_broadcast(sdp, errmsg);
+  if (err != 0) {
+    return (-1);
+  }
+  media_desc_t *sdp_media;
+  for (sdp_media = psptr->get_sdp_info()->media;
+       sdp_media != NULL;
+       sdp_media = sdp_media->next) {
+    if (sdp_is_valid_codec(sdp_media) >= 0) {
+      CPlayerMedia *mptr = new CPlayerMedia;
+      err = mptr->create_streaming(psptr, sdp_media, errmsg, 0);
+      if (err < 0) {
+	return (-1);
+      }
+      if (err > 0) {
+	delete mptr;
+      } else 
+	valid_count++;
+    } else {
+      invalid_count++;
+    }
+  }
+  if (valid_count == 0) {
+    *errmsg = "No valid codecs";
+    return (-1);
+  }
+  if (invalid_count > 0) {
+    *errmsg = "Invalid codec - playing valid ones";
+    return (1);
+  }
+  return (0);
+}
 /*
  * create_media_for_streaming_ondemand - create streaming media session
  * for an on demand program.
@@ -152,7 +207,7 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
   /*
    * This will open the rtsp session
    */
-  err = psptr->create_streaming(name, errmsg);
+  err = psptr->create_streaming_ondemand(name, errmsg);
   if (err != 0) {
     return (-1);
   }
@@ -213,19 +268,20 @@ static int create_media_from_sdp_file(CPlayerSession *psptr,
     return (-1);
   }
 
+  int err;
   if (sdp->control_string != NULL) {
     // An on demand file... Just use the URL...
-    int err = create_media_for_streaming_ondemand(psptr,
+    err = create_media_for_streaming_ondemand(psptr,
 						  sdp->control_string,
 						  errmsg);
     free_session_desc(sdp);
     free(sdp_info);
     return (err);
   }
-  // Not an ondemand session, but a broadcast... We need to help it
-  // along.
-  *errmsg = "Not supported yet";
-  return (-1);
+  return (create_media_for_streaming_broadcast(psptr,
+					       name, 
+					       sdp,
+					       errmsg));
 }
 
 /*
@@ -275,11 +331,16 @@ int parse_name_for_session (CPlayerSession *psptr,
 	     (strstr(name, ".mp4") != NULL)) {
     err = create_media_for_qtime_file(psptr, name, errmsg);
     return (err);
-#if 0
   } else if (strstr(name, ".divx") != NULL) {
     err = create_media_for_divx_file(psptr, name, errmsg);
     return (err);
+  } else if ((strstr(name, ".wav") != NULL) ||
+	     (strstr(name, ".WAV") != NULL)) {
+    err = create_media_for_wav_file(psptr, name, errmsg);
+    return (err);
+#if 1
   } else if (strstr(name, ".mp3") != NULL) {
+    player_debug_message("starting %s", name);
     err = create_media_for_mp3_file(psptr, name, errmsg);
     return (err);
 #endif
@@ -306,6 +367,7 @@ CCodecBase *start_audio_codec (const char *codec_name,
   }
   int val;
 
+  player_debug_message("audio codec %s", codec_name);
   if (lookup_codec_by_name(codec_name, audio_codecs, &val) == 0) {
     if (val == AUDIO_AAC) 
       return (new CAACodec(audio_sync,
@@ -314,7 +376,14 @@ CCodecBase *start_audio_codec (const char *codec_name,
 			   aud,
 			   userdata,
 			   userdata_size));
-#if 0
+    if (val == AUDIO_WAV) 
+      return (new CWavCodec(audio_sync,
+			    pbytestream,
+			    media_fmt,
+			    aud,
+			    userdata,
+			    userdata_size));
+#if 1
     if (val == AUDIO_MP3)
       return (new CMP3Codec(audio_sync,
 			    pbytestream,
@@ -327,16 +396,13 @@ CCodecBase *start_audio_codec (const char *codec_name,
   return (NULL);
 }
 
-#if 0
 static const char *profile_tag="profile-level-id=";
-#endif
 
 int which_mpeg4_codec (format_list_t *fptr,
 		       const unsigned char *userdata,
 		       size_t userdata_size)
 {
   
-#if 0
   if (fptr && fptr->fmt_param) {
     char *config = strstr(fptr->fmt_param, profile_tag);
     if (config != NULL) {
@@ -348,7 +414,6 @@ int which_mpeg4_codec (format_list_t *fptr,
 	return (VIDEO_DIVX);
     }
   }
-#endif
   return (VIDEO_MPEG4_ISO);
 }
 /*
@@ -369,11 +434,9 @@ CCodecBase *start_video_codec (const char *codec_name,
   int val;
 
   if (lookup_codec_by_name(codec_name, video_codecs, &val) == 0) {
-#if 0
     if (val == VIDEO_MPEG4_ISO_OR_DIVX) {
       val = which_mpeg4_codec(media_fmt, userdata, userdata_size);
     }
-#endif
     if (val == VIDEO_MPEG4_ISO) {
       player_debug_message("Starting MPEG4 iso reference codec");
       return (new CMpeg4Codec(video_sync, 
@@ -383,7 +446,6 @@ CCodecBase *start_video_codec (const char *codec_name,
 			      userdata, 
 			      userdata_size));
     }
-#if 0
     if (val == VIDEO_DIVX) {
       player_debug_message("Starting MPEG4 divx codec");
       return (new CDivxCodec(video_sync,
@@ -393,7 +455,6 @@ CCodecBase *start_video_codec (const char *codec_name,
 			     userdata, 
 			     userdata_size));
     }
-#endif
   }
   return (NULL);
 }

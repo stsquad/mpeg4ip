@@ -28,8 +28,8 @@
 #ifndef __OUR_BYTESTREAM_H__
 #define __OUR_BYTESTREAM_H__ 1
 
-#include <tools/entropy/bytestrm.hpp>
 #include "systems.h"
+#include <tools/entropy/bytestrm.hpp>
 
 class CPlayerMedia;
 
@@ -48,7 +48,7 @@ class COurInByteStream : public CInByteStreamBase
   virtual uint64_t start_next_frame (void) = 0;
   virtual double get_max_playtime (void) = 0;
   virtual void set_start_time(uint64_t start) { m_play_start_time = start; };
-  int still_same_ts (void) { return 0; };
+  virtual int still_same_ts (void) { return 0; };
 
  protected:
   uint64_t m_play_start_time;

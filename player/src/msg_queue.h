@@ -62,5 +62,6 @@ class CMsgQueue {
 #define MSG_START_SESSION 3
 #define MSG_STOP_THREAD 4
 #define MSG_START_DECODING 5
-#define MSG_SYNC_RESIZE_SCREEN 6  
+#define MSG_SYNC_RESIZE_SCREEN 6
+#define MSG_RECEIVED_QUIT 7
 #endif

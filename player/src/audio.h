@@ -31,7 +31,7 @@
 #include <SDL.h>
 #include "player_session.h"
 
-#define DECODE_BUFFERS_MAX 8
+#define DECODE_BUFFERS_MAX 32
 
 // states
 class CAudioSync {
@@ -39,7 +39,7 @@ class CAudioSync {
   CAudioSync(CPlayerSession *psptr, int volume);
   ~CAudioSync();
   // APIs from  codec
-  short *get_audio_buffer(void);
+  unsigned char *get_audio_buffer(void);
   void filled_audio_buffer(uint64_t ts, int resync);
   void set_config(int freq, int channels, int format, size_t max_buffer_size);
   void set_eof(void) { m_eof_found = 1; };
@@ -65,7 +65,7 @@ class CAudioSync {
   uint64_t m_buffer_time[DECODE_BUFFERS_MAX];
   uint64_t m_play_time;
   SDL_AudioSpec m_obtained;
-  short *m_sample_buffer[DECODE_BUFFERS_MAX];
+  unsigned char *m_sample_buffer[DECODE_BUFFERS_MAX];
   int m_config_set;
   int m_audio_initialized;
   int m_freq;
@@ -91,7 +91,7 @@ class CAudioSync {
   size_t m_sample_size;
   size_t m_play_sample_index;
   size_t m_samples_loaded;
-  short *m_weird_sample;
+  size_t m_bytes_per_sample;
 };
 
 #endif

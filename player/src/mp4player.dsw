@@ -54,6 +54,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "libmp3"=..\lib\audio\mp3\libmp3.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "libmp4"=..\..\common\mp4\libmp4.dsp - Package Owner=<4>
 
 Package=<5>
@@ -163,6 +175,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name SDLmain
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp3
     End Project Dependency
 }}}
 

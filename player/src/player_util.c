@@ -32,17 +32,41 @@
 
 #include "player_util.h"
 
+#if _WIN32 && _DEBUG
+#include "SDL.h"
+#include "SDL_thread.h"
+
+SDL_mutex *outex;
+static int initialized = 0;
+static void init_local_mutex (void)
+{
+	outex = SDL_CreateMutex();
+	initialized = 1;
+}
+static void lock_mutex(void)
+{
+	SDL_mutexP(outex);
+} 
+static void unlock_mutex(void)
+{
+	SDL_mutexV(outex);
+}
+#endif
+
 void player_error_message (const char *fmt, ...)
 {
   va_list ap;
 #if _WIN32 && _DEBUG
         char msg[512];
-                
+
+		if (initialized) init_local_mutex();
+		lock_mutex();
         va_start(ap, fmt);
 	_vsnprintf(msg, 512, fmt, ap);
         va_end(ap);
         OutputDebugString(msg);
 		OutputDebugString("\n");
+		unlock_mutex();
 #else
   struct timeval thistime;
   char buffer[80];
@@ -62,13 +86,16 @@ void player_debug_message (const char *fmt, ...)
 {
   va_list ap;
 #if _WIN32 && _DEBUG
-        char msg[512];
-        
+       char msg[512];
+
+	   if (initialized) init_local_mutex();
+		lock_mutex();
         va_start(ap, fmt);
 	_vsnprintf(msg, 512, fmt, ap);
         va_end(ap);
         OutputDebugString(msg);
 		OutputDebugString("\n");
+		unlock_mutex();
 #else
   struct timeval thistime;
   char buffer[80];

@@ -101,6 +101,10 @@ SOURCE=.\our_bytestream_file.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\our_bytestream_mem.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\player_media.cpp
 # End Source File
 # Begin Source File
@@ -174,6 +178,10 @@ SOURCE=.\our_bytestream.h
 # Begin Source File
 
 SOURCE=.\our_bytestream_file.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\our_bytestream_mem.h
 # End Source File
 # Begin Source File
 
@@ -270,6 +278,46 @@ SOURCE=.\codec\mpeg4\mpeg4_file.cpp
 # Begin Source File
 
 SOURCE=.\codec\mpeg4\mpeg4_file.h
+# End Source File
+# End Group
+# Begin Group "codec/wav"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\codec\wav\ourwav.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec\wav\ourwav.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec\wav\wav_file.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec\wav\wav_file.h
+# End Source File
+# End Group
+# Begin Group "codec/mp3"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\codec\mp3\mp3.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec\mp3\mp3.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec\mp3\mp3_file.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec\mp3\mp3_file.h
 # End Source File
 # End Group
 # End Target

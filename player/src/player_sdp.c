@@ -31,8 +31,9 @@
  * do_relative_url_to_absolute - does the actual work to convert a
  * relative url to an absolute url.
  */
-static void do_relative_url_to_absolute (char **control_string,
-					 const char *base_url)
+void do_relative_url_to_absolute (char **control_string,
+				  const char *base_url,
+				  int dontfree)
 {
   char *str;
   size_t cblen;
@@ -50,7 +51,8 @@ static void do_relative_url_to_absolute (char **control_string,
   }
   strcat(str, **control_string == '/' ?
 	 *control_string + 1 : *control_string);
-  free(*control_string);
+  if (dontfree == 0) 
+    free(*control_string);
   *control_string = str;
 }
 
@@ -68,13 +70,13 @@ void convert_relative_urls_to_absolute (session_desc_t *sdp,
 
   if ((sdp->control_string != NULL) &&
       (strncmp(sdp->control_string, "rtsp:://", strlen("rtsp://"))) != 0) {
-    do_relative_url_to_absolute(&sdp->control_string, base_url);
+    do_relative_url_to_absolute(&sdp->control_string, base_url, 0);
   }
   
   for (media = sdp->media; media != NULL; media = media->next) {
     if ((media->control_string != NULL) &&
 	(strncmp(media->control_string, "rtsp://", strlen("rtsp://")) != 0)) {
-      do_relative_url_to_absolute(&media->control_string, base_url);
+      do_relative_url_to_absolute(&media->control_string, base_url, 0);
     }
   }
 }
