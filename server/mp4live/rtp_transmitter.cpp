@@ -783,7 +783,7 @@ int CRtpDestination::send_iov (struct iovec *piov,
 			     0, 
 			     0,
 			     0);
-    debug_message("sending iov %d", ret);
+    //debug_message("sending iov %d", ret);
     return ret;
     
   }
