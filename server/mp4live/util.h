@@ -44,6 +44,7 @@ inline void imgcpy(
 	}
 }
 
+#include "mpeg4ip_utils.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,16 +58,6 @@ void debug_message(const char *fmt, ...)
        __attribute__((format(__printf__, 1, 2)))
 	   ;
 
-void lib_message(int loglevel,
-		 const char *lib,
-		 const char *fmt,
-		 va_list ap);
-
-void message(int loglevel, const char *lib, const char *fmt, ...)
-       __attribute__((format(__printf__, 3, 4)))
-	   ;
-
-char *get_host_ip_address(void);
 
 #ifdef __cplusplus
 }

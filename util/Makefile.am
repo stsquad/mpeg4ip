@@ -1,4 +1,4 @@
-SUBDIRS = yuv iptv
+SUBDIRS = yuv iptv mpeg4vol
 
 EXTRA_DIST = repository_sync.sh \
 	dummy_glib.m4 \

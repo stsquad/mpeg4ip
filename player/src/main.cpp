@@ -34,6 +34,7 @@
 #include "our_config_file.h"
 #include <rtp/debug.h>
 #include <libhttp/http.h>
+#include "video.h"
 
 static int session_paused;
 static int screen_size = 2;
@@ -192,7 +193,13 @@ int process_sdl_key_events (CPlayerSession *psptr,
   return 1;
 
 }
-static int start_session (const char *name, int max_loop)
+
+/*
+ * Start_session will return the video persistence handle, if grab is 1.
+ * set persist to the value, when you want to re-use.  Remember to delete
+ */
+static void *start_session (const char *name, int max_loop, int grab = 0, 
+			    void *persist = NULL)
 {
   char buffer[80];
   int loopcount = 0;
@@ -204,10 +211,10 @@ static int start_session (const char *name, int max_loop)
   master_sem = SDL_CreateSemaphore(0);
   snprintf(buffer, sizeof(buffer), "%s %s - %s", MPEG4IP_PACKAGE, MPEG4IP_VERSION, name);
   psptr = new CPlayerSession(&master_queue, master_sem,
-			     // this should probably be name...
-			     buffer);
+			     buffer, 
+			     persist);
   if (psptr == NULL) {
-    return (-1);
+    return (NULL);
   }
   
   char errmsg[512];
@@ -215,7 +222,7 @@ static int start_session (const char *name, int max_loop)
   if (ret < 0) {
     player_debug_message("%s %s", errmsg, name);
     delete psptr;
-    return (1);
+    return (NULL);
   }
 
   if (ret > 0) {
@@ -232,11 +239,10 @@ static int start_session (const char *name, int max_loop)
     loopcount++;
     if (psptr->play_all_media(TRUE) != 0) {
       delete psptr;
-      return (1);
+      return (NULL);
     }
     session_paused = 0;
     int keep_going = 0;
-    int paused = 0;
 #ifdef NEED_SDL_VIDEO_IN_MAIN_THREAD
     int state = 0;
 #endif
@@ -250,8 +256,7 @@ static int start_session (const char *name, int max_loop)
       while ((msg = master_queue.get_message()) != NULL) {
 	switch (msg->get_value()) {
 	case MSG_SESSION_FINISHED:
-	  if (paused == 0)
-	    keep_going = 1;
+	  keep_going = 1;
 	  break;
 	case MSG_RECEIVED_QUIT:
 	  keep_going = 1;
@@ -277,9 +282,14 @@ static int start_session (const char *name, int max_loop)
       psptr->pause_all_media();
     }
   }
+  if (grab == 1) {
+    // grab before we delete
+    persist = psptr->grab_video_persistence();
+  }
+    
   delete psptr;
   SDL_DestroySemaphore(master_sem);
-  return (0);
+  return (persist);
 }
 
 int main (int argc, char **argv)
@@ -304,13 +314,13 @@ int main (int argc, char **argv)
   config.SetDefaultFileName(buffer);
   config.InitializeIndexes();
   config.ReadDefaultFile();
-  rtsp_set_error_func(player_library_message);
+  rtsp_set_error_func(library_message);
   rtsp_set_loglevel(config.get_config_value(CONFIG_RTSP_DEBUG));
-  rtp_set_error_msg_func(player_library_message);
+  rtp_set_error_msg_func(library_message);
   rtp_set_loglevel(config.get_config_value(CONFIG_RTP_DEBUG));
-  sdp_set_error_func(player_library_message);
+  sdp_set_error_func(library_message);
   sdp_set_loglevel(config.get_config_value(CONFIG_SDP_DEBUG));
-  http_set_error_func(player_library_message);
+  http_set_error_func(library_message);
   http_set_loglevel(config.get_config_value(CONFIG_HTTP_DEBUG));
 
   argv++;
@@ -341,14 +351,22 @@ int main (int argc, char **argv)
       player_error_message(errmsg);
       return (-1);
     }
+    void *persist = NULL;
     for (int loopcount = 0; loopcount < max_loop; loopcount++) {
       const char *start = list->get_first();
       do {
 	if (start != NULL) {
-	  start_session(start, 1);
+	  if (persist == NULL) {
+	    persist = start_session(start, 1, 1);
+	  } else {
+	    persist = start_session(start, 1, 0, persist);
+	  }
 	}
 	start = list->get_next();
       } while (start != NULL);
+    }
+    if (persist != NULL) {
+      DestroyVideoPersistence(persist);
     }
   } else {
     start_session(name, max_loop);

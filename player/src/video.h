@@ -27,7 +27,7 @@
 #ifndef __VIDEO_H__
 #define __VIDEO_H__ 1
 
-#include <SDL.h>
+#include "mpeg4ip_sdl_includes.h"
 #include "codec_plugin.h"
 
 #define MAX_VIDEO_BUFFERS 16
@@ -36,7 +36,7 @@ class CPlayerSession;
 
 class CVideoSync {
  public:
-  CVideoSync(CPlayerSession *ptptr);
+  CVideoSync(CPlayerSession *ptptr, void *video_persistence = NULL);
   virtual ~CVideoSync(void);
 
   void set_wait_sem (SDL_sem *p) { m_decode_sem = p; };  // from set up
@@ -52,8 +52,21 @@ class CVideoSync {
   virtual int is_video_ready(uint64_t &disptime);  // from sync task
   virtual int64_t play_video_at(uint64_t current_time, // from sync task
 			 int &have_eof);
-  virtual void do_video_resize(int m_pixel_width = -1, int m_pixel_height = -1, int m_max_width = -1, int m_max_height = -1);
+  virtual void do_video_resize(int pixel_width = -1, int pixel_height = -1, int max_width = -1, int max_height = -1);
   virtual void flush_sync_buffers(void);  // from sync task in response to stop
+  void *get_video_persistence (void) {
+    return m_video_persistence;
+  };
+  void set_video_persistence (void *per) {
+    m_video_persistence = per;
+  };
+  void *grab_video_persistence (void) {
+    m_grabbed_video_persistence = 1;
+    return get_video_persistence();
+  };
+  int grabbed_video_persistence (void) {
+    return m_grabbed_video_persistence;
+  }
  protected:
   CPlayerSession *m_psptr;
   SDL_sem *m_decode_sem;
@@ -67,12 +80,8 @@ class CVideoSync {
   uint32_t m_skipped_render;
   uint64_t m_msec_per_frame;
   uint64_t m_last_filled_time;
-#ifdef ADD_ASPECT_RATIO
-  int m_pixel_width;
-  int m_pixel_height;
-  int m_max_width;
-  int m_max_height;
-#endif
+  void *m_video_persistence;
+  int m_grabbed_video_persistence;
 };
 
 /* frame doublers */
@@ -87,4 +96,5 @@ extern void FrameDoubler(u_int8_t* pSrcPlane, u_int8_t* pDstPlane,
 video_vft_t *get_video_vft(void);
 
 CVideoSync *create_video_sync(CPlayerSession *psptr);
+void DestroyVideoPersistence(void *persist);
 #endif

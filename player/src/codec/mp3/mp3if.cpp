@@ -147,7 +147,7 @@ static int mp3_decode (codec_data_t *ptr,
     mp3->m_vft->audio_configure(mp3->m_ifptr,
 				mp3->m_freq, 
 				mp3->m_chans, 
-				AUDIO_S16SYS, 
+				AUDIO_FMT_S16, 
 				mp3->m_samplesperframe);
     mp3->m_audio_inited = 1;
     mp3->m_last_rtp_ts = ts - 1; // so we meet the critera below

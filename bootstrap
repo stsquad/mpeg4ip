@@ -24,18 +24,29 @@ else echo "libtool does not appear to be installed."
      exit 1
 fi
 
-if (test ! -f ./configure) || (test ! -f ./lib/SDL/configure)
+if (test ! -f ./configure) 
 then echo "Please run cvs_bootstrap instead."
      echo "Please note that you will need autoconf, automake and libtool"
      echo "of the correct version as specified in the README"
      exit 1
 fi
 
+target_system=`uname -s`
+if test $target_system != "Darwin"; then
+  if sdl-config >/dev/null 2>/dev/null
+  then
+    echo "SDL appears to be installed"
+  else
+    echo "SDL does not appear to be installed - install the SDL development package"
+    echo "You must have sdl-config in your path to continue"
+    exit 1
+  fi
+fi
+
 allargs="$@"
 #
 # Test for lame
 #
-target_system=`uname -s`
 if test $target_system = "Linux"; then
     have_lame=no
     if lame --version >/dev/null 2>/dev/null
@@ -89,12 +100,7 @@ set -x
 # if src tree is checked out directly via cvs, this is a no-op
 mkdir -p ./config || exit 1
 
-pwd=`pwd`
-for	dir \
-in	$pwd/lib/SDL $pwd
-do	cd $dir
-	./configure $allargs || exit 1
-done
+./configure $allargs || exit 1
 set +x
 
 # Now ready to run make

@@ -190,7 +190,7 @@ static u_int32_t* pTrackIndex;
 
 static void on_track_menu_activate(GtkWidget *widget, gpointer data)
 {
-	*pTrackIndex = ((unsigned int)data) & 0xFF;
+	*pTrackIndex = GPOINTER_TO_UINT(data) & 0xFF;
 }
 
 static GtkWidget* CreateNullTrackMenu(

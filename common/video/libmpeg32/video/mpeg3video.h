@@ -9,7 +9,7 @@
 #include "mpeg4ip.h"
 #endif
 #include "../bitstream.h"
-#include "../mpeg3private.inc"
+#include "../mpeg3privateinc.h"
 #include "idct.h"
 #include "slice.h"
 #include "../timecode.h"

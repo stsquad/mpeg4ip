@@ -1,4 +1,4 @@
-#include <config_set.h>
+#include <mpeg4ip_config_set.h>
 
 #include <atlbase.h>
 #include <atlimpl.cpp>

@@ -20,7 +20,30 @@ static int screen_size = 2;
 static int fullscreen = 0;
 static int volume;
 CPlayerSession *psptr;
+char *convert_number (char *transport, uint32_t *value)
+{
+  *value = 0;
+  while (isdigit(*transport)) {
+    *value *= 10;
+    *value += *transport - '0';
+    transport++;
+  }
+  return (transport);
+}
 
+char *convert_hex (char *transport, uint32_t *value)
+{
+  *value = 0;
+  while (isxdigit(*transport)) {
+    *value *= 16;
+    if (isdigit(*transport))
+      *value += *transport - '0';
+    else
+      *value += tolower(*transport) - 'a' + 10;
+    transport++;
+  }
+  return (transport);
+}
 void set_configs (void)
 {
 	config.ReadVariablesFromRegistry("Software\\Mpeg4ip", "Config");
@@ -142,9 +165,9 @@ int main (int argc, char **argv)
 int getIpAddressFromInterface (const char *ifname,
 			       struct in_addr *retval)
 {
-  int fd;
   int ret = -1;
 #ifndef _WIN32
+  int fd;
   fd = socket(AF_INET, SOCK_DGRAM, 0);
   if (fd > 0) {
     struct ifreq ifr;

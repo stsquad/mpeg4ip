@@ -26,7 +26,7 @@
 /* This improves the performance of the audio player by quite a bit */
 #define THREADED_AUDIO
 
-#include "SDL.h"
+#include "mpeg4ip_sdl_includes.h"
 #include "MPEGerror.h"
 #include "MPEGaction.h"
 

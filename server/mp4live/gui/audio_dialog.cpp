@@ -228,18 +228,18 @@ static void on_source_list_changed(GtkWidget *widget, gpointer *data)
 
 static void on_input_menu_activate (GtkWidget *widget, gpointer data)
 {
-	inputIndex = (unsigned int)data & 0xFF;
+	inputIndex = GPOINTER_TO_UINT(data) & 0xFF;
 }
 
 static void on_channel_menu_activate (GtkWidget *widget, gpointer data)
 {
-	channelIndex = (unsigned int)data & 0xFF;
+	channelIndex = GPOINTER_TO_UINT(data) & 0xFF;
 	CreateBitRateMenu(bitRateValues[bitRateIndex]);
 }
 
 static void on_encoding_menu_activate (GtkWidget *widget, gpointer data)
 {
-	encodingIndex = (unsigned int)data & 0xFF;
+	encodingIndex = GPOINTER_TO_UINT(data) & 0xFF;
 
 	CreateSamplingRateMenu(pAudioCaps);
 	CreateChannelMenu(channelValues[channelIndex]);
@@ -248,14 +248,14 @@ static void on_encoding_menu_activate (GtkWidget *widget, gpointer data)
 
 static void on_sampling_rate_menu_activate (GtkWidget *widget, gpointer data)
 {
-	samplingRateIndex = (unsigned int)data & 0xFF;
+	samplingRateIndex = GPOINTER_TO_UINT(data) & 0xFF;
 
 	CreateBitRateMenu(bitRateValues[bitRateIndex]);
 }
 
 static void on_bit_rate_menu_activate (GtkWidget *widget, gpointer data)
 {
-	bitRateIndex = (unsigned int)data & 0xFF;
+	bitRateIndex = GPOINTER_TO_UINT(data) & 0xFF;
 }
 
 void CreateChannelMenu (uint32_t oldChannelNo)

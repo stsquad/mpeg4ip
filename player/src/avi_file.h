@@ -24,8 +24,7 @@
 #ifndef __AVI_FILE_H__
 #define __AVI_FILE_H__ 1
 #include "avi/avilib.h"
-#include <SDL.h>
-#include <SDL_thread.h>
+#include "mpeg4ip_sdl_includes.h"
 
 class CPlayerSession;
 

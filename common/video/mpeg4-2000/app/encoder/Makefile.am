@@ -14,21 +14,20 @@ mp4venc_SOURCES = encoder.cpp
 EXTRA_DIST = encoder60.dsp
 
 mp4venc_LDADD= \
-  -lm -lstdc++ \
 	$(top_builddir)/lib/fposrec/libfposrec.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
-  ../../tools/entropy/libobj_tools_entropy.la \
-  ../../sys/encoder/libobj_sys_encoder.la \
-  ../../type/libobj_type.la \
-  ../../sys/libobj_sys.la \
-  ../../vtc/main/libobj_vtc_main_enc.la \
-  ../../vtc/main/libobj_vtc_main_dec.la \
-  ../../vtc/ztq/libobj_vtc_ztq.la \
-  ../../vtc/main/libobj_vtc_main.la \
-  ../../vtc/zte/libobj_vtc_zte.la \
-  ../../vtc/pezw/libobj_vtc_pezw.la \
- ../../vtc/shape/libobj_vtc_shape.la \
-  ../../vtc/wavelet/libobj_vtc_wavelet.la \
-  ../../tools/sadct/libobj_tools_sadct.la \
-  ../../tools/entropy/libobj_tools_entropy.la \
-	-lstdc++
+  $(top_builddir)/common/video/mpeg4-2000/tools/entropy/libobj_tools_entropy.la \
+  $(top_builddir)/common/video/mpeg4-2000/sys/encoder/libobj_sys_encoder.la \
+  $(top_builddir)/common/video/mpeg4-2000/tools/entropy/libobj_tools_entropy.la \
+  $(top_builddir)/common/video/mpeg4-2000/type/libobj_type.la \
+  $(top_builddir)/common/video/mpeg4-2000/sys/libobj_sys.la \
+  $(top_builddir)/common/video/mpeg4-2000/vtc/main/libobj_vtc_main_enc.la \
+  $(top_builddir)/common/video/mpeg4-2000/vtc/main/libobj_vtc_main_dec.la \
+  $(top_builddir)/common/video/mpeg4-2000/vtc/ztq/libobj_vtc_ztq.la \
+  $(top_builddir)/common/video/mpeg4-2000/vtc/main/libobj_vtc_main.la \
+  $(top_builddir)/common/video/mpeg4-2000/vtc/zte/libobj_vtc_zte.la \
+  $(top_builddir)/common/video/mpeg4-2000/vtc/pezw/libobj_vtc_pezw.la \
+ $(top_builddir)/common/video/mpeg4-2000/vtc/shape/libobj_vtc_shape.la \
+  $(top_builddir)/common/video/mpeg4-2000/vtc/wavelet/libobj_vtc_wavelet.la \
+  $(top_builddir)/common/video/mpeg4-2000/tools/sadct/libobj_tools_sadct.la \
+	-lstdc++ -lm 

@@ -25,8 +25,7 @@
 #ifndef __PLAYER_MEDIA_H__
 #define __PLAYER_MEDIA_H__ 1
 
-#include <SDL.h>
-#include <SDL_thread.h>
+#include "mpeg4ip_sdl_includes.h"
 #include <sdp/sdp.h>
 #include <rtsp/rtsp_client.h>
 #include <rtp/rtp.h>

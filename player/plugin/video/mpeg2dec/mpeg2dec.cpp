@@ -23,7 +23,7 @@
  */
 #include "mpeg2dec.h"
 #include "mp4av.h"
-#include <mpeg2t/mpeg2_transport.h>
+#include <mpeg2t/mpeg2t_defines.h>
 
 //#define DEBUG_MPEG2DEC_FRAME 1
 

@@ -31,9 +31,40 @@
 
 #define MAX_VIDEO_BUFFERS 16
 
+// if we wanted to offer an alternative to SDL, we could do so
+// by creating a base class here.
+class CSDLVideo {
+ public:
+  CSDLVideo(int initial_x = 0, int initial_y = 0);
+  ~CSDLVideo(void);
+  void set_name(const char *name);
+  void set_image_size(unsigned int w, unsigned int h,
+		      double aspect_ratio);
+  void set_screen_size(int fullscreen, int scale, 
+		       int pixel_width = -1, int pixel_height = -1,
+		       int max_width = -1, int max_height = -1);
+  void display_image(uint8_t *y, uint8_t *u, uint8_t *v);
+ private:
+  int m_pos_x, m_pos_y;
+  SDL_Surface *m_screen;
+  SDL_Overlay *m_image;
+  SDL_Rect m_dstrect;
+  int m_video_bpp;
+  const char *m_name;
+  unsigned int m_image_w, m_image_h;
+  double m_aspect_ratio;
+  int m_pixel_width;
+  int m_pixel_height;
+  int m_max_width;
+  int m_max_height;
+  int m_fullscreen;
+  int m_video_scale;
+};
+    
+  
 class CSDLVideoSync : public CVideoSync {
  public:
-  CSDLVideoSync(CPlayerSession *psptr);
+  CSDLVideoSync(CPlayerSession *psptr, void *video_persistence);
   ~CSDLVideoSync(void);
   int initialize_video(const char *name, int x, int y);  // from sync task
   int is_video_ready(uint64_t &disptime);  // from sync task
@@ -57,8 +88,9 @@ class CSDLVideoSync : public CVideoSync {
   void set_screen_size(int scaletimes2); // 1 gets 50%, 2, normal, 4, 2 times
   void set_fullscreen(int fullscreen);
   int get_fullscreen (void) { return m_fullscreen; };
-  void do_video_resize(int m_pixel_width = -1, int m_pixel_height = -1, int m_max_width = -1, int m_max_height = -1);
+  void do_video_resize(int pixel_width = -1, int pixel_height = -1, int max_width = -1, int max_height = -1);
  private:
+  CSDLVideo *m_sdl_video;
   int m_video_bpp;
   int m_video_scale;
   int m_fullscreen;
@@ -68,9 +100,6 @@ class CSDLVideoSync : public CVideoSync {
   int m_config_set;
   int m_paused;
   volatile int m_have_data;
-  SDL_Surface *m_screen;
-  SDL_Overlay *m_image;
-  SDL_Rect m_dstrect;
   uint32_t m_fill_index, m_play_index;
   int m_decode_waiting;
   volatile int m_buffer_filled[MAX_VIDEO_BUFFERS];

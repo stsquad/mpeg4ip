@@ -264,7 +264,7 @@ sdp_decode_info_t *set_sdp_decode_from_memory(const char *memptr);
 
 sdp_decode_info_t *set_sdp_decode_from_filename(const char *filename);
 
-void sdp_decode_info_free(sdp_decode_info_t *free);
+void sdp_decode_info_free(sdp_decode_info_t *free_p);
 
 int sdp_decode(sdp_decode_info_t *decode,
 	       session_desc_t **retval,

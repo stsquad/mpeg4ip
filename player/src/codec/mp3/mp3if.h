@@ -4,7 +4,6 @@
 
 #include "mpeg4ip.h"
 #include <mp3/MPEGaudio.h>
-#include <SDL.h>
 #include "codec_plugin.h"
 #include <fposrec/fposrec.h>
 

@@ -152,6 +152,10 @@ static int parse_vovod (iso_decode_t *iso,
     bufptr = (unsigned char *)vovod;
   }
 
+  for (uint32_t jx = 0; jx < len; jx++) {
+    printf("%02x ", bufptr[jx]);
+  }
+  printf("\n");
   
   // Create a byte stream to take from our buffer.
   // Temporary set of our bytestream

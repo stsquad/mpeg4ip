@@ -15,8 +15,8 @@ INCLUDES = -I.. \
 	-I$(top_srcdir)/lib/mp4v2 \
 	-I$(top_srcdir)/lib/mp4av \
 	-I$(top_srcdir)/lib/msg_queue \
-	-I$(top_srcdir)/lib/sdp \
-	-I$(top_srcdir)/lib/SDL/include 
+	-I$(top_srcdir)/lib/utils \
+	-I$(top_srcdir)/lib/sdp 
 
 AM_CXXFLAGS = \
 	-D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@

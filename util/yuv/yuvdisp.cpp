@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <SDL.h>
+#include "mpeg4ip_sdl_includes.h"
 #include <unistd.h>
 int main (int argc, char **argv)
 {

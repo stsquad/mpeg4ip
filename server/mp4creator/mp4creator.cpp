@@ -461,7 +461,7 @@ int main(int argc, char** argv)
       }
 
       if (doHint) {
-	MP4TrackId* pTrackId = pCreatedTrackIds;
+		  pTrackId = pCreatedTrackIds;
 
 	while (*pTrackId != MP4_INVALID_TRACK_ID) {
 	  CreateHintTrack(mp4File, *pTrackId, 

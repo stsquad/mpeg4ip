@@ -294,7 +294,7 @@ static __inline void BitstreamByteAlign(Bitstream * const bs)
 
 static uint32_t __inline BitstreamPos(const Bitstream * const bs)
 {
-    return 8 * ((uint32_t)bs->tail - (uint32_t)bs->start) + bs->pos;
+    return 8 * (bs->tail - bs->start) + bs->pos;
 }
 
 
@@ -304,7 +304,7 @@ static uint32_t __inline BitstreamPos(const Bitstream * const bs)
 
 static uint32_t __inline BitstreamLength(Bitstream * const bs)
 {
-	uint32_t len = (uint32_t) bs->tail - (uint32_t) bs->start;
+	uint32_t len = bs->tail - bs->start;
 
     if (bs->pos)
     {

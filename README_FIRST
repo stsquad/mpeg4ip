@@ -7,9 +7,9 @@ script.
 
 Instead, run the ./bootstrap script.
 
-The reason for this is the mpeg4ip requires a modified SDL package, 
-which is included, but must be configured before the rest of the
-mpeg4ip package.
+The reason for this that mpeg4ip requires that certain other
+tools are installed before beginning, such as SDL or lame or faac 
+if you are using mp4live.
 
 Then come on over to the README, COPYING, NEWS and the rest of the 
 documentation in the doc directory, including:

@@ -276,16 +276,16 @@ bool MP4AV_Rfc3119Concatenator(
 		u_int16_t aduDataSize = 
 			GetAduDataSize(mp4File, mediaTrackId, sampleId);
 
-		for (int8_t i = numDataBlocks - 1;
-		  i >= 0 && dataSize < aduDataSize; i--) {
-			u_int32_t blockSize = pDataSizes[i];
+		for (int8_t ix = numDataBlocks - 1;
+		  ix >= 0 && dataSize < aduDataSize; i--) {
+			u_int32_t blockSize = pDataSizes[ix];
 
 			if ((u_int32_t)(aduDataSize - dataSize) < blockSize) {
 				blockSize = (u_int32_t)(aduDataSize - dataSize);
 			}
 
 			MP4AddRtpSampleData(mp4File, hintTrackId,
-				sampleId - i, pDataOffsets[i], blockSize);
+				sampleId - ix, pDataOffsets[ix], blockSize);
 
 			dataSize += blockSize;
 		}

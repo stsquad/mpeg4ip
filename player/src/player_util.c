@@ -35,8 +35,7 @@
 #include "player_util.h"
 
 #if _WIN32
-#include "SDL.h"
-#include "SDL_thread.h"
+#include "mpeg4ip_sdl_includes.h"
 
 SDL_mutex *outex;
 static int initialized = 0;
@@ -124,84 +123,14 @@ void player_debug_message (const char *fmt, ...)
 
 }
 
-void message (int loglevel, const char *lib, const char *fmt, ...)
-{
-  va_list ap;
-  struct timeval thistime;
-  time_t secs;
-  char buffer[80];
-#if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
-  if (IsDebuggerPresent()) {
-       char msg[512];
 
-	   if (initialized == 0) init_local_mutex();
-		lock_mutex();
-        va_start(ap, fmt);
-	_vsnprintf(msg, 512, fmt, ap);
-        va_end(ap);
-        OutputDebugString(msg);
-	OutputDebugString("\n");
-	unlock_mutex();
-	return;
-  }
-#endif
-
-  gettimeofday(&thistime, NULL);
-  secs = thistime.tv_sec;
-  // To add date, add %a %b %d to strftime
-  strftime(buffer, sizeof(buffer), "%T", localtime(&secs));
-  printf("%s.%03lu-%s-%d: ",
-	 buffer, (unsigned long)thistime.tv_usec / 1000, lib, loglevel);
-  va_start(ap, fmt);
-  vprintf(fmt, ap);
-  va_end(ap);
-  printf("\n");
-}
-
-void player_library_message (int loglevel,
-			     const char *lib,
-			     const char *fmt,
-			     va_list ap)
-{
-  struct timeval thistime;
-  time_t secs;
-  char buffer[80];
-#if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
-	if (IsDebuggerPresent()) {
-  char msg[512];
-
-  if (initialized == 0) init_local_mutex();
-  lock_mutex();
-  sprintf(msg, "%s:", lib);
-  OutputDebugString(msg);
-  //va_start(ap, fmt);
-  _vsnprintf(msg, 512, fmt, ap);
-  //va_end(ap);
-  OutputDebugString(msg);
-  OutputDebugString("\n");
-  unlock_mutex();
-  return;
-	}
-#endif
-
-  gettimeofday(&thistime, NULL);
-  secs = thistime.tv_sec;
-  strftime(buffer, sizeof(buffer), "%T", localtime(&secs));
-  printf("%s.%03lu-%s-%d: ",
-	 buffer,
-	 (unsigned long)thistime.tv_usec / 1000,
-	 lib,
-	 loglevel);
-  vprintf(fmt, ap);
-  printf("\n");
-}
 
 int getIpAddressFromInterface (const char *ifname,
 			       struct in_addr *retval)
 {
-  int fd;
   int ret = -1;
 #ifndef _WIN32
+  int fd;
   fd = socket(AF_INET, SOCK_DGRAM, 0);
   if (fd > 0) {
     struct ifreq ifr;
@@ -240,28 +169,6 @@ char *convert_hex (char *transport, uint32_t *value)
     transport++;
   }
   return (transport);
-}
-
-char *get_host_ip_address (void)
-{
-  char sHostName[256];
-  char sIpAddress[16];
-  struct hostent* h;
-
-  if (gethostname(sHostName, sizeof(sHostName)) < 0) {
-    player_error_message("Couldn't gethostname");
-    strcpy(sIpAddress, "0.0.0.0");
-  } else {
-    h = gethostbyname(sHostName);
-    if (h == NULL) {
-      player_debug_message("Couldn't gethostbyname of %s", sHostName);
-      strcpy(sIpAddress, "0.0.0.0");
-    } else {
-      strcpy(sIpAddress,
-             inet_ntoa(*(struct in_addr*)(h->h_addr_list[0])));
-    }
-  }
-  return strdup(sIpAddress);
 }
 
 /* end file player_util.c */

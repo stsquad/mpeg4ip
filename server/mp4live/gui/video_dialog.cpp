@@ -168,7 +168,7 @@ static void ChangeInput(u_int8_t newIndex)
 
 static void on_input_menu_activate(GtkWidget *widget, gpointer data)
 {
-	ChangeInput(((unsigned int)data) & 0xFF);
+	ChangeInput(GPOINTER_TO_UINT(data) & 0xFF);
 }
 
 void CreateInputMenu(CVideoCapabilities* pNewVideoCaps)
@@ -392,7 +392,7 @@ void ChangeChannelList(u_int8_t newIndex)
 
 static void on_channel_list_menu_activate(GtkWidget *widget, gpointer data)
 {
-	ChangeChannelList((unsigned int)data & 0xFF);
+	ChangeChannelList(GPOINTER_TO_UINT(data) & 0xFF);
 }
 
 char* GetChannelListName(size_t index, void* pUserData)
@@ -415,7 +415,7 @@ static void CreateChannelListMenu()
 
 static void on_size_menu_activate(GtkWidget *widget, gpointer data)
 {
-	sizeIndex = ((unsigned int)data) & 0xFF;
+	sizeIndex = GPOINTER_TO_UINT(data) & 0xFF;
 }
 
 static void CreateSizeMenu(uint16_t width)
@@ -476,7 +476,7 @@ static void CreateSizeMenu(uint16_t width)
 static void on_encoder_menu_activate (GtkWidget *widget, 
 				      gpointer data)
 {
-  encoderIndex = ((uint32_t) data) & 0xff;
+  encoderIndex = GPOINTER_TO_UINT(data) & 0xff;
   CreateSizeMenu(sizeWidthValues[sizeIndex]);
 }
 
@@ -510,7 +510,7 @@ void ChangeSignal(u_int8_t newIndex)
 
 static void on_signal_menu_activate(GtkWidget *widget, gpointer data)
 {
-	ChangeSignal(((unsigned int)data) & 0xFF);
+	ChangeSignal(GPOINTER_TO_UINT(data) & 0xFF);
 }
 
 static void SetAvailableSignals(void)
@@ -572,12 +572,12 @@ static void SetAvailableSignals(void)
 
 static void on_aspect_menu_activate(GtkWidget *widget, gpointer data)
 {
-	aspectIndex = ((unsigned int)data) & 0xFF;
+	aspectIndex = GPOINTER_TO_UINT(data) & 0xFF;
 }
 
 static void on_filter_menu_activate(GtkWidget *widget, gpointer data)
 {
-	filterIndex = ((unsigned int)data) & 0xFF;
+	filterIndex = GPOINTER_TO_UINT(data) & 0xFF;
 }
 
 static bool ValidateAndSave(void)

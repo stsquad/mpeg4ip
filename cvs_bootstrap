@@ -33,13 +33,25 @@ do
        exit 1
   fi
 done
-
+#
+# Test for SDL
+#
+target_system=`uname -s`
+if test $target_system != "Darwin"; then
+   if sdl-config --version >/dev/null 2>/dev/null
+      then
+      echo "Found SDL"
+   else
+      echo "SDL does not appear to be installed - can't find sdl-config"
+      echo "Please install it and rerun this script"
+      exit 1
+   fi
+fi
 #
 # Test for lame
 #
 allargs="$@"
 
-target_system=`uname -s`
 if test $target_system = "Linux"; then
 
     have_lame=no
@@ -104,15 +116,17 @@ do
 done
 
 pwd=`pwd`
+if test $target_system != "Darwin"; then
 for	dir \
-in	$pwd/lib/SDL 
+in	$pwd/lib/SDLAudio 
 do	cd $dir
-  ./autogen.sh || exit 1
-	./configure $allargs || exit 1
-	chmod +x sdl-config
+  aclocal || aclocal $ACLOCAL_FLAGS || exit 4
+  libtoolize --force
+  automake --add-missing --foreign || exit 5
+  autoconf || exit 6
 done
+fi
 
-cd $pwd
 cd lib/rtp
 aclocal || aclocal $ACLOCAL_FLAGS || exit 3
 libtoolize --force
@@ -130,6 +144,10 @@ ACLOCAL_FLAGS="-I doc $ACLOCAL_FLAGS"
 else
 if `aclocal -I util $ACLOCAL_FLAGS`; then
 ACLOCAL_FLAGS="-I util $ACLOCAL_FLAGS"
+else
+if `aclocal -I doc -I util $ACLOCAL_FLAGS`; then
+ACLOCAL_FLAGS="-I doc -I util $ACLOCAL_FLAGS"
+fi
 fi
 fi
 fi

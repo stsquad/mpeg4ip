@@ -58,7 +58,7 @@ Revision History:
 #include <stdlib.h>
 #include <fstream.h>
 #include <iostream.h>
-#include <strstream.h>
+#include <strstream>
 #ifdef __PC_COMPILER_
 #include <windows.h>
 #include <mmsystem.h>

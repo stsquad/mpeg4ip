@@ -23,8 +23,7 @@
 #include "mpeg2t_thread.h"
 #include "mpeg2t_thread_ipc.h"
 #include <rtp/rtp.h>
-#include <SDL.h>
-#include <SDL_thread.h>
+#include "mpeg4ip_sdl_includes.h"
 #include <mpeg2t/mpeg2_transport.h>
 #include <rtsp/rtsp_client.h>
 #ifndef TRUE

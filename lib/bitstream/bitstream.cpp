@@ -49,6 +49,9 @@ void CBitstream::init (const uint8_t *buffer,
 
 void CBitstream::bookmark (int bSet)
 {
+  if (m_verbose) {
+    printf("bookmark\n");
+  }
   if (bSet) {
     m_uNumOfBitsInBuffer_bookmark = m_uNumOfBitsInBuffer;
     m_chDecBuffer_bookmark = m_chDecBuffer;
@@ -113,7 +116,8 @@ uint32_t CBitstream::GetBits (uint32_t numBits)
     m_chDecBufferSize -= MIN(8, m_chDecBufferSize);
     retData |= (m_chDecData >> m_uNumOfBitsInBuffer) & msk[nbits];
   }
-  //printf("bits %d value %d\n", numBits, retData&msk[numBits]);
+  if (m_verbose)
+    printf("bits %d value %x\n", numBits, retData&msk[numBits]);
   return (retData & msk[numBits]);
 }
 
@@ -121,10 +125,13 @@ int CBitstream::byte_align(void)
 {
   int temp = 0;
   if (m_uNumOfBitsInBuffer != 0) {
+    temp = GetBits(m_uNumOfBitsInBuffer);
+#if 0
     temp = m_uNumOfBitsInBuffer;
     m_uNumOfBitsInBuffer = 0;
     m_chDecBuffer++;
     m_chDecBufferSize -= MIN(m_chDecBufferSize,8);
+#endif
   }
   return (temp);
 }

@@ -27,7 +27,11 @@
 #include <mp4util/mpeg4_sdp.h>
 #include <gnu/strcasestr.h>
 #include <mp4v2/mp4.h>
+#ifndef HAVE_XVID_H
+#include "../../../../lib/xvid/xvid.h"
+#else
 #include <xvid.h>
+#endif
 #include <mp4av/mp4av.h>
 
 #define xvid_message (xvid->m_vft->log_msg)

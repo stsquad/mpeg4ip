@@ -20,8 +20,7 @@
  */
 #include "rtsp_client.h"
 #include "rtsp_thread_ipc.h"
-#include <SDL.h>
-#include <SDL_thread.h>
+#include "mpeg4ip_sdl_includes.h"
 
 #ifndef TRUE
 #define TRUE 1

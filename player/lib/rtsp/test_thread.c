@@ -21,7 +21,6 @@
 /*
  * test.c - test program for rtsp library
  */
-#include <SDL.h>
 #include <sdp/sdp.h>
 #include <time.h>
 #include "rtsp_private.h"

@@ -16,7 +16,7 @@ endif
 libmpeg2_transport_la_LIBADD = \
 	$(A52LIBSADD)
 
-INCLUDES = -I$(top_builddir)/include -I$(top_builddir)/lib -I$(top_builddir)/lib/mp4av -I$(top_builddir)/lib/mp4v2 -I$(top_builddir)/lib/SDL/include
+INCLUDES = -I$(top_builddir)/include -I$(top_builddir)/lib -I$(top_builddir)/lib/mp4av -I$(top_builddir)/lib/mp4v2 
 AM_CFLAGS = -DIPTV_COMPATIBLE -D_REENTRANT @BILLS_CWARNINGS@
 AM_CXXFLAGS = -D_REENTRANT @BILLS_CPPWARNINGS@
 
@@ -26,4 +26,4 @@ mpeg2t_test_SOURCES = test.cpp
 mpeg2t_test_LDADD = libmpeg2_transport.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
-	@SDL_LIBS@
+	@SDL_LIBS@ -lSDLMain

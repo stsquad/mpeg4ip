@@ -28,7 +28,7 @@
 #define __AUDIO_H__ 1
 
 #include "codec_plugin.h"
-#include <SDL.h>
+#include "mpeg4ip_sdl_includes.h"
 
 #define DECODE_BUFFERS_MAX 32
 

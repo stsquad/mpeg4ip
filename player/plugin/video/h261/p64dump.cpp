@@ -159,10 +159,10 @@ void P64Dumper::err(const char* msg ...) const
 	va_start(ap, msg);
 	printf("-err: ");
 	vfprintf(stdout, msg, ap);
-	printf(" @g%d m%d %d/%d of %d/%d: %04x %04x %04x %04x|%04x\n",
+	printf(" @g%d m%d %ld/%d of %ld/%d: %04x %04x %04x %04x|%04x\n",
 		gob_, mba_,
-	       (u_char*)bs_ - (u_char*)ps_, nbb_,
-	       (u_char*)es_ - (u_char*)ps_, pebit_,
+	       (long)((u_char*)bs_ - (u_char*)ps_), nbb_,
+	       (long)((u_char*)es_ - (u_char*)ps_), pebit_,
 	       bs_[-4], bs_[-3], bs_[-2], bs_[-1], bs_[0]);
 }
 

@@ -8,7 +8,7 @@
 <div id="top">
 <h1>MPEG4IP README</h1> </div>
 <p>
-December 23, 2003
+February 24, 2004
 <P>
 <b>
 <a href="#Project">MPEG4IP Project </a>
@@ -152,7 +152,7 @@ users</a> and the other for <a href="http://lists.apple.com/mailman/listinfo/str
 <h2>Building and Installing</h2>
 </div>
 <P>
-We use make dist for our tarball.  To build, you should only have to issue the following:<br>
+On a linux or unix base system, you should only have to issue the following:<br>
 <blockquote>
 <div>
 <kbd>
@@ -163,7 +163,11 @@ make install (needs root privileges).<br>
 </div>
 </blockquote>
 <P>
-However, several systems have differing requirements. Please see
+You will need to have the SDL development libraries installed.  1.2.7
+is required; however, earlier versions may work.  If they don't, install
+1.2.7 or later before contacting us.
+<p>
+Several systems have differing requirements. Please see
 the section on <a href="#os">Operating Systems Supported</a> before
 continuing.
 <P>
@@ -663,7 +667,7 @@ mpeg4-2000 -  ISO MPEG-4 video encoder/decoder<br>
 
 <P>
 <b>lib</b> - project wide libraries<br>
-        |-&gt; SDL - Simple DirectMedia Layer<br>
+        |-&gt; SDLAudio - Simple DirectMedia Layer(modified audio only)<br>
         |-&gt; avi - AVI file format<br>
         |-&gt; bitstream - MPEG style low level bitstream utlity<br>
         |-&gt; config_file - Configuration file utility<br>

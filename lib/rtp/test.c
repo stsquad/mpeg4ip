@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 
 	UNUSED(argc);
 	UNUSED(argv);
-	printf("Testing common multimedia library %s\n", VERSION);
+	printf("Testing common multimedia library %s\n", MPEG4IP_VERSION);
 	test_base64();
 	test_des();
 	test_md5();

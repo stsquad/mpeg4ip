@@ -26,7 +26,6 @@
 #define __AA_H__ 1
 #include "faad/all.h"
 #include <faad/bits.h>
-#include <SDL.h>
 #include "codec_plugin.h"
 
 typedef struct aac_codec_t {
@@ -41,7 +40,6 @@ typedef struct aac_codec_t {
   uint64_t m_last_rtp_ts;
   uint64_t m_msec_per_frame;
   uint32_t m_current_frame;
-  SDL_AudioSpec m_obtained;
   int m_audio_inited;
   int m_faad_inited;
   int m_freq;  // frequency

@@ -14,7 +14,7 @@ typedef struct rtsp_transport_parse_t {
   char *source;
   int have_ssrc;
   uint32_t ssrc;
-  uint interleave_port;
+  unsigned int interleave_port;
   int use_interleaved;
 } rtsp_transport_parse_t;
 

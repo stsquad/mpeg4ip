@@ -19,7 +19,7 @@
  *              Bill May        wmay@cisco.com
  */
 #include "rtsp_private.h"
-
+#include "utils/mpeg4ip_utils.h"
 /*
  * free_rtsp_client()
  * frees all memory associated with rtsp client information
@@ -52,6 +52,7 @@ rtsp_client_t *rtsp_create_client_common (const char *url, int *perr)
 {
   int err;
   rtsp_client_t *info;
+  char *converted_url;
 
   info = malloc(sizeof(rtsp_client_t));
   if (info == NULL) {
@@ -71,14 +72,17 @@ rtsp_client_t *rtsp_create_client_common (const char *url, int *perr)
   info->m_buffer_len = 0;
   info->m_resp_buffer[RECV_BUFF_DEFAULT_LEN] = '\0';
   info->thread = NULL;
-  
-  err = rtsp_dissect_url(info, url);
+
+  converted_url = convert_url(url);
+  err = rtsp_dissect_url(info, converted_url);
   if (err != 0) {
+    free(converted_url);
     rtsp_debug(LOG_ALERT, "Couldn't decode url %d\n", err);
     *perr = err;
     free_rtsp_client(info);
     return (NULL);
   }
+  free(converted_url);
   return (info);
 }
 

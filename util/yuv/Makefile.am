@@ -8,7 +8,7 @@ yuvcreate_SOURCES = yuvcreate.cpp
 
 yuvdisp_SOURCES = yuvdisp.cpp
 
-INCLUDES = -I. -I../../include -I../../lib/SDL/include
+INCLUDES = -I. -I../../include
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@
 
@@ -16,7 +16,7 @@ AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
 LDADD = \
 	@SDL_LIBS@ \
-	$(top_builddir)/lib/SDL/src/main/libSDLmain.a \
+	-lSDLmain \
         -lm
 
 EXTRA_DIST=yuvdump60.dsp

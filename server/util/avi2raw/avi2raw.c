@@ -143,7 +143,7 @@ int main(int argc, char** argv)
 
 	/* warn about extraneous non-option arguments */
 	if (optind < argc) {
-		fprintf(stderr, "%s: unknown options specified, ignoring: ");
+		fprintf(stderr, "%s: unknown options specified, ignoring: ", progName);
 		while (optind < argc) {
 			fprintf(stderr, "%s ", argv[optind++]);
 		}
@@ -257,7 +257,7 @@ int main(int argc, char** argv)
 		if (videoFramesRead < numDesiredVideoFrames) {
 			fprintf(stderr,
 				"%s: warning: could only extract %u seconds of video (%u of %u frames)\n",
-				progName, ceil(videoFramesRead / videoFrameRate),
+				progName, (unsigned int)ceil(videoFramesRead / videoFrameRate),
 				videoFramesRead, numDesiredVideoFrames);
 		}
 		if (emptyFramesRead) {

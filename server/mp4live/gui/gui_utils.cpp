@@ -313,7 +313,7 @@ GtkWidget *CreateOptionMenu(GtkWidget *omenu,
     gtk_signal_connect(GTK_OBJECT(menuitem),
 		       "activate",
 		       GTK_SIGNAL_FUNC(on_activate),
-		       (gpointer)ix);
+		       GINT_TO_POINTER(ix));
   }
   gtk_option_menu_set_menu(GTK_OPTION_MENU(omenu), menu);
   gtk_option_menu_set_history(GTK_OPTION_MENU(omenu), current_index);

@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+
+set -x
+dir=`pwd`
+
+./mac_build_lib
+
+if test -z $BUILD_STYLE; then
+  BUILD_STYLE="Deployment"
+fi
+
+for i in \
+    lib/mp4v2/util \
+    server/mp4creator \
+    server/util/avi2raw \
+    server/util/avidump \
+    util/mpeg4vol
+do
+  cd  $dir/$i
+  xcodebuild -alltargets -buildstyle $BUILD_STYLE || exit 1
+done
+
+cd $dir

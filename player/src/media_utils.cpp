@@ -94,7 +94,6 @@ int lookup_video_codec_by_name (const char *name)
 				
 
 static int create_media_from_sdp (CPlayerSession *psptr,
-				  const char *name,
 				  session_desc_t *sdp,
 				  char *errmsg,
 				  uint32_t errlen,
@@ -312,7 +311,6 @@ static int create_media_from_sdp (CPlayerSession *psptr,
  * This is where we get the sdp from a source, iptv or http
  */
 static int create_media_for_streaming_broadcast (CPlayerSession *psptr,
-						 const char *name,
 						 session_desc_t *sdp,
 						 char *errmsg,
 						 uint32_t errlen,
@@ -326,7 +324,6 @@ static int create_media_for_streaming_broadcast (CPlayerSession *psptr,
     return (-1);
   }
   return (create_media_from_sdp(psptr, 
-				name, 
 				sdp, 
 				errmsg, 
 				errlen,
@@ -360,7 +357,6 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
   sdp = psptr->get_sdp_info();
   int have_audio_driver = do_we_have_audio();
   return (create_media_from_sdp(psptr,
-				name, 
 				sdp, 
 				errmsg,
 				errlen,
@@ -418,7 +414,6 @@ static int create_from_sdp (CPlayerSession *psptr,
   }
   sdp_decode_info_free(sdp_info);
   return (create_media_for_streaming_broadcast(psptr,
-					       name, 
 					       sdp,
 					       errmsg,
 					       errlen,
@@ -588,7 +583,6 @@ static int create_media_for_iptv (CPlayerSession *psptr,
     return (err);
   }
   return (create_media_for_streaming_broadcast(psptr,
-					       name, 
 					       sdp,
 					       errmsg,
 					       errlen,

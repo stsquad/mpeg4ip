@@ -23,8 +23,7 @@
 #ifndef __MEDIA_NODE_H__
 #define __MEDIA_NODE_H__
 
-#include <SDL.h>
-#include <SDL_thread.h>
+#include "mpeg4ip_sdl_includes.h"
 #include <msg_queue.h>
 
 #include "mp4live_config.h"

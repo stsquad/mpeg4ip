@@ -164,24 +164,24 @@ void sdp_free_string_list (string_list_t **list)
  */
 void sdp_time_offset_to_str (uint32_t val, char *buff, uint32_t buflen)
 {
-  uint32_t div;
+  uint32_t divval;
 
-  div = val % SEC_PER_DAY;
-  if (div == 0) {
-    div = val / SEC_PER_DAY;
-    snprintf(buff, buflen, "%dd", div);
+  divval = val % SEC_PER_DAY;
+  if (divval == 0) {
+    divval = val / SEC_PER_DAY;
+    snprintf(buff, buflen, "%dd", divval);
     return;
   }
-  div = val % SEC_PER_HOUR;
-  if (div == 0) {
-    div = val / SEC_PER_HOUR;
-    snprintf(buff, buflen, "%dh", div);
+  divval = val % SEC_PER_HOUR;
+  if (divval == 0) {
+    divval = val / SEC_PER_HOUR;
+    snprintf(buff, buflen, "%dh", divval);
     return;
   }
-  div = val % SEC_PER_MINUTE;
-  if (div == 0) {
-    div = val / SEC_PER_MINUTE;
-    snprintf(buff, buflen, "%dm", div);
+  divval = val % SEC_PER_MINUTE;
+  if (divval == 0) {
+    divval = val / SEC_PER_MINUTE;
+    snprintf(buff, buflen, "%dm", divval);
     return;
   }
 
@@ -216,34 +216,34 @@ format_list_t *sdp_find_format_in_line (format_list_t *head, const char *lptr)
 
 void sdp_smpte_to_str (double value, uint16_t fps, char *buffer)
 {
-  double div;
+  double divval;
   unsigned int temp;
-  uint32_t index;
+  uint32_t ix;
   if (fps == 0) fps = 30;
 
   temp = 0;
-  div = 3600.0 * fps;
-  while (value >= div) {
+  divval = 3600.0 * fps;
+  while (value >= divval) {
     temp++;
-    value -= div;
+    value -= divval;
   }
-  index = sprintf(buffer, "%02d:", temp);
+  ix = sprintf(buffer, "%02d:", temp);
   temp = 0;
-  div = 60.0 * fps;
-  while (value >= div) {
+  divval = 60.0 * fps;
+  while (value >= divval) {
     temp++;
-    value -= div;
+    value -= divval;
   }
-  index += sprintf(buffer + index, "%02d:", temp);
+  ix += sprintf(buffer + ix, "%02d:", temp);
 
   temp = 0;
-  div = fps;
-  while (value >= div) {
+  divval = fps;
+  while (value >= divval) {
     temp++;
-    value -= div;
+    value -= divval;
   }
-  index += sprintf(buffer + index, "%02d", temp);
-  if (value > 0.0) sprintf(buffer + index, ":%02g", value);
+  ix += sprintf(buffer + ix, "%02d", temp);
+  if (value > 0.0) sprintf(buffer + ix, ":%02g", value);
 }
 
 static int sdp_debug_level = LOG_ALERT;

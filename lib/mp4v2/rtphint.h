@@ -35,8 +35,8 @@ public:
 		return m_pPacket;
 	}
 
-	virtual u_int16_t GetDataSize() = NULL;
-	virtual void GetData(u_int8_t* pDest) = NULL;
+	virtual u_int16_t GetDataSize() = 0;
+	virtual void GetData(u_int8_t* pDest) = 0;
 
 	MP4Track* FindTrackFromRefIndex(u_int8_t refIndex);
 

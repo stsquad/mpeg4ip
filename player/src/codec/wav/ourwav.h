@@ -24,7 +24,7 @@
 
 #ifndef __OURWAV_H__
 #define __OURWAV_H__ 1
-#include <SDL.h>
+#include "mpeg4ip_sdl_includes.h"
 #include "codec_plugin.h"
 
 #define m_vft c.v.audio_vft

@@ -28,7 +28,7 @@
 #define __AUDIO_DUMMY_H__ 1
 
 #include "systems.h"
-#include <SDL.h>
+#include "mpeg4ip_sdl_includes.h"
 #include "codec_plugin.h"
 #include "audio.h"
 

@@ -1284,15 +1284,15 @@ printf("%s\n", *argv);
   master_looped = config.get_config_value(CONFIG_LOOPED);
   master_muted = config.get_config_value(CONFIG_MUTED);
   master_volume = config.get_config_value(CONFIG_VOLUME);
-  rtsp_set_error_func(player_library_message);
+  rtsp_set_error_func(library_message);
   rtsp_set_loglevel(config.get_config_value(CONFIG_RTSP_DEBUG));
-  rtp_set_error_msg_func(player_library_message);
+  rtp_set_error_msg_func(library_message);
   rtp_set_loglevel(config.get_config_value(CONFIG_RTP_DEBUG));
-  sdp_set_error_func(player_library_message);
+  sdp_set_error_func(library_message);
   sdp_set_loglevel(config.get_config_value(CONFIG_SDP_DEBUG));
-  http_set_error_func(player_library_message);
+  http_set_error_func(library_message);
   http_set_loglevel(config.get_config_value(CONFIG_HTTP_DEBUG));
-  mpeg2t_set_error_func(player_library_message);
+  mpeg2t_set_error_func(library_message);
   mpeg2t_set_loglevel(config.get_config_value(CONFIG_MPEG2T_DEBUG));
   /*
    * Set up main window

@@ -2,7 +2,7 @@
 #define MPEG3CSS_H
 
 
-#include "mpeg3private.inc"
+#include "mpeg3privateinc.h"
 
 struct mpeg3_block 
 {

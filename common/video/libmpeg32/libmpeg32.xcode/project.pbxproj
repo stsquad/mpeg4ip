@@ -1,0 +1,637 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 39;
+	objects = {
+		014CEA520018CE5811CA2923 = {
+			buildRules = (
+			);
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				DEBUGGING_SYMBOLS = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				HEADER_SEARCH_PATHS = "../../.. ../../../include ../../../lib/mp4av ../../../lib/mp4v2";
+				OPTIMIZATION_CFLAGS = "-O0";
+				ZERO_LINK = YES;
+			};
+			isa = PBXBuildStyle;
+			name = Development;
+		};
+		014CEA530018CE5811CA2923 = {
+			buildRules = (
+			);
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				HEADER_SEARCH_PATHS = "../../.. ../../../include ../../../lib/mp4av ../../../lib/mp4v2";
+				ZERO_LINK = NO;
+			};
+			isa = PBXBuildStyle;
+			name = Deployment;
+		};
+//010
+//011
+//012
+//013
+//014
+//080
+//081
+//082
+//083
+//084
+		08FB7793FE84155DC02AAC07 = {
+			buildSettings = {
+			};
+			buildStyles = (
+				014CEA520018CE5811CA2923,
+				014CEA530018CE5811CA2923,
+			);
+			hasScannedForEncodings = 1;
+			isa = PBXProject;
+			mainGroup = 08FB7794FE84155DC02AAC07;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 9BC7374F05E690A3004C6EC8;
+					ProjectRef = 9BC7374B05E690A3004C6EC8;
+				},
+			);
+			targets = (
+				D2AAC0620554660B00DB518D,
+			);
+		};
+		08FB7794FE84155DC02AAC07 = {
+			children = (
+				9BC7374B05E690A3004C6EC8,
+				08FB7795FE84155DC02AAC07,
+				1AB674ADFE9D54B511CA2CBB,
+			);
+			isa = PBXGroup;
+			name = libmpeg32;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		08FB7795FE84155DC02AAC07 = {
+			children = (
+				9BC7374705E69030004C6EC8,
+				9BC7371105E68CCF004C6EC8,
+				9BC7371205E68CCF004C6EC8,
+				9BC7371305E68CCF004C6EC8,
+				9BC7371405E68CCF004C6EC8,
+				9BC7371505E68CCF004C6EC8,
+				9BC7371605E68CCF004C6EC8,
+				9BC7371705E68CCF004C6EC8,
+				9BC7371805E68CCF004C6EC8,
+				9BC7371905E68CCF004C6EC8,
+				9BC7371A05E68CCF004C6EC8,
+				9BC7371B05E68CCF004C6EC8,
+				9BC7371C05E68CCF004C6EC8,
+				9BC7371D05E68CCF004C6EC8,
+				9BC7371E05E68CCF004C6EC8,
+				9BC7371F05E68CCF004C6EC8,
+				9BC7372105E68CCF004C6EC8,
+				9BC7372205E68CCF004C6EC8,
+				9BC7372305E68CCF004C6EC8,
+				9BC7372405E68CCF004C6EC8,
+				9BC7372505E68CCF004C6EC8,
+				9BC7372605E68CCF004C6EC8,
+				9BC7372705E68CCF004C6EC8,
+				9BC7372805E68CCF004C6EC8,
+			);
+			isa = PBXGroup;
+			name = Source;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+//080
+//081
+//082
+//083
+//084
+//1A0
+//1A1
+//1A2
+//1A3
+//1A4
+		1AB674ADFE9D54B511CA2CBB = {
+			children = (
+				D2AAC0630554660B00DB518D,
+			);
+			isa = PBXGroup;
+			name = Products;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+//1A0
+//1A1
+//1A2
+//1A3
+//1A4
+//9B0
+//9B1
+//9B2
+//9B3
+//9B4
+		9BC7371105E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = bitstream.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371205E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = bitstream.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371305E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = ifo.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371405E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = libmpeg3.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371505E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = libmpeg3.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371605E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = mpeg3atrack.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371705E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = mpeg3atrack.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371805E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = mpeg3css.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371905E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = mpeg3css.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371A05E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = mpeg3demux.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371B05E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = mpeg3demux.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371C05E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = mpeg3ifo.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371D05E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = mpeg3io.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371E05E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = mpeg3io.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7371F05E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = mpeg3private.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7372105E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = mpeg3protos.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7372205E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = mpeg3title.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7372305E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = mpeg3title.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7372405E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = mpeg3vtrack.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7372505E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = mpeg3vtrack.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7372605E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = timecode.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7372705E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = workarounds.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7372805E68CCF004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = workarounds.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7372E05E68D1D004C6EC8 = {
+			fileRef = 9BC7371105E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7372F05E68D1D004C6EC8 = {
+			fileRef = 9BC7371205E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373005E68D1D004C6EC8 = {
+			fileRef = 9BC7371305E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373105E68D1D004C6EC8 = {
+			fileRef = 9BC7371405E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373205E68D1D004C6EC8 = {
+			fileRef = 9BC7371505E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373305E68D1D004C6EC8 = {
+			fileRef = 9BC7371605E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373405E68D1D004C6EC8 = {
+			fileRef = 9BC7371705E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373505E68D1D004C6EC8 = {
+			fileRef = 9BC7371805E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373605E68D1D004C6EC8 = {
+			fileRef = 9BC7371905E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373705E68D1D004C6EC8 = {
+			fileRef = 9BC7371A05E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373805E68D1D004C6EC8 = {
+			fileRef = 9BC7371B05E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373905E68D1D004C6EC8 = {
+			fileRef = 9BC7371C05E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373A05E68D1D004C6EC8 = {
+			fileRef = 9BC7371D05E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373B05E68D1D004C6EC8 = {
+			fileRef = 9BC7371E05E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373C05E68D1D004C6EC8 = {
+			fileRef = 9BC7371F05E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373E05E68D1D004C6EC8 = {
+			fileRef = 9BC7372105E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7373F05E68D1D004C6EC8 = {
+			fileRef = 9BC7372205E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7374005E68D1D004C6EC8 = {
+			fileRef = 9BC7372305E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7374105E68D1D004C6EC8 = {
+			fileRef = 9BC7372405E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7374205E68D1D004C6EC8 = {
+			fileRef = 9BC7372505E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7374305E68D1D004C6EC8 = {
+			fileRef = 9BC7372605E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7374405E68D1D004C6EC8 = {
+			fileRef = 9BC7372705E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7374505E68D1D004C6EC8 = {
+			fileRef = 9BC7372805E68CCF004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7374605E68FAB004C6EC8 = {
+			compilerSpec = com.apple.compilers.gcc;
+			filePatterns = "*.inc";
+			fileType = pattern.proxy;
+			isEditable = 1;
+			isa = PBXBuildRule;
+			outputFiles = (
+			);
+		};
+		9BC7374705E69030004C6EC8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = mpeg3privateinc.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7374805E69030004C6EC8 = {
+			fileRef = 9BC7374705E69030004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7374B05E690A3004C6EC8 = {
+			isa = PBXFileReference;
+			lastKnownFileType = "wrapper.pb-project";
+			name = libmp4av.xcode;
+			path = ../../../lib/mp4av/libmp4av.xcode;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BC7374F05E690A3004C6EC8 = {
+			children = (
+				9BC7375005E690A3004C6EC8,
+			);
+			isa = PBXGroup;
+			name = Products;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		9BC7375005E690A3004C6EC8 = {
+			fileType = "compiled.mach-o.dylib";
+			isa = PBXReferenceProxy;
+			path = libmp4av.dylib;
+			refType = 3;
+			remoteRef = 9BC7375405E690D8004C6EC8;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		9BC7375105E690B0004C6EC8 = {
+			buildActionMask = 2147483647;
+			files = (
+				9BC7375305E690B7004C6EC8,
+			);
+			isa = PBXFrameworksBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BC7375305E690B7004C6EC8 = {
+			fileRef = 9BC7375005E690A3004C6EC8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BC7375405E690D8004C6EC8 = {
+			containerPortal = 9BC7374B05E690A3004C6EC8;
+			isa = PBXContainerItemProxy;
+			proxyType = 2;
+			remoteGlobalIDString = D2AAC0630554660B00DB518D;
+			remoteInfo = libmp4av;
+		};
+		9BC7375705E691F6004C6EC8 = {
+			buildActionMask = 2147483647;
+			dstPath = /usr/local/lib;
+			dstSubfolderSpec = 0;
+			files = (
+				9BC7375905E69216004C6EC8,
+			);
+			isa = PBXCopyFilesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BC7375905E69216004C6EC8 = {
+			fileRef = D2AAC0630554660B00DB518D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+//9B0
+//9B1
+//9B2
+//9B3
+//9B4
+//D20
+//D21
+//D22
+//D23
+//D24
+		D2AAC0600554660B00DB518D = {
+			buildActionMask = 2147483647;
+			files = (
+				9BC7373B05E68D1D004C6EC8,
+				9BC7373C05E68D1D004C6EC8,
+				9BC7373E05E68D1D004C6EC8,
+				9BC7374005E68D1D004C6EC8,
+				9BC7374205E68D1D004C6EC8,
+				9BC7374305E68D1D004C6EC8,
+				9BC7374505E68D1D004C6EC8,
+				9BC7373805E68D1D004C6EC8,
+				9BC7373605E68D1D004C6EC8,
+				9BC7373405E68D1D004C6EC8,
+				9BC7373205E68D1D004C6EC8,
+				9BC7373005E68D1D004C6EC8,
+				9BC7372F05E68D1D004C6EC8,
+				9BC7374805E69030004C6EC8,
+			);
+			isa = PBXHeadersBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D2AAC0610554660B00DB518D = {
+			buildActionMask = 2147483647;
+			files = (
+				9BC7372E05E68D1D004C6EC8,
+				9BC7373105E68D1D004C6EC8,
+				9BC7373305E68D1D004C6EC8,
+				9BC7373505E68D1D004C6EC8,
+				9BC7373705E68D1D004C6EC8,
+				9BC7373905E68D1D004C6EC8,
+				9BC7373A05E68D1D004C6EC8,
+				9BC7373F05E68D1D004C6EC8,
+				9BC7374105E68D1D004C6EC8,
+				9BC7374405E68D1D004C6EC8,
+			);
+			isa = PBXSourcesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D2AAC0620554660B00DB518D = {
+			buildPhases = (
+				D2AAC0600554660B00DB518D,
+				D2AAC0610554660B00DB518D,
+				9BC7375105E690B0004C6EC8,
+				9BC7375705E691F6004C6EC8,
+			);
+			buildRules = (
+				9BC7374605E68FAB004C6EC8,
+			);
+			buildSettings = {
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				GCC_WARN_FOUR_CHARACTER_CONSTANTS = NO;
+				GCC_WARN_UNKNOWN_PRAGMAS = NO;
+				INSTALL_PATH = /usr/local/lib;
+				LIBRARY_STYLE = DYNAMIC;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = libmpeg32;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "-Wmost";
+			};
+			dependencies = (
+			);
+			isa = PBXNativeTarget;
+			name = libmpeg32;
+			productName = libmpeg32;
+			productReference = D2AAC0630554660B00DB518D;
+			productType = "com.apple.product-type.library.dynamic";
+		};
+		D2AAC0630554660B00DB518D = {
+			explicitFileType = "compiled.mach-o.dylib";
+			includeInIndex = 0;
+			isa = PBXFileReference;
+			path = libmpeg32.dylib;
+			refType = 3;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+	};
+	rootObject = 08FB7793FE84155DC02AAC07;
+}

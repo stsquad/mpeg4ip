@@ -3,7 +3,7 @@
 
 #include <mpeg4ip.h>
 #include "mpeg3css.h"
-#include "mpeg3private.inc"
+#include "mpeg3privateinc.h"
 
 /* Filesystem structure */
 /* We buffer in MPEG3_IO_SIZE buffers.  Stream IO would require back */

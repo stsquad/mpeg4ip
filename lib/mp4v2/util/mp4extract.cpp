@@ -46,6 +46,10 @@ int main(int argc, char** argv)
 	char* dstFileName = NULL;
 	u_int32_t verbosity = MP4_DETAILS_ERROR;
 
+fprintf(stderr, "You don't want to use this utility - use mp4creator --extract instead\n");
+fprintf(stderr, "If you really want to use it, remove this warning and the exit call\n");
+fprintf(stderr, "from the source file\n");
+	exit(-1);
 	/* begin processing command line */
 	ProgName = argv[0];
 	while (true) {

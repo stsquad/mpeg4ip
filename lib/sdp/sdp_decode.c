@@ -91,21 +91,21 @@ static void free_media_desc (media_desc_t *mptr)
   free(mptr);
 }
 
-static void free_time_desc (session_time_desc_t *time)
+static void free_time_desc (session_time_desc_t *ptime)
 {
   time_repeat_desc_t *rptr;
   
-  if (time->next != NULL) {
-    free_time_desc(time->next);
-    time->next = NULL;
+  if (ptime->next != NULL) {
+    free_time_desc(ptime->next);
+    ptime->next = NULL;
   }
-  while (time->repeat != NULL) {
-    rptr = time->repeat;
-    time->repeat = rptr->next;
+  while (ptime->repeat != NULL) {
+    rptr = ptime->repeat;
+    ptime->repeat = rptr->next;
     free (rptr);
   }
 
-  free(time);
+  free(ptime);
 }
 
 /*
@@ -1299,7 +1299,7 @@ static media_desc_t *sdp_decode_parse_media (char *lptr,
 {
   char *mdesc, *proto, *sep;
   media_desc_t *new, *mp;
-  uint32_t read, port_no;
+  uint32_t read_in, port_no;
   string_list_t *q;
 
   *err = 0;
@@ -1313,15 +1313,15 @@ static media_desc_t *sdp_decode_parse_media (char *lptr,
 
   // <port>
   ADV_SPACE(lptr);
-  read = 0;
+  read_in = 0;
   if (!isdigit(*lptr)) {
     sdp_debug(LOG_ERR, "Illegal port number in media %s", lptr);
     *err = ESDP_MEDIA;
     return (NULL);
   }
   while (isdigit(*lptr)) {
-    read *= 10;
-    read += *lptr - '0';
+    read_in *= 10;
+    read_in += *lptr - '0';
     lptr++;
   }
   ADV_SPACE(lptr);
@@ -1368,7 +1368,7 @@ static media_desc_t *sdp_decode_parse_media (char *lptr,
   }
   memset(new, 0, sizeof(media_desc_t));
   new->media = strdup(mdesc);
-  new->port = (uint16_t)read;
+  new->port = (uint16_t)read_in;
   new->proto = strdup(proto);
   new->num_ports = (unsigned short)port_no;
 

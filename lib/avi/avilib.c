@@ -603,7 +603,7 @@ avi_t *AVI_open_input_file(const char *filename, int getIndex)
    avi_t *AVI;
    long i, n, rate, scale, idx_type;
    unsigned char *hdrl_data;
-   long hdrl_len;
+   long hdrl_len = 0;
    long nvi, nai, ioff;
    long tot;
    int lasttag = 0;

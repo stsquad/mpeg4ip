@@ -13,7 +13,7 @@ SUFFIXES = .asm
 
 noinst_LTLIBRARIES = libmpeg3video.la
 
-INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib/SDL/include
+INCLUDES=-I$(top_srcdir)/include
 if HAVE_ALIGN_LOOPS
    OUR_ALIGN_LOOPS=@ALIGN_LOOPS@=2
 else

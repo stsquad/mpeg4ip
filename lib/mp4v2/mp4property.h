@@ -58,7 +58,7 @@ public:
 		return m_name;
 	}
 
-	virtual MP4PropertyType GetType() = NULL; 
+	virtual MP4PropertyType GetType() = 0; 
 
 	bool IsReadOnly() {
 		return m_readOnly;
@@ -74,17 +74,17 @@ public:
 		m_implicit = value;
 	}
 
-	virtual u_int32_t GetCount() = NULL;
-	virtual void SetCount(u_int32_t count) = NULL;
+	virtual u_int32_t GetCount() = 0;
+	virtual void SetCount(u_int32_t count) = 0;
 
 	virtual void Generate() { /* default is a no-op */ };
 
-	virtual void Read(MP4File* pFile, u_int32_t index = 0) = NULL;
+	virtual void Read(MP4File* pFile, u_int32_t index = 0) = 0;
 
-	virtual void Write(MP4File* pFile, u_int32_t index = 0) = NULL;
+	virtual void Write(MP4File* pFile, u_int32_t index = 0) = 0;
 
 	virtual void Dump(FILE* pFile, u_int8_t indent,
-		bool dumpImplicits, u_int32_t index = 0) = NULL;
+		bool dumpImplicits, u_int32_t index = 0) = 0;
 
 	virtual bool FindProperty(const char* name,
 		MP4Property** ppProperty, u_int32_t* pIndex = NULL);

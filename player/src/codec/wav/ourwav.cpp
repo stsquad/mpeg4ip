@@ -81,10 +81,20 @@ static int wav_decode (codec_data_t *ifptr,
 	
   if (wav->m_configured == 0) {
     wav->m_configured = 1;
+    audio_format_t fmt;
+
+    switch (wav->m_sdl_config->format) {
+    case AUDIO_U8: fmt = AUDIO_FMT_U8; break;
+    case AUDIO_S16LSB: fmt = AUDIO_FMT_S16LSB; break;
+    case AUDIO_U16LSB: fmt = AUDIO_FMT_U16LSB; break;
+    case AUDIO_S16MSB: fmt = AUDIO_FMT_S16MSB; break;
+    default:
+    case AUDIO_U16MSB: fmt = AUDIO_FMT_U16MSB; break;
+    }
     wav->m_vft->audio_configure(wav->m_ifptr,
 				wav->m_sdl_config->freq, 
 				wav->m_sdl_config->channels, 
-				wav->m_sdl_config->format, 
+				fmt,
 				wav->m_sdl_config->samples);
     if (wav->m_sdl_config->format == AUDIO_U8 || 
 	wav->m_sdl_config->format == AUDIO_S8)

@@ -31,8 +31,9 @@
  * When you change the plugin version, you should add a "HAVE_PLUGIN_VERSION"
  * for easier makes
  */
-#define PLUGIN_VERSION "0.8"
-#define HAVE_PLUGIN_VERSION_0_8 1
+#define PLUGIN_VERSION "0.9"
+//#define HAVE_PLUGIN_VERSION_0_8 1
+#define HAVE_PLUGIN_VERSION_0_9 1
 
 /***************************************************************************
  *  Audio callbacks from plugin to renderer
@@ -51,10 +52,21 @@
  * Outputs:
  *   nothing
  */
+typedef enum audio_format_t {
+  AUDIO_FMT_U8 = 0,
+    AUDIO_FMT_S8,
+    AUDIO_FMT_U16LSB,
+    AUDIO_FMT_S16LSB,
+    AUDIO_FMT_U16MSB,
+    AUDIO_FMT_S16MSB,
+    AUDIO_FMT_U16,
+    AUDIO_FMT_S16
+} audio_format_t;
+
 typedef void (*audio_configure_f)(void *ifptr,
 				  int freq,
 				  int chans,
-				  int format,
+				  audio_format_t format,
 				  uint32_t max_samples);
 
 /*

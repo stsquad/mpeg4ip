@@ -20,7 +20,6 @@
  */
 #include "rawa.h"
 #include <mp4v2/mp4.h>
-#include <SDL.h>
 #define LOGIT rawa->m_vft->log_msg
 /*
  * Create raw audio structure
@@ -159,12 +158,12 @@ static int rawa_decode (codec_data_t *ptr,
 	rawa->m_bitsperchan = 16;
       } 
     }
-    int audio_format;
+    audio_format_t audio_format;
 
     if (rawa->m_bitsperchan == 16) {
-      audio_format = AUDIO_S16MSB;
+      audio_format = AUDIO_FMT_S16MSB;
     } else {
-      audio_format = AUDIO_U8;
+      audio_format = AUDIO_FMT_U8;
     }
     rawa->m_vft->audio_configure(rawa->m_ifptr,
 				 rawa->m_freq, 

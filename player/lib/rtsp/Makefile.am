@@ -12,17 +12,17 @@ librtsp_la_SOURCES = \
 	rtsp_thread_nx.h \
 	rtsp_util.c 
 
-INCLUDES = -I$(top_builddir)/lib/sdp -I$(top_builddir)/include -I$(top_builddir)/lib/SDL/include -I$(top_builddir)/lib
+INCLUDES = -I$(top_builddir)/lib/sdp -I$(top_builddir)/include -I$(top_builddir)/lib 
 AM_CFLAGS = -DIPTV_COMPATIBLE -D_REENTRANT @BILLS_CWARNINGS@ 
 
 check_PROGRAMS = test test_thread
 test_SOURCES = test.c
 test_INCLUDES = -I../../../lib/sdp
 test_LDADD = librtsp.la ../../../lib/sdp/libsdp.la @SDL_LIBS@ \
-	../../../lib/rtp/libuclmmbase.la
+	../../../lib/rtp/libuclmmbase.la $(top_builddir)/lib/utils/libutils.la
 test_thread_SOURCES = test_thread.c
 test_thread_INCLUDES = -I../../../lib/sdp
 test_thread_LDADD = librtsp.la ../../../lib/sdp/libsdp.la @SDL_LIBS@ \
-	../../../lib/rtp/libuclmmbase.la
+	../../../lib/rtp/libuclmmbase.la $(top_builddir)/lib/utils/libutils.la
 
 EXTRA_DIST = librtsp60.dsp rtsp_thread_win.cpp rtsp_thread_win.h

@@ -24,7 +24,7 @@
 #define __MEDIA_FRAME_H__
 
 #include <sys/types.h>
-#include <SDL.h>
+#include "mpeg4ip_sdl_includes.h"
 #include "media_time.h"
 
 typedef u_int16_t MediaType;

@@ -151,7 +151,7 @@ int rtsp_send_describe (rtsp_client_t *info,
     buflen += ret;
 
     rtsp_debug(LOG_INFO, "Sending DESCRIBE %s", info->url);
-    rtsp_debug(LOG_DEBUG, buffer);
+    rtsp_debug(LOG_DEBUG, "%s", buffer);
 
     ret = rtsp_send_and_get(info, buffer, buflen);
     decode = info->decode_response;
@@ -241,7 +241,7 @@ int rtsp_send_setup (rtsp_client_t *info,
   buflen += ret;
 
   rtsp_debug(LOG_INFO, "Sending SETUP %s", url);
-  rtsp_debug(LOG_DEBUG, buffer);
+  rtsp_debug(LOG_DEBUG, "%s", buffer);
 
   ret = rtsp_send_and_get(info, buffer, buflen);
   decode = info->decode_response;
@@ -366,7 +366,7 @@ static int rtsp_send_play_or_pause (const char *command,
   buflen += ret;
 
   rtsp_debug(LOG_INFO, "Sending %s %s", command, url);
-  rtsp_debug(LOG_DEBUG, buffer);
+  rtsp_debug(LOG_DEBUG, "%s", buffer);
 
   ret = rtsp_send_and_get(info, buffer, buflen);
   decode = info->decode_response;
@@ -488,7 +488,7 @@ static int rtsp_send_teardown_common (rtsp_client_t *info,
   buflen += ret;
 
   rtsp_debug(LOG_INFO, "Sending TEARDOWN %s", url);
-  rtsp_debug(LOG_DEBUG, buffer);
+  rtsp_debug(LOG_DEBUG, "%s", buffer);
 
   ret = rtsp_send_and_get(info, buffer, buflen);
   decode = info->decode_response;

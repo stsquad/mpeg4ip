@@ -28,8 +28,7 @@
 #include "our_bytestream.h"
 #include "player_util.h"
 #include "rtp/rtp.h"
-#include <SDL.h>
-#include <SDL_thread.h>
+#include "mpeg4ip_sdl_includes.h"
 #include <sdp/sdp.h>
 #include "player_session.h"
 

@@ -8,14 +8,24 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.0.8)
-
-AC_CONFIG_SUBDIRS(lib/rtp)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.0.7)
 
 dnl Checks for programs. 
-AC_CHECK_FILE(lib/SDL/sdl-config,,
-	      AC_MSG_ERROR([Configure for SDL needs to run first - either run bootstrap or run lib/SDL/configure]))
 
+dnl check for mac
+case "$target" in
+   *-apple-darwin*)
+   have_macosx=true
+   ;;
+   *)
+   have_macosx=false
+   ;;
+esac
+
+if test $have_macosx = false; then
+   AC_CONFIG_SUBDIRS(lib/SDLAudio)
+fi
+AC_CONFIG_SUBDIRS(lib/rtp)
 
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
@@ -55,6 +65,7 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_TIME
 AC_CHECK_SIZEOF(long)
+
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
 AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h sys/time.h)
 use_mpeg4ip_xvid=false
@@ -74,8 +85,8 @@ AC_CHECK_HEADER(id3/tag.h, [have_id3_tag=true], [have_id3_tag=false])
 if test $have_id3_tag = true; then
    dnl should check for libraries here
    AC_DEFINE(HAVE_ID3_TAG_H, [1], [have id3/tag.h])
-   AM_CONDITIONAL(HAVE_ID3_TAG, $have_id3_tag)
 fi
+AM_CONDITIONAL(HAVE_ID3_TAG, $have_id3_tag)
 AC_LANG_POP(C++)
 dnl check for Sun, BSD/OS libraries
 AC_CHECK_LIB(socket, socket)
@@ -409,8 +420,13 @@ fi
 AM_CONDITIONAL(USE_MMX, test x$test_use_mmx = xtrue)
 
 dnl Get SDL cflags and SDL libraries to include
-SDL_LIBS="`sh lib/SDL/sdl-config --libs | sed 's,-L.* -lSDL,\$(top_builddir)/lib/SDL/src/libSDL.la,'`"
+if test $have_macosx = false; then
+SDL_LIBS="`sh sdl-config --libs`"
+else
+SDL_LIBS=
+fi
 AC_SUBST(SDL_LIBS)
+
 
 dnl
 BILLS_CWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Wno-char-subscripts -Wno-unknown-pragmas"
@@ -472,6 +488,7 @@ AC_OUTPUT( \
 	lib/msg_queue/Makefile \
 	lib/SDL_VisualC/Makefile \
 	lib/sdp/Makefile \
+	lib/utils/Makefile \
 	lib/xvid/Makefile \
 	lib/xvid/dct/Makefile \
 	lib/xvid/dct/x86_asm/Makefile \
@@ -548,6 +565,7 @@ AC_OUTPUT( \
 	player/src/win_gui/res/Makefile \
 	util/Makefile \
 	util/iptv/Makefile \
+	util/mpeg4vol/Makefile \
 	util/yuv/Makefile \
 	mpeg4ip-config
 )

@@ -180,7 +180,7 @@ static codec_data_t *celp_codec_create (const char *compressor,
   celp->m_vft->audio_configure(celp->m_ifptr,
 			       celp->m_freq, 
 			       celp->m_chans, 
-			       AUDIO_S16SYS,
+			       AUDIO_FMT_S16,
 			       celp->m_output_frame_size);
 
   return (codec_data_t *)celp;

@@ -20,7 +20,7 @@
  */
 #include "a52dec.h"
 #include <mp4v2/mp4.h>
-#include <SDL.h>
+
 #define LOGIT a52dec->m_vft->log_msg
 
 /*
@@ -165,7 +165,7 @@ static int a52dec_decode (codec_data_t *ptr,
     a52dec->m_vft->audio_configure(a52dec->m_ifptr,
 				   sample_rate, 
 				   a52dec->m_chans, 
-				   AUDIO_S16LSB,
+				   AUDIO_FMT_S16LSB,
 				   256 * 6);
     a52dec->m_initialized = 1;
     a52dec->m_last_ts = ts;

@@ -27,8 +27,8 @@
 #include "player_session.h"
 #include "video_sdl.h"
 #include "player_util.h"
-#include <SDL_error.h>
-#include <SDL_syswm.h>
+#include <SDL/SDL_error.h>
+#include <SDL/SDL_syswm.h>
 #include "our_config_file.h"
 //#define VIDEO_SYNC_PLAY 2
 //#define VIDEO_SYNC_FILL 1
@@ -47,15 +47,337 @@ DEFINE_MESSAGE_MACRO(video_message, "videosync")
 #define video_message(loglevel, fmt...) message(loglevel, "videosync", fmt)
 #endif
 
-CSDLVideoSync::CSDLVideoSync (CPlayerSession *psptr) : CVideoSync(psptr)
+/*
+ * CSDLVideo class is the interface to SDL.  We probably want to 
+ * move this to another file, to leave the ring buffer code (what is
+ * CSDLVideoSync) alone
+ * Having this seperate allows us to keep the video window present between
+ * changing sessions.
+ */
+CSDLVideo::CSDLVideo(int initial_x, int initial_y)
 {
   char buf[32];
-
+  const SDL_VideoInfo *video_info;
+  m_image = NULL;
+  m_screen = NULL;
+  m_pos_x = initial_x;
+  m_pos_y = initial_y;
+  m_name = NULL;
+  m_pixel_width = -1;
+  m_pixel_height = -1;
+  m_max_width = -1;
+  m_max_height = -1;
+  // One time initialization stuff
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) < 0 || !SDL_VideoDriverName(buf, 1)) {
     video_message(LOG_CRIT, "Could not init SDL video: %s", SDL_GetError());
   }
-  m_screen = NULL;
-  m_image = NULL;
+  video_info = SDL_GetVideoInfo();
+  switch (video_info->vfmt->BitsPerPixel) {
+  case 16:
+  case 32:
+    m_video_bpp = video_info->vfmt->BitsPerPixel;
+    break;
+  default:
+    m_video_bpp = 16;
+    break;
+  }
+  SDL_ShowCursor(SDL_DISABLE);
+}
+
+/*
+ * Clean up - free everything
+ */
+CSDLVideo::~CSDLVideo (void)
+{
+  CHECK_AND_FREE(m_name);
+  if (m_image) {
+    SDL_FreeYUVOverlay(m_image);
+    m_image = NULL;
+  }
+  if (m_screen) {
+    SDL_FreeSurface(m_screen);
+    m_screen = NULL;
+  }
+}
+
+void CSDLVideo::set_name (const char *name)
+{
+  CHECK_AND_FREE(m_name);
+  m_name = strdup(name);
+}
+
+void CSDLVideo::set_image_size (unsigned int w, unsigned int h, double aspect)
+{
+  m_image_w = w;
+  m_image_h = h;
+  m_aspect_ratio = aspect;
+  // don't actually do anything until set_screen_size is called
+}
+
+/*
+ * Set the correct screen size.
+ */
+void  CSDLVideo::set_screen_size(int fullscreen, int video_scale, 
+				 int pixel_width, int pixel_height,
+				 int max_width, int max_height)
+{
+
+  if (pixel_width > -1) m_pixel_width = pixel_width;
+  if (pixel_height > -1) m_pixel_height = pixel_height;
+  if (max_width > -1) m_max_width = max_width;
+  if (max_height > -1) m_max_height = max_height;
+
+  // Check and see if we should use old values.
+  if (pixel_width == -1 && m_pixel_width > -1) pixel_width = m_pixel_width;
+  if (pixel_height == -1 && m_pixel_height > -1) pixel_height = m_pixel_height;
+  if (max_width == -1 && m_max_width > -1) max_width = m_max_width;
+  if (max_height == -1 && m_max_height > -1) max_height = m_image_h;
+ 
+  int win_w = m_image_w * video_scale / 2;
+  int win_h = m_image_h * video_scale / 2;
+    
+  // It is only when we have positive values larger than zero for
+  // pixel sizes that we resize
+  if (pixel_width > 0 && pixel_height > 0) {
+ 
+    // Square pixels needs no resize.
+    if (pixel_width != pixel_height) {
+ 
+      // enable different handling of full screen versus non full screen
+      if (fullscreen == 0) {
+	if (pixel_width > pixel_height)
+	  win_w = win_h * pixel_width / pixel_height;
+	else 
+	  win_h = win_w * pixel_height / pixel_width;
+      } else {
+ 
+	// For now we do the same as in non full screen.
+	if (pixel_width > pixel_height)
+	  win_w = win_h * pixel_width / pixel_height;
+	else 
+	  win_h = win_w * pixel_height / pixel_width;
+      }
+    }
+  } else {
+    // this case is when we set it from the aspect ratio defined.
+    if (m_aspect_ratio != 0.0) {
+      double win_wf = m_aspect_ratio;
+      win_wf *= win_h;
+      video_message(LOG_INFO, "aspect ration %g %g %d %d", 
+		    m_aspect_ratio, win_wf, win_w, win_h);
+      win_w = (int)win_wf;
+    }
+  }
+  if (fullscreen == 1) {
+    if (max_width > 0 && win_w > max_width) win_w = max_width;
+    if (max_height > 0 && win_h > max_height) win_h = max_height;
+  }
+
+  m_fullscreen = fullscreen;
+  m_video_scale = video_scale;
+
+#ifdef OLD_SURFACE
+  int mask = SDL_SWSURFACE | SDL_ASYNCBLIT;
+#else
+  int mask = SDL_HWSURFACE;
+#endif
+  if (fullscreen != 0) {
+    mask |= SDL_FULLSCREEN;
+#ifdef _WIN32
+    video_scale = 2;
+#endif
+  }
+
+  video_message(LOG_DEBUG, "Setting video mode %d %d %x %g", 
+		win_w, win_h, mask, m_aspect_ratio);
+
+  if (m_image) {
+    SDL_FreeYUVOverlay(m_image);
+    m_image = NULL;
+  }
+
+  if (m_screen) {
+    SDL_FreeSurface(m_screen);
+    m_screen = NULL;
+  }
+
+  m_screen = SDL_SetVideoMode(win_w, win_h, m_video_bpp, 
+			      mask);
+  if (m_screen == NULL) {
+    m_screen = SDL_SetVideoMode(win_w, win_h, m_video_bpp, mask);
+    if (m_screen == NULL) {
+      video_message(LOG_CRIT, "sdl error message is %s", SDL_GetError());
+      abort();
+    }
+  }
+  if (m_pos_x != 0 || m_pos_y != 0) {
+    // we only try this the first time the video window gets initialized - 
+    // not if we're resize a persistent connection
+    SDL_SysWMinfo info;
+    SDL_VERSION(&info.version);
+    int ret;
+    ret = SDL_GetWMInfo(&info);
+    if (ret > 0) {
+#ifdef unix
+      if (info.subsystem == SDL_SYSWM_X11) {
+	info.info.x11.lock_func();
+	XMoveWindow(info.info.x11.display, info.info.x11.wmwindow, 
+		    m_pos_x, m_pos_y);
+	info.info.x11.unlock_func();
+      }
+#endif
+    }
+    m_pos_x = 0;
+    m_pos_y = 0;
+  }
+
+  m_dstrect.x = 0;
+  m_dstrect.y = 0;
+  m_dstrect.w = m_screen->w;
+  m_dstrect.h = m_screen->h;
+
+#ifdef OLD_SURFACE
+  if (video_scale == 4) {
+    m_image = SDL_CreateYUVOverlay(m_image_w << 1, 
+				   m_image_h << 1,
+				   SDL_YV12_OVERLAY, 
+				   m_screen);
+  } else 
+#endif
+    {
+    m_image = SDL_CreateYUVOverlay(m_image_w, 
+				   m_image_h,
+				   SDL_YV12_OVERLAY, 
+				   m_screen);
+    }
+  if (strlen(m_name) != 0) {
+    SDL_WM_SetCaption(m_name, NULL);
+  }
+}
+
+/*
+ * Display the image - copy the yuv buffers to the SDL overlay
+ * height and width are set via set_image_size call
+ */
+void CSDLVideo::display_image (uint8_t *y, uint8_t *u, uint8_t *v)
+{
+  unsigned int ix;
+  uint8_t *to, *from;
+  if (SDL_LockYUVOverlay(m_image)) {
+    video_message(LOG_ERR, "Failed to lock image");
+    return;
+  } 
+
+  // Must always copy the buffer to memory.  This creates 2 copies of this
+  // data (probably a total of 6 - libsock -> rtp -> decoder -> our ring ->
+  // sdl -> hardware)
+#ifdef OLD_SURFACE
+  if (m_fullscreen == 0 && m_video_scale == 4) {
+    // when scaling to 200%, don't use SDL stretch blit
+    // use a smoothing (averaging) blit instead
+    // we only do this for maybe windows - otherwise, let SDL do it.
+#ifdef USE_MMX
+    FrameDoublerMmx(y, m_image->pixels[0], 
+		    m_image_w, m_image_h);
+    FrameDoublerMmx(v, m_image->pixels[1], 
+		    m_image_w >> 1, m_image_h >> 1);
+    FrameDoublerMmx(u, m_image->pixels[2], 
+		    m_image_w >> 1, m_image_h >> 1);
+#else
+    FrameDoubler(y, m_image->pixels[0], 
+		 m_image_w, m_image_h, m_image->pitches[0]);
+    FrameDoubler(v, m_image->pixels[1], 
+		 m_image_w >> 1, m_image_h >> 1, m_image->pitches[1]);
+    FrameDoubler(u, m_image->pixels[2], 
+		 m_image_w >> 1, m_image_h >> 1, m_image->pitches[2]);
+#endif
+  } else 
+#endif
+    {
+      // let SDL blit, either 1:1 for 100% or decimating by 2:1 for 50%
+      uint32_t bufsize = m_image_w * m_image_h * sizeof(uint8_t);
+      unsigned int width = m_image_w, height = m_image_h;
+      if (width != m_image->pitches[0]) {
+	// The width is not equal to the size in the SDL buffers - 
+	// we need to copy a row at a time
+	to = (uint8_t *)m_image->pixels[0];
+	from = y;
+	for (ix = 0; ix < height; ix++) {
+	  memcpy(to, from, width);
+	  to += m_image->pitches[0];
+	  from += width;
+	}
+      } else {
+	// Copy entire Y frame
+	memcpy(m_image->pixels[0], 
+	       y,
+	       bufsize);
+      }
+      // We reduce the sizes for U and V planes (they are 1/4 the size)
+      bufsize /= 4;
+      width /= 2;
+      height /= 2;
+#ifdef SWAP_UV
+#define V 2
+#define U 1
+#else
+#define V 1
+#define U 2
+#endif
+      // Copy the U and V - same comments as above
+      if (width != m_image->pitches[V]) {
+	to = (uint8_t *)m_image->pixels[V];
+	from = v;
+	for (ix = 0; ix < height; ix++) {
+	  memcpy(to, from, width);
+	  to += m_image->pitches[V];
+	  from += width;
+	}
+      } else {
+	memcpy(m_image->pixels[V], 
+	       v,
+	       bufsize);
+      }
+      if (width != m_image->pitches[U]) {
+	to = (uint8_t *)m_image->pixels[U];
+	from = u;
+	for (ix = 0; ix < height; ix++) {
+	  memcpy(to, from, width);
+	  to += m_image->pitches[U];
+	  from += width;
+	}
+      } else {
+	memcpy(m_image->pixels[U], 
+	       u,
+	       bufsize);
+      }
+      
+    }
+
+  // Actually display the video
+  int rval = SDL_DisplayYUVOverlay(m_image, &m_dstrect);
+#ifndef darwin
+#define CORRECT_RETURN 0
+#else
+#define CORRECT_RETURN 1
+#endif
+  if (rval != CORRECT_RETURN) {
+    video_message(LOG_ERR, "Return from display is %d", rval);
+  }
+  // and unlock it.
+  SDL_UnlockYUVOverlay(m_image);
+}
+      
+/*
+ * CSDLVideoSync - actually a ring buffer for YUV frames - probably
+ * can pull it out if you want to replace SDL
+ */
+
+CSDLVideoSync::CSDLVideoSync (CPlayerSession *psptr,
+			      void *video_persistence) : 
+  CVideoSync(psptr, video_persistence)
+{
+  m_sdl_video = NULL;
   m_video_initialized = 0;
   m_config_set = 0;
   m_have_data = 0;
@@ -79,26 +401,18 @@ CSDLVideoSync::CSDLVideoSync (CPlayerSession *psptr) : CVideoSync(psptr)
   m_consec_skipped = 0;
   m_fullscreen = 0;
   m_filled_frames = 0;
-  m_pixel_width = 0;
-  m_pixel_height = 0;
-  m_max_width = 0;
-  m_max_height = 0;
-
+  video_message(LOG_DEBUG, "vp is %p", video_persistence);
 }
 
 CSDLVideoSync::~CSDLVideoSync (void)
 {
-  if (m_fullscreen != 0) {
-    m_fullscreen = 0;
-    do_video_resize();
-  }
-  if (m_image) {
-    SDL_FreeYUVOverlay(m_image);
-    m_image = NULL;
-  }
-  if (m_screen) {
-    SDL_FreeSurface(m_screen);
-    m_screen = NULL;
+  if ((m_grabbed_video_persistence == 0) &&
+      (m_sdl_video != NULL)){
+    if (m_fullscreen != 0) {
+      m_sdl_video->set_screen_size(0, 2);
+    }
+    video_message(LOG_ERR, "deleteing video sdl");
+    delete m_sdl_video;
   }
   for (int ix = 0; ix < MAX_VIDEO_BUFFERS; ix++) {
     if (m_y_buffer[ix] != NULL) {
@@ -142,67 +456,17 @@ int CSDLVideoSync::initialize_video (const char *name, int x, int y)
 {
   if (m_video_initialized == 0) {
     if (m_config_set) {
-      const SDL_VideoInfo *video_info;
-      video_info = SDL_GetVideoInfo();
-      switch (video_info->vfmt->BitsPerPixel) {
-      case 16:
-      case 32:
-	m_video_bpp = video_info->vfmt->BitsPerPixel;
-	break;
-      default:
-	m_video_bpp = 16;
-	break;
-      }
-
-      SDL_ShowCursor(SDL_DISABLE);
-      SDL_SysWMinfo info;
-      SDL_VERSION(&info.version);
-      int ret;
-      ret = SDL_GetWMInfo(&info);
-      // Oooh... fun... To scale the video, just pass the width and height
-      // to this routine. (ie: m_width *2, m_height * 2).
-#ifdef OLD_SURFACE
-      int mask = SDL_SWSURFACE | SDL_ASYNCBLIT | SDL_RESIZABLE;
-#else
-      int mask = SDL_HWSURFACE | SDL_RESIZABLE;
-#endif
-	  int video_scale = m_video_scale;
-
-      if (m_fullscreen != 0) {
-	mask |= SDL_FULLSCREEN;
-#ifdef _WIN32
-	video_scale = 2;
-#endif
-      }
-      int w = m_width * video_scale / 2;
-      int h = m_height * video_scale / 2;
-      m_screen = SDL_SetVideoMode(w,
-				  h,
-				  m_video_bpp,
-				  mask);
-      if (ret > 0) {
-#ifdef unix
-	//	player_debug_message("Trying");
-	if (info.subsystem == SDL_SYSWM_X11) {
-	  info.info.x11.lock_func();
-	  XMoveWindow(info.info.x11.display, info.info.x11.wmwindow, x, y);
-	  info.info.x11.unlock_func();
+      if (m_sdl_video == NULL) {
+	if (m_video_persistence != NULL) {
+	  m_sdl_video = (CSDLVideo *)m_video_persistence;
+	} else {
+	  m_sdl_video = new CSDLVideo(x, y);
+	  m_video_persistence = m_sdl_video;
 	}
-#endif
       }
-      m_dstrect.x = 0;
-      m_dstrect.y = 0;
-      m_dstrect.w = m_screen->w;
-      m_dstrect.h = m_screen->h;
-#if 1
-      video_message(LOG_DEBUG, "Created mscreen %p hxw %d %d", m_screen, m_height,
-			   m_width);
-#endif
-      do_video_resize();
-      if (strlen(name) != 0) {
-	SDL_WM_SetCaption(name, NULL);
-      }
-      m_video_initialized = 1;
+      m_sdl_video->set_name(name);
+      m_sdl_video->set_image_size(m_width, m_height, m_aspect_ratio);
+      m_sdl_video->set_screen_size(m_fullscreen, m_video_scale);
       return (1);
     } else {
       return (0);
@@ -241,8 +505,6 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
 				   int &have_eof)
 {
   uint64_t play_this_at;
-  unsigned int ix;
-  uint8_t *to, *from;
 
   /*
    * m_buffer_filled is ring buffer of YUV data from decoders, with
@@ -304,112 +566,9 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
 #endif
       showed = 1;
       m_consec_skipped = 0;
-      /*
-       * Lock the Overlay
-       */
-      if (SDL_LockYUVOverlay(m_image)) {
-	video_message(LOG_ERR, "Failed to lock image");
-      } else {
-	// Must always copy the buffer to memory.  This creates 2 copies of this
-	// data (probably a total of 6 - libsock -> rtp -> decoder -> our ring ->
-	// sdl -> hardware)
-#ifdef OLD_SURFACE
-	if (m_fullscreen == 0 && m_video_scale == 4) {
-	  // when scaling to 200%, don't use SDL stretch blit
-	  // use a smoothing (averaging) blit instead
-	  // we only do this for maybe windows - otherwise, let SDL do it.
-#ifdef USE_MMX
-	  FrameDoublerMmx(m_y_buffer[m_play_index], m_image->pixels[0], 
-			  m_width, m_height);
-	  FrameDoublerMmx(m_v_buffer[m_play_index], m_image->pixels[1], 
-			  m_width >> 1, m_height >> 1);
-	  FrameDoublerMmx(m_u_buffer[m_play_index], m_image->pixels[2], 
-			  m_width >> 1, m_height >> 1);
-#else
-	  FrameDoubler(m_y_buffer[m_play_index], m_image->pixels[0], 
-		       m_width, m_height, m_image->pitches[0]);
-	  FrameDoubler(m_v_buffer[m_play_index], m_image->pixels[1], 
-		       m_width >> 1, m_height >> 1, m_image->pitches[1]);
-	  FrameDoubler(m_u_buffer[m_play_index], m_image->pixels[2], 
-		       m_width >> 1, m_height >> 1, m_image->pitches[2]);
-#endif
-	} else 
-#endif
-      {
-	// let SDL blit, either 1:1 for 100% or decimating by 2:1 for 50%
-	uint32_t bufsize = m_width * m_height * sizeof(uint8_t);
-	unsigned int width = m_width, height = m_height;
-
-	if (width != m_image->pitches[0]) {
-	  // The width is not equal to the size in the SDL buffers - 
-	  // we need to copy a row at a time
-	  to = (uint8_t *)m_image->pixels[0];
-	  from = m_y_buffer[m_play_index];
-	  for (ix = 0; ix < height; ix++) {
-	    memcpy(to, from, width);
-	    to += m_image->pitches[0];
-	    from += width;
-	  }
-	} else {
-	  // Copy entire Y frame
-	  memcpy(m_image->pixels[0], 
-		 m_y_buffer[m_play_index], 
-		 bufsize);
-	}
-	// We reduce the sizes for U and V planes (they are 1/4 the size)
-	bufsize /= 4;
-	width /= 2;
-	height /= 2;
-#ifdef SWAP_UV
-#define V 2
-#define U 1
-#else
-#define V 1
-#define U 2
-#endif
-	// Copy the U and V - same comments as above
-	if (width != m_image->pitches[V]) {
-	    to = (uint8_t *)m_image->pixels[V];
-	    from = m_v_buffer[m_play_index];
-	  for (ix = 0; ix < height; ix++) {
-	    memcpy(to, from, width);
-	    to += m_image->pitches[V];
-	    from += width;
-	  }
-	} else {
-	  memcpy(m_image->pixels[V], 
-		 m_v_buffer[m_play_index], 
-		 bufsize);
-	}
-	if (width != m_image->pitches[U]) {
-	    to = (uint8_t *)m_image->pixels[U];
-	    from = m_u_buffer[m_play_index];
-	  for (ix = 0; ix < height; ix++) {
-	    memcpy(to, from, width);
-	    to += m_image->pitches[U];
-	    from += width;
-	  }
-	} else {
-	  memcpy(m_image->pixels[U], 
-		 m_u_buffer[m_play_index], 
-		 bufsize);
-	}
-
-      }
-
-	// Actually display the video
-    int rval = SDL_DisplayYUVOverlay(m_image, &m_dstrect);
-#ifndef darwin
-#define CORRECT_RETURN 0
-#else
-#define CORRECT_RETURN 1
-#endif
-    if (rval != CORRECT_RETURN) {
-      video_message(LOG_ERR, "Return from display is %d", rval);
-    }
-    // and unlock it.
-    SDL_UnlockYUVOverlay(m_image);
-      }
+      m_sdl_video->display_image(m_y_buffer[m_play_index],
+				 m_u_buffer[m_play_index],
+				 m_v_buffer[m_play_index]);
   } 
 #ifdef CHECK_SYNC_TIME
 else {
@@ -652,114 +811,9 @@ void CSDLVideoSync::do_video_resize (int pixel_width,
 				     int max_height)
 {
 
-#if 0
-  player_debug_message("do_video_resize %d,%d,%d,%d\n",
-		       pixel_width,pixel_height,max_width,max_height);
-#endif
-  // Save values for future use (i.e. -1 values as argument will
-  // restore an argument.)
-
-  if (m_image) {
-    SDL_FreeYUVOverlay(m_image);
-    m_image = NULL;
-  }
-  if (m_screen) {
-    SDL_FreeSurface(m_screen);
-    m_screen = NULL;
-  }
-#ifdef OLD_SURFACE
-  int mask = SDL_SWSURFACE | SDL_ASYNCBLIT | SDL_RESIZABLE;
-#else
-  int mask = SDL_HWSURFACE | SDL_RESIZABLE;
-#endif
-
-  int video_scale = m_video_scale;
-
-  if (m_fullscreen != 0) {
-    mask |= SDL_FULLSCREEN;
-#ifdef _WIN32
-	video_scale = 2;
-#endif
-  }
-
-  int win_w = m_width * video_scale / 2;
-  int win_h = m_height * video_scale / 2;
-    
-  if (pixel_width > -1) m_pixel_width = pixel_width;
-  if (pixel_height > -1) m_pixel_height = pixel_height;
-  if (max_width > -1) m_max_width = max_width;
-  if (max_height > -1) m_max_height = max_height;
-
-  // Check and see if we should use old values.
-  if (pixel_width == -1 && m_pixel_width) pixel_width = m_pixel_width;
-  if (pixel_height == -1 && m_pixel_height) pixel_height = m_pixel_height;
-  if (max_width == -1 && m_max_width) max_width = m_max_width;
-  if (max_height == -1 && m_max_height) max_height = m_height;
- 
-  // It is only when we have positive values larger than zero for
-  // pixel sizes that we resize
-  if (pixel_width > 0 && pixel_height > 0) {
- 
-    // Square pixels needs no resize.
-    if (pixel_width != pixel_height) {
- 
-      // enable different handling of full screen versus non full screen
-      if (m_fullscreen == 0) {
-	if (pixel_width > pixel_height)
-	  win_w = win_h * pixel_width / pixel_height;
-	else win_h = win_w * pixel_height / pixel_width;
-      } else {
- 
-	// For now we do the same as in non full screen.
-	if (pixel_width > pixel_height)
-	  win_w = win_h * pixel_width / pixel_height;
-	else win_h = win_w * pixel_height / pixel_width;
-      }
-    }
-  } else {
-    // this case is when we set it from the aspect ratio defined.
-    if (m_aspect_ratio != 0.0) {
-      double win_wf = m_aspect_ratio;
-      win_wf *= win_h;
-      video_message(LOG_INFO, "aspect ration %g %g %d %d", 
-		    m_aspect_ratio, win_wf, win_w, win_h);
-      win_w = (int)win_wf;
-    }
-  }
-  if (m_fullscreen == 1) {
-    if (max_width > 0 && win_w > max_width) win_w = max_width;
-    if (max_height > 0 && win_h > max_height) win_h = max_height;
-  }
-  video_message(LOG_DEBUG, "Setting video mode %d %d %x %g", 
-		win_w, win_h, mask, m_aspect_ratio);
-  m_screen = SDL_SetVideoMode(win_w, win_h, m_video_bpp, 
-			      mask);
-  if (m_screen == NULL) {
-    m_screen = SDL_SetVideoMode(win_w, win_h, m_video_bpp, mask);
-    if (m_screen == NULL) {
-      video_message(LOG_CRIT, "sdl error message is %s", SDL_GetError());
-      abort();
-    }
-  }
-  m_dstrect.x = 0;
-  m_dstrect.y = 0;
-  m_dstrect.w = m_screen->w;
-  m_dstrect.h = m_screen->h;
-
-#ifdef OLD_SURFACE
-  if (video_scale == 4) {
-    m_image = SDL_CreateYUVOverlay(m_width << 1, 
-				 m_height << 1,
-				 SDL_YV12_OVERLAY, 
-				 m_screen);
-  } else 
-#endif
-    {
-    m_image = SDL_CreateYUVOverlay(m_width, 
-				 m_height,
-				 SDL_YV12_OVERLAY, 
-				 m_screen);
-  }
+  m_sdl_video->set_screen_size(m_fullscreen, m_video_scale, 
+			       pixel_width, pixel_height,
+			       max_width, max_height);
 }
 
 static void c_video_configure (void *ifptr,
@@ -821,7 +875,14 @@ video_vft_t *get_video_vft (void)
 
 CVideoSync *create_video_sync (CPlayerSession *psptr) 
 {
-  return new CSDLVideoSync(psptr);
+  return new CSDLVideoSync(psptr, psptr->get_video_persistence());
 }
-/* end file video.cpp */
+
+void DestroyVideoPersistence (void *persist)
+{
+  CSDLVideo *temp = (CSDLVideo *)persist;
+  delete temp;
+  SDL_Quit();
+}
+
 

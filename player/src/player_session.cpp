@@ -37,13 +37,11 @@ DEFINE_MESSAGE_MACRO(sync_message, "avsync")
 #else
 #define sync_message(loglevel, fmt...) message(loglevel, "avsync", fmt)
 #endif
-/*
- * c callback for sync thread
- */
 
 CPlayerSession::CPlayerSession (CMsgQueue *master_mq, 
 				SDL_sem *master_sem,
-				const char *name)
+				const char *name,
+				void *video_persistence)
 {
   m_sdp_info = NULL;
   m_my_media = NULL;
@@ -83,6 +81,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_screen_scale = 2;
   m_set_end_time = 0;
   m_dont_send_first_rtsp_play = 0;
+  m_video_persistence = video_persistence;
 }
 
 CPlayerSession::~CPlayerSession ()
@@ -136,8 +135,14 @@ CPlayerSession::~CPlayerSession ()
     SDL_DestroySemaphore(m_sync_sem);
     m_sync_sem = NULL;
   }
-  
+
+  int quit_sdl = 1;
   if (m_video_sync != NULL) {
+    // we need to know if we should quit SDL or not.  If the control
+    // code has grabbed the persistence, we don't want to quit
+    if (m_video_sync->grabbed_video_persistence() != 0) {
+      quit_sdl = 0;
+    }
     delete m_video_sync;
     m_video_sync = NULL;
   }
@@ -170,7 +175,7 @@ CPlayerSession::~CPlayerSession ()
     m_unused_ports = first->get_next();
     delete first;
   }
-  if (hadthread != 0) {
+  if (hadthread != 0 && quit_sdl != 0) {
     SDL_Quit();
   }
 }
@@ -594,7 +599,11 @@ double CPlayerSession::get_max_time (void)
     p = p->get_next();
   }
   if (max == 0.0 && m_set_end_time) {
-    max = (double)m_end_time;
+    max = (double)
+#ifdef _WIN32
+		(int64_t)
+#endif
+		m_end_time;
     max /= 1000.0;
   }
     
@@ -719,5 +728,10 @@ void CPlayerSession::syncronize_rtp_bytestreams (rtcp_sync_t *sync)
     }
     mptr = mptr->get_next();
   }
+}
+
+void *CPlayerSession::grab_video_persistence (void)
+{
+  return m_video_sync->grab_video_persistence();
 }
 /* end file player_session.cpp */

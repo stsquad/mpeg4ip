@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+
+set -x
+dir=`pwd`
+
+if test -z $BUILD_STYLE; then
+  BUILD_STYLE="Deployment"
+fi
+
+for i in \
+        lib/avi \
+	lib/bitstream \
+	lib/fposrec \
+        lib/gnu lib/mp4v2 lib/mp4av lib/rtp lib/sdp \
+        common/video/libmpeg32 
+do
+  cd  $dir/$i
+  xcodebuild -alltargets -buildstyle $BUILD_STYLE $* || exit 1
+done
+
+cd $dir

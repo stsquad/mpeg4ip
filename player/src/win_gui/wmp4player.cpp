@@ -167,7 +167,7 @@ protected:
 CAboutDlg::CAboutDlg() : CDialog(CAboutDlg::IDD)
 {
 	//{{AFX_DATA_INIT(CAboutDlg)
-	m_version.Format("%s - %s", AfxGetAppName(), VERSION);
+	m_version.Format("%s - %s", AfxGetAppName(), MPEG4IP_VERSION);
 	//}}AFX_DATA_INIT
 }
 
@@ -428,20 +428,24 @@ int CWmp4playerApp::ExitInstance()
 void CWmp4playerApp::OnUpdateDebugMpeg4isoonly(CCmdUI* pCmdUI) 
 {
 	// TODO: Add your command update UI handler code here
+	config_index_t iso_check;
 	pCmdUI->Enable();
-
-	pCmdUI->SetCheck(config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY));
-	
+    iso_check = config.FindIndexByName("Mpeg4IsoOnly");
+    if (iso_check != UINT32_MAX) {
+	    pCmdUI->SetCheck(config.GetBoolValue(iso_check));
+	}
 }
 
 void CWmp4playerApp::OnDebugMpeg4isoonly() 
 {
 	// TODO: Add your command handler code here
 	int value;
+  config_index_t iso_only = config.FindIndexByName("Mpeg4IsoOnly");
 
-	value = config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY);
-	value = (value == 0) ? 1 : 0;
-	config.set_config_value(CONFIG_USE_MPEG4_ISO_ONLY, value);
+  if (iso_only != UINT32_MAX) {
+	value = config.GetBoolValue(iso_only);
+	config.SetBoolValue(iso_only, !value);
+  }
 	
 }
 

@@ -25,8 +25,7 @@
 #define __MSG_QUEUE_H__ 1
 
 #include "mpeg4ip.h"
-#include <SDL.h>
-#include <SDL_thread.h>
+#include "mpeg4ip_sdl_includes.h"
 
 class CMsg {
  public:

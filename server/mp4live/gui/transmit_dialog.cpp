@@ -143,7 +143,7 @@ static int on_port_leave(GtkWidget *widget, gpointer *data)
 
 static void on_ttl_menu_activate (GtkWidget *widget, gpointer data)
 {
-	ttlIndex = (unsigned int)data & 0xFF;
+	ttlIndex = GPOINTER_TO_UINT(data) & 0xFF;
 }
 
 static void on_address_generate (GtkWidget *widget, gpointer *data)

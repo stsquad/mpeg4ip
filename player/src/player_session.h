@@ -63,7 +63,8 @@ class CPlayerSession {
    */
   CPlayerSession(CMsgQueue *master_queue,
 		 SDL_sem *master_sem,
-		 const char *name);
+		 const char *name,
+		 void *video_persistence = NULL);
   /*
    * API routine - destroy session - free all sub-structures, cleans
    * up rtsp, etc
@@ -190,7 +191,14 @@ class CPlayerSession {
   void streaming_media_set_up(void) { m_streaming_media_set_up = 1; };
   CIpPort **get_unused_ip_port_ptr(void) { return &m_unused_ports; };
   void syncronize_rtp_bytestreams(rtcp_sync_t *sync);
+  // persistent video connection
+  void *get_video_persistence (void) { 
+    return m_video_persistence;
+  };
+  void *grab_video_persistence (void);
  private:
+  void *m_video_connection;
+  int m_started_video_connection;
   void process_sdl_events(void);
   int process_msg_queue(int state);
   int sync_thread_init(void);
@@ -246,6 +254,7 @@ class CPlayerSession {
   int m_set_end_time;
   uint64_t m_end_time;
   int m_dont_send_first_rtsp_play;
+  void *m_video_persistence;
 };
 
 int c_sync_thread(void *data);

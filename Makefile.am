@@ -12,7 +12,8 @@ SUBDIRS = include lib util doc
 endif
 endif
 
-EXTRA_DIST = bootstrap cvs_bootstrap encoding60.dsw README_FIRST strip_fPIC.sh depcomp README.html patch.osx faac_mpeg4ip_add.tar mp4liveOnDebian.FAQ
+EXTRA_DIST = bootstrap cvs_bootstrap encoding60.dsw README_FIRST strip_fPIC.sh depcomp README.html patch.osx faac_mpeg4ip_add.tar mp4liveOnDebian.FAQ \
+mac_build_libs mac_build_tools
 
 include_HEADERS = mpeg4ip_config.h
 

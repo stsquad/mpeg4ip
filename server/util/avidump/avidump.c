@@ -61,7 +61,6 @@ int main(int argc, char** argv)
   /* internal variables */
   char* aviFileName = NULL;
   avi_t* aviFile = NULL;
-  FILE* rawFile = NULL;
   uint32_t numVideoFrames;
   int ix, format;
   const char *aname;
@@ -153,8 +152,8 @@ int main(int argc, char** argv)
       }
       if (aname == NULL) aname = "Format not in list";
       fprintf(stdout, "   Audio format: %d %s\n", format, aname);
-      fprintf(stdout, "   Audio sample rate: %d\n", AVI_audio_rate(aviFile));
-      fprintf(stdout, "   Audio bytes: %d\n", AVI_audio_bytes(aviFile));
+      fprintf(stdout, "   Audio sample rate: %ld\n", AVI_audio_rate(aviFile));
+      fprintf(stdout, "   Audio bytes: %ld\n", AVI_audio_bytes(aviFile));
     } else {
       fprintf(stdout, "No audio bytes\n");
     }

@@ -24,10 +24,8 @@
 #ifndef __MPEG2_TRANSPORT_H__
 #define __MPEG2_TRANSPORT_H__
 
-#include <SDL.h>
-#include <SDL_thread.h>
-
-#define MPEG2T_SYNC_BYTE 0x47
+#include "mpeg4ip_sdl_includes.h"
+#include "mpeg2t_defines.h"
 
 /*
  * mpeg2t_frame_t - how we'll pass frames back when we've stored them
@@ -84,17 +82,6 @@ typedef struct mpeg2t_pmap_t {
   uint8_t *prog_info;
   uint32_t prog_info_len;
 } mpeg2t_pmap_t;
-
-#define MPEG2T_ST_11172_VIDEO 1
-#define MPEG2T_ST_MPEG_VIDEO  2
-#define MPEG2T_ST_11172_AUDIO  3
-#define MPEG2T_ST_MPEG_AUDIO  4
-#define MPEG2T_ST_MPEG_AUDIO_6_A 0xa
-#define MPEG2T_ST_MPEG_AUDIO_6_B 0xb
-#define MPEG2T_ST_MPEG_AUDIO_6_C 0xc
-#define MPEG2T_ST_MPEG_AUDIO_6_D 0xd
-#define MPEG2T_ST_MPEG2_AAC 0xf
-#define MPEG2T_ST_MPEG4_VIDEO 0x10
 
 /*
  * Elementary stream type PID.  Contains enough data for 

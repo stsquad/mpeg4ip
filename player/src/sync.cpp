@@ -26,8 +26,6 @@
 #include <stdlib.h>
 #include "player_session.h"
 #include "player_media.h"
-#include <SDL.h>
-#include <SDL_thread.h>
 #include "player_util.h"
 #include "audio.h"
 #include "video.h"

@@ -701,7 +701,7 @@ static void on_duration_changed(GtkWidget* widget, gpointer* data)
 
 static void on_duration_units_menu_activate(GtkWidget *widget, gpointer data)
 {
-	durationUnitsIndex = (unsigned int)data & 0xFF;;
+	durationUnitsIndex =  GPOINTER_TO_UINT(data) & 0xFF;;
 	MyConfig->SetIntegerValue(CONFIG_APP_DURATION_UNITS,
 		durationUnitsValues[durationUnitsIndex]);
 	MyConfig->UpdateRecord();

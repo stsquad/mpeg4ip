@@ -34,7 +34,8 @@ DEFINE_MESSAGE_MACRO(video_message, "videosync")
 #define video_message(loglevel, fmt...) message(loglevel, "videosync", fmt)
 #endif
 
-CVideoSync::CVideoSync (CPlayerSession *psptr)
+CVideoSync::CVideoSync (CPlayerSession *psptr,
+			void *video_persistence)
 {
   m_psptr = psptr;
   m_decode_sem = NULL;
@@ -48,6 +49,11 @@ CVideoSync::CVideoSync (CPlayerSession *psptr)
   m_msec_per_frame = 0;
   m_last_filled_time = 0;
   m_eof_found = 0;
+  // set up the persistence information.  If we have a value, we
+  // consider it grabbed - and it's the responsibility of the grabber
+  // to free it.
+  m_video_persistence = video_persistence;
+  m_grabbed_video_persistence = m_video_persistence != NULL ? 1 : 0;
 }
 
 CVideoSync::~CVideoSync (void)

@@ -33,7 +33,6 @@ mpeg4_iso_plugin_la_LIBADD = \
 INCLUDES = -I.. \
 	-I../.. \
 	-I../../../lib \
-	-I$(top_srcdir)/lib/SDL/include \
 	-I$(top_builddir)/$(mpeg4_dir) \
 	-I$(top_builddir)/$(mpeg4_dir)/type \
 	-I$(top_builddir)/$(mpeg4_dir)/vtc/include \

@@ -2,8 +2,8 @@
 #include "mpeg3private.h"
 #include "mpeg3protos.h"
 #include "mpeg3vtrack.h"
-#include "video/mpeg3video.h"
-#include "video/mpeg3videoprotos.h"
+//#include "video/mpeg3video.h"
+//#include "video/mpeg3videoprotos.h"
 #include "mp4av.h"
 #include <stdlib.h>
 

@@ -10,7 +10,7 @@ celp_plugin_la_LIBADD = \
 	$(top_srcdir)/player/lib/audio/celp/BS/libcelpbs.la \
 	$(top_srcdir)/player/lib/audio/celp/dec/libcelp.la 
 
-INCLUDES = -I$(top_srcdir)/player/src -I$(top_srcdir)/player/lib -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/player/lib/audio/celp -I$(top_srcdir)/player/lib/audio/celp/BS -I$(top_srcdir)/player/lib/audio/celp/dec -I$(top_srcdir)/player/lib/audio/celp/include -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/sdp
+INCLUDES = -I$(top_srcdir)/player/src -I$(top_srcdir)/player/lib -I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/player/lib/audio/celp -I$(top_srcdir)/player/lib/audio/celp/BS -I$(top_srcdir)/player/lib/audio/celp/dec -I$(top_srcdir)/player/lib/audio/celp/include -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/sdp
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 

@@ -30,7 +30,6 @@
 #include "include/austream.h"
 
 #include "bitstream.h"
-#include <SDL.h>
 #include "codec_plugin.h"
 
 typedef struct celp_codec_t {
@@ -47,7 +46,6 @@ typedef struct celp_codec_t {
   uint64_t m_last_rtp_ts;
   uint64_t m_msec_per_frame;
   uint32_t m_current_frame;
-  SDL_AudioSpec m_obtained;
   int m_audio_inited;
   int m_celp_inited;
   int m_freq;  // frequency

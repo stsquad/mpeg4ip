@@ -299,7 +299,7 @@ static int encode_time (session_time_desc_t *tptr, sdp_encode_t *se)
 
 static int encode_time_adj (time_adj_desc_t *aptr, sdp_encode_t *se)
 {
-  uint64_t time;
+  uint64_t time_val;
   uint32_t offset;
   uint32_t len;
   char buffer[40], *buff;
@@ -310,8 +310,8 @@ static int encode_time_adj (time_adj_desc_t *aptr, sdp_encode_t *se)
   dohead = TRUE;
   while (aptr != NULL) {
     ADD_STR_TO_ENCODE_WITH_RETURN(se, dohead ? "z=" : " ");
-    time = aptr->adj_time + NTP_TO_UNIX_TIME;
-    sprintf(buffer, U64" ", time);
+	time_val = aptr->adj_time + NTP_TO_UNIX_TIME;
+    sprintf(buffer, U64" ", time_val);
     ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
     if (aptr->offset < 0) {
       offset = (0 - aptr->offset);
@@ -590,7 +590,7 @@ int sdp_encode_list_to_file (session_desc_t *sptr,
 {
   FILE *ofile;
   sdp_encode_t sdp;
-  int ret;
+  int retval;
   
   CHECK_RETURN(prepare_sdp_encode(&sdp));
   ofile = fopen(filename, append ? "a" : "w");
@@ -600,8 +600,8 @@ int sdp_encode_list_to_file (session_desc_t *sptr,
   }
   while (sptr != NULL) {
     sdp.used = 0;
-    ret = sdp_encode(sptr, &sdp);
-    if (ret != 0) {
+    retval = sdp_encode(sptr, &sdp);
+    if (retval != 0) {
       break;
     }
     fputs(sdp.buffer, ofile);
@@ -615,14 +615,14 @@ int sdp_encode_list_to_file (session_desc_t *sptr,
 int sdp_encode_one_to_memory (session_desc_t *sptr, char **mem)
 {
   sdp_encode_t sdp;
-  int ret;
+  int retval;
   
   *mem = NULL;
   CHECK_RETURN(prepare_sdp_encode(&sdp));
-  ret = sdp_encode(sptr, &sdp);
-  if (ret != 0) {
+  retval = sdp_encode(sptr, &sdp);
+  if (retval != 0) {
     free(sdp.buffer);
-    return (ret);
+    return (retval);
   }
   *mem = sdp.buffer;
   return (0);
@@ -631,23 +631,23 @@ int sdp_encode_one_to_memory (session_desc_t *sptr, char **mem)
 int sdp_encode_list_to_memory (session_desc_t *sptr, char **mem, int *count)
 {
   sdp_encode_t sdp;
-  int ret;
+  int retval;
   int cnt;
   
   *mem = NULL;
   CHECK_RETURN(prepare_sdp_encode(&sdp));
   cnt = 0;
-  ret = 0;
-  while (sptr != NULL && ret == 0) {
-    ret = sdp_encode(sptr, &sdp);
-    if (ret == 0)
+  retval = 0;
+  while (sptr != NULL && retval == 0) {
+    retval = sdp_encode(sptr, &sdp);
+    if (retval == 0)
       cnt++;
     sptr = sptr->next;
   }
   *mem = sdp.buffer;
   if (count != NULL)
     *count = cnt;
-  return (ret);
+  return (retval);
 }
 
 

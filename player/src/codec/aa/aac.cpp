@@ -251,7 +251,7 @@ static int aac_decode (codec_data_t *ptr,
 	aac->m_vft->audio_configure(aac->m_ifptr,
 				     aac->m_freq, 
 				     aac->m_chans, 
-				     AUDIO_S16SYS, 
+				     AUDIO_FMT_S16, 
 				     aac->m_output_frame_size);
 	uint8_t *now = aac->m_vft->audio_get_buffer(aac->m_ifptr);
 	if (now != NULL) {

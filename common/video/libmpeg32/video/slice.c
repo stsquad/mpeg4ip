@@ -5,9 +5,6 @@
 
 #ifndef SDL_THREADS
 #include <pthread.h>
-#else
-#include "SDL.h"
-#include "SDL_thread.h"
 #endif
 #include <stdlib.h>
 

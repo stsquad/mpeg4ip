@@ -21,7 +21,7 @@
 #ifndef __PLAYER_UTIL_H__
 #define __PLAYER_UTIL_H__
 
-
+#include "mpeg4ip_utils.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -37,22 +37,12 @@ void player_debug_message(const char *fmt, ...)
        __attribute__((format(__printf__, 1, 2)))
 #endif
 	   ;
-void message(int loglevel, const char *lib, const char *fmt, ...)
-#ifndef _WIN32
-       __attribute__((format(__printf__, 3, 4)))
-#endif
-	   ;
-
-void player_library_message(int loglevel,
-			    const char *lib,
-			    const char *fmt,
-			    va_list ap);
 
 int getIpAddressFromInterface(const char *ifname,
 			      struct in_addr *retval);
 char *convert_number(char *transport, uint32_t *value);
 char *convert_hex(char *transport, uint32_t *value);
-char *get_host_ip_address(void);
+
 #ifdef __cplusplus
 }
 #endif

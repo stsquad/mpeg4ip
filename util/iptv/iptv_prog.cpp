@@ -142,7 +142,7 @@ int main (int argc, char **argv)
       break;
     case 'V':
       fprintf(stderr, "%s - %s version %s\n", ProgName, 
-	      PACKAGE, VERSION);
+	      MPEG4IP_PACKAGE, MPEG4IP_VERSION);
       exit(0);
     case 's':
       sid = strtoull(optarg, NULL, 10);

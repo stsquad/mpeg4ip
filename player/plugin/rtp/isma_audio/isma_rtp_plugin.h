@@ -28,8 +28,7 @@
 #include "rtp_plugin.h"
 #include "mp4util/mpeg4_sdp.h"
 #include "bitstream/bitstream.h"
-#include <SDL.h>
-#include <SDL_thread.h>
+#include "mpeg4ip_sdl_includes.h"
 //#define ISMA_RTP_DUMP_OUTPUT_TO_FILE 1
 //#define DEBUG_ISMA_RTP_FRAGS 1
 

@@ -17,12 +17,12 @@ libmp4livegui_la_SOURCES = \
 INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I.. \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/lib/SDL/include \
 	-I$(top_srcdir)/lib/mp4v2 \
 	-I$(top_srcdir)/lib/mp4av \
 	-I$(top_srcdir)/lib/msg_queue \
 	-I$(top_srcdir)/lib/rtp \
 	-I$(top_srcdir)/lib/sdp \
+	-I$(top_srcdir)/lib/utils \
 	-I$(top_srcdir)/lib \
 	-I$(top_srcdir)/common/video/libmpeg32 \
 	-I$(top_srcdir)/player/lib

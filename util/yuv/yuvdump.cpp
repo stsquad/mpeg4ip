@@ -19,7 +19,7 @@
  *              Bill May                wmay@cisco.com
  */
 #include "mpeg4ip.h"
-#include <SDL.h>
+#include "mpeg4ip_sdl_includes.h"
 
 int main (int argc, char **argv)
 {

@@ -85,7 +85,7 @@ static __inline int64_t read_counter() {
 
 #define DECLARE_ALIGNED_MATRIX(name,sizex,sizey,type,alignment) \
 	type name##_storage[(sizex)*(sizey)+(alignment)-1]; \
-	type * name = (type *) (((int32_t) name##_storage+(alignment - 1)) & ~((int32_t)(alignment)-1))
+	type * name = (type *) (((long) name##_storage+(alignment - 1)) & ~((long)(alignment)-1))
 
 #else
 

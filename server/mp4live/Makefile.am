@@ -47,7 +47,6 @@ libmp4live_la_SOURCES = \
 	audio_lame.h \
 	audio_oss_source.cpp \
 	audio_oss_source.h \
-	config_set.h \
 	file_mp4_recorder.cpp \
 	file_mp4_recorder.h \
 	file_raw_sink.cpp \
@@ -104,12 +103,12 @@ mp4live_SOURCES = \
 INCLUDES=\
 	@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/lib/SDL/include \
 	-I$(top_srcdir)/lib/mp4v2 \
 	-I$(top_srcdir)/lib/mp4av \
 	-I$(top_srcdir)/lib/msg_queue \
 	-I$(top_srcdir)/lib/rtp \
 	-I$(top_srcdir)/lib/sdp \
+	-I$(top_srcdir)/lib/utils \
 	-I$(top_srcdir)/lib \
 	$(XVID_INC) \
 	-I$(top_srcdir)/common/video/libmpeg32 \
@@ -138,10 +137,11 @@ mp4live_LDADD = \
 	$(top_builddir)/lib/rtp/libuclmmbase.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
+	$(top_builddir)/lib/utils/libutils.la \
 	./h261/libmp4live_h261.la \
 	-lpthread \
 	@SDL_LIBS@ \
-	$(top_builddir)/lib/SDL/src/main/libSDLmain.a \
+	-lSDLmain \
 	$(GUILIBS)
 
 EXTRA_DIST = README.html INTERNALS.html $(ed1) Building_mpeg4ip_with_V4L2_support.html

@@ -23,6 +23,7 @@
  */
 #include "mpeg4ip.h"
 #include "http_private.h"
+#include "mpeg4ip_utils.h"
 
 /*
  * http_init_connection()
@@ -31,6 +32,7 @@
 http_client_t *http_init_connection (const char *name)
 {
   http_client_t *ptr;
+  char *url;
 #ifdef _WIN32
 	WORD wVersionRequested;
 	WSADATA wsaData;
@@ -53,11 +55,14 @@ http_client_t *http_init_connection (const char *name)
 
   memset(ptr, 0, sizeof(http_client_t));
   ptr->m_state = HTTP_STATE_INIT;
-  http_debug(LOG_INFO, "Connecting to %s", name);
-  if (http_decode_and_connect_url(name, ptr) < 0) {
+  url = convert_url(name);
+  http_debug(LOG_INFO, "Connecting to %s", url);
+  if (http_decode_and_connect_url(url, ptr) < 0) {
+    free(url);
     http_free_connection(ptr);
     return (NULL);
   }
+  free(url);
   return (ptr);
 }
 
@@ -106,7 +111,7 @@ int http_get (http_client_t *cptr,
    */
   ret = http_build_header(header_buffer, 4096, &buffer_len, cptr, "GET",
 			  NULL, NULL);
-  http_debug(LOG_DEBUG, header_buffer);
+  http_debug(LOG_DEBUG, "%s", header_buffer);
   if (send(cptr->m_server_socket,
 	   header_buffer,
 	   buffer_len,
@@ -122,7 +127,7 @@ int http_get (http_client_t *cptr,
   do {
     ret = http_get_response(cptr, resp);
     http_debug(LOG_INFO, "Response %d", (*resp)->ret_code);
-    http_debug(LOG_DEBUG, (*resp)->body);
+    http_debug(LOG_DEBUG, "%s", (*resp)->body);
     if (ret < 0) return (ret);
     switch ((*resp)->ret_code / 100) {
     default:

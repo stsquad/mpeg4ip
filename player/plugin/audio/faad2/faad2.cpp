@@ -22,8 +22,9 @@
 #include <mpeg4_audio_config.h>
 #include <mpeg4_sdp.h>
 #include <mp4.h>
+#ifndef HAVE_PLUGIN_VERSION_0_9
 #include <SDL/SDL.h>
-
+#endif
 #define DEBUG_SYNC 2
 
 const char *aaclib="faad2";
@@ -233,7 +234,11 @@ static int aac_decode (codec_data_t *ptr,
       aac->m_vft->audio_configure(aac->m_ifptr,
 				  aac->m_freq, 
 				  aac->m_chans, 
+#ifdef HAVE_PLUGIN_VERSION_0_9
+				  AUDIO_FMT_S16,
+#else
 				  AUDIO_S16SYS, 
+#endif
 				  aac->m_output_frame_size);
       uint8_t *now = aac->m_vft->audio_get_buffer(aac->m_ifptr);
       aac->m_audio_inited = 1;

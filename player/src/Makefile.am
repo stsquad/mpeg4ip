@@ -6,7 +6,7 @@ STRIP_FPIC = sh $(top_srcdir)/strip_fPIC.sh
 SUFFIXES = .asm
 
 .asm.lo:
-	$(LIBTOOL) --mode=compile $(STRIP_FPIC) $(NASM) @NASMFLAGS@ $<
+	$(LIBTOOL) --mode=compile @LIBTOOL_C_TAG@ $(STRIP_FPIC) $(NASM) @NASMFLAGS@ $<
 
 ###########################################################################
 
@@ -16,9 +16,10 @@ noinst_LTLIBRARIES = libmp4playerutils.la libmp4player.la libmp4syncbase.la \
 	libmp4syncsdl.la
 
 if USE_MMX
-EXTRA_libmp4player_la_SOURCES = frame_doubler_mmx.asm
+EXTRA_libmp4syncsdl_la_SOURCES = frame_doubler_mmx.asm
+libmp4syncsdl_la_LIBADD = frame_doubler_mmx.lo
 else
-EXTRA_libmp4player_la_SOURCES = frame_doubler.cpp
+EXTRA_libmp4syncsdl_la_SOURCES = frame_doubler.cpp
 endif
 
 libmp4playerutils_la_SOURCES = \
@@ -119,7 +120,7 @@ gmp4player_SOURCES = \
 	gui_utils.h \
 	gui_xpm.h
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYPINC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/common/video/libmpeg32 -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/mp4av @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@ 
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDLAudio/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYPINC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/common/video/libmpeg32 -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/utils @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@ 
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"
 
@@ -141,7 +142,8 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	@ISMACRYPLIB@ \
-	$(top_builddir)/lib/avi/libavi.la  
+	$(top_builddir)/lib/avi/libavi.la  \
+	$(top_builddir)/lib/utils/libutils.la
 
 mp4player_LDADD = \
 	-lm \
@@ -150,8 +152,9 @@ mp4player_LDADD = \
 	libmp4syncsdl.la \
 	libmp4syncbase.la \
 	libmp4playerutils.la \
-	@SDL_LIBS@ \
-	$(top_builddir)/lib/SDL/src/main/libSDLmain.a 
+	@SDL_LIBS@ -lSDLmain \
+	$(top_builddir)/lib/SDLAudio/src/libmpeg4ipSDL.la 
+
 
 gmp4player_LDADD = $(mp4player_LDADD) \
 	@GTK_LIBS@ @GLIB_LIBS@

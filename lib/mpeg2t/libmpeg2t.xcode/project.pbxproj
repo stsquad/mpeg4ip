@@ -1,0 +1,309 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 39;
+	objects = {
+		014CEA520018CE5811CA2923 = {
+			buildRules = (
+			);
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				DEBUGGING_SYMBOLS = YES;
+				FRAMEWORK_SEARCH_PATHS = "~/Library/Frameworks/SDL.framework";
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				HEADER_SEARCH_PATHS = "../.. ../../include ~/Library/Frameworks/SDL.framework/Headers";
+				OPTIMIZATION_CFLAGS = "-O0";
+				ZERO_LINK = YES;
+			};
+			isa = PBXBuildStyle;
+			name = Development;
+		};
+		014CEA530018CE5811CA2923 = {
+			buildRules = (
+			);
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				ZERO_LINK = NO;
+			};
+			isa = PBXBuildStyle;
+			name = Deployment;
+		};
+//010
+//011
+//012
+//013
+//014
+//080
+//081
+//082
+//083
+//084
+		08FB7793FE84155DC02AAC07 = {
+			buildSettings = {
+			};
+			buildStyles = (
+				014CEA520018CE5811CA2923,
+				014CEA530018CE5811CA2923,
+			);
+			hasScannedForEncodings = 1;
+			isa = PBXProject;
+			mainGroup = 08FB7794FE84155DC02AAC07;
+			projectDirPath = "";
+			targets = (
+				D2AAC0620554660B00DB518D,
+			);
+		};
+		08FB7794FE84155DC02AAC07 = {
+			children = (
+				9BA7E51105E573A300F500B8,
+				08FB7795FE84155DC02AAC07,
+				1AB674ADFE9D54B511CA2CBB,
+			);
+			isa = PBXGroup;
+			name = libmpeg2t;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		08FB7795FE84155DC02AAC07 = {
+			children = (
+				9BA7E50005E5731300F500B8,
+				9BA7E50105E5731300F500B8,
+				9BA7E50205E5731300F500B8,
+				9BA7E50305E5731300F500B8,
+				9BA7E50405E5731300F500B8,
+				9BA7E50505E5731300F500B8,
+				9BA7E50605E5731300F500B8,
+			);
+			isa = PBXGroup;
+			name = Source;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+//080
+//081
+//082
+//083
+//084
+//1A0
+//1A1
+//1A2
+//1A3
+//1A4
+		1AB674ADFE9D54B511CA2CBB = {
+			children = (
+				D2AAC0630554660B00DB518D,
+			);
+			isa = PBXGroup;
+			name = Products;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+//1A0
+//1A1
+//1A2
+//1A3
+//1A4
+//9B0
+//9B1
+//9B2
+//9B3
+//9B4
+		9BA7E4FC05E572F800F500B8 = {
+			buildActionMask = 2147483647;
+			files = (
+				9BA7E51205E573A300F500B8,
+			);
+			isa = PBXFrameworksBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BA7E50005E5731300F500B8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = mpeg2_transport.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BA7E50105E5731300F500B8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = mpeg2_transport.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BA7E50205E5731300F500B8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = mpeg2t_ac3.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BA7E50305E5731300F500B8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = mpeg2t_mp3.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BA7E50405E5731300F500B8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = mpeg2t_private.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BA7E50505E5731300F500B8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = mpeg2t_util.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BA7E50605E5731300F500B8 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			path = mpeg2t_video.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9BA7E50705E5731300F500B8 = {
+			fileRef = 9BA7E50005E5731300F500B8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BA7E50805E5731300F500B8 = {
+			fileRef = 9BA7E50105E5731300F500B8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BA7E50905E5731300F500B8 = {
+			fileRef = 9BA7E50205E5731300F500B8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BA7E50A05E5731300F500B8 = {
+			fileRef = 9BA7E50305E5731300F500B8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BA7E50B05E5731300F500B8 = {
+			fileRef = 9BA7E50405E5731300F500B8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BA7E50C05E5731300F500B8 = {
+			fileRef = 9BA7E50505E5731300F500B8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BA7E50D05E5731300F500B8 = {
+			fileRef = 9BA7E50605E5731300F500B8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BA7E51105E573A300F500B8 = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = SDL.framework;
+			path = /Users/wmay/Library/Frameworks/SDL.framework;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		9BA7E51205E573A300F500B8 = {
+			fileRef = 9BA7E51105E573A300F500B8;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+//9B0
+//9B1
+//9B2
+//9B3
+//9B4
+//D20
+//D21
+//D22
+//D23
+//D24
+		D2AAC0600554660B00DB518D = {
+			buildActionMask = 2147483647;
+			files = (
+				9BA7E50805E5731300F500B8,
+				9BA7E50B05E5731300F500B8,
+			);
+			isa = PBXHeadersBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D2AAC0610554660B00DB518D = {
+			buildActionMask = 2147483647;
+			files = (
+				9BA7E50705E5731300F500B8,
+				9BA7E50905E5731300F500B8,
+				9BA7E50A05E5731300F500B8,
+				9BA7E50C05E5731300F500B8,
+				9BA7E50D05E5731300F500B8,
+			);
+			isa = PBXSourcesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D2AAC0620554660B00DB518D = {
+			buildPhases = (
+				D2AAC0600554660B00DB518D,
+				D2AAC0610554660B00DB518D,
+				9BA7E4FC05E572F800F500B8,
+			);
+			buildRules = (
+			);
+			buildSettings = {
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				FRAMEWORK_SEARCH_PATHS = /Users/wmay/Library/Frameworks;
+				GCC_WARN_FOUR_CHARACTER_CONSTANTS = NO;
+				GCC_WARN_UNKNOWN_PRAGMAS = NO;
+				INSTALL_PATH = /usr/local/lib;
+				LIBRARY_STYLE = DYNAMIC;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = libmpeg2t;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "-Wmost";
+			};
+			dependencies = (
+			);
+			isa = PBXNativeTarget;
+			name = libmpeg2t;
+			productName = libmpeg2t;
+			productReference = D2AAC0630554660B00DB518D;
+			productType = "com.apple.product-type.library.dynamic";
+		};
+		D2AAC0630554660B00DB518D = {
+			explicitFileType = "compiled.mach-o.dylib";
+			includeInIndex = 0;
+			isa = PBXFileReference;
+			path = libmpeg2t.dylib;
+			refType = 3;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+	};
+	rootObject = 08FB7793FE84155DC02AAC07;
+}

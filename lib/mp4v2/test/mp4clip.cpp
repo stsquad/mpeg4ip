@@ -114,7 +114,7 @@ int main(int argc, char** argv)
 			exit(0);
 		case 'V':
 		  fprintf(stderr, "%s - %s version %s\n", 
-			  ProgName, PACKAGE, VERSION);
+			  ProgName, MPEG4IP_PACKAGE, MPEG4IP_VERSION);
 		  exit(0);
 		default:
 			fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 	}
 	
 	if (verbosity) {
-		fprintf(stderr, "%s version %s\n", ProgName, VERSION);
+		fprintf(stderr, "%s version %s\n", ProgName, MPEG4IP_VERSION);
 	}
 
 	/* point to the specified file name */

@@ -5,9 +5,7 @@
 #ifndef SDL_THREADS
 #include <pthread.h>
 #endif
-#include "SDL.h"
-#include "SDL_thread.h"
-
+#include "mpeg4ip_sdl_includes.h"
 
 /* Array of these feeds the slice decoders */
 typedef struct

@@ -27,7 +27,7 @@
 
 #include "systems.h"
 //#include <type/typeapi.h>
-#include <SDL.h>
+#include "mpeg4ip_sdl_includes.h"
 #include "codec_plugin.h"
 #include "video.h"
 

@@ -27,6 +27,7 @@ class CBitstream {
  public:
   CBitstream(void) {};
   CBitstream(const uint8_t *buffer, uint32_t bit_len) {
+    m_verbose = 0;
     init(buffer, bit_len);
   };
   ~CBitstream (void) {};
@@ -74,6 +75,7 @@ class CBitstream {
     return m_chDecBufferSize + m_uNumOfBitsInBuffer;
   };
   int byte_align(void);
+  void set_verbose(int verbose) { m_verbose = verbose; };
  private:
   uint32_t m_uNumOfBitsInBuffer;
   const uint8_t *m_chDecBuffer;
@@ -83,6 +85,7 @@ class CBitstream {
   uint32_t m_uNumOfBitsInBuffer_bookmark;
   const uint8_t *m_chDecBuffer_bookmark;
   uint32_t m_chDecBufferSize_bookmark;
+  int m_verbose;
 };
 
 #endif

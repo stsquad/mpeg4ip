@@ -22,7 +22,6 @@
 #ifndef _MPEGACTION_H_
 #define _MPEGACTION_H_
 
-#include "SDL.h"
 #include "MPEGfilter.h"
 
 typedef enum {

@@ -4,7 +4,7 @@
 #include "mpeg3atrack.h"
 #include "mpeg3css.h"
 #include "mpeg3io.h"
-#include "mpeg3private.inc"
+#include "mpeg3privateinc.h"
 #include "mpeg3title.h"
 #include "mpeg3vtrack.h"
 
