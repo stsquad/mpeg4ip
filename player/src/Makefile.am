@@ -95,7 +95,8 @@ mp4player_LDADD = \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/avi/libavi.la \
 	libmp4playerutils.la \
-	@SDL_LIBS@
+	@SDL_LIBS@ \
+	$(top_builddir)/lib/SDL/src/main/libSDLmain.a
 
 gmp4player_LDADD = $(mp4player_LDADD) \
 	@GTK_LIBS@ @GLIB_LIBS@

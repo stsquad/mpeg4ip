@@ -75,7 +75,7 @@ int main (int argc, char **argv)
   ubuf = (uint8_t *)malloc(ysize);
   vbuf = (uint8_t *)malloc(ysize);
 
-  size_t fcount = 0;
+  uint32_t fcount = 0;
   do {
     fcount++;
     readbytes = fread(ybuf, ysize,  sizeof(uint8_t), yuvfile);

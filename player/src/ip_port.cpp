@@ -52,7 +52,7 @@ CIpPort::CIpPort (void)
     return;
   }
 
-#ifdef _WINDOWS
+#ifndef HAVE_SOCKLEN_T
   int socklen;
 #else
   socklen_t socklen;

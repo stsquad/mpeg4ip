@@ -16,5 +16,6 @@ AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror
 
 LDADD = \
 	@SDL_LIBS@ \
+	$(top_builddir)/lib/SDL/src/main/libSDLmain.a \
         -lm
 

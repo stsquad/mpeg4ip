@@ -25,9 +25,6 @@
 #define __RTSP_CLIENT_H__ 1
 
 #include "systems.h"
-#ifdef _WINDOWS
-
-#endif
 
 #ifdef __cplusplus
 extern "C" {

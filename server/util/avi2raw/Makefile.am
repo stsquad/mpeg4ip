@@ -5,4 +5,4 @@ LDADD_E1 = $(top_builddir)/lib/gnu/getopt/libgetopt_long.la
 else
 LDADD_E1 = 
 endif
-LDADD = $(top_builddir)/lib/avi/libavi.la -lm $(LDADD_E1)
+LDADD = $(top_builddir)/lib/avi/libavi.la $(LDADD_E1) -lm

@@ -205,7 +205,7 @@ int rtsp_receive_more (rtsp_client_t *info, uint32_t more_cnt)
 {
   int ret;
 
-#ifndef _WINDOWS
+#ifndef HAVE_POLL
   struct pollfd pollit;
 #else
   fd_set read_set;
@@ -228,7 +228,7 @@ int rtsp_receive_more (rtsp_client_t *info, uint32_t more_cnt)
   }
   
   do {
-#ifndef _WINDOWS
+#ifndef HAVE_POLL
     pollit.fd = info->server_socket;
     pollit.events = POLLIN | POLLPRI;
     pollit.revents = 0;

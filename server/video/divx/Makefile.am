@@ -22,7 +22,7 @@ else
 LDADD_E1 = 
 endif
 
-LDADD = $(top_builddir)/server/video/divx/libdivxencore.la -lm $(LDADD_E1) 
+LDADD = $(top_builddir)/server/video/divx/libdivxencore.la $(LDADD_E1) -lm
 
 
 

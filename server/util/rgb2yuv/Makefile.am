@@ -6,7 +6,7 @@ LDADD_E1 = $(top_builddir)/lib/gnu/getopt/libgetopt_long.la
 else
 LDADD_E1 = 
 endif
-LDADD = -lm $(LDADD_E1)
+LDADD = $(LDADD_E1) -lm
 
 rgb2yuv_SOURCES = main.c rgb2yuv.c
 

@@ -7,4 +7,4 @@ else
 LDADD_E1 = 
 endif
 
-LDADD = -lm $(LDADD_E1)
+LDADD = $(LDADD_E1) -lm

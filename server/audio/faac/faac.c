@@ -16,14 +16,14 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: faac.c,v 1.5 2001/08/01 00:34:59 wmaycisco Exp $
+ * $Id: faac.c,v 1.6 2001/09/11 18:03:05 wmaycisco Exp $
  */
 
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
-#ifdef __unix__
+#if defined(__unix__) || defined(__APPLE__)
 #define min(a,b) ( (a) < (b) ? (a) : (b) )
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 
 	FILE *outfile;
 
-#ifdef __unix__
+#if defined(__unix__) || defined(__APPLE__)
 	struct rusage usage;
 #endif
 #ifdef _WIN32

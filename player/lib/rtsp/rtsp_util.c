@@ -22,11 +22,7 @@
  * rtsp_util.c - mixture of various utilities needed for rtsp client
  */
 
-#ifndef _WINDOWS
-#include <time.h>
-#include <sys/time.h>
-#include <stdarg.h>
-#endif
+#include "systems.h"
 #include "rtsp_private.h"
 
 static int rtsp_debug_level = LOG_INFO;
