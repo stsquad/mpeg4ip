@@ -93,50 +93,10 @@ tg_3_16 dw -27146, -27146, -27146, -27146
 ;static const uint64_t ocos_4_16 = SHORT4_TO_QWORD( 23170,  23170,  23170,  23170 );
 ocos_4_16 dw 23170, 23170, 23170, 23170
 
-
-;/* rounding value that is added before the row transform's rounding */
-%if SHIFT_INV_ROW == 12
-;static const uint64_t rounder[8] = {
-;	INT2_TO_QWORD( 65536, 65536), /* rounder_0 */       
-;	INT2_TO_QWORD(  7195,  7195), /* rounder_1 */ 
-;	INT2_TO_QWORD(  4520,  4520), /* rounder_2 */ 
-;	INT2_TO_QWORD(  2407,  2407), /* rounder_3 */ 
-;	INT2_TO_QWORD(     0,     0), /* rounder_4 */ 
-;	INT2_TO_QWORD(   240,   240), /* rounder_5 */
-;	INT2_TO_QWORD(  1024,  1024), /* rounder_6 */
-;	INT2_TO_QWORD(  1024,  1024)  /* rounder_7 */
-;};
+; original Intel version of rounding
 rounder
-	dw 65536, 65536,
-	dw 7195, 7195,
-	dw 4520, 4520,
-	dw 2407, 2407,
-	dw 0, 0,
-	dw 240, 240,
-	dw 1024, 1024,
-	dw 1024, 1024,
-%elif SHIFT_INV_ROW == 11
-;static const uint64_t rounder[2*8] = {
-;	INT2_TO_QWORD( 65536, 65536), /* rounder_0 */
-;	INT2_TO_QWORD(  3597,  3597), /* rounder_1 */
-;	INT2_TO_QWORD(  2260,  2260), /* rounder_2 */
-;	INT2_TO_QWORD(  1203,  1203), /* rounder_3 */
-;	INT2_TO_QWORD( 	 0,	  0), /* rounder_4 */
-;	INT2_TO_QWORD(   120,	120), /* rounder_5 */
-;	INT2_TO_QWORD(   512,	512), /* rounder_6 */
-;	INT2_TO_QWORD(   512,	512)  /* rounder_7 */
-;};
-rounder
-	dw 65536, 65536,
-	dw 3597, 3597,
-	dw 2260, 2260,
-	dw 1203, 1203,
-	dw 0, 0,
-	dw 120, 120,
-	dw 512, 512,
-	dw 512, 512,
-%endif
-
+	dw RND_INV_ROW, 0,
+	dw RND_INV_ROW, 0
 
 ;/*
 ;=============================================================================
@@ -221,7 +181,7 @@ tab_i_04
 	dw 22725,  12873,  19266, -22725
 	dw 19266,   4520,  -4520, -12873
 	dw 12873,   4520,   4520,  19266
-	dw 22725,  19266, -12873, -22725
+	dw -22725,  19266, -12873, -22725
 
 ;/* Table for rows 1,7 - constants are multiplied by cos_1_16 */
 ;	SHORT4_TO_QWORD( 22725,  22725,  22725, -22725 ),   /* movq-> w06 w04 w02 w00 */
@@ -452,7 +412,6 @@ rowloop:
 
 
 	add INP,  16                    ; add 1 row to input pointer
-	add ROUNDER, 8                  ; go to next rounding values
 	add OUTP, 16                    ; add 1 row to output pointer
 	add TABLE,64                    ; move to next section of table
 		

@@ -54,7 +54,7 @@ int create_media_for_divx_file (CPlayerSession *psptr,
   juice_flag = 0;
   video_info_t *vid = NULL;
 
-  fbyte = new COurInByteStreamFile(NULL, name);
+  fbyte = new COurInByteStreamFile(name);
   newdec_init(c_get, c_bookmark, fbyte);
 #if 0
   ret = newdec_read_volvop();
@@ -79,7 +79,7 @@ int create_media_for_divx_file (CPlayerSession *psptr,
     return (-1);
   }
 
-  fbyte = new COurInByteStreamFile(mptr, name);
+  fbyte = new COurInByteStreamFile(name);
   if (fbyte == NULL) {
     *errmsg = "Couldn't create file";
     return (-1);

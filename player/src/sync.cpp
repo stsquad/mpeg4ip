@@ -124,6 +124,7 @@ int CPlayerSession::process_sdl_events (int state)
 	    m_video_sync->get_fullscreen() != 0) {
 	  m_video_sync->set_fullscreen(0);
 	  m_video_sync->do_video_resize();
+	  m_master_msg_queue->send_message(MSG_NO_FULL_SCREEN);
 	}
 	  
 	break;
@@ -495,6 +496,10 @@ int CPlayerSession::sync_thread (void)
 	m_video_sync->set_fullscreen(0);
 	m_video_sync->do_video_resize();
       }
+      m_master_msg_queue->send_message(MSG_SESSION_FINISHED, 
+				       NULL, 
+				       0, 
+				       m_master_msg_queue_sem);
       m_session_state = SESSION_DONE;
 #ifdef _WINDOWS
       return (-1);

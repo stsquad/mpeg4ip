@@ -38,6 +38,7 @@
 /* Please see seperate acknowledgement file for a list of contributors.   */
 
 #include <math.h>
+#include "text_dct.h"
 
 /* The first part of it is for the forward DCT */
 
@@ -52,8 +53,7 @@
 /* private data */
 static double c[8][8]; /* transform coefficients */
 
-void fdct_enc(block)
-short *block;
+void fdct_enc(short* block)
 {
   int i, j, k;
   double s;
@@ -91,7 +91,7 @@ short *block;
     }
 }
 
-void init_fdct_enc()
+void init_fdct_enc(void)
 {
   int i, j;
   double s;
@@ -126,8 +126,7 @@ static void idctrow_enc (short *blk);
 static void idctcol_enc (short *blk);
 
 /* two dimensional inverse discrete cosine transform */
-void idct_enc(block)
-short *block;
+void idct_enc(short* block)
 {
   int i;
 
@@ -138,7 +137,7 @@ short *block;
     idctcol_enc(block+i);
 }
 
-void init_idct_enc()
+void init_idct_enc(void)
 {
   int i;
 
@@ -157,8 +156,7 @@ void init_idct_enc()
  *        c[1..7] = 128*sqrt(2)
  */
 
-static void idctrow_enc(blk)
-short *blk;
+static void idctrow_enc(short* blk)
 {
   int x0, x1, x2, x3, x4, x5, x6, x7, x8;
 
@@ -219,8 +217,7 @@ short *blk;
  * where: c[0]    = 1/1024
  *        c[1..7] = (1/1024)*sqrt(2)
  */
-static void idctcol_enc(blk)
-short *blk;
+static void idctcol_enc(short* blk)
 {
   int x0, x1, x2, x3, x4, x5, x6, x7, x8;
 

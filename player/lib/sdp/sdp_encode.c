@@ -55,6 +55,7 @@ static int add_string_to_encode (sdp_encode_t *sptr, const char *buf)
   size_t len;
   char *temp;
   
+  if (buf == NULL) return (EINVAL);
   len = strlen(buf);
   if (len == 0) return (0);
   

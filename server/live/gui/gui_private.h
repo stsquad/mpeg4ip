@@ -25,19 +25,23 @@
 #define __GUI_PRIVATE_H__ 1
 
 // From gui_main.cpp
+extern CLiveConfig* MyConfig;
+
 void DisplayVideoSettings(void);
 void DisplayAudioSettings(void);
-void DisplayBroadcastSettings(void);
+void DisplayTransmitSettings(void);
 void DisplayRecordingSettings(void);
+
 // From video_dialog.cpp
 void CreateVideoDialog(void);
 
 // From audio_dialog.cpp
 void CreateAudioDialog(void);
 
-// From broadcast_dialog.cpp
-void CreateBroadcastDialog(void);
-
 // From recording_dialog.cpp
 void CreateRecordingDialog(void);
+
+// From transmit_dialog.cpp
+void CreateTransmitDialog(void);
+
 #endif

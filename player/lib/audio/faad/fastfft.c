@@ -1,29 +1,48 @@
+/*
+ * FAAD - Freeware Advanced Audio Decoder
+ * Copyright (C) 2001 Menno Bakker
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * $Id: fastfft.c,v 1.3 2001/06/28 23:54:22 wmaycisco Exp $
+ */
+
 #include "fastfft.h"
+#include "all.h"
 
 #ifdef _MSC_VER
 #pragma warning(disable:4305)
 #endif
 
-int unscambled64[64];
-int unscambled512[512];
-fftw_complex FFTarray[512];    /* the array for in-place FFT */
 
-fftw_real K980785280[1] =
+static fftw_real K980785280[1] =
 {FFTW_KONST(+0.980785280403230449126182236134239036973933731)};
-fftw_real K195090322[1] =
+static fftw_real K195090322[1] =
 {FFTW_KONST(+0.195090322016128267848284868477022240927691618)};
-fftw_real K555570233[1] =
+static fftw_real K555570233[1] =
 {FFTW_KONST(+0.555570233019602224742830813948532874374937191)};
-fftw_real K831469612[1] =
+static fftw_real K831469612[1] =
 {FFTW_KONST(+0.831469612302545237078788377617905756738560812)};
-fftw_real K923879532[1] =
+static fftw_real K923879532[1] =
 {FFTW_KONST(+0.923879532511286756128183189396788286822416626)};
-fftw_real K382683432[1] =
+static fftw_real K382683432[1] =
 {FFTW_KONST(+0.382683432365089771728459984030398866761344562)};
-fftw_real K707106781[1] =
+static fftw_real K707106781[1] =
 {FFTW_KONST(+0.707106781186547524400844362104849039284835938)};
 
-fftw_complex PFFTW(W_64)[30] = {
+static fftw_complex PFFTW(W_64)[30] = {
 { 0.995184726672197, 0.0980171403295606 },
 { 0.98078528040323, 0.195090322016128 },
 { 0.98078528040323, 0.195090322016128 },
@@ -56,7 +75,7 @@ fftw_complex PFFTW(W_64)[30] = {
 { -0.98078528040323, 0.195090322016129 },
 };
 
-fftw_complex PFFTW(W_128)[62] = {
+static fftw_complex PFFTW(W_128)[62] = {
 { 0.998795456205172, 0.049067674327418 },
 { 0.995184726672197, 0.0980171403295606 },
 { 0.995184726672197, 0.0980171403295606 },
@@ -121,7 +140,7 @@ fftw_complex PFFTW(W_128)[62] = {
 { -0.995184726672197, 0.0980171403295608 },
 };
 
-fftw_complex PFFTW(W_512)[254] = {
+static fftw_complex PFFTW(W_512)[254] = {
 { 0.999924701839145, 0.0122715382857199 },
 { 0.999698818696204, 0.0245412285229123 },
 { 0.999698818696204, 0.0245412285229123 },
@@ -378,7 +397,7 @@ fftw_complex PFFTW(W_512)[254] = {
 { -0.999698818696204, 0.0245412285229123 },
 };
 ///////////////////////////////////////////////////////////////
-
+// wmay - removed static
 void PFFTW(16) (fftw_complex * input) {
      fftw_real tmp332;
      fftw_real tmp331;
@@ -686,6 +705,7 @@ void PFFTW(16) (fftw_complex * input) {
      c_im(input[14]) = st8;
 }
 
+//wmay - removed static 
 void PFFTW(32) (fftw_complex * input) {
      fftw_real tmp714;
      fftw_real tmp713;
@@ -1478,6 +1498,7 @@ void  PFFTW(64)(fftw_complex *input)
      PFFTW(16)(input + 48);
 }
 
+// wmay - removed static
 void PFFTW(128)(fftw_complex *input)
 {
      PFFTW(twiddle_4)(input, PFFTW(W_128), 32);
@@ -1496,6 +1517,7 @@ void PFFTW(512)(fftw_complex *input)
      PFFTW(128)(input + 384);
 }
 ///////////////////////////////////////////////////////////////
+// wmay - removed static
 void PFFTWI(16) (fftw_complex * input) {
      fftw_real tmp333;
      fftw_real tmp332;
@@ -1805,6 +1827,7 @@ void PFFTWI(16) (fftw_complex * input) {
      c_im(input[2]) = st1;
 }
 
+// wmay - removed static
 void PFFTWI(32) (fftw_complex * input) {
      fftw_real tmp714;
      fftw_real tmp713;
@@ -2597,6 +2620,7 @@ void PFFTWI(64)(fftw_complex *input)
      PFFTWI(twiddle_4)(input, PFFTW(W_64), 16);
 }
 
+// wmay - removed static
 void PFFTWI(128)(fftw_complex *input) 
 {
      PFFTWI(32)(input );
@@ -2616,6 +2640,7 @@ void PFFTWI(512)(fftw_complex *input)
 }
 
 ///////////////////////////////////////////////////////////////////////////
+// wmay - removed static
 void  PFFTW(twiddle_4) (fftw_complex * A, const fftw_complex * W, int iostride) {
      int i;
      fftw_complex *inout;
@@ -2729,6 +2754,7 @@ void  PFFTW(twiddle_4) (fftw_complex * A, const fftw_complex * W, int iostride) 
      } while (i > 0);
 }
 
+// wmay - removed static
 void PFFTWI(twiddle_4) (fftw_complex * A, const fftw_complex * W, int iostride) {
      int i;
      fftw_complex *inout;
@@ -2846,6 +2872,7 @@ void PFFTWI(twiddle_4) (fftw_complex * A, const fftw_complex * W, int iostride) 
      } while (i > 0);
 }
 //////////////////////////////////////////////////////////////////////
+// wmay - removed static
 int PFFTW(permutation_64)(int i)
 {
     int i1 = i % 4;
@@ -2856,6 +2883,7 @@ int PFFTW(permutation_64)(int i)
        return (i1 * 16 + ((i2 + 1) % 16));
 }
 
+// wmay - removed static
 int PFFTW(permutation_128)(int i)
 {
     int i1 = i % 4;
@@ -2866,6 +2894,7 @@ int PFFTW(permutation_128)(int i)
        return (i1 * 32 + ((i2 + 1) % 32));
 }
 
+// wmay - removed static
 int PFFTW(permutation_512)(int i)
 {
     int i1 = i % 4;
@@ -2876,12 +2905,14 @@ int PFFTW(permutation_512)(int i)
        return (i1 * 128 + PFFTW(permutation_128)((i2 + 1) % 128));
 }
 /////////////////////////////////////////////////////////////////
-void MakeFFTOrder(void)
+void MakeFFTOrder(faacDecHandle hDecoder)
 {
-int i;
-for (i=0 ; i < 512 ; i++)
-{
-     if (i < 64) unscambled64[i] = PFFTW(permutation_64)(i);
-     unscambled512[i] = PFFTW(permutation_512)(i);
-     }
+	int i;
+
+	for (i=0 ; i < 512 ; i++)
+	{
+		if (i < 64)
+			hDecoder->unscambled64[i] = PFFTW(permutation_64)(i);
+		hDecoder->unscambled512[i] = PFFTW(permutation_512)(i);
+	}
 }

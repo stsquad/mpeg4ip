@@ -5,4 +5,4 @@ libmsg_queue_la_SOURCES = \
 	msg_queue.cpp
 
 INCLUDES = -I$(top_srcdir)/player/lib/SDL/include
-AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fno-rtti -Wall -Werror
+AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -Wall -Werror

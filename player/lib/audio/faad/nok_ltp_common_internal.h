@@ -1,31 +1,23 @@
-/**************************************************************************
+/*
+ * FAAD - Freeware Advanced Audio Decoder
+ * Copyright (C) 2001 Menno Bakker
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
 
-This software module was originally developed by
-
-Mikko Suonio (Nokia)
-
-in the course of development of the MPEG-2 NBC/MPEG-4 Audio standard
-ISO/IEC 13818-7, 14496-1,2 and 3. This software module is an
-implementation of a part of one or more MPEG-2 NBC/MPEG-4 Audio tools
-as specified by the MPEG-2 NBC/MPEG-4 Audio standard. ISO/IEC gives
-users of the MPEG-2 NBC/MPEG-4 Audio standards free license to this
-software module or modifications thereof for use in hardware or
-software products claiming conformance to the MPEG-2 NBC/ MPEG-4 Audio
-standards. Those intending to use this software module in hardware or
-software products are advised that this use may infringe existing
-patents. The original developer of this software module and his/her
-company, the subsequent editors and their companies, and ISO/IEC have
-no liability for use of this software module or modifications thereof
-in an implementation. Copyright is not released for non MPEG-2
-NBC/MPEG-4 Audio conforming products. The original developer retains
-full right to use the code for his/her own purpose, assign or donate
-the code to a third party and to inhibit third party from using the
-code for non MPEG-2 NBC/MPEG-4 Audio conforming products. This
-copyright notice must be included in all copies or derivative works.
-
-Copyright (c) 1997.
-
-***************************************************************************/
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * $Id: nok_ltp_common_internal.h,v 1.3 2001/06/28 23:54:22 wmaycisco Exp $
+ */
 
 #ifndef _NOK_LTP_COMMON_INTERNAL_H
 #define _NOK_LTP_COMMON_INTERNAL_H
@@ -81,7 +73,7 @@ Copyright (c) 1997.
   Purpose:	Upper limit for the number of scalefactor bands
    		which can use lt prediction with short windows.
   Explanation:	Bands 0..NOK_MAX_LT_PRED_SFB-1 can use lt prediction.  */
-#define	NOK_MAX_LT_PRED_SHORT_SFB 13
+#define	NOK_MAX_LT_PRED_SHORT_SFB 8
 
 /*
    Purpose:      Buffer offset to maintain block alignment.
@@ -93,23 +85,22 @@ Copyright (c) 1997.
 #define CODESIZE 8
 
 /*
-   Purpose:      Float type for external data
+   Purpose:      Float type for external data.
    Explanation:  - */
 typedef Float float_ext;
 
 /*
   Purpose:	Codebook for LTP weight coefficients.  */
-double codebook[CODESIZE] =
+static Float codebook[CODESIZE] =
 {
-  0.570829,
-  0.696616,
-  0.813004,
-  0.911304,
-  0.984900,
-  1.067894,
-  1.194601,
-  1.369533
+  0.570829f,
+  0.696616f,
+  0.813004f,
+  0.911304f,
+  0.984900f,
+  1.067894f,
+  1.194601f,
+  1.369533f
 };
-
 
 #endif /* _NOK_LTP_COMMON_INTERNAL_H */

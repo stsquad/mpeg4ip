@@ -8,4 +8,4 @@ INCLUDES = -I.. -I../..  -I../../../lib -I../../../lib/audio -I../../../lib/SDL/
 
 AM_CFLAGS = -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
 
-AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -fno-rtti -Wall -Werror -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
+AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes

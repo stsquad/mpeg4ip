@@ -36,10 +36,9 @@
 class CAviByteStreamBase : public COurInByteStream
 {
  public:
-  CAviByteStreamBase(CAviFile *parent,
-		     CPlayerMedia *m);
-		    
+  CAviByteStreamBase(CAviFile *parent);
   ~CAviByteStreamBase();
+  
   int eof(void);
   unsigned char get(void);
   unsigned char peek(void);
@@ -78,9 +77,8 @@ class CAviByteStreamBase : public COurInByteStream
 class CAviVideoByteStream : public CAviByteStreamBase
 {
  public:
-  CAviVideoByteStream(CAviFile *parent,
-		      CPlayerMedia *m) :
-    CAviByteStreamBase(parent, m)
+  CAviVideoByteStream(CAviFile *parent) : 
+    CAviByteStreamBase(parent)
     {
     read_frame();
     };
@@ -110,9 +108,8 @@ class CAviAudioByteStream : public CAviByteStreamBase
 {
  public:
   CAviAudioByteStream(CAviFile *parent,
-		     CPlayerMedia *m,
 		     int add_len_to_frame = 0) :
-    CAviByteStreamBase(parent, m)
+    CAviByteStreamBase(parent)
     {
       m_add_len_to_stream = add_len_to_frame;
       read_frame();

@@ -22,9 +22,8 @@
 #include "our_bytestream_file.h"
 #include "player_util.h"
 
-COurInByteStreamFile::COurInByteStreamFile (CPlayerMedia *m,
-					    const char *filename) :
-  COurInByteStream(m)
+COurInByteStreamFile::COurInByteStreamFile (const char *filename) :
+  COurInByteStream()
 {
   m_filename = strdup(filename);
   m_file = fopen(m_filename, "rb");
@@ -86,6 +85,7 @@ void COurInByteStreamFile::read_frame (void)
     if (m_bookmark_loaded_size > 0) {
       m_index = 0;
       m_bookmark_loaded = 1;
+      m_buffer_on = m_bookmark_buffer;
     }
     return;
   }

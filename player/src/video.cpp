@@ -151,10 +151,14 @@ int CVideoSync::initialize_video (const char *name, int x, int y)
       // to this routine. (ie: m_width *2, m_height * 2).
       int w = m_width * m_video_scale / 2;
       int h = m_height * m_video_scale / 2;
+      int mask = SDL_SWSURFACE | SDL_ASYNCBLIT | SDL_RESIZABLE;
+      if (m_fullscreen != 0) {
+	mask |= SDL_FULLSCREEN;
+      }
       m_screen = SDL_SetVideoMode(w,
 				  h,
 				  m_video_bpp,
-				  SDL_SWSURFACE | SDL_HWSURFACE | SDL_ASYNCBLIT ); //| SDL_RESIZABLE);
+				  mask);
       if (ret > 0) {
 #ifdef unix
 	//	player_debug_message("Trying");
@@ -299,12 +303,21 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
 	if (m_video_scale == 4) {
       // when scaling to 200%, don't use SDL stretch blit
       // use a smoothing (averaging) blit instead
-      smooth_doubling(m_y_buffer[m_play_index], m_image->pixels[0], 
+#ifdef USE_MMX
+      FrameDoublerMmx(m_y_buffer[m_play_index], m_image->pixels[0], 
 		m_width, m_height);
-      smooth_doubling(m_v_buffer[m_play_index], m_image->pixels[1], 
+      FrameDoublerMmx(m_v_buffer[m_play_index], m_image->pixels[1], 
 		m_width >> 1, m_height >> 1);
-      smooth_doubling(m_u_buffer[m_play_index], m_image->pixels[2], 
+      FrameDoublerMmx(m_u_buffer[m_play_index], m_image->pixels[2], 
 		m_width >> 1, m_height >> 1);
+#else
+      FrameDoubler(m_y_buffer[m_play_index], m_image->pixels[0], 
+		m_width, m_height);
+      FrameDoubler(m_v_buffer[m_play_index], m_image->pixels[1], 
+		m_width >> 1, m_height >> 1);
+      FrameDoubler(m_u_buffer[m_play_index], m_image->pixels[2], 
+		m_width >> 1, m_height >> 1);
+#endif
 	} else {
       // let SDL blit, either 1:1 for 100% or decimating by 2:1 for 50%
       size_t bufsize = m_width * m_height * sizeof(Uint8);
@@ -562,68 +575,5 @@ void CVideoSync::do_video_resize (void)
   }
 }
 
-void CVideoSync::smooth_doubling(u_int8_t* pSrcPlane, u_int8_t* pDstPlane, 
-	u_int16_t srcWidth, u_int16_t srcHeight)
-{
-	register u_int8_t p00, p01, p10, p11;
-	register u_int32_t si0, si1, di0, di1;
+/* end file video.cpp */
 
-	/* initialize these to keep compiler happy at -Werror */
-	p00 = p01 = p10 = p11 = 0;
-
-	si0 = 0;
-	si1 = srcWidth;
-	di0 = 0;
-	di1 = srcWidth << 1;
-
-	for (u_int16_t row = 0; row < srcHeight - 1; row++) {
-		/* setup for first column */
-		p01 = pSrcPlane[si0++];
-		p11 = pSrcPlane[si1++];
-
-		for (u_int16_t col = 0; col < srcWidth-1; col++) {
-			p00 = p01;
-			p10 = p11; 
-			p01 = pSrcPlane[si0++];
-			p11 = pSrcPlane[si1++];
-
-			pDstPlane[di0++] = p00;
-			pDstPlane[di0++] = (p00 + p01) >> 1;
-			pDstPlane[di1++] = (p00 + p10) >> 1;
-			/*
-			 * TBD optimize this to use 
-			 * ((p00 + p01) >> 1 from above 
-			 * + the same value from the previous loop iteration >> 1
-			 * which will eliminate 1 add operation
-			 */
-			pDstPlane[di1++] = ((p00 + p01) + p10 + p11) >> 2;
-		}
-		
-		/* last column */
-		pDstPlane[di0++] = p00;
-		pDstPlane[di0++] = p00;
-		p01 = (p00 + p10) >> 1;
-		pDstPlane[di1++] = p01;
-		pDstPlane[di1++] = p01;
-
-		di0 = di1;
-		di1 += srcWidth << 1;
-	}
-
-	/* last row */
-	for (u_int16_t col = 0; col < srcWidth-1; col++) {
-		pDstPlane[di0++] = p00;
-		pDstPlane[di1++] = p00;
-		p10 = (p00 + p01) >> 1;
-		pDstPlane[di0++] = p10;
-		pDstPlane[di1++] = p10;
-	}
-
-	/* last pixel */
-	pDstPlane[di0++] = p00;
-	pDstPlane[di0] = p00;
-	pDstPlane[di1++] = p00;
-	pDstPlane[di1] = p00;
-}
-
-/* end file video.cpp */    

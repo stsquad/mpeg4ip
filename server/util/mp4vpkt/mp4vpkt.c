@@ -82,7 +82,6 @@ int main(int argc, char** argv)
 	char* profileLevel = "Simple@L3";	/* --profile=<string> */
 	u_int maxPayloadSize = 1460;  	/* --payloadsize=<uint> */
 	u_int bFrameFrequency = 0;		/* --bfrequency=<uint> */
-	bool configInband = FALSE;		/* --config-inband */
 	bool force = FALSE;				/* --force */
 	bool merge = FALSE;				/* --merge */
 	bool trace = FALSE;				/* --trace */
@@ -108,7 +107,6 @@ int main(int argc, char** argv)
 		int option_index = 0;
 		static struct option long_options[] = {
 			{ "bfrequency", 1, 0, 'b' },
-			{ "configInband", 0, 0, 'c' },
 			{ "dump", 2, 0, 'd' },
 			{ "force", 0, 0, 'f' },
 			{ "height", 1, 0, 'h' },
@@ -123,7 +121,7 @@ int main(int argc, char** argv)
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "b:cdfh:mo:p:r:s:tvw:",
+		c = getopt_long_only(argc, argv, "b:dfh:mo:p:r:s:tvw:",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -141,10 +139,6 @@ int main(int argc, char** argv)
 			} else {
 				bFrameFrequency = i;
 			}
-			break;
-		}
-		case 'c': {
-			configInband = TRUE;
 			break;
 		}
 		case 'd': {
@@ -451,14 +445,6 @@ int main(int argc, char** argv)
 				}
 			}
 		} /* end starting */
-
-		/* 
-		 * don't put config objects into the video stream
-		 * unless specifically told to do so.
-		 */
-		if (isConfigObject(objCode) && !configInband) {
-			continue;
-		}
 
 		/* if the object is a VOP, aka a frame */ 
 		if (objCode == VOP_START) {

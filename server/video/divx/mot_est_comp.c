@@ -48,7 +48,8 @@ extern FILE *ftrace;
 /* For correct rounding of chrominance vectors */
 static Int roundtab16[] = {0,0,0,1,1,1,1,1,1,1,1,1,1,1,2,2};
 
-Void  	MotionEstCompPicture (	Vop *curr_vop,
+Void  	MotionEstCompPicture (	
+			SInt *curr,
 			SInt *prev,
 			SInt *prev_ipol_y,
 			SInt *prev_ipol_u,
@@ -59,6 +60,7 @@ Void  	MotionEstCompPicture (	Vop *curr_vop,
 			Int vop_height,
 			Int enable_8x8_mv,
 			Int edge,
+			Int sr_for,
 			Int f_code,
 			Int rounding_type,
 			Int br_x,
@@ -173,7 +175,16 @@ Image  **mode									  /* --> modes for each MB                            */
 	pr_rec_y = prev_rec_vop->y_chan;
 	prev_orig_y = (SInt*)GetImageData(pr_rec_y);
 	pi_y = AllocImage (2*vop_width, 2*vop_height, SHORT_TYPE);
+#ifdef USE_MMX
+	InterpolateImageMmx(
+		GetImageData(pr_rec_y),
+		GetImageData(pi_y), 
+		pr_rec_y->x,
+		pr_rec_y->y,
+		GetVopRoundingType(curr_vop));
+#else
 	InterpolateImage(pr_rec_y, pi_y, GetVopRoundingType(curr_vop));
+#endif
 	prev_ipol_y = (SInt*)GetImageData(pi_y);
 
 	/*
@@ -206,7 +217,7 @@ Image  **mode									  /* --> modes for each MB                            */
 	 */
 
 	MotionEstCompPicture(
-		curr_vop,
+		(SInt *)GetImageData(GetVopY(curr_vop)), //curr_vop,
 		prev_orig_y,							  /* Y padd with edge */
 		prev_ipol_y,							  /* Y interpolated (from pi_y) */
 		(SInt*)GetImageData(prev_rec_vop->u_chan) + (vop_width/2) * (16/2) + (16/2),
@@ -216,6 +227,7 @@ Image  **mode									  /* --> modes for each MB                            */
 		vop_width,vop_height,
 		enable_8x8_mv,
 		edge,
+		GetVopSearchRangeFor(curr_vop), 
 		f_code,
 		GetVopRoundingType(curr_vop),
 		br_x,br_y,								  /* pos. of the bounding rectangle */
@@ -254,7 +266,7 @@ Image  **mode									  /* --> modes for each MB                            */
 
 Void
 MotionEstCompPicture(
-Vop     *curr_vop,								  /* <-- Current VOP                                  */
+SInt    *curr,									  /* <-- Current VOP                                  */
 SInt    *prev,									  /* <-- Original Y padd with edge                    */
 SInt    *prev_ipol,								  /* <-- Y interpolated (from pi_y)                  */
 SInt    *prev_u,								  /* <-- Original U padd with edge                   */
@@ -265,6 +277,7 @@ Int     vop_width,								  /* <-- horizontal previous vop dimension            
 Int     vop_height,								  /* <-- vertical previous vop dimension              */
 Int     enable_8x8_mv,							  /* <-- 8x8 MV (=1) or only 16x16 MV (=0)            */
 Int     edge,									  /* <-- edge arround the reference vop               */
+Int		sr_for,									  /* <-- forward search range                         */
 Int     f_code,          /* MW QPEL 07-JUL-1998 *//* <-- MV search range 1/2 or 1/4 pel: 1=32,2=64,...,7=2048*/
 Int		rounding_type,							  /* <-- The rounding type of the current vop         */
 Int     br_x,									  /* <-- absolute horiz. position of the current vop  */
@@ -291,7 +304,7 @@ SInt    *mode16									  /* --> mode of the preditect motion vector          */
 	Int		posmode, pos16,	pos8;
 	Int		min_error16,
 			min_error8_0, min_error8_1, min_error8_2, min_error8_3;
-	SInt	*curr = (SInt *)GetImageData(GetVopY(curr_vop));
+//	SInt	*curr = (SInt *)GetImageData(GetVopY(curr_vop));
 	/***************************************************************************
 	array of flags, which contains for the MB and for each one of the 4 Blocks
 	the following info sequentially:
@@ -334,16 +347,17 @@ SInt    *mode16									  /* --> mode of the preditect motion vector          */
 			posmode =          j * imas_w +   i;
 			pos16   = pos8 = 2*j*2*imas_w + 2*i;
 
-			MBMotionEstimation(curr_vop, prev, br_x, br_y,
+			MBMotionEstimation(curr,
+				prev, br_x, br_y,
 				br_width, i, j, prev_x, prev_y,
 				vop_width, vop_height, enable_8x8_mv, edge,
-				f_code, GetVopSearchRangeFor(curr_vop), 
+				f_code, sr_for, 
 				hint_mv_w, hint_mv_h, // the hint seeds
 				mv16_w, mv16_h,
 				mv8_w, mv8_h, &min_error, halfpelflags);
 
 			/* Inter/Intra decision */
-			Mode = ChooseMode((SInt *)GetImageData(GetVopY(curr_vop)),
+			Mode = ChooseMode(curr, 
 				i*MB_SIZE,j*MB_SIZE, min_error, br_width);
 
 			hint_mv_w = mv16_w[pos16];
@@ -438,6 +452,7 @@ SInt    *mode16									  /* --> mode of the preditect motion vector          */
 			}								  /* end of mode non zero */
 			else							  /* mode = 0 INTRA */
 			{
+				mode16[posmode] = MBM_INTRA;				
 				for (k = 0; k < MB_SIZE*MB_SIZE; k++) 
 				{
 					// for INTRA MB, set compensated 0 to generate correct error image

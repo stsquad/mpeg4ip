@@ -30,7 +30,7 @@
 class COurInByteStreamFile : public COurInByteStream
 {
  public:
-  COurInByteStreamFile(CPlayerMedia *m, const char *filename);
+  COurInByteStreamFile(const char *filename);
   ~COurInByteStreamFile();
   int eof(void);
   unsigned char get(void);

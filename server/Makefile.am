@@ -1,1 +1,1 @@
-SUBDIRS = lib audio video util
+SUBDIRS = lib audio video util live

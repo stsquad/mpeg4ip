@@ -25,12 +25,10 @@
 #ifndef __AA_H__
 #define __AA_H__ 1
 #include "systems.h"
-extern "C" {
-#include <faad/faad.h>
-}
+#include <faad/all.h>
+#include <faad/bits.h>
 
 #include "codec.h"
-#include "player_rtp_bytestream.h"
 #include "player_mem_bytestream.h"
 #include "audio.h"
 
@@ -45,12 +43,8 @@ class CAACodec : public CAudioCodecBase {
   ~CAACodec();
   int decode(uint64_t rtptime, int fromrtp);
   void do_pause(void);
-  unsigned char read_byte(FILE_STREAM *fs, int *err);
-  void reset(void);
-  int peek(void *data, int len);
  private:
-  FILE_STREAM *m_fs;
-  faadAACInfo m_fInfo;
+  faacDecHandle m_info;
   CInByteStreamMem *m_local_bytestream;
   CInByteStreamBase *m_orig_bytestream;
   int m_resync_with_header;

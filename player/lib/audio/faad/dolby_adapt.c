@@ -1,17 +1,38 @@
+/*
+ * FAAD - Freeware Advanced Audio Decoder
+ * Copyright (C) 2001 Menno Bakker
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * $Id: dolby_adapt.c,v 1.3 2001/06/28 23:54:22 wmaycisco Exp $
+ */
+
+#ifdef WIN32
+#include <windows.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "dolby_def.h"
-#include "weave.h"
+#include "all.h"
 #include "block.h"
+#include "util.h"
 
 #define NORM_TYPE 0
 #define START_TYPE 1
 #define SHORT_TYPE 2
 #define STOP_TYPE 3
-
-extern int frame_cnt;
 
 /*
 *	Interleave Definitions for start and stop blocks
@@ -48,6 +69,7 @@ extern int frame_cnt;
 *	globals: none
 *
 *****************************************************************************/
+// wmay - made non-static
 void unfold ( 
 	Float *data_in,	/* input: 1/2 spectrum */
 	Float *data_out,	/* output: full spectrum */
@@ -56,11 +78,31 @@ void unfold (
     register int   i;
 
     /* fill transBuff w/ full MDCT sequence from freqInPtr */
-    for (i=0;i<inLeng;i++) {
-		data_out[i] = *data_in;
-		data_out[2*inLeng-i-1] = -(*data_in);
-		data_in++;
-    }
+    i=0;
+    do
+    {
+
+      data_out[i] = *data_in;
+      data_out[2*inLeng-i-1] = -(*data_in);
+      data_in++;
+      i++;
+
+      data_out[i] = *data_in;
+      data_out[2*inLeng-i-1] = -(*data_in);
+      data_in++;
+      i++;
+
+      data_out[i] = *data_in;
+      data_out[2*inLeng-i-1] = -(*data_in);
+      data_in++;
+      i++;
+
+      data_out[i] = *data_in;
+      data_out[2*inLeng-i-1] = -(*data_in);
+      data_in++;
+      i++;
+
+    }while (i<inLeng);
 } /* end of unfold */
 
 
@@ -78,42 +120,71 @@ void unfold (
 *	globals: none
 *
 *****************************************************************************/
-void freq2time_adapt (
-
+void freq2time_adapt(faacDecHandle hDecoder,
 	byte blockType,			/* input: blockType 0-3						*/
 	Wnd_Shape *wnd_shape, 	/* input/output								*/
 	Float *freqInPtr, 		/* input: interleaved spectrum				*/
 	Float *timeBuff, 		/* transform state needed for each channel	*/
 	Float *ftimeOutPtr)		/* output: 1/2 block of new time values		*/
 {
-    static int		dolbyShortOffset = 1;
-    static Float	transBuff [2*BLOCK_LEN_LONG], *transBuffPtr;
+    Float *transBuff, *transBuffPtr;
     int				i, j;
     Float			*timeBuffPtr, *destPtr;
-    static Float	timeOutPtr[BLOCK_LEN_LONG];
+    Float *timeOutPtr;
+
+	transBuff = AllocMemory(2*BLOCK_LEN_LONG*sizeof(Float));
+	timeOutPtr = AllocMemory(BLOCK_LEN_LONG*sizeof(Float));
 
     if (blockType == NORM_TYPE)  {
 		unfold (freqInPtr, transBuff, BLOCK_LEN_LONG);
 		/* Do 1 LONG transform */
-		ITransformBlock (transBuff, LONG_BLOCK, wnd_shape, timeBuff);	/* ch ); */
-/* Add first half and old data */
+		ITransformBlock (hDecoder, transBuff, LONG_BLOCK, wnd_shape, timeBuff);	/* ch ); */
+
 		transBuffPtr = transBuff;
 		timeBuffPtr = timeBuff;		/*	 [ch];	*/
 		destPtr = timeOutPtr;
-		for (i = 0; i < BLOCK_LEN_LONG; i++)  {
+
+    /* idimkovic: reduce loop overhead by unrolling */
+    for (i = BLOCK_LEN_LONG/16 - 1; i >= 0; --i)
+    {
 			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+
 		}
-/* Save second half as old data */
+
+    /* Save second half as old data */
 		timeBuffPtr = timeBuff;		/*		 [ch];		*/
-		for (i = 0; i < BLOCK_LEN_LONG; i++)  {
-			*timeBuffPtr++ = *transBuffPtr++;
+    for (i = BLOCK_LEN_LONG/16 - 1; i >= 0; --i)  {
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
 		}
     }
 
-    else if (blockType == SHORT_TYPE)  {
+    else if (blockType == SHORT_TYPE)
+    {
 		/* Do 8 SHORT transforms */
 
-		if (dolbyShortOffset)
+		if (hDecoder->dolbyShortOffset_f2t)
 			destPtr = timeBuff + 4 * BLOCK_LEN_SHORT;		/* DBS */
 		else
 			destPtr = timeBuff + (BLOCK_LEN_LONG - BLOCK_LEN_SHORT) / 2;	/*	448	*/
@@ -122,74 +193,171 @@ void freq2time_adapt (
 			unfold (freqInPtr, transBuff, BLOCK_LEN_SHORT );
 			/*was freqinPtr++, 8 .. mfd */
 			freqInPtr += BLOCK_LEN_SHORT;   /*  added mfd   */
-			ITransformBlock (transBuff, SHORT_BLOCK, wnd_shape, timeBuff);
+			ITransformBlock (hDecoder, transBuff, SHORT_BLOCK, wnd_shape, timeBuff);
 
 			/* Add first half of short window and old data */
 			transBuffPtr = transBuff;
-			for (j = 0; j < BLOCK_LEN_SHORT; j++)  {
-				*destPtr++ += *transBuffPtr++;
+
+      for (j = BLOCK_LEN_SHORT/16-1; j >= 0; --j)  {
+        *destPtr++ += *transBuffPtr++; *destPtr++ += *transBuffPtr++;
+        *destPtr++ += *transBuffPtr++; *destPtr++ += *transBuffPtr++;
+        *destPtr++ += *transBuffPtr++; *destPtr++ += *transBuffPtr++;
+        *destPtr++ += *transBuffPtr++; *destPtr++ += *transBuffPtr++;
+        *destPtr++ += *transBuffPtr++; *destPtr++ += *transBuffPtr++;
+        *destPtr++ += *transBuffPtr++; *destPtr++ += *transBuffPtr++;
+        *destPtr++ += *transBuffPtr++; *destPtr++ += *transBuffPtr++;
+        *destPtr++ += *transBuffPtr++; *destPtr++ += *transBuffPtr++;
 			}
+
 			/* Save second half of short window */
-			for (j = 0; j < BLOCK_LEN_SHORT; j++)  {
-				*destPtr++ = *transBuffPtr++;
+      for (j = BLOCK_LEN_SHORT/16-1; j >= 0; --j)  {
+        *destPtr++ = *transBuffPtr++;  *destPtr++ = *transBuffPtr++;
+        *destPtr++ = *transBuffPtr++;  *destPtr++ = *transBuffPtr++;
+        *destPtr++ = *transBuffPtr++;  *destPtr++ = *transBuffPtr++;
+        *destPtr++ = *transBuffPtr++;  *destPtr++ = *transBuffPtr++;
+        *destPtr++ = *transBuffPtr++;  *destPtr++ = *transBuffPtr++;
+        *destPtr++ = *transBuffPtr++;  *destPtr++ = *transBuffPtr++;
+        *destPtr++ = *transBuffPtr++;  *destPtr++ = *transBuffPtr++;
+        *destPtr++ = *transBuffPtr++;  *destPtr++ = *transBuffPtr++;
 			}
 			destPtr -= BLOCK_LEN_SHORT;
 		}
 		/* Copy data to output buffer */
 		destPtr = timeOutPtr;
 		timeBuffPtr = timeBuff;		/*		 [ch];		*/
-		for (i = 0; i < BLOCK_LEN_LONG; i++)  {
-			*destPtr++ = *timeBuffPtr++;
+
+    for (i = BLOCK_LEN_LONG/16 - 1; i >= 0; --i)  {
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
 		}
 		/* Update timeBuff fifo */
 		destPtr = timeBuff;		/*		 [ch];		*/
-		for (i = 0; i < BLOCK_LEN_LONG; i++)  {
-			*destPtr++ = *timeBuffPtr++;
-		}
+    for (i = BLOCK_LEN_LONG/16 - 1; i >= 0; --i)  {
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+      *destPtr++ = *timeBuffPtr++; *destPtr++ = *timeBuffPtr++;
+     }
     }
 
     else if (blockType == START_TYPE)  {
 		unfold(freqInPtr, transBuff, BLOCK_LEN_LONG);
-		ITransformBlock (transBuff, START_FLAT_BLOCK, wnd_shape, timeBuff);
+		ITransformBlock (hDecoder, transBuff, START_FLAT_BLOCK, wnd_shape, timeBuff);
 		/* Add first half and old data */
 		transBuffPtr = transBuff;
 		timeBuffPtr = timeBuff;
 		destPtr = timeOutPtr;
-		for (i = 0; i < BLOCK_LEN_LONG; i++)  {
+    for (i = BLOCK_LEN_LONG/16 - 1; i >= 0; --i)  {
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
 			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
 		}
 		/* Save second half as old data */
 		timeBuffPtr = timeBuff;
-		for (i = 0; i < BLOCK_LEN_LONG; i++)  {
-			*timeBuffPtr++ = *transBuffPtr++;
+    for (i = BLOCK_LEN_LONG/16 - 1; i >= 0; --i)  {
+      *timeBuffPtr++ = *transBuffPtr++;  *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++;  *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++;  *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++;  *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++;  *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++;  *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++;  *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++;  *timeBuffPtr++ = *transBuffPtr++;
 		}
-		dolbyShortOffset = 0;
+		hDecoder->dolbyShortOffset_f2t = 0;
     }
 
     else if (blockType == STOP_TYPE)  {
 		unfold (freqInPtr, transBuff, BLOCK_LEN_LONG);
 		/* Do 1 LONG transforms */
-		ITransformBlock (transBuff, STOP_FLAT_BLOCK, wnd_shape, timeBuff);
+		ITransformBlock (hDecoder, transBuff, STOP_FLAT_BLOCK, wnd_shape, timeBuff);
 		/* Add first half and old data */
 		transBuffPtr = transBuff;
 		timeBuffPtr = timeBuff;
 		destPtr = timeOutPtr;
-		for (i = 0; i < BLOCK_LEN_LONG - NFLAT; i++)  {
+    for (i = (BLOCK_LEN_LONG - NFLAT)/16 - 1; i>=0;--i)
+    {
 			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+      *destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+      *destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+      *destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+      *destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+      *destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+      *destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+      *destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+      *destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+      *destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+			*destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+      *destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+      *destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+      *destPtr++ = *transBuffPtr++ + *timeBuffPtr++;
+    }
+    for ( i = NFLAT/16-1; i>=0;--i)  {
+      *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+      *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+      *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+      *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+      *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+      *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+      *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+      *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
 		}
-		for ( ; i < BLOCK_LEN_LONG; i++)  {
-			*destPtr++ = *transBuffPtr++;
-		}
+
 		/* Save second half as old data */
 		timeBuffPtr = timeBuff;
-		for (i = 0; i < BLOCK_LEN_LONG; i++ )  {
-			*timeBuffPtr++ = *transBuffPtr++;
+
+    for (i = BLOCK_LEN_LONG/16 - 1; i >= 0; --i )  {
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
+      *timeBuffPtr++ = *transBuffPtr++; *timeBuffPtr++ = *transBuffPtr++;
 		}
     }
 
-    for (i = 0; i < BLOCK_LEN_LONG; i++)  {
-		*(ftimeOutPtr++) = (timeOutPtr[i]);
-    }
+    i=0;    
+    do
+    {
+      *(ftimeOutPtr++) = (timeOutPtr[i]); i++;
+      *(ftimeOutPtr++) = (timeOutPtr[i]); i++;
+      *(ftimeOutPtr++) = (timeOutPtr[i]); i++;
+      *(ftimeOutPtr++) = (timeOutPtr[i]); i++;
+      *(ftimeOutPtr++) = (timeOutPtr[i]); i++;
+      *(ftimeOutPtr++) = (timeOutPtr[i]); i++;
+      *(ftimeOutPtr++) = (timeOutPtr[i]); i++;
+      *(ftimeOutPtr++) = (timeOutPtr[i]); i++;
+    } while(i<BLOCK_LEN_LONG);
+
+	FreeMemory(timeOutPtr);
+	FreeMemory(transBuff);
 }
 
 /*****************************************************************************
@@ -206,20 +374,20 @@ void freq2time_adapt (
 *	globals: none
 *
 *****************************************************************************/
-void time2freq_adapt (
-
-	byte blockType,			/* input: blockType 0-3						*/
+void time2freq_adapt(faacDecHandle hDecoder,
+	WINDOW_TYPE blockType,			/* input: blockType 0-3						*/
 	Wnd_Shape *wnd_shape, 	/* input/output								*/
 	Float *timeInPtr, 		/* input: time domain data				*/
 	Float *ffreqOutPtr)		/* output: 1/2 block of new freq values		*/ 
 {
-    static int		dolbyShortOffset = 1;
-    static Float	transBuff [2*BLOCK_LEN_LONG], *transBuffPtr;
-    int				i, j;
-    Float			*srcPtr;
-    Float			*destPtr;
-    static Float	freqOutPtr[BLOCK_LEN_LONG];
+    Float *transBuff, *transBuffPtr;
+    int i, j;
+    Float *srcPtr;
+    Float *destPtr;
+    Float *freqOutPtr;
 
+	transBuff = AllocMemory(2*BLOCK_LEN_LONG*sizeof(Float));
+	freqOutPtr = AllocMemory(BLOCK_LEN_LONG*sizeof(Float));
 
 #if !defined(DOLBYBS)
     /*	mapping from old FhG blocktypes to new window sequence types */
@@ -239,10 +407,7 @@ void time2freq_adapt (
 	blockType = OLD_STOP;
 	break;
     default:
-	printf("dolby_adapt.c: Illegal block type %d - aborting\n",
-	    blockType);
-	exit(1);
-	break;
+      break;
     }
 #endif
 
@@ -250,19 +415,36 @@ void time2freq_adapt (
 
 
 
-    if (blockType == ONLY_LONG)  {
+    if (blockType == ONLY_LONG)
+    {
 		srcPtr = timeInPtr;
 		destPtr = transBuff;
-		for (i = 0; i < 2 * BLOCK_LEN_LONG; i++)  {
-			*destPtr++ = *srcPtr++;
+    for (i = 2 * BLOCK_LEN_LONG / 16 - 1; i >= 0; --i)
+    {
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
 		}
 		/* Do 1 LONG transform */
-		TransformBlock (transBuff, LONG_BLOCK, wnd_shape);
+		TransformBlock (hDecoder, transBuff, LONG_BLOCK, wnd_shape);
 
 		srcPtr = transBuff;
 		destPtr = freqOutPtr;
-		for (i = 0; i < BLOCK_LEN_LONG; i++)  {
-			*destPtr++ = *srcPtr++;
+    for (i = BLOCK_LEN_LONG/16-1; i>=0; --i)
+    {
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+      *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
 		}
     }
 
@@ -274,16 +456,31 @@ void time2freq_adapt (
 
 	for (i = 0; i < 8; i++) {
 	    transBuffPtr = transBuff;
-	    for (i = 0; i < 2 * BLOCK_LEN_SHORT; i++)  {
-	      *transBuffPtr++ = *srcPtr++;
+      for (i = 2 * BLOCK_LEN_SHORT/16-1; i>=0; --i)  {
+        *transBuffPtr++ = *srcPtr++; *transBuffPtr++ = *srcPtr++;
+        *transBuffPtr++ = *srcPtr++; *transBuffPtr++ = *srcPtr++;
+        *transBuffPtr++ = *srcPtr++; *transBuffPtr++ = *srcPtr++;
+        *transBuffPtr++ = *srcPtr++; *transBuffPtr++ = *srcPtr++;
+        *transBuffPtr++ = *srcPtr++; *transBuffPtr++ = *srcPtr++;
+        *transBuffPtr++ = *srcPtr++; *transBuffPtr++ = *srcPtr++;
+        *transBuffPtr++ = *srcPtr++; *transBuffPtr++ = *srcPtr++;
+        *transBuffPtr++ = *srcPtr++; *transBuffPtr++ = *srcPtr++;
 	    }
 	    srcPtr -= BLOCK_LEN_SHORT;
-	    TransformBlock (transBuff, SHORT_BLOCK, wnd_shape);
+	    TransformBlock (hDecoder, transBuff, SHORT_BLOCK, wnd_shape);
 
 	    /* Copy data to output buffer */
 	    transBuffPtr = transBuff;
-	    for (j = 0; j < BLOCK_LEN_SHORT; j++)  {
-		*destPtr++ = *transBuffPtr++;
+      for (j = BLOCK_LEN_SHORT/16-1; j>=0;--j)  {
+    *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+    *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+    *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+    *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+    *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+    *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+    *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+    *destPtr++ = *transBuffPtr++; *destPtr++ = *transBuffPtr++;
+
 	    }
 	}
     }
@@ -291,44 +488,64 @@ void time2freq_adapt (
     else if (blockType == OLD_START)  {
         srcPtr = timeInPtr;
 	destPtr = transBuff;
-	for (i = 0; i < 2 * BLOCK_LEN_LONG; i++)  {
-	  *destPtr++ = *srcPtr++;
+  for (i = 2 * BLOCK_LEN_LONG/16-1; i>=0;--i)  {
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+
 	}
-	TransformBlock (transBuff, START_FLAT_BLOCK, wnd_shape);
+	TransformBlock (hDecoder, transBuff, START_FLAT_BLOCK, wnd_shape);
 
 	srcPtr = transBuff;
 	destPtr = freqOutPtr;
-	for (i = 0; i < BLOCK_LEN_LONG; i++)  {
-	  *destPtr++ = *srcPtr++;
+  for (i = BLOCK_LEN_LONG/16-1; i>=0;--i)  {
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
 	}
-	dolbyShortOffset = 0;
+	hDecoder->dolbyShortOffset_t2f = 0;
     }
 
     else if (blockType == OLD_STOP)  {
         srcPtr = timeInPtr;
 	destPtr = transBuff;
-	for (i = 0; i < 2 * BLOCK_LEN_LONG; i++)  {
-	  *destPtr++ = *srcPtr++;
+  for (i = 2 * BLOCK_LEN_LONG/16-1; i>=0;--i)  {
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++; *destPtr++ = *srcPtr++;
 	}
-	TransformBlock (transBuff, STOP_FLAT_BLOCK, wnd_shape);
+	TransformBlock (hDecoder, transBuff, STOP_FLAT_BLOCK, wnd_shape);
 
 	srcPtr = transBuff;
 	destPtr = freqOutPtr;
-	for (i = 0; i < BLOCK_LEN_LONG; i++)  {
-	  *destPtr++ = *srcPtr++;
+  for (i = BLOCK_LEN_LONG/16-1; i>=0;--i)  {
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+    *destPtr++ = *srcPtr++;     *destPtr++ = *srcPtr++;
+
 	}
     }
 
-    else {
-	printf( "Illegal Block_type %d in time2freq_adapt(), aborting ...\n", blockType );
-	exit( 1 );
-    }
-
-    for (i = 0; i < BLOCK_LEN_LONG; i++)  {
-
-	ffreqOutPtr [i] = (float) freqOutPtr [i];
-	/*		ftimeOutPtr [i] = 1.;	*/
-
-    }
-
+	FreeMemory(freqOutPtr);
+	FreeMemory(transBuff);
 }

@@ -29,7 +29,6 @@
 
 #include "codec.h"
 #include "player_media.h"
-#include "player_rtp_bytestream.h"
 #include "video.h"
 
 #define DIVX_STATE_VO_SEARCH 0

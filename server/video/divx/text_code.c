@@ -71,7 +71,10 @@ Int  	doDCACpred (	Int *qcoeff,
 			Int mid_grey
 	);
 Void nullfill(Int pred[], Int mid_grey);
-Int Idir_c(Int val, Int QP);
+
+#define Idir_c(val, QP) \
+	((val) < 0 ? ((val)-(QP)/2)/(QP) : ((val)+(QP)/2)/(QP))
+
 Int  	IntraDCSwitch_Decision _P_((	Int Mode,
 			Int intra_dc_vlc_thr,
 			Int Qp
@@ -236,14 +239,6 @@ Vop *rec_curr, Image *mottext_bitstream)
 				0 /*curr->alternate_scan*/);
 		}
 	}
-
-	#ifdef _RC_
-	fprintf(ftrace, "Bits used for this frame:\n");
-	fprintf(ftrace, "vec: %d\n", nbits.vec);
-	fprintf(ftrace, "Y: %d\n", nbits.Y);
-	fprintf(ftrace, "C: %d\n", nbits.C);
-	fprintf(ftrace, "Total: %d\n", nbits.total);
-	#endif
 
 	/* Free allocated memory for 3D matrix */
 	for (i = 0; i < MB_width*MB_height; i++)
@@ -488,14 +483,6 @@ Image *mottext_bitstream
 
 		} /* for i loop */
 	} /* for j loop */
-
-	#ifdef _RC_
-	fprintf(ftrace, "Bits used for this frame:\n");
-	fprintf(ftrace, "vec: %d\n", nbits.vec);
-	fprintf(ftrace, "Y: %d\n", nbits.Y);
-	fprintf(ftrace, "C: %d\n", nbits.C);
-	fprintf(ftrace, "Total: %d\n", nbits.total);
-	#endif
 
 	/* Free allocated memory for 3D matrix */
 	for (i = 0; i < MB_in_width*MB_in_height; i++)
@@ -869,12 +856,6 @@ Void nullfill(Int pred[], Int mid_grey)
 	{
 		pred[i] = 0;
 	}
-}
-
-Int Idir_c(Int val, Int QP)
-{
-	if (val<0) return (val-QP/2)/QP;
-	else return (val+QP/2)/QP;
 }
 
 

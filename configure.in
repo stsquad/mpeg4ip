@@ -3,7 +3,7 @@ AC_INIT()
 AC_CONFIG_AUX_DIR(config)
 
 AM_PROG_LIBTOOL
-AM_INIT_AUTOMAKE(mpeg4ip, 0.6.3)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.7)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
@@ -94,6 +94,7 @@ AC_SUBST(GTK_INCLUDES)
 			case $target in
 			  i?86*)
 				CFLAGS="$CFLAGS -DUSE_MMX"
+				CXXFLAGS="$CXXFLAGS -DUSE_MMX"
 				case $ARCH in
 				  win32)
 					  NASMFLAGS="-f win32"
@@ -117,6 +118,8 @@ AC_SUBST(GTK_INCLUDES)
 dnl Now output the Makefile's
 AC_OUTPUT( \
 	Makefile \
+	lib/Makefile \
+	lib/avi/Makefile \
 	common/Makefile \
 	common/lib/Makefile \
 	common/lib/config_file/Makefile \
@@ -128,8 +131,10 @@ AC_OUTPUT( \
 	server/audio/faac/Makefile \
 	server/video/Makefile \
 	server/video/divx/Makefile \
+	server/video/ffmpeg/Makefile \
 	server/lib/Makefile \
-	server/lib/avi/Makefile \
+	server/live/Makefile \
+	server/live/gui/Makefile \
 	server/util/Makefile \
 	server/util/mp4encode/Makefile \
 	server/util/avi2raw/Makefile \

@@ -75,7 +75,7 @@ int create_media_for_qtime_file (CPlayerSession *psptr,
     *errmsg = "Invalid Audio Codec";
     return (1);
   }
-  if (video != 1) { //QTfile1->get_video_tracks()) {
+  if ((QTfile1->get_video_tracks() != 0) && video == 0) {
     *errmsg = "Invalid Video Codec";
     return (1);
   }
@@ -121,7 +121,7 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
       return (-1);
     }
     CQTVideoByteStream *vbyte;
-    vbyte = new CQTVideoByteStream(this, mptr, ix);
+    vbyte = new CQTVideoByteStream(this, ix);
     if (vbyte == NULL) {
       return (-1);
     }
@@ -214,7 +214,7 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
     if (mptr == NULL) {
       return (-1);
     }
-    abyte = new CQTAudioByteStream(this, mptr, 0, 1);
+    abyte = new CQTAudioByteStream(this, 0);
     unsigned char *foo;
     int bufsize, ret;
     long len = quicktime_audio_length(m_qtfile, 0);
@@ -243,7 +243,6 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
 			   sample_rate, samples_per_frame);
     }
     audio->freq = sample_rate;
-    audio->stream_has_length = 1;
     mptr->set_codec_type(quicktime_audio_compressor(m_qtfile, 0));
     mptr->set_audio_info(audio);
     abyte->config(len, sample_rate, samples_per_frame);

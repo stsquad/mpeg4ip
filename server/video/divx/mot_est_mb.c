@@ -40,6 +40,10 @@
 
 #include "mot_util.h"
 
+#ifdef USE_MMX
+#define SAD_Macroblock	SAD_Macroblock_mmx
+#endif
+
 /* Obtaining if two floating point values are equal*/
 #define ABSDOUBLE(x)   (((x) > 0.0001) ? (x) : (((x) < -0.0001) ? -(x): 0.0 ))
 #define ARE_EQUAL(x,y) ( (ABSDOUBLE((Float)(x)-(y))>0.1)?(0):(1) )
@@ -292,7 +296,7 @@ Int     quarter_pel								  /* <-- quarter pel flag (to allow f_code==0 without
 
 Void
 MBMotionEstimation(
-Vop     *curr_vop,								  /* <-- Current vop pointer                          */
+SInt    *curr,								  /* <-- Current vop pointer                          */
 SInt    *prev,									  /* <-- extended reference picture                   */
 Int     br_x,									  /* <-- horizontal bounding rectangle coordinate     */
 Int     br_y,									  /* <-- vertical bounding rectangle coordinate       */
@@ -341,7 +345,7 @@ SInt    *flags
 	Int     rel_ori_y;
 
 	Int     min_error16, min_error8 = 0;
-	SInt    *curr = (SInt *)GetImageData(GetVopY(curr_vop));
+//	SInt    *curr = (SInt *)GetImageData(GetVopY(curr_vop));
 	#ifndef _FULL_SEARCH_						  /* PIH (NTU) Fast ME 08/08/99 */
 	typedef struct
 	{

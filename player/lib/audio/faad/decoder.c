@@ -1,500 +1,524 @@
-#include "faad.h"
+/*
+ * FAAD - Freeware Advanced Audio Decoder
+ * Copyright (C) 2001 Menno Bakker
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * $Id: decoder.c,v 1.4 2001/06/28 23:54:22 wmaycisco Exp $
+ */
+
+#ifdef WIN32
+#include <windows.h>
+#endif
 #include "all.h"
 #include "block.h"
-#include "dolby_def.h"
 #include "nok_lt_prediction.h"
 #include "transfo.h"
-#include "filestream.h"
+#include "bits.h"
+#include "util.h"
 
-int binisopen = 0;
-FILE_STREAM *input_file = NULL;
-const int SampleRates[] = {96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000};
 
-/* prediction */
-NOK_LT_PRED_STATUS *nok_lt_status[Chans];
+/* D E F I N E S */
+#define ftol(A,B) {tmp = *(int*) & A - 0x4B7F8000; B = (short)( (tmp==(short)tmp) ? tmp : (tmp>>31)^0x7FFF);}
+#define BYTE_NUMBIT 8		/* bits in byte (char) */
+#define bit2byte(a) ((a)/BYTE_NUMBIT) /* (((a)+BYTE_NUMBIT-1)/BYTE_NUMBIT) */
 
-Float *coef[Chans], *data[Chans], *state[Chans];
-byte hasmask[Winds], *mask[Winds], *group[Chans],
-   wnd[Chans], max_sfb[Chans],
-   *cb_map[Chans];
-Wnd_Shape wnd_shape[Chans];
-short *factors[Chans];
-int *lpflag[Chans], *prstflag[Chans];
-TNS_frame_info *tns[Chans];
-#if (CChans > 0)
-Float *cc_coef[CChans], *cc_gain[CChans][Chans];
-byte cc_wnd[CChans];
-Wnd_Shape cc_wnd_shape[CChans];
-#if (ICChans > 0)
-Float *cc_state[ICChans];
-#endif
-#endif
 
-Info *info;
-MC_Info *mip = &mc_info;
-Ch_Info *cip;
 
-void do_init()
-{
-#if (CChans > 0)
-    init_cc();
-#endif
-    huffbookinit();
-    predinit();
-    MakeFFTOrder();
-
-	winmap[0] = win_seq_info[ONLY_LONG_WINDOW];
-	winmap[1] = win_seq_info[ONLY_LONG_WINDOW];
-	winmap[2] = win_seq_info[EIGHT_SHORT_WINDOW];
-	winmap[3] = win_seq_info[ONLY_LONG_WINDOW];
-}
-
-void predinit()
-{
-    int ch;
-
-	for (ch = 0; ch < Chans; ch++)
-      nok_init_lt_pred(nok_lt_status[ch]);
-}
-
-void getfill()
-{
-    int i, cnt;
-
-    if ((cnt = getbits(LEN_F_CNT)) == (1<<LEN_F_CNT)-1)
-		cnt +=  getbits(LEN_F_ESC) - 1;
-
-	for (i=0; i<cnt; i++)
-		getbits(LEN_BYTE);
-}
-
-static int get_adts_header(void)
-{
-	int tmp, j;
-
-//	if (adts_header.first == 0) {
-//		adts_header.first = 1;
-
-		for (j = 0; j < 12; j++) {
-			tmp = getbits(1); // 12 bit SYNCWORD
-			if (tmp != 1)
-				return -1;
-		}
-		adts_header.fixed.ID = getbits(1);
-		adts_header.fixed.layer = getbits(2);
-		adts_header.fixed.protection_absent = getbits(1);
-		adts_header.fixed.profile = getbits(2);
-		adts_header.fixed.sampling_rate_idx = getbits(4);
-		adts_header.fixed.private_bit = getbits(1);
-		adts_header.fixed.channel_configuration = getbits(3);
-		adts_header.fixed.original_copy = getbits(1);
-		adts_header.fixed.home = getbits(1);
-		adts_header.fixed.emphasis = getbits(2);
-//	} else {
-//		tmp = getbits(16); // No more than 16 at a time
-//		tmp = getbits(14);
-//	}
-
-	adts_header.variable.copy_id_bit = getbits(1);
-	adts_header.variable.copy_id_start = getbits(1);
-	adts_header.variable.frame_length = getbits(13);
-	//	printf("Frame length %x\n", adts_header.variable.frame_length);
-	adts_header.variable.buffer_fullness = getbits(11);
-	adts_header.variable.raw_blocks = getbits(2);
-
-	return 0;
-}
-
-int aac_decode_seek(int pos_ms)
-{
-	int  j, k;
-	int frames, to_read;
-	double block_per_sec, offset_sec;
-
-	block_per_sec = (double)SampleRates[adts_header.fixed.sampling_rate_idx]/1024.0;
-
-	offset_sec = pos_ms / 1000.0;
-	seek_filestream(input_file, 0, SEEK_SET);
-	reset_bits();
-
-	frames = (int)((offset_sec * block_per_sec));
-
-	for (j = 0; j < frames; j++)
-	{
-		if (get_adts_header())
-			return -1;
-
-		getbits(6); // Now we have read 64 bits since starting of frame
-		to_read = adts_header.variable.frame_length - 8;
-		
-		for(k=0; k < to_read; k++)
-			getbits(8);
-	}
-
-	return 0;
-}
-
-int aac_decode_init_your_filestream (FILE_STREAM *fs)
-{
-  input_file = fs;
-  return(0);
-}
-
-int aac_decode_init_filestream (const char *fn)
-{
-  if (binisopen)
-    {
-      close_filestream(input_file);
-      input_file = NULL;
-    }
-
-  binisopen = 0;
-
-  input_file = open_filestream(fn);
-
-  if (input_file == NULL)
-    {
-      CommonExit(-1, "Error: Cannot open input file");
-      return -1;
-    }
-
-  binisopen = 1;
-  return(0);
-}
-
-int aac_decode_init(faadAACInfo *fInfo)
+faacDecHandle FAADAPI faacDecOpen()
 {
 	int i;
-	char header_chk[4];
+	faacDecHandle hDecoder = NULL;
 
-    bno = 0;  //prkoat: for Winamp plugin.. - if you are playing many files with different channel configurations, the decoder would crap out in the check_mc_info() 
+	hDecoder = (faacDecHandle)AllocMemory(sizeof(faacDecStruct));
+#ifndef WIN32
+	SetMemory(hDecoder, 0, sizeof(faacDecStruct));
+#endif
+
+	hDecoder->frameNum = 0;
+	hDecoder->isMpeg4 = 1;
 
 	/* set defaults */
-    current_program = -1;
-    default_config = 1;
-    mc_info.profile = Main_Profile;
-    mc_info.sampling_rate_idx = Fs_44;
-
-    stop_now = 0;
-
-    for(i=0; i<Chans; i++)
-	{
-		coef[i] = (Float *)malloc(LN2*sizeof(*coef[0]));
-		data[i] = (Float *)malloc(LN2*sizeof(*data[0]));
-		state[i] = (Float *)malloc(LN*sizeof(*state[0]));
-		factors[i] = (short *)malloc(MAXBANDS*sizeof(*factors[0]));
-		cb_map[i] = (byte *)malloc( MAXBANDS*sizeof(*cb_map[0]));
-		group[i] = (byte *)malloc( NSHORT*sizeof(group[0]));
-		lpflag[i] = (int *)malloc( MAXBANDS*sizeof(*lpflag[0]));
-		prstflag[i] = (int *)malloc( (LEN_PRED_RSTGRP+1)*sizeof(*prstflag[0]));
-		tns[i] = (TNS_frame_info *)malloc( sizeof(*tns[0]));
-		nok_lt_status[i]  = (NOK_LT_PRED_STATUS *)malloc(sizeof(*nok_lt_status[0]));
-		nok_lt_status[i]->delay =  (int*)malloc(MAX_SHORT_WINDOWS*sizeof(int));
-
-		memset(coef[i],0,LN2*sizeof(*coef[0]));
-		memset(data[i],0,LN2*sizeof(*data[0]));
-		memset(state[i],0,LN*sizeof(*state[0]));
-		memset(factors[i],0,MAXBANDS*sizeof(*factors[0]));
-		memset(cb_map[i],0,MAXBANDS*sizeof(*cb_map[0]));
-		memset(group[i],0,NSHORT*sizeof(group[0]));
-		memset(lpflag[i],0,MAXBANDS*sizeof(*lpflag[0]));
-		memset(prstflag[i],0,(LEN_PRED_RSTGRP+1)*sizeof(*prstflag[0]));
-		memset(tns[i],0,sizeof(*tns[0]));
-	}
-    for(i=0; i<Winds; i++) {
-		mask[i] = (byte *)malloc( MAXBANDS*sizeof(mask[0]));
-		memset(mask[i],0,MAXBANDS*sizeof(mask[0]));
-    }
-#if (CChans > 0)
-    for(i=0; i<CChans; i++){
-		cc_coef[i] = (Float *)malloc( LN2*sizeof(*cc_coef[0]));
-		for(j=0; j<Chans; j++)
-			cc_gain[i][j] = (Float *)malloc( MAXBANDS*sizeof(*cc_gain[0][0]));
-#if (ICChans > 0)
-		if (i < ICChans) {
-			cc_state[i] = (Float *)malloc( LN*sizeof(*state[0]));  /* changed LN4 to LN 1/97 mfd */
-		}
-#endif
-    }
-#endif
-
-      peek_buffer_filestream(input_file, header_chk, 4);
-
-	/* Check if an ADIF header is present */
-	if (strncmp(header_chk, "ADIF", 4) == 0)
-		adif_header_present = 1;
-	else
-		adif_header_present = 0;
-
-	/* Check if an ADTS header is present */
-	if (adif_header_present == 0)
-	{
-		if (((int) ( header_chk[0] == (char) 0xFF)) &&
-			((int) ( (header_chk[1] & (char) 0xF0) == (char) 0xF0)))
-		{
-			adts_header_present = 1;
-			adts_header.first = 0;
-		}
-	else
-		{
-			adts_header_present = 0;
-		}
-	}
-
-	reset_bits();
-	startblock();
-
-	fInfo->bit_rate = 128000;
-	fInfo->sampling_rate = 44100;
-	fInfo->channels = 2;
-
-	if (adif_header_present)
-	{
-		fInfo->bit_rate = adif_header.bitrate;
-		fInfo->sampling_rate = SampleRates[prog_config.sampling_rate_idx];
-	}
-
-	fInfo->length = (int)((filelength_filestream(input_file)/(((fInfo->bit_rate*8)/1000)*16))*1000);
-
-	do_init();
-
-	return 0;
-}
-
-void aac_decode_free()
-{
-	int i;
-
-	stop_now = 1;
-
-	if (binisopen)
-	{
-		if(input_file)
-			close_filestream(input_file);
-
-		input_file = NULL;
-		binisopen = 0;
-	}
+    hDecoder->current_program = -1;
+    hDecoder->default_config = 1;
+    hDecoder->mc_info.object_type = AACLC; /* assumed defaults */
+    hDecoder->mc_info.sampling_rate_idx = Fs_44;
+	hDecoder->dolbyShortOffset_f2t = 1;
+	hDecoder->dolbyShortOffset_t2f = 1;
+	hDecoder->first_cpe = 0;
+	hDecoder->warn_flag = 1;
 
     for(i=0; i < Chans; i++)
 	{
-		if (coef[i]) free(coef[i]);
-		if (data[i]) free(data[i]);
-		if (state[i]) free(state[i]);
-		if (factors[i]) free(factors[i]);
-		if (cb_map[i]) free(cb_map[i]);
-		if (group[i]) free(group[i]);
-		if (lpflag[i]) free(lpflag[i]);
-		if (prstflag[i]) free(prstflag[i]);
-		if (tns[i]) free(tns[i]);
-		if (nok_lt_status[i]) free(nok_lt_status[i]);
-    }
+		hDecoder->coef[i] = (Float*)AllocMemory(LN2*sizeof(Float));
+		hDecoder->data[i] = (Float*)AllocMemory(LN2*sizeof(Float));
+		hDecoder->state[i] = (Float*)AllocMemory(LN*sizeof(Float));
+		hDecoder->factors[i] = (int*)AllocMemory(MAXBANDS*sizeof(int));
+		hDecoder->cb_map[i] = (byte*)AllocMemory(MAXBANDS*sizeof(byte));
+		hDecoder->group[i] = (byte*)AllocMemory(NSHORT*sizeof(byte));
+		hDecoder->lpflag[i] = (int*)AllocMemory(MAXBANDS*sizeof(int));
+		hDecoder->prstflag[i] = (int*)AllocMemory((LEN_PRED_RSTGRP+1)*sizeof(int));
+		hDecoder->tns[i] = (TNS_frame_info*)AllocMemory(sizeof(TNS_frame_info));
+		hDecoder->nok_lt_status[i]  = (NOK_LT_PRED_STATUS*)AllocMemory(sizeof(NOK_LT_PRED_STATUS));
+		hDecoder->sp_status[i]  = (PRED_STATUS*)AllocMemory(LN*sizeof(PRED_STATUS));
+
+		hDecoder->last_rstgrp_num[i] = 0;
+		hDecoder->wnd_shape[i].prev_bk = 0;
+
+#ifndef WIN32 /* WIN32 API sets memory to 0 in allocation */
+		SetMemory(hDecoder->coef[i],0,LN2*sizeof(Float));
+		SetMemory(hDecoder->data[i],0,LN2*sizeof(Float));
+		SetMemory(hDecoder->state[i],0,LN*sizeof(Float));
+		SetMemory(hDecoder->factors[i],0,MAXBANDS*sizeof(int));
+		SetMemory(hDecoder->cb_map[i],0,MAXBANDS*sizeof(byte));
+		SetMemory(hDecoder->group[i],0,NSHORT*sizeof(byte));
+		SetMemory(hDecoder->lpflag[i],0,MAXBANDS*sizeof(int));
+		SetMemory(hDecoder->prstflag[i],0,(LEN_PRED_RSTGRP+1)*sizeof(int));
+		SetMemory(hDecoder->tns[i],0,sizeof(TNS_frame_info));
+		SetMemory(hDecoder->nok_lt_status[i],0,sizeof(NOK_LT_PRED_STATUS));
+		SetMemory(hDecoder->sp_status[i],0,LN*sizeof(PRED_STATUS));
+#endif
+	}
+
+	hDecoder->mnt_table = AllocMemory(128*sizeof(float));
+	hDecoder->exp_table = AllocMemory(256*sizeof(float));
+	hDecoder->iq_exp_tbl = AllocMemory(MAX_IQ_TBL*sizeof(Float));
+	hDecoder->exptable = AllocMemory(TEXP*sizeof(Float));
+	hDecoder->unscambled64 = AllocMemory(64*sizeof(int));
+	hDecoder->unscambled512 = AllocMemory(512*sizeof(int));
+
+	SetMemory(hDecoder->lp_store, 0, MAXBANDS*sizeof(int));
+	SetMemory(hDecoder->noise_state_save, 0, MAXBANDS*sizeof(long));
 
     for(i=0; i<Winds; i++)
 	{
-		if (mask[i]) free(mask[i]);
+		hDecoder->mask[i] = (byte*)AllocMemory(MAXBANDS*sizeof(byte));
+		SetMemory(hDecoder->mask[i],0,MAXBANDS*sizeof(byte));
     }
 
-#if (CChans > 0)
-    for(i=0; i<CChans; i++)
-	{
-		if (cc_coef[i]) free(cc_coef[i]);
-		
-		for(j=0; j<Chans; j++)
-			if (cc_gain[i][j]) free(cc_gain[i][j]);
-#if (ICChans > 0)
-		if (i < ICChans)
-		{
-			if (cc_state[i]) free(cc_state[i]);
-		}
-#endif
-    }
-#endif
+    for (i = 0; i < NUM_WIN_SEQ; i++)
+        hDecoder->win_seq_info[i] = NULL;
+
+	return hDecoder;
 }
 
-int aac_decode_frame(short *sample_buffer)
+faacDecConfigurationPtr FAADAPI faacDecGetCurrentConfiguration(faacDecHandle hDecoder)
 {
-	int i, j,  ch, wn, ele_id;
-	int left, right;
+	faacDecConfigurationPtr config = &(hDecoder->config);
 
-	framebits = 0;
+	return config;
+}
 
-	if (adts_header_present)
-	{
-		if (get_adts_header())
-		{
-		  adts_header.first = 0;
-		  stop_now = 1;
-		  return -2;
-		}
-		adts_header_present = 1;
+int FAADAPI faacDecSetConfiguration(faacDecHandle hDecoder,
+									faacDecConfigurationPtr config)
+{
+	/* There are no configuration parameters yet */
+
+	/* OK */
+	return 1;
+}
+
+int FAADAPI faacDecInit(faacDecHandle hDecoder, unsigned char *buffer,
+						unsigned long *samplerate, unsigned long *channels)
+{
+	int i, bits = 0;
+	char chk_header[4];
+
+	faad_initbits(&hDecoder->ld, buffer);
+	faad_bookmark(&hDecoder->ld, 1);
+	for (i = 0; i < 4; i++) {
+		chk_header[i] = faad_getbits(&hDecoder->ld, 8);
 	}
 
-#ifdef TEST_OUTPUT
-	fprintf(stdout, "FR: %5.5d ", bno);
+	/* Check if an ADIF header is present */
+	if (stringcmp(chk_header, "ADIF", 4) == 0)
+		hDecoder->adif_header_present = 1;
+	else
+		hDecoder->adif_header_present = 0;
+
+	/* Check if an ADTS header is present */
+	if (hDecoder->adif_header_present == 0)
+	{
+		if (((int) ( chk_header[0] == (char) 0xFF)) &&
+			((int) ( (chk_header[1] & (char) 0xF0) == (char) 0xF0)))
+		{
+			hDecoder->adts_header_present = 1;
+		} else {
+			hDecoder->adts_header_present = 0;
+		}
+	}
+
+#if 0
+	// wmay - removed
+	hDecoder->ld.m_alignment_offset=0;
 #endif
 
-	reset_mc_info(mip);
-	while ((ele_id=getbits(LEN_SE_ID)) != ID_END)
+	/* get adif header */
+	if (hDecoder->adif_header_present) {
+		hDecoder->pceChannels = 2;
+		faad_bookmark(&hDecoder->ld, 0);
+		faad_bookmark(&hDecoder->ld, 1);
+		get_adif_header(hDecoder);
+		/* only MPEG2 ADIF header uses byte_alignment */
+		/* but the PCE already byte aligns the data */
+		/*
+		if (!hDecoder->isMpeg4)
+			byte_align(&hDecoder->ld);
+		*/
+		bits = faad_get_processed_bits(&hDecoder->ld);
+	} else if (hDecoder->adts_header_present) {
+		faad_initbits(&hDecoder->ld, buffer);
+		faad_bookmark(&hDecoder->ld, 0);
+		faad_bookmark(&hDecoder->ld, 1);
+		get_adts_header(hDecoder);
+		/* only MPEG2 ADTS header uses byte_alignment */
+		/* but it already is a multiple of 8 bits */
+		/*
+		if (!hDecoder->isMpeg4)
+			byte_align(&hDecoder->ld);
+		*/
+		bits = 0;
+	}
+#if 0
+	// wmay - removed
+	hDecoder->ld.m_alignment_offset=0;
+#endif
+
+	*samplerate = 44100;
+	hDecoder->chans_inited = 0;
+	hDecoder->numChannels = *channels = 2;
+
+	if (hDecoder->adif_header_present) {
+	  hDecoder->chans_inited = 1;
+		*samplerate = SampleRates[hDecoder->prog_config.sampling_rate_idx];
+		hDecoder->numChannels = *channels = hDecoder->pceChannels;
+	} else if (hDecoder->adts_header_present) {
+	  hDecoder->chans_inited = 1;
+		*samplerate = SampleRates[hDecoder->adts_header.fixed.sampling_rate_idx];
+		hDecoder->numChannels = *channels = hDecoder->adts_header.fixed.channel_configuration; /* This works up to 6 channels */
+	}
+
+	huffbookinit(hDecoder);
+	nok_init_lt_pred(hDecoder->nok_lt_status, Chans);
+	init_pred(hDecoder, hDecoder->sp_status, Chans);
+	MakeFFTOrder(hDecoder);
+	InitBlock();  /* calculate windows */
+
+	hDecoder->winmap[0] = hDecoder->win_seq_info[ONLY_LONG_WINDOW];
+	hDecoder->winmap[1] = hDecoder->win_seq_info[ONLY_LONG_WINDOW];
+	hDecoder->winmap[2] = hDecoder->win_seq_info[EIGHT_SHORT_WINDOW];
+	hDecoder->winmap[3] = hDecoder->win_seq_info[ONLY_LONG_WINDOW];
+
+	faad_bookmark(&hDecoder->ld, 0);
+
+	return bit2byte(bits);
+}
+
+void FAADAPI faacDecClose(faacDecHandle hDecoder)
+{
+	int i;
+
+	EndBlock();
+	nok_end_lt_pred(hDecoder->nok_lt_status, Chans);
+
+    for(i=0; i < Chans; i++)
+	{
+		if (hDecoder->coef[i]) FreeMemory(hDecoder->coef[i]);
+		if (hDecoder->data[i]) FreeMemory(hDecoder->data[i]);
+		if (hDecoder->state[i]) FreeMemory(hDecoder->state[i]);
+		if (hDecoder->factors[i]) FreeMemory(hDecoder->factors[i]);
+		if (hDecoder->cb_map[i]) FreeMemory(hDecoder->cb_map[i]);
+		if (hDecoder->group[i]) FreeMemory(hDecoder->group[i]);
+		if (hDecoder->lpflag[i]) FreeMemory(hDecoder->lpflag[i]);
+		if (hDecoder->prstflag[i]) FreeMemory(hDecoder->prstflag[i]);
+		if (hDecoder->tns[i]) FreeMemory(hDecoder->tns[i]);
+		if (hDecoder->nok_lt_status[i]) FreeMemory(hDecoder->nok_lt_status[i]);
+		if (hDecoder->sp_status[i]) FreeMemory(hDecoder->sp_status[i]);
+	}
+
+	if (hDecoder->mnt_table) FreeMemory(hDecoder->mnt_table);
+	if (hDecoder->exp_table) FreeMemory(hDecoder->exp_table);
+	if (hDecoder->iq_exp_tbl) FreeMemory(hDecoder->iq_exp_tbl);
+	if (hDecoder->exptable) FreeMemory(hDecoder->exptable);
+	if (hDecoder->unscambled64) FreeMemory(hDecoder->unscambled64);
+	if (hDecoder->unscambled512) FreeMemory(hDecoder->unscambled512);
+
+    for(i=0; i<Winds; i++)
+	{
+		if (hDecoder->mask[i]) FreeMemory(hDecoder->mask[i]);
+    }
+
+	if (hDecoder) FreeMemory(hDecoder);
+}
+
+int FAADAPI faacDecGetProgConfig(faacDecHandle hDecoder,
+								 faacProgConfig *progConfig)
+{
+	return hDecoder->numChannels;
+}
+
+int FAADAPI faacDecDecode(faacDecHandle hDecoder,
+						  unsigned char *buffer,
+						  unsigned long *bytesconsumed,
+						  short *sample_buffer)
+{
+	unsigned char d_bytes[MAX_DBYTES];
+	int i, j, ch, wn, ele_id;
+	int left, right, tmp;
+	int d_tag, d_cnt;
+	int channels = 0;
+	Info *info;
+	MC_Info *mip = &(hDecoder->mc_info);
+	Ch_Info *cip;
+	int retCode = FAAD_OK;
+
+
+	faad_initbits(&hDecoder->ld, buffer);
+
+	if (hDecoder->adts_header_present)
+	{
+		if (get_adts_header(hDecoder))
+		{
+		  printf("adts header error\n");
+			goto error;
+		}
+		/* MPEG2 does byte_alignment() here
+		 * but ADTS header is always multiple of 8 bits in MPEG2
+		 * so not needed
+		 */
+	}
+
+	reset_mc_info(hDecoder, mip);
+	while ((ele_id=faad_getbits(&hDecoder->ld, LEN_SE_ID)) != ID_END)
 	{
 		/* get audio syntactic element */
 		switch (ele_id) {
 		case ID_SCE:		/* single channel */
 		case ID_CPE:		/* channel pair */
 		case ID_LFE:		/* low freq effects channel */
-			if (huffdecode(ele_id, mip, wnd, wnd_shape,
-				cb_map, factors, 
-				group, hasmask, mask, max_sfb,
-				lpflag, prstflag
-				, nok_lt_status
-				, tns, coef) < 0)
-				return -3;
-				//CommonExit(1,"2022: Error in huffman decoder");
+			if (huffdecode(hDecoder, ele_id, mip, hDecoder->wnd, hDecoder->wnd_shape,
+				hDecoder->cb_map, hDecoder->factors, hDecoder->group, hDecoder->hasmask,
+				hDecoder->mask, hDecoder->max_sfb,
+				hDecoder->lpflag, hDecoder->prstflag, hDecoder->nok_lt_status,
+				       hDecoder->tns, hDecoder->coef) < 0) {
+			  printf("error 1\n");
+				goto error;
+			}
+				/* CommonExit(1,"2022: Error in huffman decoder"); */
+			if (ele_id == ID_CPE)
+				channels += 2;
+			else
+				channels++;
 			break;
-#if (CChans > 0)
-		case ID_CCE:		/* coupling channel */
-			if (getcc(mip, cc_wnd, cc_wnd_shape, cc_coef, cc_gain) < 0)
-				return 0;
-//				CommonExit(1,"2023: Error in coupling channel");
+		case ID_DSE:		/* data element */
+		  if (getdata(hDecoder, &d_tag, &d_cnt, d_bytes) < 0) {
+		    printf("error 2\n");
+				goto error;
+		  }
 			break;
-#endif				
 		case ID_PCE:		/* program config element */
-			get_prog_config(&prog_config);
+			get_prog_config(hDecoder, &hDecoder->prog_config);
 			break;
 		case ID_FIL:		/* fill element */
-			getfill();
+			getfill(hDecoder, d_bytes);
 			break;
 		default:
-//			CommonWarning("Element not supported");
-			return -4;
+			/* CommonWarning("Element not supported"); */
+			goto error;
 		}
 	}
-	check_mc_info(mip, (bno==0 && default_config));
 
-#if (ICChans > 0)
-	/* transform independently switched coupling channels */
-	ind_coupling(mip, wnd, wnd_shape, cc_wnd, cc_wnd_shape, cc_coef,
-		cc_state);
-#endif	
+	if ((channels != hDecoder->numChannels) &&
+	    (hDecoder->chans_inited == 0)) {
+
+		hDecoder->numChannels = channels;
+		retCode = FAAD_OK_CHUPDATE;
+		*bytesconsumed = 0;
+
+#if 0
+		// wmay - fall through...
+		/* no errors, but channel update */
+		return retCode;
+#endif
+	}
+
+	if (!check_mc_info(hDecoder, mip, (hDecoder->frameNum==0 && hDecoder->default_config))) {
+	  printf("checkmc error\n");
+		goto error;
+	}
 
 	/* m/s stereo */
 	for (ch=0; ch<Chans; ch++) {
 		cip = &mip->ch_info[ch];
 		if ((cip->present) && (cip->cpe) && (cip->ch_is_left)) {
 			wn = cip->widx;
-			if(hasmask[wn]) {
+			if(hDecoder->hasmask[wn]) {
 				left = ch;
 				right = cip->paired_ch;
-				info = winmap[wnd[wn]];
-				if (hasmask[wn] == 1)
-					map_mask(info, group[wn], mask[wn], cb_map[right]);
-				synt(info, group[wn], mask[wn], coef[right], coef[left]);
+				info = hDecoder->winmap[hDecoder->wnd[wn]];
+				if (hDecoder->hasmask[wn] == 1)
+					map_mask(info, hDecoder->group[wn], hDecoder->mask[wn],
+					hDecoder->cb_map[right]);
+				synt(info, hDecoder->group[wn], hDecoder->mask[wn],
+					hDecoder->coef[right], hDecoder->coef[left]);
 			}
 		}
 	}
 
 	/* intensity stereo and prediction */
 	for (ch=0; ch<Chans; ch++) {
-		if (!(mip->ch_info[ch].present)) continue;
+		if (!(mip->ch_info[ch].present))
+			continue;
+
 		wn = mip->ch_info[ch].widx;
-		info = winmap[wnd[wn]];
-		pns( mip, info, wn, ch,
-			group[wn], cb_map[ch], factors[ch], 
-			lpflag[wn], coef );
-		intensity(mip, info, wn, ch, 
-			group[wn], cb_map[ch], factors[ch], 
-			lpflag[wn], coef);
-		nok_lt_predict (mip->profile,
-				info,
-				(WINDOW_TYPE)wnd[ch], &wnd_shape[ch],
-			nok_lt_status[ch]->sbk_prediction_used,
-			nok_lt_status[ch]->sfb_prediction_used,
-			nok_lt_status[ch], nok_lt_status[ch]->weight,
-			nok_lt_status[ch]->delay, coef[ch],
-			BLOCK_LEN_LONG, 0, BLOCK_LEN_SHORT);
+		info = hDecoder->winmap[hDecoder->wnd[wn]];
+
+		pns(hDecoder, mip, info, wn, ch,
+			hDecoder->group[wn], hDecoder->cb_map[ch], hDecoder->factors[ch],
+			hDecoder->lpflag[wn], hDecoder->coef);
+
+		intensity(mip, info, wn, ch,
+			hDecoder->group[wn], hDecoder->cb_map[ch], hDecoder->factors[ch],
+			hDecoder->lpflag[wn], hDecoder->coef);
+
+		if (mip->object_type == AACLTP) {
+			nok_lt_predict(hDecoder, info, hDecoder->wnd[wn], &hDecoder->wnd_shape[wn],
+				hDecoder->nok_lt_status[ch]->sbk_prediction_used,
+				hDecoder->nok_lt_status[ch]->sfb_prediction_used,
+				hDecoder->nok_lt_status[ch], hDecoder->nok_lt_status[ch]->weight,
+				hDecoder->nok_lt_status[ch]->delay, hDecoder->coef[ch],
+				BLOCK_LEN_LONG, 0, BLOCK_LEN_SHORT, hDecoder->tns[ch]);
+		} else if (mip->object_type == AACMAIN) {
+			predict(hDecoder, info, mip->object_type, hDecoder->lpflag[wn],
+				hDecoder->sp_status[ch], hDecoder->coef[ch]);
+		}
 	}
 
-	for (ch=0; ch<Chans; ch++) {
-		if (!(mip->ch_info[ch].present)) continue;
-		wn = mip->ch_info[ch].widx;
-		info = winmap[wnd[wn]];
+	for (ch = 0; ch < Chans; ch++) {
+		if (!(mip->ch_info[ch].present))
+			continue;
 
-#if (CChans > 0)
-		/* if cc_domain indicates before TNS */
-		coupling(info, mip, coef, cc_coef, cc_gain, ch, CC_DOM, !CC_IND);
-#endif
+		wn = mip->ch_info[ch].widx;
+		info = hDecoder->winmap[hDecoder->wnd[wn]];
+
+		/* predictor reset */
+		if (mip->object_type == AACMAIN) {
+			left = ch;
+			right = left;
+			if ((mip->ch_info[ch].cpe) && (mip->ch_info[ch].common_window))
+				/* prstflag's shared by channel pair */
+				right = mip->ch_info[ch].paired_ch;
+			predict_reset(hDecoder, info, hDecoder->prstflag[wn], hDecoder->sp_status,
+				left, right, hDecoder->last_rstgrp_num);
+
+			/* PNS predictor reset */
+			predict_pns_reset(info, hDecoder->sp_status[ch], hDecoder->cb_map[ch]);
+		}
 
 		/* tns */
-		for (i=j=0; i<tns[ch]->n_subblocks; i++) {
+		for (i=j=0; i < hDecoder->tns[ch]->n_subblocks; i++) {
 
-			tns_decode_subblock(&coef[ch][j],
-				max_sfb[wn],
+			tns_decode_subblock(hDecoder, &hDecoder->coef[ch][j],
+				hDecoder->max_sfb[wn],
 				info->sbk_sfb_top[i],
 				info->islong,
-				&(tns[ch]->info[i]) );
+				&(hDecoder->tns[ch]->info[i]) );
 
 			j += info->bins_per_sbk[i];
 		}
 
-#if (CChans > 0)
-		/* if cc_domain indicated after TNS */
-		coupling(info, mip, coef, cc_coef, cc_gain, ch, CC_DOM, !CC_IND);
-#endif
-
-#ifdef TEST_OUTPUT
-		fprintf(stdout, "BLCK: %d SHP: %s ", wnd[wn], wnd_shape[wn].this_bk ? "KBD":"SIN");
-#endif
-
 		/* inverse transform */
-		freq2time_adapt (wnd [wn], &wnd_shape [wn], coef [ch], state [ch], data [ch]);
+		freq2time_adapt(hDecoder, hDecoder->wnd[wn], &hDecoder->wnd_shape[wn],
+			hDecoder->coef[ch], hDecoder->state[ch], hDecoder->data[ch]);
 
-#if (CChans > 0)
-		/* independently switched coupling */
-		coupling(info, mip, coef, cc_coef, cc_gain, ch, CC_DOM, CC_IND);
-#endif
+		if (mip->object_type == AACLTP) {
+			nok_lt_update(hDecoder->nok_lt_status[ch], hDecoder->data[ch],
+				hDecoder->state[ch], BLOCK_LEN_LONG);
+		}
 	}
 
 	/* Copy output to a standard PCM buffer */
-
-	for(i=0; i < 1024; i++) //prkoat
+	for(i=0; i < 1024; i++) /* prkoat */
+	{
+	
 		for (ch=0; ch < mip->nch; ch++)
-			sample_buffer[(i*mip->nch)+ch] = double_to_int(data[ch][i]);
-
-	bno++;
-
-	if (stop_now)
-		return -5;
-
-	byte_align();
-
-	return framebits;
-}
-
-int aac_get_sample_rate (void)
-{
-  if (adts_header_present) {
-    return (SampleRates[adts_header.fixed.sampling_rate_idx]);
-  }
-  if (adif_header_present) {
-    return (SampleRates[prog_config.sampling_rate_idx]);
-  }
-  return (0);
-}
-int aac_get_channels (void)
-{
-  return (mip->nch);
-}
-
-#ifndef PLUGIN
-void CommonWarning(char *message)
-{
-  printf("warning: %s\n", message);
-}
-
-void CommonExit(int errorcode, char *message)
-{
-  printf("%s\n", message);
-  /* exit(errorcode); */
-}
+		{
+/* much faster FTOL */
+#ifndef OLD_FTOL
+			float ftemp;
+			/* ftemp = truncate(data[ch][i]) + 0xff8000; */
+			ftemp = hDecoder->data[ch][i] + 0xff8000;
+			ftol(ftemp, sample_buffer[(i*mip->nch)+ch]);
+#else
+			sample_buffer[(i*mip->nch)+ch] = (short)truncate(data[ch][i]);
 #endif
+
+		}
+	}
+
+	hDecoder->frameNum++;
+	faad_bitdump(&hDecoder->ld);
+	faad_byte_align(&hDecoder->ld);
+
+	*bytesconsumed = bit2byte(faad_get_processed_bits(&hDecoder->ld));
+
+	/* no errors */
+	return retCode;
+
+error:
+       
+#if 0
+	//
+	// wmay - remove this error recovery, and let calling app handle this -
+	// with mpeg4ip, we can get better recovery, especially with RTP.
+	//
+	/* search for next ADTS header first, so decoding can be continued */
+	/* ADIF and RAW AAC files will not be able to continue playing */
+	if (hDecoder->adts_header_present) {
+		int k, sync = 0;
+
+		faad_byte_align(&hDecoder->ld);
+
+		for(k = 0; sync != 4096 - 1; k++)
+		{
+			sync = faad_getbits(&hDecoder->ld, 12); /* 12 bit SYNCWORD */
+			faad_getbits(&hDecoder->ld, 4);
+
+			/* Bail out if no syncword found */
+			if(k >= (6144 / 16))
+			{
+				SetMemory(sample_buffer, 0, sizeof(short)*mip->nch*1024);
+
+				/* unrecoverable error */
+				return FAAD_FATAL_ERROR;
+			}
+		}
+
+		*bytesconsumed = bit2byte(hDecoder->ld.framebits - 16);
+		SetMemory(sample_buffer, 0, sizeof(short)*mip->nch*1024);
+
+		/* error, but recoverable */
+		return FAAD_ERROR;
+	} else {
+		SetMemory(sample_buffer, 0, sizeof(short)*mip->nch*1024);
+
+		/* unrecoverable error */
+		return FAAD_FATAL_ERROR;
+	}
+#else
+	return FAAD_ERROR;
+#endif
+}
 

@@ -28,13 +28,29 @@
 #include "aa.h"
 #include "aa_file.h"
 
+static unsigned int c_get (void *ud)
+{
+  CInByteStreamBase *byte_stream;
+
+  byte_stream = (CInByteStreamBase *)ud;
+  return (byte_stream->get());
+}
+
+static void c_bookmark (void *ud, int state)
+{
+  CInByteStreamBase *byte_stream;
+
+  byte_stream = (CInByteStreamBase *)ud;
+  byte_stream->bookmark(state);
+}
+
 int create_media_for_aac_file (CPlayerSession *psptr, 
 			       const char *name,
 			       const char **errmsg)
 {
   CPlayerMedia *mptr;
   COurInByteStreamFile *fbyte;
-  int freq = 0;
+
   psptr->session_set_seekable(0);
   mptr = new CPlayerMedia;
   if (mptr == NULL) {
@@ -46,40 +62,35 @@ int create_media_for_aac_file (CPlayerSession *psptr,
    * Read faad file to get the frequency.  We need to read at
    * least 1 frame to get the adts header.
    */
-  faadAACInfo fInfo;
-  short buffer[1024 * 8]; // temp buffer
-  aac_decode_init_filestream(name);
-  aac_decode_init(&fInfo);
-  int ret = aac_decode_frame(buffer);
-  if (ret > 0) {
-    // decoded a frame - get sample rate from aac
-    freq = aac_get_sample_rate();
-    if (freq == 0) {
-      *errmsg = "Couldn't determine AAC frame rate";
-      return (-1);
-    }
-  } 
-  aac_decode_free();
+  faacDecHandle fInfo;
+  fInfo = faacDecOpen();
 
-  fbyte = new COurInByteStreamFile(mptr, name);
+  fbyte = new COurInByteStreamFile(name);
   if (fbyte == NULL) {
     *errmsg = "Couldn't create file stream";
     return (-1);
   }
-  /*
-   * This is not necessarilly true - we may want to read the aac, then
-   * read the adts header for it.
-   */
+  
+  faad_init_bytestream(&fInfo->ld, c_get, c_bookmark, fbyte);
+  unsigned long freq, chans;
+  freq = 0;
+  faacDecInit(fInfo, NULL, &freq, &chans);
+  // may want to actually decode the first frame...
+  if (freq == 0) {
+    *errmsg = "Couldn't determine AAC frame rate";
+    return (-1);
+  } 
+  faacDecClose(fInfo);
+
   fbyte->config_for_file(freq / 1024);
   *errmsg = "Can't create thread";
-  ret =  mptr->create_from_file(psptr, fbyte, FALSE);
+  int ret =  mptr->create_from_file(psptr, fbyte, FALSE);
   if (ret != 0) {
     return (-1);
   }
 
   audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
   audio->freq = freq;
-  audio->stream_has_length = 0;
   mptr->set_audio_info(audio);
   mptr->set_codec_type("aac ");
   return (0);

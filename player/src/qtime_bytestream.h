@@ -37,7 +37,6 @@ class CQTByteStreamBase : public COurInByteStream
 {
  public:
   CQTByteStreamBase(CQtimeFile *parent,
-		    CPlayerMedia *m,
 		    int track,
 		    const char *type);
   ~CQTByteStreamBase();
@@ -83,9 +82,8 @@ class CQTVideoByteStream : public CQTByteStreamBase
 {
  public:
   CQTVideoByteStream(CQtimeFile *parent,
-		     CPlayerMedia *m,
 		     int track) :
-    CQTByteStreamBase(parent, m, track, "video")
+    CQTByteStreamBase(parent, track, "video")
     {
     read_frame(0);
     };
@@ -110,12 +108,9 @@ class CQTAudioByteStream : public CQTByteStreamBase
 {
  public:
   CQTAudioByteStream(CQtimeFile *parent,
-		     CPlayerMedia *m,
-		     int track,
-		     int add_len_to_frame) :
-    CQTByteStreamBase(parent, m, track, "audio")
+		     int track) :
+    CQTByteStreamBase(parent, track, "audio")
     {
-      m_add_len_to_stream = add_len_to_frame;
       read_frame(0);
     };
   void reset(void);
@@ -136,7 +131,6 @@ class CQTAudioByteStream : public CQTByteStreamBase
   size_t read_a_frame(unsigned char **ppbuff);
  private:
   void audio_set_timebase(long frame);
-  int m_add_len_to_stream;
   int m_samples_per_frame;
 };
 

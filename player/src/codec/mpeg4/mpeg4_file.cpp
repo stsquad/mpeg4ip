@@ -53,7 +53,7 @@ int create_media_for_mpeg4_file (CPlayerSession *psptr,
     return (-1);
   }
 
-  fbyte = new COurInByteStreamFile(mptr, name);
+  fbyte = new COurInByteStreamFile(name);
   if (fbyte == NULL) {
     *errmsg = "Couldn't create file";
     return (-1);

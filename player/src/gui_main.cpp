@@ -33,6 +33,7 @@
 #include <syslog.h>
 #include <rtsp/rtsp_client.h>
 #include "our_config_file.h"
+#include "playlist.h"
 
 /* Local variables */
 static GtkWidget *main_window;
@@ -49,7 +50,7 @@ static volatile enum {
   STOPPED,
   PAUSED,
 } play_state = PLAYING_NONE;
-
+static CPlaylist *master_playlist;
 static CPlayerSession *psptr = NULL;
 static CMsgQueue master_queue;
 static GtkWidget *play_button;
@@ -63,8 +64,10 @@ static GtkWidget *time_slider;
 static GtkWidget *time_disp;
 static GtkWidget *session_desc[5];
 static SDL_mutex *command_mutex;
+static int master_looped;
 static int master_volume;
 static int master_muted;
+static int master_fullscreen = 0;
 static uint64_t master_time;
 static int time_slider_pressed = 0;
 static int master_screen_size = 100;
@@ -128,7 +131,54 @@ static void adjust_gui_for_play (void)
   gtk_widget_grab_focus(combo);
 }
 
+static void create_session_from_name (const char *name)
+{
+  gint x, y, w, h;
+  GdkWindow *window;
+  window = GTK_WIDGET(main_window)->window;
+  gdk_window_get_position(window, &x, &y);
+  gdk_window_get_size(window, &w, &h);
+  y += h + 40;
 
+  // If we're already running a session, close it.
+  if (psptr != NULL) {
+    close_session();
+  }
+
+  psptr = new CPlayerSession(&master_queue,
+			     NULL,
+			     name);
+  if (psptr != NULL) {
+    const char *errmsg;
+    errmsg = NULL;
+    // See if we can create media for this session
+    int ret = parse_name_for_session(psptr, name, &errmsg);
+    if (ret >= 0) {
+      // Yup - valid session.  Set volume, set up sync thread, and
+      // start the session
+      if (ret > 0) {
+	ShowMessage("Warning", errmsg);
+      }
+      if (master_muted == 0)
+	psptr->set_audio_volume(master_volume);
+      else
+	psptr->set_audio_volume(0);
+      psptr->set_up_sync_thread();
+      psptr->set_screen_location(x, y);
+      psptr->set_screen_size(master_screen_size / 50, master_fullscreen);
+      psptr->play_all_media(TRUE);  // check response here...
+    adjust_gui_for_play();
+    } else {
+      // Nope - display a message
+      delete psptr;
+      psptr = NULL;
+      char buffer[1024];
+      snprintf(buffer, sizeof(buffer), "%s cannot be opened\n%s", name,
+	       errmsg);
+      ShowMessage("Open error", buffer);
+    }
+  }
+}
 /*
  * start a session
  */
@@ -136,12 +186,6 @@ static void start_session_from_name (const char *name)
 {
   GList *p;
   int in_list = 0;
-  GdkWindow *window;
-  window = GTK_WIDGET(main_window)->window;
-  gint x, y, w, h;
-  gdk_window_get_position(window, &x, &y);
-  gdk_window_get_size(window, &w, &h);
-  y += h + 40;
 
   // Save the last file, so we can use it next time we do a file open
   if (last_entry != NULL) {
@@ -165,56 +209,32 @@ static void start_session_from_name (const char *name)
     p = g_list_next(p);
   }
   
-  // If we're already running a session, close it.
-  if (psptr != NULL) {
-    close_session();
+  SDL_mutexP(command_mutex);
+  
+  // If we're running a playlist, close it now.
+  if (master_playlist != NULL) {
+    delete master_playlist;
+    master_playlist = NULL;
   }
 
   // Create a new player session
-  SDL_mutexP(command_mutex);
-  psptr = new CPlayerSession(&master_queue,
-			     NULL,
-			     name);
-  if (psptr != NULL) {
-    const char *errmsg;
-    errmsg = NULL;
-    // See if we can create media for this session
-    int ret = parse_name_for_session(psptr, name, &errmsg);
-    if (ret >= 0) {
-      // Yup - valid session.  Set volume, set up sync thread, and
-      // start the session
-      if (ret > 0) {
-	ShowMessage("Warning", errmsg);
-      }
-      if (master_muted == 0)
-	psptr->set_audio_volume(master_volume);
-      else
-	psptr->set_audio_volume(0);
-      psptr->set_up_sync_thread();
-      psptr->set_screen_location(x, y);
-      psptr->set_screen_size(master_screen_size / 50);
-      psptr->play_all_media(TRUE);  // check response here...
+  if (strstr(name, ".gmp4_playlist") != NULL) {
+    const char *errmsg = NULL;
+    master_playlist = new CPlaylist(name, &errmsg);
+    if (errmsg != NULL) {
+      ShowMessage("Playlist error", errmsg);
     } else {
-      // Nope - display a message
-      delete psptr;
-      psptr = NULL;
-      char buffer[1024];
-      snprintf(buffer, sizeof(buffer), "%s cannot be opened\n%s", name,
-	       errmsg);
-      ShowMessage("Open error", buffer);
+      create_session_from_name(master_playlist->get_first());
     }
+  } else {
+    create_session_from_name(name);
   }
+  player_debug_message("name is %s", name);
 
   // Add this file to the drop down list
-  if (in_list == 0) {
-    gchar *newone = g_strdup(name);
-    playlist = g_list_append(playlist, newone);
-    gtk_combo_set_popdown_strings (GTK_COMBO(combo), playlist);
-    gtk_widget_show(combo);
-  }
   // If we're playing, adjust the gui
   if (psptr != NULL) {
-    adjust_gui_for_play();
+
     if (in_list == 0) {
       config.move_config_strings(CONFIG_PREV_FILE_3, CONFIG_PREV_FILE_2);
       config.move_config_strings(CONFIG_PREV_FILE_2, CONFIG_PREV_FILE_1);
@@ -223,6 +243,13 @@ static void start_session_from_name (const char *name)
       config.set_config_string(CONFIG_PREV_FILE_0, strdup(name));
     }
   }
+  if (in_list == 0) {
+    gchar *newone = g_strdup(name);
+    playlist = g_list_append(playlist, newone);
+    gtk_combo_set_popdown_strings (GTK_COMBO(combo), playlist);
+    gtk_widget_show(combo);
+  }
+  player_debug_message("name is %s", name);
   SDL_mutexV(command_mutex);
 }
 
@@ -235,7 +262,9 @@ void delete_event (GtkWidget *widget, gpointer *data)
   if (psptr != NULL) {
     delete psptr;
   }
-    
+  if (master_playlist != NULL) {
+    delete master_playlist;
+  }
   gtk_main_quit();
     //}
 }
@@ -244,6 +273,7 @@ static void on_main_menu_close (GtkWidget *window, gpointer data)
 {
   SDL_mutexP(command_mutex);
   close_session();
+  master_fullscreen = 0;
   SDL_mutexV(command_mutex);
 }
 
@@ -454,6 +484,7 @@ static void on_speaker_clicked (GtkWidget *window, gpointer data)
     master_muted = 0;
     vol  = master_volume;
   }
+  config.set_config_value(CONFIG_MUTED, master_muted);
   if (psptr && psptr->session_has_audio()) {
     psptr->set_audio_volume(vol);
   }
@@ -464,6 +495,7 @@ static void on_volume_adjusted (GtkWidget *window, gpointer data)
   GtkWidget *vol = (GtkWidget *)window;
   GtkAdjustment *val = gtk_range_get_adjustment(GTK_RANGE(vol));
   master_volume = (int)val->value;
+  config.set_config_value(CONFIG_VOLUME, master_volume);
   gtk_range_set_adjustment(GTK_RANGE(vol), val);
   gtk_range_slider_update(GTK_RANGE(vol));
    gtk_range_clear_background(GTK_RANGE(vol));
@@ -486,8 +518,8 @@ static void on_video_radio (GtkWidget *window, gpointer data)
 
 static void on_video_fullscreen (GtkWidget *window, gpointer data)
 {
-  player_debug_message("Fullscreen");
   if (psptr != NULL) {
+    master_fullscreen = 1;
     psptr->set_screen_size(master_screen_size / 50, 1);
   }
 }
@@ -522,6 +554,11 @@ static void on_time_slider_adjusted (GtkWidget *window, gpointer data)
   //gtk_range_draw_background(GTK_RANGE(vol));
 }
 
+static void on_loop_enabled_button (GtkWidget *widget, gpointer *data)
+{
+  master_looped = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+  config.set_config_value(CONFIG_LOOPED, master_looped);
+}
 /*
  * Main timer routine - runs ~every 500 msec
  * Might be able to adjust this to handle just when playing.
@@ -577,6 +614,39 @@ static gint main_timer (gpointer raw)
       //player_debug_message("received quit");
       on_main_menu_close(NULL, 0);
       break;
+    case MSG_SESSION_FINISHED:
+      player_debug_message("gui received finished message");
+      if (master_playlist != NULL) {
+	SDL_mutexP(command_mutex);
+	const char *start;
+	do {
+	  start = master_playlist->get_next();
+	  if (start == NULL) {
+	    if (master_looped)
+	      start = master_playlist->get_first();
+	  }
+	  if (start != NULL)
+	    create_session_from_name(start);
+	} while (start != NULL && psptr == NULL);
+	SDL_mutexV(command_mutex);
+      } else if (master_looped != 0) {
+	if (play_state == PLAYING) {
+	  if (psptr == NULL)
+	    break;
+	  SDL_mutexP(command_mutex);
+	  psptr->pause_all_media();
+	  psptr->play_all_media(TRUE, 0.0);
+	  adjust_gui_for_play();
+	  SDL_mutexV(command_mutex);
+	}
+      } else {
+	master_fullscreen = 0;
+      }
+
+      break;
+    case MSG_NO_FULL_SCREEN:
+      master_fullscreen = 0;
+      break;
     }
   }
   return (TRUE);  // keep timer going
@@ -614,7 +684,10 @@ int main (int argc, char **argv)
     gchar *newone = g_strdup(read);
     playlist = g_list_append(playlist, newone);
   }
-
+  
+  master_looped = config.get_config_value(CONFIG_LOOPED);
+  master_muted = config.get_config_value(CONFIG_MUTED);
+  master_volume = config.get_config_value(CONFIG_VOLUME);
   rtsp_set_loglevel(LOG_DEBUG);
   rtsp_set_error_func(player_library_message);
   sdp_set_error_func(player_library_message);
@@ -792,12 +865,21 @@ int main (int argc, char **argv)
   gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 10);
   gtk_widget_show(button);
 
-  /*
+  /*************************************************************************
    * 2nd line  play pause stop speaker volume
-   */
+   *************************************************************************/
   hbox = gtk_hbox_new(FALSE, 1);
   gtk_box_pack_start(GTK_BOX(main_vbox), hbox, FALSE, FALSE, 5);
   gtk_widget_show(hbox);
+
+  GtkWidget *vbox, *hbox2;
+  vbox = gtk_vbox_new(TRUE, 1);
+  gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 5);
+  gtk_widget_show(vbox);
+
+  hbox2 = gtk_hbox_new(TRUE, 1);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox2, FALSE, FALSE, 0);
+  gtk_widget_show(hbox2);
 
   GtkWidget *image;
   
@@ -810,7 +892,7 @@ int main (int argc, char **argv)
 		     "clicked",
 		     GTK_SIGNAL_FUNC(on_play_clicked),
 		     NULL);
-  gtk_box_pack_start(GTK_BOX(hbox), play_button, FALSE, FALSE, 2);
+  gtk_box_pack_start(GTK_BOX(hbox2), play_button, FALSE, FALSE, 2);
 
   pause_button = gtk_toggle_button_new();
   image = CreateWidgetFromXpm(main_window,xpm_pause);
@@ -821,7 +903,7 @@ int main (int argc, char **argv)
 		     "clicked",
 		     GTK_SIGNAL_FUNC(on_pause_clicked),
 		     NULL);
-  gtk_box_pack_start(GTK_BOX(hbox), pause_button, FALSE, FALSE, 2);
+  gtk_box_pack_start(GTK_BOX(hbox2), pause_button, FALSE, FALSE, 2);
 
   stop_button = gtk_toggle_button_new();
   image = CreateWidgetFromXpm(main_window,xpm_stop);
@@ -832,7 +914,7 @@ int main (int argc, char **argv)
 		     "clicked",
 		     GTK_SIGNAL_FUNC(on_stop_clicked),
 		     NULL);
-  gtk_box_pack_start(GTK_BOX(hbox), stop_button, FALSE, FALSE, 2);
+  gtk_box_pack_start(GTK_BOX(hbox2), stop_button, FALSE, FALSE, 2);
 
 
   gtk_widget_set_sensitive(play_button, 0);
@@ -841,11 +923,20 @@ int main (int argc, char **argv)
 
   GtkWidget *sep = gtk_vseparator_new();
   gtk_widget_show(sep);
-  gtk_box_pack_start(GTK_BOX(hbox), sep, FALSE, FALSE, 10);
+  gtk_box_pack_start(GTK_BOX(hbox), sep, FALSE, FALSE, 5);
 
-  master_muted = 0;
+  vbox = gtk_vbox_new(FALSE, 1);
+  gtk_widget_show(vbox);
+  gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 5);
+
+  hbox2 = gtk_hbox_new(FALSE, 1);
+  gtk_widget_show(hbox2);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox2, FALSE, FALSE, 0);
+
   speaker_button = gtk_button_new();
-  image = CreateWidgetFromXpm(speaker_button,xpm_speaker);
+  image = CreateWidgetFromXpm(speaker_button,
+			      master_muted == 0 ?
+			      xpm_speaker : xpm_speaker_muted);
   gtk_container_add(GTK_CONTAINER(speaker_button), image);
   gdk_pixmap_unref((GdkPixmap *)image);
   gtk_widget_show(speaker_button);
@@ -853,11 +944,10 @@ int main (int argc, char **argv)
 		     "clicked",
 		     GTK_SIGNAL_FUNC(on_speaker_clicked),
 		     NULL);
-  gtk_box_pack_start(GTK_BOX(hbox), speaker_button, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox2), speaker_button, FALSE, FALSE, 5);
 
   GtkObject *vol_adj;
-  master_volume = 75;
-  vol_adj = gtk_adjustment_new(75.0,
+  vol_adj = gtk_adjustment_new(master_volume,
 			       0.0,
 			       100.0,
 			       5.0,
@@ -886,8 +976,31 @@ int main (int argc, char **argv)
 		     vol);
   gtk_widget_show(vol);
   volume_slider = vol;
-  gtk_box_pack_start(GTK_BOX(hbox), vol, FALSE, TRUE, 10);
+  gtk_box_pack_start(GTK_BOX(hbox2), vol, TRUE, TRUE, 0);
+  
+  // boxes for Looped label 
+  sep = gtk_vseparator_new();
+  gtk_widget_show(sep);
+  gtk_box_pack_start(GTK_BOX(hbox), sep, FALSE, FALSE, 5);
 
+  vbox = gtk_vbox_new(TRUE, 1);
+  gtk_widget_show(vbox);
+  gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 5);
+
+  hbox2 = gtk_hbox_new(TRUE, 1);
+  gtk_widget_show(hbox2);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox2, FALSE, FALSE, 0);
+
+  GtkWidget *loop_enabled_button;
+  loop_enabled_button = gtk_check_button_new_with_label("Looped");
+  gtk_box_pack_start(GTK_BOX(hbox2), loop_enabled_button, FALSE, FALSE, 0);
+  gtk_signal_connect(GTK_OBJECT(loop_enabled_button),
+		     "toggled",
+		     GTK_SIGNAL_FUNC(on_loop_enabled_button),
+		     loop_enabled_button);
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(loop_enabled_button),
+			       master_looped);
+  gtk_widget_show(loop_enabled_button);
   
   /* 
    * 3rd line - where we are meter...

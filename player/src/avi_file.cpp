@@ -112,7 +112,7 @@ int CAviFile::create_video (CPlayerSession *psptr)
     return (-1);
   }
   
-  CAviVideoByteStream *vbyte = new CAviVideoByteStream(this, mptr);
+  CAviVideoByteStream *vbyte = new CAviVideoByteStream(this);
   if (vbyte == NULL) {
     return (-1);
   }
@@ -178,7 +178,6 @@ int CAviFile::create_audio (CPlayerSession *psptr)
     player_debug_message("audio - rate %g len %ld samples %d", sr, len, duration);
     audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
     audio->freq = (int)sr;
-    audio->stream_has_length = 0;
     mptr->set_codec_type(codec);
     mptr->set_audio_info(audio);
     abyte->config(len, sr, duration);

@@ -2,6 +2,7 @@
 # mp4encode <avi-file>
 
 # Initialize default values for options
+let convertRgb=0
 let videoWidth=320
 let videoHeight=240
 let fps=24
@@ -15,11 +16,12 @@ let abitRate=96
 let debug=0
 
 # Process command line options
-while getopts "A:IMV:a:dh:r:w:" opt; do
+while getopts "A:IMRV:a:dh:r:w:" opt; do
 	case $opt in
 		A ) let abitRate=$OPTARG ;;
 		I ) let use_iso=1 ;;
 		M ) let use_mp3=1 ;;
+		R ) let convertRgb=1 ;;
 		V ) let vbitRate=$OPTARG ;;
 		a ) aspectRatio=$OPTARG ;;
 		d ) let debug=1 ;;
@@ -57,8 +59,8 @@ fi
 let rawframesize=(${videoWidth}*${videoHeight}*3)/2
 here=`pwd`
 
-# For Divx encoder, this generates 1 I frame every second (the rest being P's)
-let ifrequency=$fps
+# For Divx encoder, this generates 1 I frame every two seconds
+let ifrequency=$(($fps * 2))
 
 if [ $use_iso = 1 ]; then 
 	# For ISO encoder, these default values 
@@ -84,6 +86,13 @@ if [ ! -f $prefix.yuv ] || [ $prefix.avi -nt $prefix.yuv ]; then
 	echo "Extracting video from avi"
 	tmpfile=./.tmp$$
 	avi2raw -v $prefix.avi $prefix.yuv > $tmpfile
+
+	# Convert from RGB24 to YUV12 if desired
+	if [ $convertRgb = 1 ]; then
+		mv $prefix.yuv $prefix.rgb
+		echo "Converting video from RGB24 to YUV12"
+		rgb2yuv -w $videoWidth -h $videoHeight $prefix.rgb $prefix.yuv
+	fi
 
 	# Perform simple check that we do indeed have raw YUV12 video
 	let numframes=`awk '{print $1}' $tmpfile`
@@ -150,7 +159,7 @@ fi
 echo "Encoding audio"
 if [ $use_mp3 = 0 ]; then 
 	afile=${prefix}.aac
-	faac -r -m4 -pLC -b ${abitRate} ${prefix}.pcm ${afile}
+	faac -r -m4 -pLC -b${abitRate} ${prefix}.pcm ${afile}
 else
 	afile=${prefix}.mp3
 	lame -r -x -h -b ${abitRate} ${prefix}.pcm ${afile}

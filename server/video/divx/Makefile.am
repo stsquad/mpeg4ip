@@ -22,9 +22,15 @@ AM_CFLAGS = -DMPEG4IP -D_REENTRANT -O3 -Wpointer-arith -Wcast-align -Wstrict-pro
 lib_LTLIBRARIES = libdivxencore.la
 
 if USE_MMX
-EXTRA_libdivxencore_la_SOURCES = text_fdct_mmx.asm text_idct_mmx.asm
+EXTRA_libdivxencore_la_SOURCES = \
+	text_dct.c \
+	text_fdct_mmx.asm \
+	text_idct_mmx.asm \
+	interpolate_mmx.asm \
+	sad_mb_mmx.asm
 else
-EXTRA_libdivxencore_la_SOURCES = text_dct.c
+EXTRA_libdivxencore_la_SOURCES = \
+	text_dct.c
 endif
 
 libdivxencore_la_SOURCES = \
@@ -50,13 +56,8 @@ libdivxencore_la_SOURCES = \
 	non_unix.h \
 	putvlc.c \
 	putvlc.h \
-	rc.h \
-	rc_hist.c \
-	rc_hist.h \
-	rc_q2.c \
-	rc_q2.h \
-	rgb2yuv.c \
-	rgb2yuv.h \
+	rate_ctl.c \
+	rate_ctl.h \
 	text_bits.c \
 	text_bits.h \
 	text_code.c \

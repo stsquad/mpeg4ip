@@ -31,7 +31,7 @@
 #include <rtsp/rtsp_client.h>
 #include "our_msg_queue.h"
 #include "ip_port.h"
-#include "player_rtp_bytestream.h"
+#include "rtp_bytestream.h"
 
 class CPlayerSession;
 class CAudioSync;
@@ -46,7 +46,6 @@ typedef struct video_info_t {
 
 typedef struct audio_info_t {
   int freq;
-  int stream_has_length;
 } audio_info_t;
 
 class CPlayerMedia {
@@ -83,20 +82,18 @@ class CPlayerMedia {
     }
   CPlayerMedia *get_next (void) { return m_next; };
   void set_next (CPlayerMedia *newone) { m_next = newone; };
-  int recv_thread(void);
   int decode_thread(void);
-  void recv_callback(struct rtp *session, rtp_event *e);
 
-  /* RTP information for media - maybe it should be associated with
-   * the rtp byte stream, instead of here
+  /* Public RTP routines  - receive thread, callback, and routines to
+   * pass information from rtsp to rtp byte stream
    */
+  int recv_thread(void);
+  void recv_callback(struct rtp *session, rtp_event *e);
   void set_rtp_ssrc (uint32_t ssrc)
     { m_rtp_ssrc = ssrc; m_rtp_ssrc_set = TRUE;};
   void set_rtp_rtptime(uint32_t time);
-  void set_rtp_init_seq (uint16_t seq)
-    { m_rtp_init_seq = seq; m_rtp_init_seq_set = TRUE; };
-  rtp_packet *advance_head(int bookmark_set, const char **);
-  rtp_packet *get_rtp_head (void) {return m_head; };
+  void set_rtp_rtpinfo(void) { m_rtp_rtpinfo_received = 1; };
+
   
   void set_video_sync(CVideoSync *p) {m_video_sync = p;};
   void set_audio_sync(CAudioSync *p) {m_audio_sync = p;};
@@ -113,8 +110,8 @@ class CPlayerMedia {
     m_user_data_size = length;
   }
   rtsp_session_t *get_rtsp_session(void) { return m_rtsp_session; };
-  void set_rtp_rtpinfo(void) { m_rtp_rtpinfo_received = 1; };
  private:
+  int m_streaming;
   int m_is_video;
   int m_paused;
   CPlayerMedia *m_next;
@@ -126,65 +123,65 @@ class CPlayerMedia {
   uint16_t m_our_port;
   uint16_t m_server_port;
   char *m_source_addr;
-  size_t m_rtp_packet_received;
-  uint64_t m_rtp_data_received;
-  time_t m_start_time;
-  uint32_t m_rtptime_last;
 
-  unsigned int m_rtp_proto;
+  time_t m_start_time;
   int m_stream_ondemand;
   int m_sync_time_set;
   uint64_t m_sync_time_offset;
   uint32_t m_rtptime_tickpersec;
-  uint64_t m_rtptime_ntptickperrtptick;
   double m_play_start_time;
   // Receive thread variables
   SDL_Thread *m_recv_thread;
-  struct rtp *m_rtp_session;
 
-  // RTP packet queues
-  SDL_mutex *m_rtp_packet_mutex;
-  rtp_packet *m_head, *m_tail;
-  size_t m_rtp_queue_len;
-  size_t m_rtp_queue_len_max;
-  uint64_t m_rtp_buffer_time;
-
-  // Other rtp information
+  /*************************************************************************
+   * RTP variables - used to pass info to the bytestream
+   *************************************************************************/
   int m_rtp_ondemand;
+  struct rtp *m_rtp_session;
+  CRtpByteStreamBase *m_rtp_byte_stream;
+  CMsgQueue m_rtp_msg_queue;
+
+  rtp_packet *m_head, *m_tail; // used when determining rtp protocol
+  size_t m_rtp_queue_len;
+  
+  // from rtsp...
   int m_rtp_ssrc_set;
   uint32_t m_rtp_ssrc;
-  int m_rtp_init_seq_set;
-  uint16_t m_rtp_init_seq;
-  // conversion from rtptime in rtp packet to relative time in packet
+  int m_rtp_rtpinfo_received;
   uint32_t m_rtp_rtptime;
 
-  int m_rtp_rtpinfo_received;
-  
-  // Decoder thread variables
+  int determine_proto_from_rtp(void);
+  void clear_rtp_packets(void);
+
+  // from rtcp, for broadcast, in case we get an RTCP before we determine
+  // the protocol
+  uint32_t m_rtcp_ntp_frac;
+  uint32_t m_rtcp_ntp_sec;
+  uint32_t m_rtcp_rtp_ts;
+  int m_rtcp_received;
+  volatile int m_rtp_inited;
+
+  /*************************************************************************
+   * Decoder thread variables
+   *************************************************************************/
   SDL_Thread *m_decode_thread;
   volatile int m_decode_thread_waiting;
   SDL_sem *m_decode_thread_sem;
   const char *m_codec_type;
 
   // State change variable
-  CMsgQueue m_rtp_msg_queue;
   CMsgQueue m_decode_msg_queue;
   // Private routines
   int process_rtsp_transport(char *transport);
-  int determine_proto_from_rtp(void);
-  int add_packet_to_queue(rtp_packet *pak);
-  void flush_rtp_packets(void);
   CAudioSync *m_audio_sync;
   CVideoSync *m_video_sync;
   void parse_decode_message(int &thread_stop, int &decoding);
   COurInByteStream *m_byte_stream;
-  CInByteStreamRtp *m_rtp_byte_stream;
   video_info_t *m_video_info;
   audio_info_t *m_audio_info;
 
   const unsigned char *m_user_data;
   int m_user_data_size;
-  int check_rtp_frame_complete_for_proto(void);
 };
 
 int process_rtsp_rtpinfo(char *rtpinfo, 

@@ -30,7 +30,7 @@
 class COurInByteStreamMem : public COurInByteStream
 {
  public:
-  COurInByteStreamMem(CPlayerMedia *m, const unsigned char *membuf, size_t len);
+  COurInByteStreamMem(const unsigned char *membuf, size_t len);
   ~COurInByteStreamMem();
   int eof(void);
   unsigned char get(void);
@@ -60,7 +60,7 @@ class COurInByteStreamMem : public COurInByteStream
 class COurInByteStreamWav : public COurInByteStreamMem
 {
 public:
-  COurInByteStreamWav(CPlayerMedia *m, const unsigned char *membuf, size_t len);
+  COurInByteStreamWav(const unsigned char *membuf, size_t len);
   ~COurInByteStreamWav();
 };
 

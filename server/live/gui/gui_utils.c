@@ -382,7 +382,7 @@ GtkWidget *AddButtonToDialog (GtkWidget *dialog,
 
     /* --- Add the button to the dialog --- */
   gtk_box_pack_start (GTK_BOX(GTK_DIALOG(dialog)->action_area),
-		      button, TRUE, TRUE, 0);
+		      button, FALSE, FALSE, 0);
 
   /* --- Make the button visible --- */
   gtk_widget_show (button);

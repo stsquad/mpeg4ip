@@ -338,6 +338,33 @@ static int udp_send4(socket_udp *s, char *buffer, int buflen)
 	return sendto(s->fd, buffer, buflen, 0, (struct sockaddr *) &s_in, sizeof(s_in));
 }
 
+#ifndef _WIN32
+static int udp_send_iov4(socket_udp *s, struct iovec *iov, int count)
+{
+	struct sockaddr_in	s_in;
+	struct msghdr 		msg;
+	
+	assert(s != NULL);
+	assert(s->mode == IPv4);
+	assert(iov != NULL);
+	assert(count > 0);
+	
+	s_in.sin_family      = AF_INET;
+	s_in.sin_addr.s_addr = s->addr4.s_addr;
+	s_in.sin_port        = htons(s->tx_port);
+
+	msg.msg_name 		 = &s_in;
+	msg.msg_namelen 	 = sizeof(s_in);
+	msg.msg_iov 		 = iov;
+	msg.msg_iovlen 		 = count;
+	msg.msg_control 	 = NULL;
+	msg.msg_controllen 	 = 0;
+	msg.msg_flags 		 = 0;
+
+	return sendmsg(s->fd, &msg, 0);
+}
+#endif
+
 static const char *udp_host_addr4(void)
 {
 	static char    		 hname[MAXHOSTNAMELEN];
@@ -537,6 +564,44 @@ static int udp_send6(socket_udp *s, char *buffer, int buflen)
 #endif
 }
 
+#ifndef _WIN32
+static int udp_send_iov6(socket_udp *s, struct iovec *iov, int count)
+{
+#ifdef HAVE_IPv6
+	struct sockaddr_in6	s_in;
+	struct msghdr msg;
+	
+	assert(s != NULL);
+	assert(s->mode == IPv6);
+	assert(buffer != NULL);
+	assert(buflen > 0);
+	
+	memset((char *)&s_in, 0, sizeof(s_in));
+	s_in.sin6_family = AF_INET6;
+	s_in.sin6_addr   = s->addr6;
+	s_in.sin6_port   = htons(s->tx_port);
+#ifdef HAVE_SIN6_LEN
+	s_in.sin6_len    = sizeof(s_in);
+#endif
+
+	msg.msg_name 		 = &s_in;
+	msg.msg_namelen 	 = sizeof(s_in);
+	msg.msg_iov 		 = iov;
+	msg.msg_iovlen 		 = count;
+	msg.msg_control 	 = NULL;
+	msg.msg_controllen 	 = 0;
+	msg.msg_flags 		 = 0;
+
+	return sendmsg(s->fd, &msg, 0);
+#else
+	UNUSED(s);
+	UNUSED(iov);
+	UNUSED(count);
+	return -1;
+#endif
+}
+#endif
+
 static const char *udp_host_addr6(socket_udp *s)
 {
 #ifdef HAVE_IPv6
@@ -640,6 +705,18 @@ int udp_send(socket_udp *s, char *buffer, int buflen)
 	}
 	return -1;
 }
+
+#ifndef _WIN32
+int udp_send_iov(socket_udp *s, struct iovec *iov, int count)
+{
+	switch (s->mode) {
+	case IPv4 : return udp_send_iov4(s, iov, count);
+	case IPv6 : return udp_send_iov6(s, iov, count);
+	default   : abort();
+	}
+	return -1;
+}
+#endif
 
 int udp_recv(socket_udp *s, char *buffer, int buflen)
 {

@@ -29,9 +29,8 @@
 /**************************************************************************
  * Quicktime stream base class functions
  **************************************************************************/
-CAviByteStreamBase::CAviByteStreamBase (CAviFile *parent,
-					CPlayerMedia *m)
-  : COurInByteStream(m)
+CAviByteStreamBase::CAviByteStreamBase (CAviFile *parent)
+  : COurInByteStream()
 {
   m_frame_on = 0;
   m_bookmark = 0;

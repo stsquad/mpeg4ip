@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.3 $ 
- * $Date: 2001/05/09 21:15:12 $
+ * $Revision: 1.4 $ 
+ * $Date: 2001/06/28 23:54:22 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -197,8 +197,10 @@ int 		 rtp_setopt(struct rtp *session, int optname, int optval);
 int 		 rtp_getopt(struct rtp *session, int optname, int *optval);
 void 		*rtp_get_userdata(struct rtp *session);
 int 		 rtp_recv(struct rtp *session, struct timeval *timeout, uint32_t curr_rtp_ts);
-int 		 rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m, int cc, uint32_t csrc[], 
-                               char *data, int data_len, char *extn, uint16_t extn_len, uint16_t extn_type);
+int 		 rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m, int cc, uint32_t csrc[], char *data, int data_len, char *extn, uint16_t extn_len, uint16_t extn_type);
+#ifndef _WIN32
+int 		 rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, char pt, int m, int cc, uint32_t csrc[], struct iovec *iov, int iov_count, char *extn, uint16_t extn_len, uint16_t extn_type);
+#endif
 void 		 rtp_send_ctrl(struct rtp *session, uint32_t rtp_ts, 
 			       rtcp_app *(*appcallback)(struct rtp *session, uint32_t rtp_ts, int max_size));
 void 		 rtp_update(struct rtp *session);

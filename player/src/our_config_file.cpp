@@ -42,6 +42,9 @@ static config_variable_t configs[] = {
   { CONFIG_PREV_FILE_2, "File2", CONFIG_STRING, 0, NULL },
   { CONFIG_PREV_FILE_3, "File3", CONFIG_STRING, 0, NULL },
   { CONFIG_RTP_BUFFER_TIME, "RtpBufferTime", CONFIG_INT, 2, NULL },
+  { CONFIG_LOOPED, "Looped", CONFIG_INT, 0, NULL },
+  { CONFIG_VOLUME, "Volume", CONFIG_INT, 75, NULL },
+  { CONFIG_MUTED, "AudioMuted", CONFIG_INT, 0, NULL},
 };
 
 CConfig config(configs, CONFIG_MAX);

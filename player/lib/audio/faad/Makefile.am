@@ -1,30 +1,41 @@
 lib_LTLIBRARIES = libfaad.la
 libfaad_la_LDFLAGS = -static
 libfaad_la_SOURCES = \
-	wav.c \
-	filestream.c \
 	block.c \
 	config.c \
 	decdata.c \
 	decoder.c \
 	dolby_adapt.c \
 	fastfft.c \
-	huffdec1.c \
-	huffdec2.c \
-	huffdec3.c \
+	huffdec.c \
 	huffinit.c \
 	hufftables.c \
 	intensity.c \
+	monopred.c \
+	mpeg4ip_bits.c \
 	nok_lt_prediction.c \
-	portio.c \
+	pns.c \
 	stereo.c \
 	tns.c \
 	transfo.c \
-	pns.c
+	util.c
 
-AM_CFLAGS = -D_REENTRANT -DHAS_ULONG -Werror -Wall -fexceptions -fno-rtti 
+libfaad_la_INCLUDES = \
+	all.h \
+	bits.h \
+	block.h \
+	fastfft.h \
+	interface.h \
+	kbd_win.h \
+	monopred.h \
+	nok_lt_prediction.h \
+	nok_ltp_common.h \
+	nok_ltp_common_internal.h \
+	port.h \
+	tns.h \
+	transfo.h\
+	util.h
 
-check_PROGRAMS = faad
-faad_SOURCES = faad.c
-LDADD = ./libfaad.la -lm
+AM_CFLAGS = -O2 -DHAS_ULONG -Werror -Wall -fexceptions 
+
 

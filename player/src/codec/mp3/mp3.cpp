@@ -104,7 +104,7 @@ int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
       // Make sure that we read the header to make sure that
       // the frequency/number of channels goes through...
       if (from_rtp) {
-	CInByteStreamRtp *rtp = (CInByteStreamRtp *)m_bytestream;
+	CRtpByteStreamBase *rtp = (CRtpByteStreamBase *)m_bytestream;
 	rtp->set_skip_on_advance(4);
 	rtp->get();
 	rtp->get();

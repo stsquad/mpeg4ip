@@ -1,0 +1,169 @@
+/*
+ * The contents of this file are subject to the Mozilla Public
+ * License Version 1.1 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of
+ * the License at http://www.mozilla.org/MPL/
+ * 
+ * Software distributed under the License is distributed on an "AS
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * rights and limitations under the License.
+ * 
+ * The Original Code is MPEG4IP.
+ * 
+ * The Initial Developer of the Original Code is Cisco Systems Inc.
+ * Portions created by Cisco Systems Inc. are
+ * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * 
+ * Contributor(s): 
+ *              Bill May        wmay@cisco.com
+ */
+
+#include "systems.h"
+#include <rtp/rtp.h>
+#include <rtp/memory.h>
+#include <sdp/sdp.h> // for NTP_TO_UNIX_TIME
+#include "aac_rtp_bytestream.h"
+#include "our_config_file.h"
+
+
+CAacRtpByteStream::CAacRtpByteStream(unsigned int rtp_proto,
+				     int ondemand,
+				     uint64_t tps,
+				     rtp_packet **head, 
+				     rtp_packet **tail,
+				     int rtpinfo_received,
+				     uint32_t rtp_rtptime,
+				     int rtcp_received,
+				     uint32_t ntp_frac,
+				     uint32_t ntp_sec,
+				     uint32_t rtp_ts) :
+  CRtpByteStreamBase(rtp_proto, ondemand, tps, head, tail, 
+		     rtpinfo_received, rtp_rtptime, rtcp_received,
+		     ntp_frac, ntp_sec, rtp_ts)
+{
+  m_frame_ptr = NULL;
+  m_offset_in_frame = 0;
+  m_frame_len = 0;
+}
+
+unsigned char CAacRtpByteStream::get (void)
+{
+  unsigned char ret;
+
+  if (m_pak == NULL || m_frame_ptr == NULL) {
+    if (m_bookmark_set == 1) {
+      return (0);
+    }
+    init();
+    throw "NULL when start";
+  }
+
+  if (m_offset_in_frame >= m_frame_len) {
+    if (m_bookmark_set == 1) {
+      return (0);
+    }
+    throw("DECODE PAST END OF FRAME");
+  }
+  ret = m_frame_ptr[m_offset_in_frame];
+  m_offset_in_frame++;
+  m_total++;
+  //check_for_end_of_pak();
+  return (ret);
+}
+
+unsigned char CAacRtpByteStream::peek (void) 
+{
+  return (m_frame_ptr ? m_frame_ptr[m_offset_in_frame] : 0);
+}
+
+void CAacRtpByteStream::bookmark (int bSet)
+{
+  if (bSet == TRUE) {
+    m_bookmark_set = 1;
+    m_bookmark_offset_in_frame = m_offset_in_frame;
+    m_total_book = m_total;
+    //player_debug_message("bookmark on");
+  } else {
+    m_bookmark_set = 0;
+    m_offset_in_frame = m_bookmark_offset_in_frame;
+    m_total = m_total_book;
+    //player_debug_message("book restore %d", m_offset_in_pak);
+  }
+}
+
+uint64_t CAacRtpByteStream::start_next_frame (void)
+{
+  uint64_t timetick;
+  m_offset_in_frame = 0;
+  if (m_frame_ptr != NULL) {
+    m_offset_in_pak += m_frame_len;
+    check_for_end_of_pak();
+  }
+  if (m_pak != NULL) {
+    m_frame_ptr = &m_pak->data[m_offset_in_pak];
+    m_frame_len = ntohs(*(unsigned short *)m_frame_ptr);
+    m_offset_in_pak += 2;
+    m_frame_ptr += 2;
+  }
+  // We're going to have to handle wrap better...
+  if (m_stream_ondemand) {
+    m_ts = m_pak->ts;
+    int neg = 0;
+    
+    if (m_ts >= m_rtp_rtptime) {
+      timetick = m_ts;
+      timetick -= m_rtp_rtptime;
+    } else {
+      timetick = m_rtp_rtptime - m_ts;
+      neg = 1;
+    }
+    timetick *= 1000;
+    timetick /= m_rtptime_tickpersec;
+    if (neg == 1) {
+      if (timetick > m_play_start_time) return (0);
+      return (m_play_start_time - timetick);
+    }
+    timetick += m_play_start_time;
+  } else {
+    if (((m_ts & 0x80000000) == 0x80000000) &&
+	((m_pak->ts & 0x80000000) == 0)) {
+      m_wrap_offset += (I_LLU << 32);
+    }
+    m_ts = m_pak->ts;
+    timetick = m_ts + m_wrap_offset;
+    timetick *= 1000;
+    timetick /= m_rtptime_tickpersec;
+    timetick += m_wallclock_offset;
+#if 0
+	player_debug_message("time %x "LLX" "LLX" "LLX" "LLX,
+			m_ts, m_wrap_offset, m_rtptime_tickpersec, m_wallclock_offset,
+			timetick);
+#endif
+  }
+  return (timetick);
+					   
+}
+
+size_t CAacRtpByteStream::read (unsigned char *buffer, size_t bytes_to_read)
+{
+  size_t inbuffer;
+
+  if (m_pak == NULL || m_frame_ptr == NULL) {
+    if (m_bookmark_set == 1) {
+      return (0);
+    }
+    init();
+    throw "NULL when start";
+  }
+
+  inbuffer = m_frame_len - m_offset_in_frame;
+  if (inbuffer < bytes_to_read) {
+    bytes_to_read = inbuffer;
+  }
+  memcpy(buffer, &m_frame_ptr[m_offset_in_frame], bytes_to_read);
+  m_offset_in_frame += bytes_to_read;
+  m_total += bytes_to_read;
+  return (bytes_to_read);
+}
+

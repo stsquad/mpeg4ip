@@ -39,8 +39,11 @@ CPP=cl.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 RSC=rc.exe
-# ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
+# ADD BASE RSC /l 0x809 /d "NDEBUG"
+# ADD RSC /l 0x809 /d "NDEBUG"
+# ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
+# ADD CPP /nologo /G6 /W3 /O2 /Ob2 /D "_MBCS" /D "_LIB" /D "WIN32" /D "NDEBUG" /YX /FD /c
+# SUBTRACT CPP /Fr
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -61,8 +64,10 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 RSC=rc.exe
-# ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_CONSOLE" /YX /FD /c
+# ADD BASE RSC /l 0x809 /d "_DEBUG"
+# ADD RSC /l 0x809 /d "_DEBUG"
+# ADD BASE CPP /nologo /W3 /GX /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /ZI /GZ /c
+# ADD CPP /nologo /MTd /W3 /GX /Od /I "..\\" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /FR /YX /FD /ZI /GZ /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -76,13 +81,12 @@ LIB32=link.exe -lib
 
 # Name "libfaad - Win32 Release"
 # Name "libfaad - Win32 Debug"
+# Begin Group "Source Files"
+
+# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
 SOURCE=.\block.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\block.h
 # End Source File
 # Begin Source File
 
@@ -102,60 +106,11 @@ SOURCE=.\dolby_adapt.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\dolby_def.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\dolby_win.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\faad_all.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\fastfft.c
-
-!IF  "$(CFG)" == "libfaad - Win32 Release"
-
-# SUBTRACT CPP /O<none>
-
-!ELSEIF  "$(CFG)" == "libfaad - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
-SOURCE=.\fastfft.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\filestream.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\filestream.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\http.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\http.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\huffdec1.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\huffdec2.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\huffdec3.c
+SOURCE=.\huffdec.c
 # End Source File
 # Begin Source File
 
@@ -167,11 +122,59 @@ SOURCE=.\hufftables.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\IN2.H
+SOURCE=.\intensity.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\intensity.c
+SOURCE=.\monopred.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpeg4ip_bits.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\nok_lt_prediction.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\pns.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\stereo.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\tns.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\transfo.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\util.c
+# End Source File
+# End Group
+# Begin Group "Header Files"
+
+# PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\All.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bits.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Block.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Fastfft.h
 # End Source File
 # Begin Source File
 
@@ -179,7 +182,15 @@ SOURCE=.\interface.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\nok_lt_prediction.c
+SOURCE=.\kbd_win.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\monopred.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpeg4ip_bits.h
 # End Source File
 # Begin Source File
 
@@ -195,59 +206,20 @@ SOURCE=.\nok_ltp_common_internal.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\OUT.H
+SOURCE=.\Port.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\pns.c
+SOURCE=.\Tns.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\port.h
+SOURCE=.\Transfo.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\portio.c
+SOURCE=.\util.h
 # End Source File
-# Begin Source File
-
-SOURCE=.\resource.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\stdinc.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\stereo.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\tns.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\tns.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\transfo.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\transfo.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\wav.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\wav.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\weave.h
-# End Source File
+# End Group
 # End Target
 # End Project

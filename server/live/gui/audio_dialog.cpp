@@ -16,19 +16,13 @@
  * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *              Bill May        wmay@cisco.com
+ *		Dave Mackie		dmackie@cisco.com
+ *		Bill May 		wmay@cisco.com
  */
-/*
- * audio_dialog.cpp - audio dialog.
- */
-#include <stdlib.h>
-#include <stdio.h>
-#include <glib.h>
-#include <gtk/gtk.h>
-#include <errno.h>
-#include "gui_utils.h"
-#include "gui_private.h"
-#include "live_apis.h"
+
+#define __STDC_LIMIT_MACROS
+#include "mp4live.h"
+#include "mp4live_gui.h"
 
 static GtkWidget *aud_dialog;
 static GtkWidget *aud_kbps;
@@ -43,7 +37,6 @@ static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
   gtk_widget_destroy(aud_dialog);
   aud_dialog = NULL;
 }
- 
 
 static int check_values (void)
 {
@@ -56,6 +49,7 @@ static int check_values (void)
 
   const char *errmsg;
 
+#ifdef NOTDEF
   if (set_audio_parameters(local_codec_index, 
 			   local_freq_index, 
 			   kb, 
@@ -64,6 +58,7 @@ static int check_values (void)
       ShowMessage("Entry Error", errmsg);
       return (0);
     } 
+#endif
 
   DisplayAudioSettings();  // display settings in main window
   return (1);
@@ -116,7 +111,8 @@ static void on_changed (GtkWidget *widget, gpointer *gdata)
 void CreateAudioDialog (void) 
 {
   GtkWidget *hbox, *label, *omenu;
-  const char **names;
+const char *samplingRates[] = { "32000", "44100", "48000", NULL };
+  const char **names = samplingRates;
   size_t max;
 
   aud_dialog = gtk_dialog_new();
@@ -125,28 +121,27 @@ void CreateAudioDialog (void)
 		     GTK_SIGNAL_FUNC(on_destroy_dialog),
 		     &aud_dialog);
 
-  gtk_window_set_title(GTK_WINDOW(aud_dialog), "Audio Configuration");
+  gtk_window_set_title(GTK_WINDOW(aud_dialog), "Audio Settings");
 
-  // Audio Sampling Frequency
   hbox = gtk_hbox_new(FALSE, 1);
   gtk_widget_show(hbox);
-  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(aud_dialog)->vbox),
-		     hbox,
-		     TRUE, 
-		     TRUE,
-		     5);
-  label = gtk_label_new("Audio Sampling Frequency:");
+  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(aud_dialog)->vbox), hbox, 
+	TRUE, TRUE, 5);
+
+  // Audio Sampling Frequency
+  label = gtk_label_new(" Sampling Rate:");
   gtk_widget_ref(label);
   gtk_widget_show(label);
   gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
 
+#ifdef NOTDEF
+#ifdef NOTDEF
   names = get_audio_frequencies(max, local_freq_index);
+#endif
   omenu = CreateOptionMenu(NULL, names, max, local_freq_index, 
 			   GTK_SIGNAL_FUNC(on_freq));
   gtk_box_pack_start(GTK_BOX(hbox), omenu, TRUE, TRUE, 0);
 
-
-  // Audio Codec
   hbox = gtk_hbox_new(FALSE, 1);
   gtk_widget_show(hbox);
   gtk_box_pack_start(GTK_BOX(GTK_DIALOG(aud_dialog)->vbox),
@@ -154,21 +149,10 @@ void CreateAudioDialog (void)
 		     TRUE,
 		     TRUE, 
 		     5);
+#endif
 
-  label = gtk_label_new("Audio Encoder:");
-  gtk_widget_ref(label);
-  gtk_widget_show(label);
-  gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-  names = get_audio_codecs(max, local_codec_index);
-  omenu = CreateOptionMenu(NULL,
-			   names, 
-			   max, 
-			   local_codec_index, 
-			   GTK_SIGNAL_FUNC(on_codec));
-  gtk_box_pack_start(GTK_BOX(hbox), omenu, TRUE, TRUE, 0);
-
-  // Height, Width, FPS
-  local_encoding_kbps = get_audio_kbitrate();
+	// Bitrate
+  local_encoding_kbps = MyConfig->m_audioTargetBitRate;
 
   aud_kbps = AddNumberEntryBoxWithLabel(GTK_DIALOG(aud_dialog)->vbox,
 					"Encoded Bitrate (Kbps):",
@@ -182,10 +166,10 @@ void CreateAudioDialog (void)
 
   // Add buttons at bottom
   ok_button = AddButtonToDialog(aud_dialog,
-				"Ok", 
+				" Ok ", 
 				GTK_SIGNAL_FUNC(on_ok_button));
   cancel_button = AddButtonToDialog(aud_dialog,
-				    "Cancel", 
+				    " Cancel ", 
 				    GTK_SIGNAL_FUNC(on_cancel_button));
   apply_button = AddButtonToDialog(aud_dialog,
 				   "Apply", 
@@ -195,6 +179,4 @@ void CreateAudioDialog (void)
   gtk_grab_add(aud_dialog);
 }
 
-/* end video_dialog.cpp */
-
-
+/* end audio_dialog.cpp */

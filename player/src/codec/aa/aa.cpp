@@ -19,44 +19,26 @@
  *              Bill May        wmay@cisco.com
  */
 #include "aa.h"
-extern "C" {
-#include <faad/filestream.h>
-}
 
 #define DEBUG_SYNC 2
 /*
  * C interfaces for faac callbacks
  */
-unsigned char c_read_byte (FILE_STREAM *fs, int *err)
+static unsigned int c_read_byte (void *ud)
 {
-  CAACodec *aa = (CAACodec *)fs->userdata;
-  return (aa->read_byte(fs, err));
+  CInByteStreamBase *byte_stream;
+
+  byte_stream = (CInByteStreamBase *)ud;
+  return (byte_stream->get());
 }
 
-unsigned long c_filelength (FILE_STREAM *fs)
+static void c_bookmark (void *ud, int state)
 {
-  return 0;
-}
+  CInByteStreamBase *byte_stream;
 
-void c_seek (FILE_STREAM *fs, unsigned long offset, int mode)
-{
+  byte_stream = (CInByteStreamBase *)ud;
+  byte_stream->bookmark(state);
 }
-
-void c_close(FILE_STREAM *fs)
-{
-}
-
-void c_reset (FILE_STREAM *fs)
-{
-  CAACodec *a = (CAACodec *)fs->userdata;
-  a->reset();
-}
-int c_peek (FILE_STREAM *fs, void *data, int len)
-{
-  CAACodec *a = (CAACodec *)fs->userdata;
-  return (a->peek(data, len));
-}
-
 /*
  * Create CAACodec class
  */
@@ -70,14 +52,8 @@ CAACodec::CAACodec (CAudioSync *a,
 {
   m_orig_bytestream = pbytestrm;
   // Start setting up FAAC stuff...
-  m_fs = open_filestream_yours(c_read_byte,
-			       c_filelength,
-			       c_seek,
-			       c_close,
-			       c_reset,
-			       c_peek,
-			       this);
-
+  m_info = faacDecOpen();
+   
   m_resync_with_header = 1;
   m_record_sync_time = 1;
   
@@ -88,8 +64,7 @@ CAACodec::CAACodec (CAudioSync *a,
   // create a CInByteStreamMem that will be used to copy from the
   // streaming packet for use locally.  This will allow us, if we need
   // to skip, to get the next frame.
-  if ((media_fmt != NULL) || 
-      (audio && audio->stream_has_length)) {
+  if (media_fmt != NULL) {
     m_local_bytestream = new CInByteStreamMem;
     m_bytestream = m_local_bytestream;
     m_local_buffersize = 4096;
@@ -120,7 +95,8 @@ CAACodec::CAACodec (CAudioSync *a,
       m_chans = (userdata[1] >> 3) & 0xf;
     }
   }
-	
+
+  faad_init_bytestream(&m_info->ld, c_read_byte, c_bookmark, m_bytestream);
 
   player_debug_message("Setting freq to %d", m_freq);
 #if DUMP_OUTPUT_TO_FILE
@@ -130,7 +106,9 @@ CAACodec::CAACodec (CAudioSync *a,
 
 CAACodec::~CAACodec()
 {
-  aac_decode_free();
+  faacDecClose(m_info);
+  m_info = NULL;
+
   if (m_local_bytestream != NULL) {
     delete m_local_bytestream;
     m_local_bytestream = NULL;
@@ -237,8 +215,14 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
     /*
      * If not initialized, do so.  
      */
-    aac_decode_init_your_filestream(m_fs);
-    aac_decode_init(&m_fInfo);
+    unsigned long freq, chans;
+
+    faacDecInit(m_info,
+		NULL,
+		&freq,
+		&chans);
+    m_freq = freq;
+    m_chans = chans;
     m_faad_inited = 1;
   }
 
@@ -258,11 +242,29 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
       return (-1);
     }
 
-    bits = aac_decode_frame((short *)buff);
-
-    if (bits > 0) {
+    unsigned long bytes_consummed;
+    bits = faacDecDecode(m_info,
+			 NULL,
+			 &bytes_consummed,
+			 (short *)buff);
+    switch (bits) {
+    case FAAD_OK_CHUPDATE:
+      if (m_audio_inited != 0) {
+	int tempchans = faacDecGetProgConfig(m_info, NULL);
+	if (tempchans != m_chans) {
+	  player_debug_message("AA-chupdate - chans from data is %d", 
+			       tempchans);
+	}
+      }
+      // fall through...
+    case FAAD_OK:
       if (m_audio_inited == 0) {
-	int tempchans = aac_get_channels();
+	int tempchans = faacDecGetProgConfig(m_info, NULL);
+	if (tempchans == 0) {
+	  m_resync_with_header = 1;
+	  m_record_sync_time = 1;
+	  return -1;
+	}
 	if (tempchans != m_chans) {
 	  player_debug_message("AA - chans from data is %d conf %d", 
 			       tempchans, m_chans);
@@ -271,7 +273,7 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
 	m_audio_sync->set_config(m_freq, m_chans, AUDIO_S16LSB, 1024);
 	unsigned char *now = m_audio_sync->get_audio_buffer();
 	if (now != NULL) {
-	  memcpy(now, buff, m_fInfo.channels * 1024 * sizeof(int16_t));
+	  memcpy(now, buff, tempchans * 1024 * sizeof(int16_t));
 	}
 	free(m_temp_buff);
 	m_temp_buff = NULL;
@@ -281,25 +283,25 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
        * good result - give it to audio sync class
        */
 #if DUMP_OUTPUT_TO_FILE
-	  fwrite(buff, 1024 * 4, 1, m_outfile);
+      fwrite(buff, 1024 * 4, 1, m_outfile);
 #endif
-#if 1
       m_audio_sync->filled_audio_buffer(m_current_time, 
 					m_resync_with_header);
-#endif
       if (m_resync_with_header == 1) {
 	m_resync_with_header = 0;
 #ifdef DEBUG_SYNC
-	player_debug_message("Back to good at "LLU, m_current_time);
+	player_debug_message("AA - Back to good at "LLU, m_current_time);
 #endif
       }
-    } else {
+      break;
+    default:
       player_debug_message("Bits return is %d", bits);
       m_resync_with_header = 1;
 #ifdef DEBUG_SYNC
       player_debug_message("Audio decode problem - at "LLU, 
 			   m_current_time);
 #endif
+      break;
     }
   } catch (const char *err) {
 #ifdef DEBUG_SYNC
@@ -315,29 +317,5 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
   return (bits);
 }
 
-unsigned char CAACodec::read_byte(FILE_STREAM *fs, int *err)
-{
-  if (m_bytestream->eof()) { 
-    *err = 1; 
-    return (unsigned char)-1; 
-  }
-  return ((unsigned char)m_bytestream->get());
-}
-
-void CAACodec::reset (void)
-{
-  m_bytestream->reset();
-}
-
-int CAACodec::peek (void *data, int len)
-{
-  char *dptr = (char *)data;
-  m_bytestream->bookmark(1);
-  for (int ix = 0; ix < len; ix++) {
-    *dptr++ = m_bytestream->get();
-  }
-  m_bytestream->bookmark(0);
-  return (len);
-}
 /* end file aa.cpp */
 

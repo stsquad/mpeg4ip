@@ -62,8 +62,6 @@ class CVideoSync {
   int get_fullscreen (void) { return m_fullscreen; };
   void do_video_resize(void); // from sync
   uint64_t get_video_msec_per_frame (void) { return m_msec_per_frame; };
-  void smooth_doubling(u_int8_t* pSrcPlane, u_int8_t* pDstPlane, 
-	u_int16_t srcWidth, u_int16_t srcHeight);
  private:
   int m_eof_found;
   int m_video_bpp;
@@ -100,4 +98,14 @@ class CVideoSync {
   uint64_t m_first_frame_count;
   uint64_t m_calculated_frame_rate;
 };
+
+/* frame doublers */
+#ifdef USE_MMX
+extern "C" void FrameDoublerMmx(u_int8_t* pSrcPlane, u_int8_t* pDstPlane, 
+	u_int32_t srcWidth, u_int32_t srcHeight);
+#else
+extern void FrameDoubler(u_int8_t* pSrcPlane, u_int8_t* pDstPlane, 
+	u_int32_t srcWidth, u_int32_t srcHeight);
+#endif
+
 #endif

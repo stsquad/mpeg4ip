@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: bitstream.c,v 1.3 2001/06/01 22:30:45 wmaycisco Exp $
+ * $Id: bitstream.c,v 1.4 2001/06/28 23:54:23 wmaycisco Exp $
  */
 
 #include <stdlib.h>
@@ -107,8 +107,10 @@ int WriteBitstream(faacEncHandle hEncoder,
 	 */
 	assert(bitStream->numBit==bits);
 	bitStream->numBit=bits;
+#if 0
     if (hEncoder->config.mpegVersion == 0)
   	  bits += ByteAlign(bitStream, 1,2);
+#endif
 
 	bits += ByteAlign(bitStream, 1,0);
 
@@ -185,8 +187,10 @@ static int CountBitstream(faacEncHandle hEncoder,
 	/* Now byte align the bitstream */
 
 	bitStream->numBit=bits;
+	#if 0
     if (hEncoder->config.mpegVersion == 0)
 		bits += ByteAlign(bitStream, 0,2);
+    #endif
 
 	bits += ByteAlign(bitStream, 0,0);
 

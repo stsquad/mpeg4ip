@@ -80,7 +80,7 @@ AllocImage(UInt size_x, UInt size_y, ImageType type)
   
   image = (Image *) emalloc(sizeof(Image));
   
-  image->version = VERSION;
+  image->version = IMAGE_VERSION;
   image->x = size_x;
   image->y = size_y;
   image->upperodd = 0;
@@ -520,13 +520,13 @@ FreeVop(Vop *vop)
 Void
 CopyVopNonImageField(Vop *in,Vop *out)
 {
-	out->quant_precision = in->quant_precision;
+/*	out->quant_precision = in->quant_precision;
 	out->bits_per_pixel = in->bits_per_pixel;
-
-	out->mod_time_base = in->mod_time_base;
-	out->time_inc = in->time_inc;
+*/
+//	out->mod_time_base = in->mod_time_base;
+//	out->time_inc = in->time_inc;
 	out->prediction_type = in->prediction_type;
-	out->rounding_type = in->rounding_type;
+/*	out->rounding_type = in->rounding_type;
 	out->width = in->width;
 	out->height = in->height;
 	out->hor_spat_ref = in->hor_spat_ref;
@@ -540,7 +540,7 @@ CopyVopNonImageField(Vop *in,Vop *out)
 	out->sr_for = in->sr_for;
 
 	out->intra_dc_vlc_thr = in->intra_dc_vlc_thr;
-
+*/
 }
 
 

@@ -96,6 +96,7 @@ int gettimeofday(struct timeval *t, void *);
 #include <string.h>
 #include <ctype.h>
 #include <netdb.h>
+#include <sys/stat.h>
 
 #define closesocket close
 #define IOSBINARY ios::bin

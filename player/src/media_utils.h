@@ -49,4 +49,16 @@ CCodecBase *start_video_codec(const char *codec_name,
 			      const unsigned char *userdata,
 			      size_t userdata_size);
 
+CRtpByteStreamBase *create_rtp_byte_stream_for_format(format_list_t *fmt,
+						      unsigned int rtp_proto,
+						      int ondemand,
+						      uint64_t tps,
+						      rtp_packet **head, 
+						      rtp_packet **tail,
+						      int rtpinfo_received,
+						      uint32_t rtp_rtptime,
+						      int rtcp_received,
+						      uint32_t ntp_frac,
+						      uint32_t ntp_sec,
+						      uint32_t rtp_ts);
 #endif

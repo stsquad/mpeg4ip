@@ -144,7 +144,7 @@ int create_media_for_mp3_file (CPlayerSession *psptr,
     return (-1);
   }
 
-  fbyte = new COurInByteStreamFile(mptr, name);
+  fbyte = new COurInByteStreamFile(name);
 
   MPEGaudio *mp3 = new MPEGaudio(c_read_byte, c_read_bytes, fbyte);
 
@@ -182,7 +182,6 @@ int create_media_for_mp3_file (CPlayerSession *psptr,
 
   audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
   audio->freq = freq;
-  audio->stream_has_length = 0;
   mptr->set_audio_info(audio);
   mptr->set_codec_type("mp3 ");
   read_mp3_file_for_tag(psptr, name);

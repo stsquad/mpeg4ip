@@ -2,19 +2,6 @@
 #ifndef _VM_COMMON_DEFS_H_
 #define _VM_COMMON_DEFS_H_
 
-   #   ifdef __cplusplus
-       extern "C" {
-   #   endif /* __cplusplus */
-
-#define VERSION		1		/* image structure version */
-
-
-   #   ifdef __cplusplus
-       }
-   #   endif /* __cplusplus  */ 
-
-
-
 /* maximum allowed number of VOs and VOLs */
 
 #define MAX_NUM_VOS 32

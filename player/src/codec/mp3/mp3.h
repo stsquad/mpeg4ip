@@ -28,7 +28,7 @@
 #include "systems.h"
 #include <mp3/MPEGaudio.h>
 #include "codec.h"
-#include "player_rtp_bytestream.h"
+#include "rtp_bytestream.h"
 #include "player_mem_bytestream.h"
 #include "audio.h"
 

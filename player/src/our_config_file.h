@@ -22,7 +22,7 @@
 #ifndef __OUR_CONFIG_FILE_H__
 #define __OUR_CONFIG_FILE_H__ 1
 
-#include <config_file.h>
+#include <config_file/config_file.h>
 enum {
   CONFIG_USE_MPEG4_ISO_ONLY,
   CONFIG_PREV_FILE_0,
@@ -30,6 +30,9 @@ enum {
   CONFIG_PREV_FILE_2,
   CONFIG_PREV_FILE_3,
   CONFIG_RTP_BUFFER_TIME,
+  CONFIG_LOOPED,
+  CONFIG_VOLUME,
+  CONFIG_MUTED,
   CONFIG_MAX,
 };
 

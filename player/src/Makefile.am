@@ -1,7 +1,26 @@
+###########################################################################
+# Some rules for building asm files:
+
+STRIP_FPIC = sh $(top_srcdir)/strip_fPIC.sh
+
+SUFFIXES = .asm
+
+.asm.lo:
+	$(LIBTOOL) --mode=compile $(STRIP_FPIC) $(NASM) @NASMFLAGS@ $<
+
+###########################################################################
+
 SUBDIRS = codec
 
 noinst_LTLIBRARIES = libmp4player.la
 libmp4player_la_LDFLAGS = -static
+
+if USE_MMX
+EXTRA_libmp4player_la_SOURCES = frame_doubler_mmx.asm
+else
+EXTRA_libmp4player_la_SOURCES = frame_doubler.cpp
+endif
+
 libmp4player_la_SOURCES = \
 	audio.cpp \
 	avi_bytestream.cpp \
@@ -14,14 +33,16 @@ libmp4player_la_SOURCES = \
 	player_media.cpp \
 	player_media_decode.cpp \
 	player_mem_bytestream.cpp \
-	player_rtp_bytestream.cpp \
 	player_sdp.c \
 	player_session.cpp \
 	player_util.c \
+	playlist.cpp \
 	qtime_bytestream.cpp \
 	qtime_file.cpp \
+	rtp_bytestream.cpp \
 	sync.cpp \
-	video.cpp
+	video.cpp \
+	$(EXTRA_libmp4player_la_SOURCES)
 
 bin_PROGRAMS = mp4player gmp4player
 
@@ -38,11 +59,11 @@ gmp4player_SOURCES = \
 movplayer_SOURCES = player_util.c \
 	movplayer.cpp
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I../lib/SDL/include -I$(top_srcdir)/common/mp4 -I$(top_srcdir)/include @GLIB_INCLUDES@ @GTK_INCLUDES@ -I$(top_srcdir)/include -I$(top_srcdir)/server/lib/avi -I$(top_srcdir)/common/lib/config_file
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I../lib/SDL/include -I$(top_srcdir)/common/mp4 -I$(top_srcdir)/include @GLIB_INCLUDES@ @GTK_INCLUDES@ -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/common/lib
 
 AM_CFLAGS= -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wmissing-prototypes 
 
-AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -fno-rtti -Wall -Werror
+AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror
 
 LDADD = \
 	$(top_builddir)/player/src/libmp4player.la \
@@ -63,16 +84,16 @@ LDADD = \
 	$(top_builddir)/common/video/mpeg4/obj/libobj.a \
 	$(top_builddir)/player/lib/SDL/src/libSDL.la \
 	$(top_builddir)/common/mp4/libmp4.la \
-	$(top_builddir)/server/lib/avi/libavi.la \
+	$(top_builddir)/lib/avi/libavi.la \
 	$(top_builddir)/player/src/libmp4player.la \
-	$(top_builddir)/server/lib/avi/libavi.la \
+	$(top_builddir)/lib/avi/libavi.la \
 	$(top_builddir)/common/lib/config_file/libconfig_file.la \
 	$(top_builddir)/common/lib/msg_queue/libmsg_queue.la \
 	-lpthread \
 	-lm \
-	$(top_builddir)/server/lib/avi/libavi.la \
+	$(top_builddir)/lib/avi/libavi.la \
 	$(top_builddir)/player/src/libmp4player.la \
-	$(top_builddir)/server/lib/avi/libavi.la \
+	$(top_builddir)/lib/avi/libavi.la \
 	$(top_builddir)/player/lib/video/divx/libourdivx.la \
 	$(top_builddir)/player/src/codec/aa/libaa.la \
 	$(top_builddir)/common/video/mpeg4/obj/libobj.a \

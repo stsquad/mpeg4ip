@@ -31,13 +31,10 @@
 #include "systems.h"
 #include <tools/entropy/bytestrm.hpp>
 
-class CPlayerMedia;
-
 class COurInByteStream : public CInByteStreamBase
 {
  public:
-  COurInByteStream(CPlayerMedia *m) : CInByteStreamBase()
-    {m_media = m;};
+  COurInByteStream() : CInByteStreamBase() {};
   virtual ~COurInByteStream() {};
   virtual int eof(void) = 0;
   virtual unsigned char get(void) = 0;
@@ -48,11 +45,9 @@ class COurInByteStream : public CInByteStreamBase
   virtual uint64_t start_next_frame (void) = 0;
   virtual double get_max_playtime (void) = 0;
   virtual void set_start_time(uint64_t start) { m_play_start_time = start; };
-  virtual int still_same_ts (void) { return 0; };
 
  protected:
   uint64_t m_play_start_time;
-  CPlayerMedia *m_media;
  private:
   void audio_set_timebase(long frame);
 };

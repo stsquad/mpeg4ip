@@ -21,6 +21,8 @@
 /*
  * qtime_bytestream.cpp - convert quicktime file to a bytestream
  */
+//#define DEBUG_QTIME_AUDIO_FRAME 1
+
 #include "systems.h"
 #include "player_session.h"
 #include "player_media.h"
@@ -30,10 +32,9 @@
  * Quicktime stream base class functions
  **************************************************************************/
 CQTByteStreamBase::CQTByteStreamBase (CQtimeFile *parent,
-				      CPlayerMedia *m,
 				      int track,
 				      const char *type)
-  : COurInByteStream(m)
+  : COurInByteStream()
 {
   m_track = track;
   m_frame_on = 0;
@@ -172,6 +173,9 @@ uint64_t CQTVideoByteStream::start_next_frame (void)
   long start;
   int duration;
 
+  if (m_frame_on >= m_frames_max) {
+    m_eof = 1;
+  }
 #ifdef DEBUG_QTIME_VIDEO_FRAME
   player_debug_message("start_next_frame %d", m_frame_on);
 #endif
@@ -355,6 +359,9 @@ double CQTVideoByteStream::get_max_playtime (void)
  **************************************************************************/
 void CQTAudioByteStream::audio_set_timebase (long frame)
 {
+#ifdef DEBUG_QTIME_AUDIO_FRAME
+  player_debug_message("Setting qtime audio timebase to frame %ld", frame);
+#endif
   m_eof = 0;
   m_bookmark_read_frame = 0;
   m_frame_on = frame;
@@ -375,12 +382,19 @@ void CQTAudioByteStream::reset (void)
 uint64_t CQTAudioByteStream::start_next_frame (void)
 {
   uint64_t ret;
+  if (m_frame_on >= m_frames_max) {
+#ifdef DEBUG_QTIME_AUDIO_FRAME
+    player_debug_message("Setting EOF from start_next_frame %d %d", 
+			 m_frame_on, m_frames_max);
+#endif
+    m_eof = 1;
+  }
   ret = m_frame_on;
   ret *= m_samples_per_frame;
   ret *= 1000;
   ret /= m_frame_rate;
 #ifdef DEBUG_QTIME_AUDIO_FRAME
-  player_debug_message("audio - start frame %d", m_frame_on);
+  player_debug_message("audio - start frame %d %d", m_frame_on, m_frames_max);
 #endif
 #if 0
   player_debug_message("audio Start next frame "LLU " offset %u %u", 
@@ -393,6 +407,10 @@ uint64_t CQTAudioByteStream::start_next_frame (void)
 
 void CQTAudioByteStream::read_frame (size_t frame_to_read)
 {
+#ifdef DEBUG_QTIME_AUDIO_FRAME
+  player_debug_message("audio read_frame %d", frame_to_read);
+#endif
+
   if (m_frame_in_buffer == frame_to_read) {
     m_byte_on = 0;
     return;
@@ -418,14 +436,12 @@ void CQTAudioByteStream::read_frame (size_t frame_to_read)
 
   if (m_bookmark == 0) {
     m_buffer_on = m_buffer;
+    m_frame_in_buffer = frame_to_read;
   } else {
     m_buffer_on = m_bookmark_buffer;
     m_bookmark_read_frame = 1;
   }
   unsigned char *buff = m_buffer_on;
-  if (m_add_len_to_stream) {
-    buff += 2;
-  }
   quicktime_set_audio_position(m_parent->get_file(), 
 			       frame_to_read, 
 			       m_track);
@@ -441,16 +457,13 @@ void CQTAudioByteStream::read_frame (size_t frame_to_read)
     // Okay - I could have used a goto, but it really grates...
     if (m_bookmark == 0) {
       m_buffer_on = m_buffer;
-      m_frame_in_bookmark = frame_to_read;
+      m_frame_in_buffer = frame_to_read;
     } else {
       m_buffer_on = m_bookmark_buffer;
       m_bookmark_read_frame = 1;
       m_frame_in_bookmark = frame_to_read;
     }
     buff = m_buffer_on;
-    if (m_add_len_to_stream) {
-      buff += 2;
-    }
     quicktime_set_audio_position(m_parent->get_file(), 
 				 frame_to_read, 
 				 m_track);
@@ -459,11 +472,6 @@ void CQTAudioByteStream::read_frame (size_t frame_to_read)
 						   m_max_frame_size,
 						 m_track);
   }
-  if (m_add_len_to_stream) {
-    m_buffer_on[0] = m_this_frame_size >> 8;
-    m_buffer_on[1] = m_this_frame_size & 0xff;
-    m_this_frame_size += 2;
-  }
 #if 0
   player_debug_message("qta frame size %u", m_this_frame_size);
 #endif
@@ -471,7 +479,6 @@ void CQTAudioByteStream::read_frame (size_t frame_to_read)
     // Why not read 2 frames for the price of 1 ?
     m_bookmark_read_frame = 1;
     buff = m_bookmark_buffer;
-    if (m_add_len_to_stream) buff += 2;
     m_bookmark_read_frame_size = 
       quicktime_read_audio_frame(m_parent->get_file(),
 				 buff,
@@ -479,15 +486,7 @@ void CQTAudioByteStream::read_frame (size_t frame_to_read)
 				 m_track);
     if (m_bookmark_read_frame_size <= 0) {
       m_bookmark_read_frame = 0;
-    } else if (m_add_len_to_stream) {
-      m_bookmark_buffer[0] = m_bookmark_read_frame_size >> 8;
-      m_bookmark_buffer[1] = m_bookmark_read_frame_size & 0xff;
-      m_bookmark_read_frame_size += 2;
-      m_frame_in_bookmark = frame_to_read + 1;
-#if 0
-      player_debug_message("qta bframe size %u", m_bookmark_read_frame_size);
-#endif
-    }
+    } 
   } else {
     m_bookmark_read_frame_size = m_this_frame_size;
   }

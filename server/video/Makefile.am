@@ -1,1 +1,1 @@
-SUBDIRS = divx
+SUBDIRS = divx ffmpeg

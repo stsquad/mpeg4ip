@@ -92,9 +92,9 @@ int quicktime_write_iods(quicktime_t *file, quicktime_iods_t *iods)
 	quicktime_write_char(file, 0xFF);	/* graphicsProfileLevel */
 
 	for (i = 0; i < file->moov.total_tracks; i++) {
-		quicktime_write_char(file, 0x03);	/* ES_Descriptor tag */
-		quicktime_write_char(file, 0x02);	/* length */
-		quicktime_write_int16(file, file->moov.trak[i]->tkhd.track_id);	
+		quicktime_write_char(file, 0x0E);	/* ES_ID_IncTag */
+		quicktime_write_char(file, 0x04);	/* length */
+		quicktime_write_int32(file, file->moov.trak[i]->tkhd.track_id);	
 	}
 
 	/* no OCI_Descriptors */

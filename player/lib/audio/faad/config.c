@@ -1,130 +1,140 @@
-/************************* MPEG-2 NBC Audio Decoder **************************
- *                                                                           *
-"This software module was originally developed by 
-AT&T, Dolby Laboratories, Fraunhofer Gesellschaft IIS in the course of 
-development of the MPEG-2 NBC/MPEG-4 Audio standard ISO/IEC 13818-7, 
-14496-1,2 and 3. This software module is an implementation of a part of one or more 
-MPEG-2 NBC/MPEG-4 Audio tools as specified by the MPEG-2 NBC/MPEG-4 
-Audio standard. ISO/IEC  gives users of the MPEG-2 NBC/MPEG-4 Audio 
-standards free license to this software module or modifications thereof for use in 
-hardware or software products claiming conformance to the MPEG-2 NBC/MPEG-4
-Audio  standards. Those intending to use this software module in hardware or 
-software products are advised that this use may infringe existing patents. 
-The original developer of this software module and his/her company, the subsequent 
-editors and their companies, and ISO/IEC have no liability for use of this software 
-module or modifications thereof in an implementation. Copyright is not released for 
-non MPEG-2 NBC/MPEG-4 Audio conforming products.The original developer
-retains full right to use the code for his/her  own purpose, assign or donate the 
-code to a third party and to inhibit third party from using the code for non 
-MPEG-2 NBC/MPEG-4 Audio conforming products. This copyright notice must
-be included in all copies or derivative works." 
-Copyright(c)1996.
- *                                                                           *
- ****************************************************************************/
+/*
+ * FAAD - Freeware Advanced Audio Decoder
+ * Copyright (C) 2001 Menno Bakker
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * $Id: config.c,v 1.4 2001/06/28 23:54:22 wmaycisco Exp $
+ */
+
+#ifdef WIN32
+#include <windows.h>
+#endif
 #include "all.h"
+#include "bits.h"
+#include "util.h"
+
+static int ch_index(MC_Info *mip, int cpe, int tag);
+static int enter_chn(int cpe, int tag, char position, int common_window, MC_Info *mip);
 
 /*
- * profile dependent parameters
+ * adts_header
  */
-int
-tns_max_bands(int islong)
+int get_adts_header(faacDecHandle hDecoder)
 {
-    int i;
+	int sync = 0;
+    ADTS_Header *p = &hDecoder->adts_header;
 
-    /* construct second index */
-    i = islong ? 0 : 1;
-    
-    return tns_max_bands_tbl[mc_info.sampling_rate_idx][i];
-}
+	faad_byte_align(&hDecoder->ld);
+#if 0
+	// wmay - I think this is wrong
+	if (hDecoder->isMpeg4)
+	hDecoder->ld.m_alignment_offset=0;
+	faad_byte_align(&hDecoder->ld);
+#endif
 
-int
-tns_max_order(int islong)
-{
-    if (islong) {
-	switch (mc_info.profile) {
-	case Main_Profile:
-	    return 20;
-	case LC_Profile:
-	    return 12;
+	// wmay changed from getbits to show bits
+#if 0
+	sync = faad_getbits(&hDecoder->ld, 12);
+	if (sync != 4096 - 1)
+		return -1;
+#else
+	sync = showbits(&hDecoder->ld, 12);
+	if (sync != 4096 - 1) {
+	  printf("sync - got %x\n", sync);
+	  flushbits(&hDecoder->ld, 8);
+	  return -1;
 	}
-    }
-    else {
-	/* short window */
-	return 7;
-    }
-    return 0;
-}
+	faad_flushbits(&hDecoder->ld, 12);
+#endif
+	if (hDecoder->frameNum) {
+		faad_getbits(&hDecoder->ld, 16);
+		if (p->fixed.ID == 0) /* MPEG2 AAC doesn't have this */
+			faad_getbits(&hDecoder->ld, 2);
+	} else {
+		/* Syncword found, proceed to read in the fixed ADTS header */
+		p->fixed.ID = faad_get1bit(&hDecoder->ld); /* 0 -> MPEG4, 1 -> MPEG2 */
+		hDecoder->isMpeg4 = !p->fixed.ID;
+		p->fixed.layer = faad_getbits(&hDecoder->ld, 2);
+		p->fixed.protection_absent = faad_get1bit(&hDecoder->ld);
+		hDecoder->mc_info.object_type = p->fixed.object_type = faad_getbits(&hDecoder->ld, 2);
+		hDecoder->mc_info.sampling_rate_idx = p->fixed.sampling_rate_idx = faad_getbits(&hDecoder->ld, 4);
+		p->fixed.private_bit = faad_get1bit(&hDecoder->ld);
+		p->fixed.channel_configuration = faad_getbits(&hDecoder->ld, 3);
+		p->fixed.original_copy = faad_get1bit(&hDecoder->ld);
+		p->fixed.home = faad_get1bit(&hDecoder->ld);
+		if (p->fixed.ID == 0) /* MPEG2 AAC doesn't have this */
+			p->fixed.emphasis = faad_getbits(&hDecoder->ld, 2);
+	}
 
-int
-max_indep_cc(int nch)
-{
-    switch (mc_info.profile) {
-    case Main_Profile:
-	return ICChans;
-    case LC_Profile:
+	/* ...and the variable ADTS header */
+	p->variable.copy_id_bit = faad_get1bit(&hDecoder->ld);
+	p->variable.copy_id_start = faad_get1bit(&hDecoder->ld);
+	p->variable.frame_length = faad_getbits(&hDecoder->ld, 13);
+	p->variable.buffer_fullness = faad_getbits(&hDecoder->ld, 11);
+	p->variable.raw_blocks = faad_getbits(&hDecoder->ld, 2);
+
+	//printf("frame length %d\n", p->variable.frame_length);
+	/* ADTS error check (ignored) */
+	if(!p->fixed.protection_absent)
+		faad_getbits(&hDecoder->ld, 16);
+
+#if 0
+	// wmay - removed
+	if (p->fixed.ID==0)
+	hDecoder->ld.m_alignment_offset=2;
+#endif
+
 	return 0;
-    }
-    return 0;
-}
-
-int
-max_dep_cc(int nch)
-{
-    switch (mc_info.profile) {
-    case Main_Profile:
-    case LC_Profile:
-	return DCChans;
-    }
-    return 0;
-}
-
-int
-max_lfe_chn(int nch)
-{
-    switch (mc_info.profile) {
-    case Main_Profile:
-    case LC_Profile:
-	return LChans;
-    }
-    return 0;
 }
 
 /*
  * adif_header
  */
-int get_adif_header()
+int get_adif_header(faacDecHandle hDecoder)
 {
     int i, n, tag, select_status;
     ProgConfig tmp_config;
-    ADIF_Header *p = &adif_header;
+    ADIF_Header *p = &hDecoder->adif_header;
 
     /* adif header */
 	for (i=0; i<LEN_ADIF_ID; i++)
-		p->adif_id[i] = (char)getbits(LEN_BYTE); 
+		p->adif_id[i] = (char)faad_getbits(&hDecoder->ld, LEN_BYTE); 
 	p->adif_id[i] = 0;	    /* null terminated string */
 	/* copyright string */	
-    if ((p->copy_id_present = getbits(LEN_COPYRT_PRES)) == 1) {
+    if ((p->copy_id_present = faad_getbits(&hDecoder->ld, LEN_COPYRT_PRES)) == 1) {
 		for (i=0; i<LEN_COPYRT_ID; i++)
-			p->copy_id[i] = (char)getbits(LEN_BYTE); 
+			p->copy_id[i] = (char)faad_getbits(&hDecoder->ld, LEN_BYTE); 
 		p->copy_id[i] = 0;  /* null terminated string */
     }
-    p->original_copy = getbits(LEN_ORIG);
-    p->home = getbits(LEN_HOME);
-    p->bitstream_type = getbits(LEN_BS_TYPE);
-    p->bitrate = getbits(LEN_BIT_RATE);
+    p->original_copy = faad_getbits(&hDecoder->ld, LEN_ORIG);
+    p->home = faad_getbits(&hDecoder->ld, LEN_HOME);
+    p->bitstream_type = faad_getbits(&hDecoder->ld, LEN_BS_TYPE);
+    p->bitrate = faad_getbits(&hDecoder->ld, LEN_BIT_RATE);
 
-    /* program config elements */ 
+    /* program config elements */
     select_status = -1;   
-    n = getbits(LEN_NUM_PCE) + 1;
+    n = faad_getbits(&hDecoder->ld, LEN_NUM_PCE) + 1;
     for (i=0; i<n; i++) {
 		tmp_config.buffer_fullness =
-			(p->bitstream_type == 0) ? getbits(LEN_ADIF_BF) : 0;
-		tag = get_prog_config(&tmp_config);
-		if (current_program < 0)
-			current_program = tag;	    /* default is first prog */
-		if (current_program == tag) {
-			memcpy(&prog_config, &tmp_config, sizeof(prog_config));
+			(p->bitstream_type == 0) ? faad_getbits(&hDecoder->ld, LEN_ADIF_BF) : 0;
+		tag = get_prog_config(hDecoder, &tmp_config);
+		if (hDecoder->current_program < 0)
+			hDecoder->current_program = tag;	    /* default is first prog */
+		if (hDecoder->current_program == tag) {
+			CopyMemory(&hDecoder->prog_config, &tmp_config, sizeof(hDecoder->prog_config));
 			select_status = 1;
 		}
     }
@@ -136,64 +146,68 @@ int get_adif_header()
 /*
  * program configuration element
  */
-static void
-get_ele_list(EleList *p, int enable_cpe)
+static void get_ele_list(faacDecHandle hDecoder, EleList *p, int enable_cpe)
 {  
     int i, j;
     for (i=0, j=p->num_ele; i<j; i++) {
 		if (enable_cpe)
-			p->ele_is_cpe[i] = getbits(LEN_ELE_IS_CPE);
+			p->ele_is_cpe[i] = faad_getbits(&hDecoder->ld, LEN_ELE_IS_CPE);
         else
             p->ele_is_cpe[i] = 0; /* sdb */
-		p->ele_tag[i] = getbits(LEN_TAG);
+		p->ele_tag[i] = faad_getbits(&hDecoder->ld, LEN_TAG);
     }
 }
 
-int
-get_prog_config(ProgConfig *p)
+int get_prog_config(faacDecHandle hDecoder, ProgConfig *p)
 {
     int i, j, tag;
 
-    tag = getbits(LEN_TAG);
+    tag = faad_getbits(&hDecoder->ld, LEN_TAG);
 
-    p->profile = getbits(LEN_PROFILE);
-    p->sampling_rate_idx = getbits(LEN_SAMP_IDX);
-    p->front.num_ele = getbits(LEN_NUM_ELE);
-    p->side.num_ele = getbits(LEN_NUM_ELE);
-    p->back.num_ele = getbits(LEN_NUM_ELE);
-    p->lfe.num_ele = getbits(LEN_NUM_LFE);
-    p->data.num_ele = getbits(LEN_NUM_DAT);
-    p->coupling.num_ele = getbits(LEN_NUM_CCE);
-    if ((p->mono_mix.present = getbits(LEN_MIX_PRES)) == 1)
-		p->mono_mix.ele_tag = getbits(LEN_TAG);
-    if ((p->stereo_mix.present = getbits(LEN_MIX_PRES)) == 1)
-		p->stereo_mix.ele_tag = getbits(LEN_TAG);
-    if ((p->matrix_mix.present = getbits(LEN_MIX_PRES)) == 1) {
-		p->matrix_mix.ele_tag = getbits(LEN_MMIX_IDX);
-		p->matrix_mix.pseudo_enab = getbits(LEN_PSUR_ENAB);
+    p->object_type = faad_getbits(&hDecoder->ld, LEN_OBJECTTYPE);
+    p->sampling_rate_idx = faad_getbits(&hDecoder->ld, LEN_SAMP_IDX);
+    p->front.num_ele = faad_getbits(&hDecoder->ld, LEN_NUM_ELE);
+    p->side.num_ele = faad_getbits(&hDecoder->ld, LEN_NUM_ELE);
+    p->back.num_ele = faad_getbits(&hDecoder->ld, LEN_NUM_ELE);
+    p->lfe.num_ele = faad_getbits(&hDecoder->ld, LEN_NUM_LFE);
+    p->data.num_ele = faad_getbits(&hDecoder->ld, LEN_NUM_DAT);
+    p->coupling.num_ele = faad_getbits(&hDecoder->ld, LEN_NUM_CCE);
+    if ((p->mono_mix.present = faad_getbits(&hDecoder->ld, LEN_MIX_PRES)) == 1)
+		p->mono_mix.ele_tag = faad_getbits(&hDecoder->ld, LEN_TAG);
+    if ((p->stereo_mix.present = faad_getbits(&hDecoder->ld, LEN_MIX_PRES)) == 1)
+		p->stereo_mix.ele_tag = faad_getbits(&hDecoder->ld, LEN_TAG);
+    if ((p->matrix_mix.present = faad_getbits(&hDecoder->ld, LEN_MIX_PRES)) == 1) {
+		p->matrix_mix.ele_tag = faad_getbits(&hDecoder->ld, LEN_MMIX_IDX);
+		p->matrix_mix.pseudo_enab = faad_getbits(&hDecoder->ld, LEN_PSUR_ENAB);
     }
-    get_ele_list(&p->front, 1);
-    get_ele_list(&p->side, 1);
-    get_ele_list(&p->back, 1);
-    get_ele_list(&p->lfe, 0);
-    get_ele_list(&p->data, 0);
-    get_ele_list(&p->coupling, 1);
-    
-    byte_align();
-    j = getbits(LEN_COMMENT_BYTES);
+    get_ele_list(hDecoder, &p->front, 1);
+    get_ele_list(hDecoder, &p->side, 1);
+    get_ele_list(hDecoder, &p->back, 1);
+    get_ele_list(hDecoder, &p->lfe, 0);
+    get_ele_list(hDecoder, &p->data, 0);
+    get_ele_list(hDecoder, &p->coupling, 1);
+
+	/*
+	 * if this is a MPEG4 file and the PCE is inside a raw_data_block() 
+	 * this should be aligned to beginning of raw_data_block() boundary,
+	 * not byte boundary (FIXME!!!)
+	 */
+    faad_byte_align(&hDecoder->ld);
+
+    j = faad_getbits(&hDecoder->ld, LEN_COMMENT_BYTES);
     for (i=0; i<j; i++)
-		p->comments[i] = (char)getbits(LEN_BYTE);
+		p->comments[i] = (char)faad_getbits(&hDecoder->ld, LEN_BYTE);
     p->comments[i] = 0;	/* null terminator for string */
 
     /* activate new program configuration if appropriate */
-    if (current_program < 0)
-		current_program = tag;	    /* always select new program */
-    if (tag == current_program) {
+    if (hDecoder->current_program < 0)
+		hDecoder->current_program = tag;	    /* always select new program */
+    if (tag == hDecoder->current_program) {
 		/* enter configuration into MC_Info structure */
-		if (enter_mc_info(&mc_info, p) < 0)
+		if ((hDecoder->pceChannels = enter_mc_info(hDecoder, &hDecoder->mc_info, p)) < 0)
 			return -1;
 		/* inhibit default configuration */
-		default_config = 0;
+		hDecoder->default_config = 0;
     }
 	
     return tag;
@@ -202,12 +216,12 @@ get_prog_config(ProgConfig *p)
 /* enter program configuration into MC_Info structure
  *  only configures for channels specified in all.h
  */
-int
-enter_mc_info(MC_Info *mip, ProgConfig *pcp)
+int enter_mc_info(faacDecHandle hDecoder, MC_Info *mip, ProgConfig *pcp)
 {  
     int i, j, cpe, tag, cw;
     EleList *elp;
     MIXdown *mxp;
+	int channels = 0;
 
     /* reset channel counts */
     mip->nch = 0;
@@ -218,13 +232,13 @@ enter_mc_info(MC_Info *mip, ProgConfig *pcp)
     mip->nlch = 0;
     mip->ncch = 0;
 
-    /* profile and sampling rate
+    /*  object type and sampling rate
      *	re-configure if new sampling rate
      */    
-    mip->profile = pcp->profile;
+    mip->object_type = pcp->object_type;
     if (mip->sampling_rate_idx != pcp->sampling_rate_idx) {
-	mip->sampling_rate_idx = pcp->sampling_rate_idx;
-	infoinit(&samp_rate_info[mip->sampling_rate_idx]);
+		mip->sampling_rate_idx = pcp->sampling_rate_idx;
+		infoinit(hDecoder, &samp_rate_info[mip->sampling_rate_idx]);
     }
     
     cw = 0;			    /* changed later */
@@ -233,33 +247,39 @@ enter_mc_info(MC_Info *mip, ProgConfig *pcp)
     elp = &pcp->front;
     /* count number of leading SCE's */
     for (i=0, j=elp->num_ele; i<j; i++) {
-	if (elp->ele_is_cpe[i])
-	    break;
-	mip->nfsce++;
+		if (elp->ele_is_cpe[i])
+			break;
+		mip->nfsce++;
     }
     for (i=0, j=elp->num_ele; i<j; i++) {
-	cpe = elp->ele_is_cpe[i];
-	tag = elp->ele_tag[i];
-	if (enter_chn(cpe, tag, 'f', cw, mip) < 0)
-	    return(-1);
+		cpe = elp->ele_is_cpe[i];
+		tag = elp->ele_tag[i];
+		if (enter_chn(cpe, tag, 'f', cw, mip) < 0)
+			return(-1);
+		if (cpe) channels+=2;
+		else channels++;
     }
     
     /* side elements, left to right then front to back */
     elp = &pcp->side;
     for (i=0, j=elp->num_ele; i<j; i++) {
-	cpe = elp->ele_is_cpe[i];
-	tag = elp->ele_tag[i];
-	if (enter_chn(cpe, tag, 's', cw, mip) < 0)
-	    return(-1);
+		cpe = elp->ele_is_cpe[i];
+		tag = elp->ele_tag[i];
+		if (enter_chn(cpe, tag, 's', cw, mip) < 0)
+			return(-1);
+		if (cpe) channels+=2;
+		else channels++;
     }
 	  
     /* back elements, outside to center */
     elp = &pcp->back;
     for (i=0, j=elp->num_ele; i<j; i++) {
-	cpe = elp->ele_is_cpe[i];
-	tag = elp->ele_tag[i];
-	if (enter_chn(cpe, tag, 'b', cw, mip) < 0)
-	     return(-1);
+		cpe = elp->ele_is_cpe[i];
+		tag = elp->ele_tag[i];
+		if (enter_chn(cpe, tag, 'b', cw, mip) < 0)
+			return(-1);
+		if (cpe) channels+=2;
+		else channels++;
     }
     
     /* lfe elements */
@@ -269,47 +289,50 @@ enter_mc_info(MC_Info *mip, ProgConfig *pcp)
 		tag = elp->ele_tag[i];
 		if (enter_chn(cpe, tag, 'l', cw, mip) < 0)
 			return(-1);
+		if (cpe) channels+=2;
+		else channels++;
     }
         
     /* coupling channel elements */
     elp = &pcp->coupling;
     for (i=0, j=elp->num_ele; i<j; i++)
-	mip->cch_tag[i] = elp->ele_tag[i];
+		mip->cch_tag[i] = elp->ele_tag[i];
     mip->ncch = j;
-    
+	channels += j;
+ 
     /* mono mixdown elements */
     mxp = &pcp->mono_mix;
     if (mxp->present) {
-//		CommonWarning("Unanticipated mono mixdown channel");
+/*		CommonWarning("Unanticipated mono mixdown channel"); */
 		return(-1);
     }
     
     /* stereo mixdown elements */
     mxp = &pcp->stereo_mix;
     if (mxp->present) {
-//	CommonWarning("Unanticipated stereo mixdown channel");
-	return(-1);
+/*		CommonWarning("Unanticipated stereo mixdown channel"); */
+		return(-1);
     }
     
     /* matrix mixdown elements */
     mxp = &pcp->matrix_mix;
     if (mxp->present) {
-//	CommonWarning("Unanticipated matrix mixdown channel");
-	return(-1);
+/*		CommonWarning("Unanticipated matrix mixdown channel"); */
+		return(-1);
     }
     
     /* save to check future consistency */
-    check_mc_info(&mc_info, 1);
+    if (!check_mc_info(hDecoder, mip, 1))
+		return -1;
 
-    return 1;
+    return channels;
 }
 
 /* translate prog config or default config 
  * into to multi-channel info structure
  *  returns index of channel in MC_Info
  */
-int
-enter_chn(int cpe, int tag, char position, int common_window, MC_Info *mip)
+static int enter_chn(int cpe, int tag, char position, int common_window, MC_Info *mip)
 {
     int nch, cidx=0;
     Ch_Info *cip;
@@ -323,8 +346,7 @@ enter_chn(int cpe, int tag, char position, int common_window, MC_Info *mip)
 	if (common_window) {
 	    mip->ch_info[cidx].widx = cidx;	/* window info is left */
 	    mip->ch_info[cidx+1].widx = cidx;
-	}
-	else {
+	} else {
 	    mip->ch_info[cidx].widx = cidx;	/* each has window info */
 	    mip->ch_info[cidx+1].widx = cidx+1;
 	}
@@ -333,7 +355,7 @@ enter_chn(int cpe, int tag, char position, int common_window, MC_Info *mip)
     /* build configuration */
     case 'f':
 	if (mip->nfch + nch > FChans) {
-//	    CommonWarning("Unanticipated front channel");
+/*	    CommonWarning("Unanticipated front channel"); */
 	    return -1;
 	}
 	if (mip->nfch == 0) {
@@ -386,7 +408,7 @@ enter_chn(int cpe, int tag, char position, int common_window, MC_Info *mip)
 	break;
     case 's':
 	if (mip->nsch + nch > SChans)  {
-//	    CommonWarning("Unanticipated side channel");
+/*	    CommonWarning("Unanticipated side channel"); */
 	    return -1;
 	}
 	cidx = FChans + mip->nsch;
@@ -394,7 +416,7 @@ enter_chn(int cpe, int tag, char position, int common_window, MC_Info *mip)
 	break;
     case 'b':
 	if (mip->nbch + nch > BChans) {
-//	    CommonWarning("Unanticipated back channel");
+/*	    CommonWarning("Unanticipated back channel"); */
 	    return -1;
 	}
 	cidx = FChans + SChans + mip->nbch;
@@ -402,14 +424,15 @@ enter_chn(int cpe, int tag, char position, int common_window, MC_Info *mip)
 	break;
     case 'l':
 	if (mip->nlch + nch > LChans) {
-//	    CommonWarning("Unanticipated LFE channel");
+/*	    CommonWarning("Unanticipated LFE channel"); */
 	    return -1;
 	}
 	cidx = FChans + SChans + BChans + mip->nlch; /* sdb */
 	mip->nlch += nch;
 	break;
     default:
-	CommonExit(1,"2020: Error in channel configuration");
+/*		CommonExit(1,"2020: Error in channel configuration"); */
+		return -1;
     }
     mip->nch += nch;
 
@@ -455,24 +478,22 @@ enter_chn(int cpe, int tag, char position, int common_window, MC_Info *mip)
     return cidx;
 }
 
-static char default_position(MC_Info *mip, int id)
+static char default_position(faacDecHandle hDecoder, MC_Info *mip, int id)
 {
-    static int first_cpe = 0;
-
     if (mip->nch < FChans)
 	{
 		if (id == ID_CPE)	/* first CPE */
-			first_cpe = 1;
-		else if ( (bno==0) && !first_cpe )
+			hDecoder->first_cpe = 1;
+		else if ((hDecoder->frameNum==0) && !hDecoder->first_cpe)
 			/* count number of SCE prior to first CPE in first block */
 			mip->nfsce++;
 
-		return('f'); // front
+		return('f'); /* front */
 	}
 	else if  (mip->nch < FChans+SChans)
-		return('s'); // side
+		return('s'); /* side */
 	else if  (mip->nch < FChans+SChans+BChans)
-		return('b'); // back
+		return('b'); /* back */
  
     return 0;
 }
@@ -480,8 +501,7 @@ static char default_position(MC_Info *mip, int id)
 /* retrieve appropriate channel index for the program
  * and decoder configuration
  */
-int
-chn_config(int id, int tag, int common_window, MC_Info *mip)
+int chn_config(faacDecHandle hDecoder, int id, int tag, int common_window, MC_Info *mip)
 {
     int cpe, cidx=0;
     char position;
@@ -497,23 +517,19 @@ chn_config(int id, int tag, int common_window, MC_Info *mip)
 
     cpe = (id == ID_CPE) ? 1 : 0;
     
-    if (default_config)
+    if (hDecoder->default_config)
 	{
-
 		switch (id)
 		{
 			case ID_SCE:
 			case ID_CPE:
-				if ((position = default_position(mip, id)) == 0)
+				if ((position = default_position(hDecoder, mip, id)) == 0)
 				{
-//					CommonExit(1,"2021: Unanticipated channel");
+/*					CommonExit(1,"2021: Unanticipated channel"); */
 					return (-1);
 				}
 				cidx = enter_chn(cpe, tag, position, common_window, mip);
 			break;
-			case ID_LFE:
-				cidx = enter_chn(cpe, tag, 'l', common_window, mip);
-				break;
 		}
     }
     else
@@ -527,14 +543,14 @@ chn_config(int id, int tag, int common_window, MC_Info *mip)
  * check continuity of configuration from one
  * block to next
  */
-void
-reset_mc_info(MC_Info *mip)
+void reset_mc_info(faacDecHandle hDecoder, MC_Info *mip)
 {
     int i;
     Ch_Info *p;
 
     /* only reset for implicit configuration */
-    if (default_config) {
+    if (hDecoder->default_config)
+	{
 		/* reset channel counts */
 		mip->nch = 0;
 		mip->nfch = 0;
@@ -542,10 +558,13 @@ reset_mc_info(MC_Info *mip)
 		mip->nbch = 0;
 		mip->nlch = 0;
 		mip->ncch = 0;
-		if (bno==0)
+
+		if (hDecoder->frameNum == 0)
 			/* reset prior to first block scan only! */
 			mip->nfsce = 0;
-		for (i=0; i<Chans; i++) {
+
+		for (i=0; i<Chans; i++)
+		{
 			p = &mip->ch_info[i];
 			p->present = 0;
 			p->cpe = 0;
@@ -559,49 +578,48 @@ reset_mc_info(MC_Info *mip)
 }
 
 
-void
-check_mc_info(MC_Info *mip, int new_config)
+int check_mc_info(faacDecHandle hDecoder, MC_Info *mip, int new_config)
 {
-    int i, nch, err;
-    Ch_Info *s, *p;
-    static MC_Info save_mc_info;
+	int i, nch, err;
+	Ch_Info *s, *p;
 
-    nch = mip->nch;
-    if (new_config) {
-	/* enter valid configuration */
-	for (i=0; i<nch; i++) {
-	    s = &save_mc_info.ch_info[i];
-	    p = &mip->ch_info[i];
-	    s->present = p->present;
-	    s->cpe = p->cpe;
-	    s->ch_is_left = p->ch_is_left;
-	    s->paired_ch = p->paired_ch;
-	}
-    }
-    else {
-	/* check this block's configuration */
-	err = 0;
-	for (i=0; i<nch; i++) {
-	    s = &save_mc_info.ch_info[i];
-	    p = &mip->ch_info[i];
-	    if (s->present != p->present) err=1;
+	nch = mip->nch;
+	if (new_config) {
+		/* enter valid configuration */
+		for (i=0; i<nch; i++) {
+			s = &hDecoder->save_mc_info.ch_info[i];
+			p = &mip->ch_info[i];
+			s->present = p->present;
+			s->cpe = p->cpe;
+			s->ch_is_left = p->ch_is_left;
+			s->paired_ch = p->paired_ch;
+		}
+	} else {
+		/* check this block's configuration */
+		err = 0;
+		for (i=0; i<nch; i++) {
+			s = &hDecoder->save_mc_info.ch_info[i];
+			p = &mip->ch_info[i];
+			if (s->present != p->present) err=1;
             if (!s->present) continue; /* sdb */
-	    if (s->cpe != p->cpe) err=1;
-	    if (s->ch_is_left != p->ch_is_left) err=1;
-	    if (s->paired_ch != p->paired_ch) err=1;
+			if (s->cpe != p->cpe) err=1;
+			if (s->ch_is_left != p->ch_is_left) err=1;
+			if (s->paired_ch != p->paired_ch) err=1;
+		}
+		if (err) {
+			/* CommonExit(1,"Channel configuration inconsistency"); */
+			return 0;
+		}
 	}
-	if (err) {
-	    CommonExit(1,"Channel configuration inconsistency");
-	}
-    }
+
+	return 1;
 }
 
 
 /* given cpe and tag,
  *  returns channel index of SCE or left chn in CPE
  */
-int
-ch_index(MC_Info *mip, int cpe, int tag)
+static int ch_index(MC_Info *mip, int cpe, int tag)
 {
     int ch;
     

@@ -23,10 +23,9 @@
 #include "player_util.h"
 #include <SDL.h>
 
-COurInByteStreamMem::COurInByteStreamMem (CPlayerMedia *m, 
-					  const unsigned char *membuf, 
+COurInByteStreamMem::COurInByteStreamMem (const unsigned char *membuf, 
 					  size_t len) :
-  COurInByteStream(m)
+  COurInByteStream()
 {
   m_frames = 0;
   m_memptr = membuf;
@@ -110,10 +109,9 @@ void COurInByteStreamMem::reset (void)
   m_frames = 0;
 }
 
-COurInByteStreamWav::COurInByteStreamWav (CPlayerMedia *m,
-					  const unsigned char *membuf, 
+COurInByteStreamWav::COurInByteStreamWav (const unsigned char *membuf, 
 					  size_t len) :
-  COurInByteStreamMem(m, membuf, len) 
+  COurInByteStreamMem(membuf, len) 
 {
 }
 COurInByteStreamWav::~COurInByteStreamWav(void)

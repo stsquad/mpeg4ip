@@ -259,7 +259,7 @@ UInt   width									  /* <-- current Y picture width                  */
 		y_off = (y_pos + j) * width;
 		for (i = 0; i < MB_SIZE; i++)
 		{
-				A += ABS( *(curr + x_pos + i + y_off) - MB_mean );
+				A += abs( *(curr + x_pos + i + y_off) - MB_mean );
 		}
 	}
 

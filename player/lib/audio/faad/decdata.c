@@ -1,28 +1,34 @@
+/*
+ * FAAD - Freeware Advanced Audio Decoder
+ * Copyright (C) 2001 Menno Bakker
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * $Id: decdata.c,v 1.4 2001/06/28 23:54:22 wmaycisco Exp $
+ */
 
 #include "all.h"
 
-int		nbits;
-long		cword;
-long		bno;
-Float		iq_exp_tbl[MAX_IQ_TBL];
-Float		exptable[TEXP];
 Hcb book[NSPECBOOKS+2];
-int		default_config;
-int		adif_header_present;
-int		adts_header_present;
-int		current_program;
-ADIF_Header	adif_header;
-ADTS_Header	adts_header;
-ProgConfig	prog_config;
-MC_Info		mc_info;
-Info		*win_seq_info[NUM_WIN_SEQ];
-Info		eight_short_info;
-Info*		winmap[NUM_WIN_SEQ];
-short		sfbwidth128[(1<<LEN_MAX_SFBS)];
+int sfbwidth128[(1<<LEN_MAX_SFBS)];
 
+const int SampleRates[] = {
+	96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000
+};
 
-short            
-sfb_96_1024[] =
+static int sfb_96_1024[] =
 {
   4, 8, 12, 16, 20, 24, 28, 
   32, 36, 40, 44, 48, 52, 56, 
@@ -32,15 +38,13 @@ sfb_96_1024[] =
   704, 768, 832, 896, 960, 1024
 };   /* 41 scfbands */
 
-short
-sfb_96_128[] =
+static int sfb_96_128[] =
 {
   4, 8, 12, 16, 20, 24, 32, 
   40, 48, 64, 92, 128
 };   /* 12 scfbands */
 
-short
-sfb_64_1024[] =
+static int sfb_64_1024[] =
 {
   4, 8, 12, 16, 20, 24, 28, 
   32, 36, 40, 44, 48, 52, 56, 
@@ -51,35 +55,31 @@ sfb_64_1024[] =
   864, 904, 944, 984, 1024
 };   /* 41 scfbands 47 */ 
 
-short
-sfb_64_128[] =
+static int sfb_64_128[] =
 {
   4, 8, 12, 16, 20, 24, 32, 
   40, 48, 64, 92, 128
 };   /* 12 scfbands */
 
 
-short
-sfb_48_1024[] =
+static int sfb_48_1024[] =
 {
-        4,	8,	12,	16,	20,	24,	28,	
-        32,	36,	40,	48,	56,	64,	72,	
-        80,	88,	96,	108,	120,	132,	144,	
-        160,	176,	196,	216,	240,	264,	292,	
-        320,	352,	384,	416,	448,	480,	512,	
-        544,	576,	608,	640,	672,	704,	736,	
-        768,	800,	832,	864,	896,	928,	1024
+  4, 8, 12, 16, 20, 24, 28,
+  32,	36,	40,	48,	56,	64,	72,	
+  80,	88,	96,	108,	120,	132,	144,	
+  160,	176,	196,	216,	240,	264,	292,	
+  320,	352,	384,	416,	448,	480,	512,	
+  544,	576,	608,	640,	672,	704,	736,	
+  768,	800,	832,	864,	896,	928,	1024
 };
 
-short
-sfb_48_128[] =
+static int sfb_48_128[] =
 {
           4,	8,	12,	16,	20,	28,	36,	
           44,	56,	68,	80,	96,	112,	128
 };
 
-short
-sfb_32_1024[] =
+static int sfb_32_1024[] =
 {
         4,	8,	12,	16,	20,	24,	28,	
         32,	36,	40,	48,	56,	64,	72,	
@@ -91,8 +91,7 @@ sfb_32_1024[] =
         992,	1024
 };
 
-short
-sfb_24_1024[] =
+static int sfb_24_1024[] =
 {
   4, 8, 12, 16, 20, 24, 28, 
   32, 36, 40, 44, 52, 60, 68, 
@@ -103,16 +102,14 @@ sfb_24_1024[] =
   768, 832, 896, 960, 1024
 };   /* 47 scfbands */
 
-short
-sfb_24_128[] =
+static int sfb_24_128[] =
 {
   4, 8, 12, 16, 20, 24, 28, 
   36, 44, 52, 64, 76, 92, 108, 
   128
 };   /* 15 scfbands */
 
-short
-sfb_16_1024[] =
+static int sfb_16_1024[] =
 {
   8, 16, 24, 32, 40, 48, 56, 
   64, 72, 80, 88, 100, 112, 124, 
@@ -123,16 +120,14 @@ sfb_16_1024[] =
   1024
 };   /* 43 scfbands */
 
-short
-sfb_16_128[] =
+static int sfb_16_128[] =
 {
   4, 8, 12, 16, 20, 24, 28, 
   32, 40, 48, 60, 72, 88, 108, 
   128
 };   /* 15 scfbands */
 
-short
-sfb_8_1024[] =
+static int sfb_8_1024[] =
 {
   12, 24, 36, 48, 60, 72, 84, 
   96, 108, 120, 132, 144, 156, 172, 
@@ -142,16 +137,15 @@ sfb_8_1024[] =
   764, 820, 880, 944, 1024
 };   /* 40 scfbands */
 
-short
-sfb_8_128[] =
+static int sfb_8_128[] =
 {
   4, 8, 12, 16, 20, 24, 28, 
   36, 44, 52, 60, 72, 88, 108, 
   128
 };   /* 15 scfbands */
 
-SR_Info
-samp_rate_info[(1<<LEN_SAMP_IDX)] = {
+SR_Info samp_rate_info[(1<<LEN_SAMP_IDX)] =
+{
     /* sampling_frequency, #long sfb, long sfb, #short sfb, short sfb */
     /* samp_rate, nsfb1024, SFbands1024, nsfb128, SFbands128 */
     {96000, 41, sfb_96_1024, 12, sfb_96_128},	    /* 96000 */
@@ -172,8 +166,8 @@ samp_rate_info[(1<<LEN_SAMP_IDX)] = {
     {0,0,0,0,0}
 };
 
-int
-tns_max_bands_tbl[(1<<LEN_SAMP_IDX)][4] = {
+int tns_max_bands_tbl[(1<<LEN_SAMP_IDX)][4] =
+{
     /* entry for each sampling rate	
      * 1    Main/LC long window
      * 2    Main/LC short window
@@ -198,8 +192,7 @@ tns_max_bands_tbl[(1<<LEN_SAMP_IDX)][4] = {
     {0,0,0,0}
 };
 
-int
-pred_max_bands_tbl[(1<<LEN_SAMP_IDX)] = {
+int pred_max_bands_tbl[(1<<LEN_SAMP_IDX)] = {
   33,     /* 96000 */
   33,     /* 88200 */
   38,     /* 64000 */

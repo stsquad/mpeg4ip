@@ -41,9 +41,11 @@
 
 #include "vop_code.h"
 #include "text_dct.h"
-#include "rc_q2.h"
+//#include "rc_q2.h"
 #include "bitstream.h"
 #include "vm_common_defs.h"
+
+#include "rate_ctl.h"
 
 typedef struct _REFERENCE
 {
@@ -51,6 +53,9 @@ typedef struct _REFERENCE
 	float framerate;
 	long bitrate;
 	long rc_period;
+	long rc_reaction_period;
+	long rc_reaction_ratio;
+	long max_key_interval;
 	int x_dim, y_dim;
 	int prev_rounding;
 	int search_range;
@@ -58,11 +63,17 @@ typedef struct _REFERENCE
 	int min_quantizer;
 
 	long seq;
+	long curr_run;       /* the current run before the last key frame */
 
 	Vop *current;        /* the current frame to be encoded */
 	Vop *reference;      /* the reference frame - reconstructed previous frame */
 	Vop *reconstruct;    /* intermediate reconstructed frame - used in inter */
 	Vop *error;          /* intermediate error frame - used in inter to hold prediction error */
+
+#ifdef MPEG4IP
+	int raw_y_dim;
+	int enable_8x8_mv;
+#endif
 
 	struct _REFERENCE *pnext;
 } REFERENCE;
@@ -75,7 +86,11 @@ void init_vol_config(VolConfig *vol_config);
 void init_vop(Vop *vop);
 Int get_fcode (Int sr);
 int PutVoVolHeader(int vol_width, int vol_height, int time_increment_resolution, float frame_rate);
-static int YUV2YUV (int x_dim, int y_dim, void *yuv, void *y_out, void *u_out, void *v_out);
+#ifdef MPEG4IP
+int YUV2YUV (int x_dim, int y_dim, int raw_y_dim, void *yuv, void *y_out, void *u_out, void *v_out);
+#else
+int YUV2YUV (int x_dim, int y_dim, void *yuv, void *y_out, void *u_out, void *v_out);
+#endif
 
 int encore(unsigned long handle, unsigned long enc_opt, void *param1, void *param2)
 {
@@ -102,6 +117,7 @@ int encore(unsigned long handle, unsigned long enc_opt, void *param1, void *para
 		ref_curr = (REFERENCE *)malloc(sizeof(REFERENCE));
 		ref_curr->handle = handle;
 		ref_curr->seq = 0;
+		ref_curr->curr_run = 0;
 		ref_curr->pnext = NULL;
 		if (ref) ref_last->pnext = ref_curr;
 		else ref = ref_curr;
@@ -109,17 +125,29 @@ int encore(unsigned long handle, unsigned long enc_opt, void *param1, void *para
 	// initialize for a handle if requested
 	if (enc_opt & ENC_OPT_INIT)
 	{
+#ifdef _RC_
+		ftrace = fopen("trace.txt", "w");
+		fflush(ftrace);
+#endif
+
 #ifndef USE_MMX
 		init_fdct_enc();
-		init_idct_enc();
 #endif
+		init_idct_enc();
 
 		// initializing rate control
 		ref_curr->framerate = ((ENC_PARAM *)param1)->framerate;
 		ref_curr->bitrate = ((ENC_PARAM *)param1)->bitrate;
 		ref_curr->rc_period = ((ENC_PARAM *)param1)->rc_period;
+		ref_curr->rc_reaction_period = ((ENC_PARAM *)param1)->rc_reaction_period;
+		ref_curr->rc_reaction_ratio = ((ENC_PARAM *)param1)->rc_reaction_ratio;
 		ref_curr->x_dim = ((ENC_PARAM *)param1)->x_dim;
 		ref_curr->y_dim = ((ENC_PARAM *)param1)->y_dim;
+#ifdef MPEG4IP
+		ref_curr->raw_y_dim = ((ENC_PARAM *)param1)->raw_y_dim;
+		ref_curr->enable_8x8_mv = ((ENC_PARAM *)param1)->enable_8x8_mv;
+#endif
+		ref_curr->max_key_interval = ((ENC_PARAM *)param1)->max_key_interval;
 		ref_curr->search_range = ((ENC_PARAM *)param1)->search_range;
 		ref_curr->max_quantizer = ((ENC_PARAM *)param1)->max_quantizer;
 		ref_curr->min_quantizer = ((ENC_PARAM *)param1)->min_quantizer;
@@ -141,17 +169,15 @@ int encore(unsigned long handle, unsigned long enc_opt, void *param1, void *para
 		init_vol_config(vol_config);
 		vol_config->frame_rate = ref_curr->framerate;
 		vol_config->bit_rate = ref_curr->bitrate;
-		RCQ2_init(vol_config, ref_curr->rc_period);
 
-#ifdef _RC_
-		ftrace = fopen("trace.txt", "w");
-#endif
+		RateCtlInit(8 /* initial quant*/, vol_config->bit_rate / vol_config->frame_rate,
+			ref_curr->rc_period, ref_curr->rc_reaction_period, ref_curr->rc_reaction_ratio);
+
 		return ENC_OK;
 	}
 	// release the reference associated with the handle if requested
 	if (enc_opt & ENC_OPT_RELEASE)
 	{
-		RCQ2_Free();
 		if (ref_curr == ref) ref = NULL;
 		else ref_last->pnext = ref_curr->pnext;
 
@@ -168,11 +194,6 @@ int encore(unsigned long handle, unsigned long enc_opt, void *param1, void *para
 		};
 		return ENC_OK;
 	}
-
-#ifdef _RC_
-	fflush(ftrace);
-	fprintf(ftrace, "\nNow coding frame # %d.\n", ref_curr->seq);
-#endif
 
 	// initialize the parameters (need to be cleaned later)
 
@@ -191,42 +212,48 @@ int encore(unsigned long handle, unsigned long enc_opt, void *param1, void *para
 
 	// do transformation for the input image
 	// this is needed because the legacy MoMuSys code uses short int for each data
+#ifdef MPEG4IP
+	YUV2YUV(x_dim, y_dim, ref_curr->raw_y_dim, ((ENC_FRAME *)param1)->image,
+		curr->y_chan->f, curr->u_chan->f, curr->v_chan->f);
+#else
 	YUV2YUV(x_dim, y_dim, ((ENC_FRAME *)param1)->image,
 		curr->y_chan->f, curr->u_chan->f, curr->v_chan->f);
+#endif
 
 	// adjust the rounding_type for the current image
 	curr->rounding_type = 1 - ref_curr->prev_rounding;
 
 	Bitstream_Init((void *)(((ENC_FRAME *)param1)->bitstream));
 
-#ifdef MPEG4IP
 	if (ref_curr->seq == 0) {
 		headerbits = PutVoVolHeader(x_dim, y_dim, curr->time_increment_resolution, ref_curr->framerate);
 	}
-
-	if ((ref_curr->seq % ref_curr->rc_period) == 0) {
-		curr->prediction_type = I_VOP;
-	} else {
-		curr->prediction_type = P_VOP;
-	}
-#else
-	if (ref_curr->seq == 0) {
-		headerbits = PutVoVolHeader(x_dim, y_dim, curr->time_increment_resolution, ref_curr->framerate);
-		curr->prediction_type = I_VOP;
-	}
-	else curr->prediction_type = P_VOP;
-#endif
-
+	
 #ifdef _RC_
+	fflush(ftrace);
 	fprintf(ftrace, "\nCoding frame #%d\n", ref_curr->seq);
 #endif
+
+	if (ref_curr->curr_run % ref_curr->max_key_interval == 0) {
+		curr->prediction_type = I_VOP;
+#ifdef _RC_
+	fprintf(ftrace, "This frame is forced to be coded in INTRA.\n");
+	fprintf(ftrace, "It has been %d frame since the last INTRA.\n", ref_curr->curr_run);
+#endif
+	}
+	else curr->prediction_type = P_VOP;
+
 
 	// Code the image data (YUV) of the current image
 	VopCode(curr,
 		ref_curr->reference,
 		ref_curr->reconstruct,
 		ref_curr->error,
+#ifdef MPEG4IP
+		ref_curr->enable_8x8_mv,
+#else
 		1, //enable_8x8_mv,
+#endif
 		(float)ref_curr->seq/ref_curr->framerate,  // time
 		vol_config);
 
@@ -234,16 +261,24 @@ int encore(unsigned long handle, unsigned long enc_opt, void *param1, void *para
 	((ENC_FRAME *)param1)->length = length;
 
 	// update the rate control parameters
-	RCQ2_Update2OrderModel(	/*num_bits.vop,*/length * 8 - headerbits,
-		GetVopPredictionType(curr));
+	RateCtlUpdate(length * 8);
 
 	ref_curr->prev_rounding = curr->rounding_type;
 	ref_curr->seq ++;
+	ref_curr->curr_run ++;
 
-	if (curr->prediction_type == I_VOP)
+	if (curr->prediction_type == I_VOP) {
 		((ENC_RESULT *)param2)->isKeyFrame = 1;
-	else 
+		ref_curr->curr_run = 1;
+	} else {
 		((ENC_RESULT *)param2)->isKeyFrame = 0;
+	}
+
+#ifdef MPEG4IP
+	((ENC_RESULT *)param2)->reconstruct_y = ref_curr->reconstruct->y_chan->f;
+	((ENC_RESULT *)param2)->reconstruct_u = ref_curr->reconstruct->u_chan->f;
+	((ENC_RESULT *)param2)->reconstruct_v = ref_curr->reconstruct->v_chan->f;
+#endif
 
 	return ENC_OK;
 }
@@ -358,27 +393,52 @@ int PutVoVolHeader(int vol_width, int vol_height, int time_increment_resolution,
 	return(written);
 }
 
-static int YUV2YUV (int x_dim, int y_dim, void *yuv, void *y_out, void *u_out, void *v_out)
+#ifdef MPEG4IP
+int YUV2YUV (int x_dim, int y_dim, int raw_y_dim, void *yuv, void *y_out, void *u_out, void *v_out)
+#else
+int YUV2YUV (int x_dim, int y_dim, void *yuv, void *y_out, void *u_out, void *v_out)
+#endif
 {
 	// All this conversion does is to turn data from unsigned char to short int,
 	// since legacy MoMuSys uses short int.
 	unsigned char *in;
 	short int *out;
 	long size;
+#ifdef MPEG4IP
+	long yoffset;
+#endif
 
+#ifdef MPEG4IP
+	if (raw_y_dim > y_dim) {
+		yoffset = ((raw_y_dim - y_dim) >> 1) * x_dim;
+	} else {
+		raw_y_dim = y_dim;
+		yoffset = 0;
+	}
+	in = (unsigned char*)yuv + yoffset;
+#else
 	in = yuv;
-	
+#endif
 	out = y_out;
 	size = x_dim * y_dim;
-	while (size --) *(out ++) = *(in ++);
+	while (size --) 
+		*(out ++) = *(in ++);
 
+#ifdef MPEG4IP
+	in += yoffset + (yoffset >> 2);
+#endif
 	out = u_out;
-	size = x_dim * y_dim / 4;
-	while (size --) *(out ++) = *(in ++);
+	size = (x_dim * y_dim) >> 2;
+	while (size --) 
+		*(out ++) = *(in ++);
 
+#ifdef MPEG4IP
+	in += (yoffset >> 1);
+#endif
 	out = v_out;
-	size = x_dim * y_dim / 4;
-	while (size --) *(out ++) = *(in ++);
+	size = (x_dim * y_dim) >> 2;
+	while (size --) 
+		*(out ++) = *(in ++);
 
 	return 0;
 }

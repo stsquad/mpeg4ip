@@ -102,12 +102,12 @@ Notes:      Extracted from lavtools package,
             Used only by the avi2raw utility
 
 Name:       Freeware Advanced Audio Coder (FAAC) / Decoder (FAAD)
-Version:    1.0 / 0.6
+Version:    1.1
 Origin:     http://www.sourceforge.net/projects/FAAC
 Author:     Menno Bakker
 Directory:  mpeg4ip/server/audio/faac
             mpeg4ip/player/lib/audio/faad
-License:    GNU General Public License (GPL), version 2 1991 for modifications 
+License:    GNU Library General Public License (LGPL), version 2 1991 
             ISO MPEG-4 reference software license for original base code
 Notes:      Use may require payment of patent royalties
 

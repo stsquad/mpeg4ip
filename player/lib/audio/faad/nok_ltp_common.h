@@ -1,31 +1,23 @@
-/**************************************************************************
+/*
+ * FAAD - Freeware Advanced Audio Decoder
+ * Copyright (C) 2001 Menno Bakker
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
 
-This software module was originally developed by
-
-Mikko Suonio (Nokia)
-
-in the course of development of the MPEG-2 NBC/MPEG-4 Audio standard
-ISO/IEC 13818-7, 14496-1,2 and 3. This software module is an
-implementation of a part of one or more MPEG-2 NBC/MPEG-4 Audio tools
-as specified by the MPEG-2 NBC/MPEG-4 Audio standard. ISO/IEC gives
-users of the MPEG-2 NBC/MPEG-4 Audio standards free license to this
-software module or modifications thereof for use in hardware or
-software products claiming conformance to the MPEG-2 NBC/ MPEG-4 Audio
-standards. Those intending to use this software module in hardware or
-software products are advised that this use may infringe existing
-patents. The original developer of this software module and his/her
-company, the subsequent editors and their companies, and ISO/IEC have
-no liability for use of this software module or modifications thereof
-in an implementation. Copyright is not released for non MPEG-2
-NBC/MPEG-4 Audio conforming products. The original developer retains
-full right to use the code for his/her own purpose, assign or donate
-the code to a third party and to inhibit third party from using the
-code for non MPEG-2 NBC/MPEG-4 Audio conforming products. This
-copyright notice must be included in all copies or derivative works.
-
-Copyright (c) 1997.
-
-***************************************************************************/
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * $Id: nok_ltp_common.h,v 1.3 2001/06/28 23:54:22 wmaycisco Exp $
+ */
 
 #ifndef _NOK_LTP_COMMON_H
 #define _NOK_LTP_COMMON_H
@@ -54,20 +46,18 @@ Copyright (c) 1997.
 #define BLOCK_LEN_LONG LN2
 #endif
 
-
 /*
   Macro:	NOK_MAX_BLOCK_LEN_LONG
   Purpose:	Informs the routine of the maximum block size used.
-  Explanation:	This is needed since the TwinVQ long window
-  		is different from the AAC long window.  */
-#define	NOK_MAX_BLOCK_LEN_LONG BLOCK_LEN_LONG //(2 * BLOCK_LEN_LONG) 
+  Explanation:	-  */
+#define	NOK_MAX_BLOCK_LEN_LONG (BLOCK_LEN_LONG) 
 
 /*
   Macro:	NOK_LT_BLEN
   Purpose:	Length of the history buffer.
-  Explanation:	Has to hold two long windows of time domain data.  */
+  Explanation:	Has to hold 1.5 long windows of time domain data. */
 #ifndef	NOK_LT_BLEN
-#define NOK_LT_BLEN (4 * NOK_MAX_BLOCK_LEN_LONG)
+#define NOK_LT_BLEN (3 * NOK_MAX_BLOCK_LEN_LONG)
 #endif
 
 /*
@@ -76,11 +66,14 @@ Copyright (c) 1997.
   Explanation:	-  */
 typedef struct
   {
-    short buffer[NOK_LT_BLEN];
-    Float weight;
+    int weight_idx;
+    float weight;
     int sbk_prediction_used[MAX_SHORT_WINDOWS];
     int sfb_prediction_used[MAX_SCFAC_BANDS];
-    int *delay;
+    int delay[MAX_SHORT_WINDOWS];
+    int global_pred_flag;
+    int side_info;
+    float *buffer;
   }
 NOK_LT_PRED_STATUS;
 

@@ -1,1 +1,1 @@
-SUBDIRS = avi sndfile
+SUBDIRS = sndfile

@@ -1,26 +1,24 @@
-/************************* MPEG-2 NBC Audio Decoder **************************
- *                                                                           *
-"This software module was originally developed by 
-AT&T, Dolby Laboratories, Fraunhofer Gesellschaft IIS in the course of 
-development of the MPEG-2 NBC/MPEG-4 Audio standard ISO/IEC 13818-7, 
-14496-1,2 and 3. This software module is an implementation of a part of one or more 
-MPEG-2 NBC/MPEG-4 Audio tools as specified by the MPEG-2 NBC/MPEG-4 
-Audio standard. ISO/IEC  gives users of the MPEG-2 NBC/MPEG-4 Audio 
-standards free license to this software module or modifications thereof for use in 
-hardware or software products claiming conformance to the MPEG-2 NBC/MPEG-4
-Audio  standards. Those intending to use this software module in hardware or 
-software products are advised that this use may infringe existing patents. 
-The original developer of this software module and his/her company, the subsequent 
-editors and their companies, and ISO/IEC have no liability for use of this software 
-module or modifications thereof in an implementation. Copyright is not released for 
-non MPEG-2 NBC/MPEG-4 Audio conforming products.The original developer
-retains full right to use the code for his/her  own purpose, assign or donate the 
-code to a third party and to inhibit third party from using the code for non 
-MPEG-2 NBC/MPEG-4 Audio conforming products. This copyright notice must
-be included in all copies or derivative works." 
-Copyright(c)1996.
- *                                                                           *
- ****************************************************************************/
+/*
+ * FAAD - Freeware Advanced Audio Decoder
+ * Copyright (C) 2001 Menno Bakker
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * $Id: interface.h,v 1.3 2001/06/28 23:54:22 wmaycisco Exp $
+ */
+
 #ifndef _interface_h_
 #define _interface_h_
 
@@ -37,9 +35,9 @@ Copyright(c)1996.
 
 /* prediction */
 #define	PRED_ORDER	2
-#define PRED_ALPHA	0.90625
-#define PRED_A		0.953125
-#define PRED_B		0.953125
+#define PRED_ALPHA	0.90625f
+#define PRED_A		0.953125f
+#define PRED_B		0.953125f
 
 enum
 {
@@ -107,8 +105,10 @@ enum
     /*
      * Program Configuration
      */
-    Main_Profile	= 0, 
-    LC_Profile		= 1, 
+    AACMAIN = 0, 
+    AACLC = 1,
+	AACSSR = 2,
+	AACLTP = 3,
 
     Fs_48		= 3, 
     Fs_44		= 4, 
@@ -143,12 +143,12 @@ enum
     LEN_TNS_PRES	= 1,
     LEN_GAIN_PRES	= 1,
 
-    LEN_NEC_NPULSE	= 2, 
-    LEN_NEC_ST_SFB	= 6, 
-    LEN_NEC_POFF	= 5, 
-    LEN_NEC_PAMP	= 4, 
-    NUM_NEC_LINES	= 4, 
-    NEC_OFFSET_AMP	= 4, 
+    LEN_NPULSE	= 2, 
+    LEN_PULSE_ST_SFB	= 6, 
+    LEN_POFF	= 5, 
+    LEN_PAMP	= 4, 
+    NUM_PULSE_LINES	= 4, 
+    PULSE_OFFSET_AMP	= 4, 
 
     LEN_IND_CCE_FLG	= 1,  
     LEN_NCC		= 3,
@@ -164,26 +164,34 @@ enum
     LEN_D_ESC		= 8,
     LEN_F_CNT		= 4,
     LEN_F_ESC		= 8,
+    LEN_NIBBLE		= 4,
     LEN_BYTE		= 8,
     LEN_PAD_DATA	= 8,
+    MAX_DBYTES	= ((1<<LEN_D_CNT) + (1<<LEN_D_ESC)),
 
     LEN_PC_COMM		= 8, 
+
+    /* FILL */
+    LEN_EX_TYPE		= 4,	/* don't use 0x0 or 0xA as extension type! */ 
+    EX_FILL		= 0, 
+    EX_FILL_DATA	= 1, 
+    EX_DRC		= 11,
 
     /* sfb 40, coef 672, pred bw of 15.75 kHz at 48 kHz
      * this is also the highest number of bins used
      * by predictor for any sampling rate
      */
-     MAX_PRED_SFB	= 40,	/* 48 kHz only, now obsolete */
-     MAX_PRED_BINS	= 672,
+    MAX_PRED_SFB	= 40,	/* 48 kHz only, now obsolete */
+    MAX_PRED_BINS	= 672,
 
     ID_SCE 		= 0,
-    ID_CPE = 1,
-    ID_CCE = 2,
-    ID_LFE = 3,
-    ID_DSE = 4,
-    ID_PCE = 5,
-    ID_FIL = 6,
-    ID_END = 7,
+    ID_CPE,
+    ID_CCE,
+    ID_LFE,
+    ID_DSE,
+    ID_PCE,
+    ID_FIL,
+    ID_END,
 
     /* PLL's don't like idle channels! */
     FILL_VALUE		= 0x55,
@@ -191,18 +199,18 @@ enum
     /*
      * program configuration element
      */
-    LEN_PROFILE		= 2, 
-    LEN_SAMP_IDX	= 4, 
-    LEN_NUM_ELE		= 4, 
-    LEN_NUM_LFE		= 2, 
-    LEN_NUM_DAT		= 3, 
-    LEN_NUM_CCE		= 4, 
-    LEN_MIX_PRES	= 1, 
-    LEN_MMIX_IDX	= 2, 
-    LEN_PSUR_ENAB	= 1, 
-    LEN_ELE_IS_CPE	= 1,
-    LEN_IND_SW_CCE	= 1,  
-    LEN_COMMENT_BYTES	= 8, 
+    LEN_OBJECTTYPE = 2, 
+    LEN_SAMP_IDX = 4, 
+    LEN_NUM_ELE = 4, 
+    LEN_NUM_LFE = 2, 
+    LEN_NUM_DAT = 3, 
+    LEN_NUM_CCE = 4, 
+    LEN_MIX_PRES = 1, 
+    LEN_MMIX_IDX = 2, 
+    LEN_PSUR_ENAB = 1, 
+    LEN_ELE_IS_CPE = 1,
+    LEN_IND_SW_CCE = 1,  
+    LEN_COMMENT_BYTES = 8, 
          
     /*
      * audio data interchange format header

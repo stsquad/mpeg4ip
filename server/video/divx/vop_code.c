@@ -37,10 +37,13 @@
 
 #include "vop_code.h"
 #include "mot_est_comp.h"
-#include "rc_q2.h"
+//#include "rc_q2.h"
 #include "bitstream.h"
 
-#define SCENE_CHANGE_THREADHOLD 30
+#include "rate_ctl.h"
+
+#define SCENE_CHANGE_THREADHOLD 50
+#define MB_RATIO_THREADHOLD 0.40
 
 extern FILE *ftrace;
 
@@ -79,7 +82,7 @@ Void VopCode(Vop *curr,
 Vop *reference,
 Vop *reconstruct,
 Vop *error,
-Int enable_8x8_mv,								  /*SpSc*/
+Int enable_8x8_mv,
 Float time,
 VolConfig *vol_config)
 {
@@ -90,51 +93,46 @@ VolConfig *vol_config)
 	Int       vop_quantizer;
 
 	Float	  mad_P = 0., mad_I = 0.;
+	Float	  IntraMBRatio = 1.;
+	Int		  numberMB, i, IntraMB;
 
 	edge = 0;
 	f_code_for = curr->fcode_for;
 
 	if (curr->prediction_type == P_VOP) 
 	{
-		CopyVopNonImageField(curr,error);
-		CopyVopNonImageField(curr, reconstruct); 
-
 		/* Carry out motion estimation and compensation*/
-		MotionEstimationCompensation(curr, reference,//rec_prev, 
+		MotionEstimationCompensation(curr, reference,
 			enable_8x8_mv, edge ,f_code_for,
 			reconstruct, &mad_P, &mot_x,&mot_y,&MB_decisions);
 
-		#ifdef _RC_
-		fprintf(ftrace, "motion estimation comes out with MAD : %f\n", mad_P);
-		#endif
+		/* Calculate the percentage of the MBs that are Intra */
+		IntraMB = 0;
+		numberMB = MB_decisions->x * MB_decisions->y;
+		for (i = 0; i < numberMB; i ++)
+			if (MB_decisions->f[i] == MBM_INTRA) IntraMB ++;
+		IntraMBRatio = (float)IntraMB / (float)numberMB;
 
-//		if (mad_P < 1.0) {
-//			mad_I = (Float) compute_MAD(curr);
-//			if (mad_I < 0.2) mad_P = SCENE_CHANGE_THREADHOLD * 2;
-			/* if the mad_P is very small, we can test to see if this is just
-			a blank screen. If it is (mad_I also small), we preceed to code it 
-			as I frame. This is special for fading scenes. */
-//			#ifdef _RC_
-//			fprintf(ftrace, "The frame itself has MAD : %f\n", mad_I);
-//			#endif
-//		}
+		#ifdef _RC_
+		fprintf(ftrace, "ME with MAD : %f\n", mad_P);
+		fprintf(ftrace, "%4.2f of the MBs are I-MBs.\n", IntraMBRatio);
+		#endif
 	}
 	else
 		mad_P = SCENE_CHANGE_THREADHOLD * 2;
 
-	if (mad_P < SCENE_CHANGE_THREADHOLD) 
+	if ((mad_P < SCENE_CHANGE_THREADHOLD / 3) || 
+		((mad_P < SCENE_CHANGE_THREADHOLD) && (IntraMBRatio < MB_RATIO_THREADHOLD)))
 	{
 		// mad is fine. continue to code as P_VOP
 		curr->prediction_type = P_VOP;
+		error->prediction_type = P_VOP;
 
 		#ifdef _RC_
-		fprintf(ftrace, "Coding mode is set to INTER.\n");
+		fprintf(ftrace, "Coding mode : INTER\n");
 		#endif
 
-		vop_quantizer = RCQ2_QuantAdjust(
-			(Float)mad_P,
-			GetImageSize(curr->y_chan),
-			P_VOP);
+		vop_quantizer = RateCtlGetQ(mad_P);
 
 		curr->quantizer = vop_quantizer;
 		error->quantizer = vop_quantizer;
@@ -160,18 +158,14 @@ VolConfig *vol_config)
 		curr->rounding_type = 1;
 
 		#ifdef _RC_
-		fprintf(ftrace, "Scene change detected.\n");
-		fprintf(ftrace, "Coding mode is set to INTRA.\n");
+		fprintf(ftrace, "Coding mode : INTRA\n");
 		#endif
 
 		// We need to recalculate MAD here, since the last MAD was calculated by assuming
 		// INTER coding, though the actual difference might not be significant to coding.
-		if (mad_I != 0.) mad_I = (Float) compute_MAD(curr);
+		if (mad_I == 0.) mad_I = (Float) compute_MAD(curr);
 
-		vop_quantizer = RCQ2_QuantAdjust(
-			(Float)mad_I,
-			GetImageSize(curr->y_chan),
-			I_VOP);
+		vop_quantizer = RateCtlGetQ(mad_I);
 
 		curr->intra_quantizer = vop_quantizer;
 		curr->rounding_type = 1;
@@ -360,20 +354,34 @@ Vop  *error_vop
 	Float *curr_fin,
 		*curr_fend;
 	UInt   sxy_in;
-	Double mad=0.0;
+	Double mad=0.0, dc = 0.0;
 	Int    cnt=0;
 
 	/* Calculate the MAD */
 	switch (GetImageType(error_vop->y_chan))
 	{
 		case SHORT_TYPE:
+			/* change to AC MAD */
+			/* calculate average first */
 			curr_in = (SInt*)GetImageData(error_vop->y_chan);
 			sxy_in = GetImageSize(error_vop->y_chan);
 			curr_end = curr_in + sxy_in;
 			cnt = 0;
 			while (curr_in != curr_end)
 			{
-				mad += abs(*curr_in);
+				dc += *curr_in; //abs(*curr_in);
+				cnt++;
+				curr_in++;
+			}
+			dc /= cnt;
+
+			curr_in = (SInt*)GetImageData(error_vop->y_chan);
+			sxy_in = GetImageSize(error_vop->y_chan);
+			curr_end = curr_in + sxy_in;
+			cnt = 0;
+			while (curr_in != curr_end)
+			{
+				mad += fabs(*curr_in - dc);
 				cnt++;
 				curr_in++;
 			}

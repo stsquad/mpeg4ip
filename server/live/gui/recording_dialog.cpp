@@ -16,31 +16,16 @@
  * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *              Bill May        wmay@cisco.com
+ *		Dave Mackie		dmackie@cisco.com
+ *		Bill May 		wmay@cisco.com
  */
-/*
- * recording_dialog.cpp - figure it out.
- */
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <glib.h>
-#include <gtk/gtk.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include "gui_utils.h"
-#include "gui_private.h"
-#include "live_apis.h"
+
+#include "mp4live.h"
+#include "mp4live_gui.h"
 
 static GtkWidget *dialog;
 static GtkWidget *file_entry;
 static GtkWidget *filesel;
-static GtkWidget *apply_button;
-
-static int local_record_video, local_record_audio;
-static int apply_path = 0;
 
 static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 {
@@ -53,33 +38,21 @@ static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 // you want to overwrite file.
 static void on_yes_button (void)
 {
-  const char *name, *errmsg;
-  name = gtk_entry_get_text(GTK_ENTRY(file_entry));
-  if (set_record_parameters(local_record_video,
-			    local_record_audio,
-			    name, 
-			    &errmsg) == 0) {
-    ShowMessage("Couldn't record parameters", errmsg);
-    return;
-  }
-  DisplayRecordingSettings();
-  if (apply_path == 0) {
-    on_destroy_dialog(NULL, NULL);
-  }
+	MyConfig->m_recordMp4FileName = gtk_entry_get_text(GTK_ENTRY(file_entry));
+	DisplayRecordingSettings();
+	on_destroy_dialog(NULL, NULL);
 }
 
 // record_values - check and record the values
 static int record_values (void)
 {
-  const char *name;
+	const char *name;
 
-  name = gtk_entry_get_text(GTK_ENTRY(file_entry));
-  if (local_record_video != 0 || local_record_audio != 0) {  
-    if (name == NULL || *name == '\0') {
-      ShowMessage("Error", "Must specify file");
-      return (0);
-    }
-  }
+	name = gtk_entry_get_text(GTK_ENTRY(file_entry));
+	if (name == NULL || *name == '\0') {
+	  ShowMessage("Error", "Must specify file");
+	  return (0);
+	}
   
   if (name != NULL && *name != '\0') {
     struct stat statbuf;
@@ -89,40 +62,20 @@ static int record_values (void)
 	return (0);
       }
       // We have a file name - see if we overwrite it...
+	// TBD and it was not selected by browsing!!!
       char buffer[1024];
       snprintf(buffer, sizeof(buffer), 
-	       "%s already exists\nDo you want to overwrite ?", 
+	       "%s already exists\nDo you want to overwrite it?", 
 	       name);
       YesOrNo("File Exists", buffer, 1, GTK_SIGNAL_FUNC(on_yes_button), NULL);
       return (0);
     }
   }
   
-  const char *errmsg;
-  if (set_record_parameters(local_record_video,
-			    local_record_audio,
-			    name, 
-			    &errmsg) == 0) {
-    ShowMessage("Couldn't record parameters", errmsg);
-    return(0);
-  }
-  DisplayRecordingSettings();
-  return (1);
-}
+	MyConfig->m_recordMp4FileName = gtk_entry_get_text(GTK_ENTRY(file_entry));
+	DisplayRecordingSettings();
 
-
-static void on_video_record (GtkWidget *widget, gpointer *data)
-{
-  local_record_video = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
-  gtk_widget_set_sensitive(apply_button, 1);
-
-}
-
-static void on_audio_record (GtkWidget *widget, gpointer *data)
-{
-  local_record_audio = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
-  gtk_widget_set_sensitive(apply_button, 1);
-
+	return (1);
 }
 
 static void on_filename_selected (GtkFileSelection *widget, 
@@ -152,16 +105,8 @@ static void on_browse_button (GtkWidget *widget, gpointer *data)
   gtk_grab_add(filesel);
 }
 
-static void on_apply_button (GtkWidget *widget, gpointer *data)
-{
-  apply_path = 1;
-  record_values();
-  gtk_widget_set_sensitive(widget, 0);
-}
-
 static void on_ok_button (GtkWidget *widget, gpointer *data)
 {
-  apply_path = 0;
   if (record_values() != 0)
     on_destroy_dialog(NULL, NULL);
 }
@@ -173,13 +118,11 @@ static void on_cancel_button (GtkWidget *widget, gpointer *data)
 
 static void on_changed (GtkWidget *widget, gpointer *data)
 {
-  gtk_widget_set_sensitive(apply_button, 1);
 }
 
-// CreateRecordingDialog - just what it says...
 void CreateRecordingDialog (void) 
 {
-  GtkWidget *check, *hbox, *label;
+  GtkWidget *hbox, *label;
 
   dialog = gtk_dialog_new();
   gtk_signal_connect(GTK_OBJECT(dialog),
@@ -187,29 +130,32 @@ void CreateRecordingDialog (void)
 		     GTK_SIGNAL_FUNC(on_destroy_dialog),
 		     &dialog);
 
-  gtk_window_set_title(GTK_WINDOW(dialog), "Recording Configuration");
+  gtk_window_set_title(GTK_WINDOW(dialog), "Recording Settings");
+  gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
   // File: entrybox browse
   hbox = gtk_hbox_new(FALSE, 1);
   gtk_widget_show(hbox);
   gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox, TRUE, TRUE, 5);
 
-  label = gtk_label_new("File: ");
-  gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 10);
+  label = gtk_label_new(" File:");
+  gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+  gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
   gtk_widget_show(label);
 
-  const char *file = get_record_file();
+  const char *file = MyConfig->m_recordMp4FileName;
   file_entry = gtk_entry_new_with_max_length(PATH_MAX);
   if (file != NULL) {
     gtk_entry_set_text(GTK_ENTRY(file_entry), file);
   }
-  gtk_box_pack_start(GTK_BOX(hbox), file_entry, FALSE, FALSE, 10);
+  gtk_box_pack_start(GTK_BOX(hbox), file_entry, TRUE, TRUE, 5);
   gtk_widget_show(file_entry);
   gtk_signal_connect(GTK_OBJECT(file_entry),
 		     "changed",
 		     GTK_SIGNAL_FUNC(on_changed),
 		     NULL);
-  GtkWidget *browse_button = gtk_button_new_with_label("Browse");
+
+  GtkWidget *browse_button = gtk_button_new_with_label(" Browse... ");
   gtk_signal_connect(GTK_OBJECT(browse_button),
 		     "clicked",
 		     GTK_SIGNAL_FUNC(on_browse_button),
@@ -217,49 +163,19 @@ void CreateRecordingDialog (void)
   gtk_box_pack_start(GTK_BOX(hbox), browse_button, FALSE, FALSE, 10);
   gtk_widget_show(browse_button);
   
-  // Video Enabled
-  local_record_video = get_record_video();
-  check = gtk_check_button_new_with_label("Record Video");
-  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), check, TRUE, TRUE, 5);
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check),
-			       local_record_video);
-  gtk_signal_connect(GTK_OBJECT(check),
-		     "toggled", 
-		     GTK_SIGNAL_FUNC(on_video_record),
-		     NULL);
-  gtk_widget_show(check);
-
-  // Audio Enabled
-  local_record_audio = get_record_audio();
-  check = gtk_check_button_new_with_label("Record Audio");
-  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), check, TRUE, TRUE, 5);
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check),
-			       local_record_audio);
-  gtk_signal_connect(GTK_OBJECT(check),
-		     "toggled", 
-		     GTK_SIGNAL_FUNC(on_audio_record),
-		     NULL);
-  gtk_widget_show(check);
-
-
   // Add buttons at bottom
   GtkWidget *button;
   button = AddButtonToDialog(dialog,
-			     "Ok", 
+			     "   OK   ", 
 			     GTK_SIGNAL_FUNC(on_ok_button));
   GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
 
   button = AddButtonToDialog(dialog,
-			     "Cancel", 
+			     " Cancel ", 
 			     GTK_SIGNAL_FUNC(on_cancel_button));
-  apply_button = AddButtonToDialog(dialog,
-				   "Apply", 
-				   GTK_SIGNAL_FUNC(on_apply_button));
-  gtk_widget_set_sensitive(apply_button, 0);
+
   gtk_widget_show(dialog);
   gtk_grab_add(dialog);
 }
 
 /* end recording_dialog.cpp */
-
-

@@ -20,8 +20,6 @@
  */
 /*
  * player_media.cpp - handle generic information about a stream
- * Things to do - pull all rtp info out of this, push it into rtp bytestream
- * class.
  */
 #include "systems.h"
 #include "player_session.h"
@@ -31,7 +29,7 @@
 #include <rtp/rtp.h>
 #include <rtp/memory.h>
 #include "our_config_file.h"
-
+#include "media_utils.h"
 /*
  * c routines for callbacks
  */
@@ -67,28 +65,14 @@ CPlayerMedia::CPlayerMedia ()
   m_server_port = 0;
   m_source_addr = NULL;
   m_recv_thread = NULL;
-  m_rtp_packet_received = 0;
-  m_rtp_data_received = 0;
   m_rtptime_tickpersec = 0;
-  m_rtp_proto = 0;
   m_rtp_rtpinfo_received = 0;
 
-  m_rtp_packet_mutex = NULL;
   m_head = NULL;
   m_rtp_queue_len = 0;
-  m_rtp_queue_len_max = 512;
 
   m_rtp_ssrc_set = FALSE;
-  m_rtp_init_seq_set = FALSE;
   m_rtp_rtptime = 0xffffffff;
-  uint64_t temp;
-  temp = config.get_config_value(CONFIG_RTP_BUFFER_TIME);
-  if (temp > 0) {
-    m_rtp_buffer_time = temp;
-    m_rtp_buffer_time *= M_LLU;
-  } else {
-    m_rtp_buffer_time = 2 * M_LLU;
-  }
   
   m_rtsp_session = NULL;
   m_decode_thread_waiting = 0;
@@ -104,6 +88,8 @@ CPlayerMedia::CPlayerMedia ()
   m_audio_info = NULL;
   m_codec_type = NULL;
   m_user_data = NULL;
+  m_rtcp_received = 0;
+  m_streaming = 0;
 }
 
 CPlayerMedia::~CPlayerMedia()
@@ -138,10 +124,6 @@ CPlayerMedia::~CPlayerMedia()
   m_next = NULL;
   m_parent = NULL;
 
-  if (m_rtp_packet_mutex) {
-    SDL_DestroyMutex(m_rtp_packet_mutex);
-    m_rtp_packet_mutex = NULL;
-  }
   if (m_decode_thread_sem) {
     SDL_DestroySemaphore(m_decode_thread_sem);
     m_decode_thread_sem = NULL;
@@ -151,11 +133,13 @@ CPlayerMedia::~CPlayerMedia()
     m_ports = NULL;
   }
   if (m_rtp_byte_stream) {
-    double diff, div;
+    double diff;
     diff = difftime(time(NULL), m_start_time);
     player_debug_message("Media %s", m_media_info->media);
     
     player_debug_message("Time: %g seconds", diff);
+#if 0
+    double div;
     player_debug_message("Packets received: %u", m_rtp_packet_received);
     player_debug_message("Payload received: "LLU" bytes", m_rtp_data_received);
     div = m_rtp_packet_received / diff;
@@ -168,6 +152,7 @@ CPlayerMedia::~CPlayerMedia()
 	div *= 8.0;
 	div /= diff;
     player_debug_message("Bits per sec   : %g", div);
+#endif
 			 
   }
   if (m_byte_stream) {
@@ -192,7 +177,25 @@ CPlayerMedia::~CPlayerMedia()
     free((void *)m_user_data);
     m_user_data = NULL;
   }
+
 }
+
+void CPlayerMedia::clear_rtp_packets (void)
+{
+  if (m_head != NULL) {
+    m_tail->next = NULL;
+    while (m_head != NULL) {
+      rtp_packet *p;
+      p = m_head;
+      m_head = m_head->next;
+      p->next = p->prev = NULL;
+      xfree(p);
+    }
+  }
+  m_tail = NULL;
+  m_rtp_queue_len = 0;
+}
+
 /*
  * CPlayerMedia::create_from_file - create when we've already got a
  * bytestream
@@ -229,6 +232,7 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
   rtsp_command_t cmd;
   rtsp_decode_t *decode;
   
+  m_streaming = 1;
   if (psptr == NULL || sdp_media == NULL) {
     *errmsg = "Internal media error";
     return(-1);
@@ -318,60 +322,12 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
   // go ahead and init rtp, and the associated task
   //
   m_parent->add_media(this);
-  if (ondemand != 0) {
-    /*
-     * We need to free up the ports that we got before RTP tries to set 
-     * them up, so we don't have any re-use conflicts.  There is a small
-     * window here that they might get used...
-     */
-    delete m_ports; // free up the port numbers
-    m_ports = NULL;
-  }
-
-#ifdef _WINDOWS
-	WORD wVersionRequested;
-	WSADATA wsaData;
-	int ret;
- 
-	wVersionRequested = MAKEWORD( 2, 0 );
- 
-	ret = WSAStartup( wVersionRequested, &wsaData );
-	if ( ret != 0 ) {
-	   /* Tell the user that we couldn't find a usable */
-	   /* WinSock DLL.*/
-		*errmsg = "WSAStartup error";
-	    return (-1);
-	}
-#endif
-
-  m_rtp_session = rtp_init(m_source_addr == NULL ? 
-			   cptr->conn_addr : m_source_addr,
-			   m_our_port,
-			   m_server_port,
-			   cptr->ttl, // need ttl here
-			   5000.0, // rtcp bandwidth ?
-			   c_recv_callback,
-			   this);
   m_start_time = time(NULL);
-  if (m_rtp_session == NULL) {
-    *errmsg = "Couldn't create RTP session";
-    player_error_message("Failed to create RTP for media %s", 
-			 m_media_info->media);
-    return (-1);
-  }
-  rtp_setopt(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
 
   /*
    * Create the various mutexes, semaphores, threads, etc
    */
-  m_rtp_packet_mutex = SDL_CreateMutex();
   m_decode_thread_sem = SDL_CreateSemaphore(0);
-  if (m_rtp_packet_mutex == NULL) {
-    *errmsg = "Couldn't create mutex";
-    player_error_message("Failed to create mutex for media %s",
-			 m_media_info->media);
-    return (-1);
-  }
 
   m_decode_thread = SDL_CreateThread(c_decode_thread, this);
   if (m_decode_thread == NULL) {
@@ -381,6 +337,7 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
     return (-1);
   }
 
+  m_rtp_inited = 0;
   m_recv_thread = SDL_CreateThread(c_recv_thread, this);
   if (m_recv_thread == NULL) {
     *errmsg = "Couldn't create media thread";
@@ -388,11 +345,18 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
 			 m_media_info->media);
     return (-1);
   }
+  while (m_rtp_inited == 0) {
+    SDL_Delay(10);
+  }
   /*
    * create the rtp bytestream
    */
-  m_rtp_byte_stream = new CInByteStreamRtp(this, m_stream_ondemand);
-  m_byte_stream = m_rtp_byte_stream;
+  if (m_rtp_session == NULL) {
+    *errmsg = "Couldn't create RTP session";
+    player_error_message("Failed to create RTP for media %s", 
+			 m_media_info->media);
+    return (-1);
+  }
   return (0);
 }
 
@@ -402,7 +366,7 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
 int CPlayerMedia::do_play (double start_time_offset)
 {
 
-  if (m_rtp_byte_stream != NULL) {
+  if (m_streaming != 0) {
     if (m_stream_ondemand != 0) {
       /*
        * We're streaming - send the RTSP play command
@@ -449,7 +413,6 @@ int CPlayerMedia::do_play (double start_time_offset)
        * that it needs to start
        */
       m_play_start_time = start_time_offset;
-      m_byte_stream->set_start_time((uint64_t)(m_play_start_time * 1000.0));
     }
     m_paused = 0;
     m_rtp_msg_queue.send_message(MSG_START_SESSION);
@@ -477,7 +440,7 @@ int CPlayerMedia::do_play (double start_time_offset)
 int CPlayerMedia::do_pause (void)
 {
 
-  if (m_rtp_byte_stream != NULL && m_stream_ondemand != 0) {
+  if (m_streaming != 0 && m_stream_ondemand != 0) {
     /*
      * streaming - send RTSP pause
      */
@@ -713,7 +676,7 @@ static char *rtpinfo_parse_seq (char *rtpinfo, CPlayerMedia *m, int &endofurl)
     }
     rtpinfo++;
   }
-  m->set_rtp_init_seq(seq);
+  // we don't need this anywhere... m->set_rtp_init_seq(seq);
   return (rtpinfo);
 }
 
@@ -894,15 +857,6 @@ int process_rtsp_rtpinfo (char *rtpinfo,
   return (1);
 }
 
-int CPlayerMedia::check_rtp_frame_complete_for_proto ()
-{
-  switch (m_rtp_proto) {
-  case 14:
-    return (m_head != NULL);
-  default:
-    return (m_head && m_tail->m == 1);
-  }
-}
 /****************************************************************************
  * RTP receive routines
  ****************************************************************************/
@@ -914,7 +868,46 @@ int CPlayerMedia::recv_thread (void)
   CMsg *newmsg;
   int recv_thread_stop = 0;
   int receiving = 0;
+  connect_desc_t *cptr;
+  cptr = get_connect_desc_from_media(m_media_info);
 
+  if (m_stream_ondemand != 0) {
+    /*
+     * We need to free up the ports that we got before RTP tries to set 
+     * them up, so we don't have any re-use conflicts.  There is a small
+     * window here that they might get used...
+     */
+    delete m_ports; // free up the port numbers
+    m_ports = NULL;
+  }
+
+#ifdef _WINDOWS
+	WORD wVersionRequested;
+	WSADATA wsaData;
+	int ret;
+ 
+	wVersionRequested = MAKEWORD( 2, 0 );
+ 
+	ret = WSAStartup( wVersionRequested, &wsaData );
+	if ( ret == 0 ) {
+#endif
+
+  m_rtp_session = rtp_init(m_source_addr == NULL ? 
+			   cptr->conn_addr : m_source_addr,
+			   m_our_port,
+			   m_server_port,
+			   cptr->ttl, // need ttl here
+			   5000.0, // rtcp bandwidth ?
+			   c_recv_callback,
+			   this);
+  rtp_setopt(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
+#ifdef _WINDOWS
+	} 
+#endif
+  m_rtp_inited = 1;
+	
+
+  
   while (recv_thread_stop == 0) {
     /*
      * See if we need to check for a state change - this will allow
@@ -926,6 +919,9 @@ int CPlayerMedia::recv_thread (void)
 	recv_thread_stop = 1;
 	continue;
       case MSG_START_SESSION:
+	if (m_rtp_session == NULL) {
+	  continue;
+	}
 	if (m_rtp_ssrc_set == TRUE) {
 	  rtp_set_my_ssrc(m_rtp_session, m_rtp_ssrc);
 	} else {
@@ -933,7 +929,10 @@ int CPlayerMedia::recv_thread (void)
 	  // before indicating if rtp library should accept.
 	  rtp_setopt(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
 	}
-	flush_rtp_packets();
+	if (m_rtp_byte_stream != NULL) {
+	  m_rtp_byte_stream->reset();
+	  m_rtp_byte_stream->flush_rtp_packets();
+	}
 	buffering = 0;
 	receiving = 1;
 	break;
@@ -967,92 +966,41 @@ int CPlayerMedia::recv_thread (void)
       timeout.tv_usec = 500000;
       retcode = rtp_recv(m_rtp_session, &timeout, 0);
       //      player_debug_message("rtp_recv return %d", retcode);
-      rtp_send_ctrl(m_rtp_session, m_rtptime_last, NULL);
+      rtp_send_ctrl(m_rtp_session, 
+		    m_rtp_byte_stream != NULL ? 
+		    m_rtp_byte_stream->get_last_rtp_timestamp() : 0, 
+		    NULL);
       rtp_update(m_rtp_session);
-      /*
-       * We need to make sure we have some buffering.  We'll buffer
-       * about 2 seconds worth, then let the decode task know to go...
-       */
-      if (buffering == 0) {
-	uint32_t head_ts, tail_ts;
-	if (m_head != NULL) {
-	  /*
-	   * Make sure that the proto is the same
-	   */
-	  if (m_rtp_proto == 0) {
-	    if (m_head->pt == m_tail->pt) {
-	      if (m_rtp_queue_len > 10) { // 10 packets consecutive proto same
-		if (determine_proto_from_rtp() == FALSE) {
-		  flush_rtp_packets(); 
-		}
-	      }
-	    } else {
-	      flush_rtp_packets();
-	    }
-	  } else {
-	    /*
-	     * Protocol the same.  Make sure we have at least 2 seconds of
-	     * good data
-	     */
-	    if (m_rtp_byte_stream->rtp_ready() == 0) {
-	      player_debug_message("Determined proto, but rtp bytestream is not ready");
-	      uint64_t calc;
-	      do {
-		head_ts = m_head->ts;
-		tail_ts = m_tail->ts;
-		calc = (tail_ts - head_ts);
-		calc *= 1000;
-		calc /= m_rtptime_tickpersec;
-		if (calc > m_rtp_buffer_time) {
-		  rtp_packet *temp = m_head;
-		  m_head = m_head->next;
-		  m_tail->next = m_head;
-		  m_head->prev = m_tail;
-		  xfree((void *)temp);
-		}
-	      } while (calc > m_rtp_buffer_time);
-	      continue;
-	    }
-	    if (check_rtp_frame_complete_for_proto()) {
-	      head_ts = m_head->ts;
-	      tail_ts = m_tail->ts;
-	      uint64_t calc;
-	      calc = (tail_ts - head_ts);
-	      calc *= M_LLU;
-	      calc /= m_rtptime_tickpersec;
-#if 0
-	      player_debug_message("head %u tail %u diff %u div %u in queue %u - time diff is %g", head_ts, tail_ts, tail_ts - head_ts, m_rtptime_tickpersec, m_rtp_queue_len, calc);
-#endif
-	      if (calc > m_rtp_buffer_time) {
-		if (m_rtp_rtpinfo_received == 0) {
-		  player_debug_message("Setting rtp seq and time from 1st pak");
-		  set_rtp_init_seq(m_head->seq);
-		  set_rtp_rtptime(m_head->ts);
-		  m_rtp_rtpinfo_received = 1;
-		}
-		buffering = 1;
-#if 1
-		player_debug_message("buffering complete - head %u tail %u "LLU" - count %u", 
-				     head_ts, tail_ts, calc, m_rtp_queue_len);
-#endif
 
-		m_decode_msg_queue.send_message(MSG_START_DECODING, 
-						NULL, 
-						0, 
-						m_decode_thread_sem);
-	      }
-	    }
+      if (m_rtp_byte_stream != NULL) {
+	int ret = m_rtp_byte_stream->recv_task(m_decode_thread_waiting);
+	if (ret > 0) {
+	  if (buffering == 0) {
+	    buffering = 1;
+	    m_decode_msg_queue.send_message(MSG_START_DECODING, 
+					    NULL, 
+					    0, 
+					    m_decode_thread_sem);
+	  } else if (m_decode_thread_waiting != 0) {
+	    m_decode_thread_waiting = 0;
+	    SDL_SemPost(m_decode_thread_sem);
 	  }
 	}
-      } else if (m_decode_thread_waiting != 0) {
+	continue;
+      }
+
+      if (m_head != NULL) {
 	/*
-	 * We're good with buffering - but the decode thread might have
-	 * caught up, and will be waiting.  Post a message to kickstart
-	 * it
+	 * Make sure that the proto is the same
 	 */
-	if (check_rtp_frame_complete_for_proto()) {
-	  m_decode_thread_waiting = 0;
-	  SDL_SemPost(m_decode_thread_sem);
+	if (m_head->pt == m_tail->pt) {
+	  if (m_rtp_queue_len > 10) { // 10 packets consecutive proto same
+	    if (determine_proto_from_rtp() == FALSE) {
+	      clear_rtp_packets(); 
+	    }
+	  }
+	} else {
+	  clear_rtp_packets();
 	}
       }
     }
@@ -1073,56 +1021,31 @@ int count = 0, cnt2 = 0;
 void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
 {
   if (e == NULL) return;
+  if (m_rtp_byte_stream != NULL) {
+    m_rtp_byte_stream->recv_callback(session, e);
+    return;
+  }
   switch (e->type) {
   case RX_RTP:
     /* regular rtp packet - add it to the queue */
     rtp_packet *rpak;
-    m_rtp_packet_received++;
+
     rpak = (rtp_packet *)e->data;
-    m_rtp_data_received += rpak->data_len;
-    m_rtptime_last = rpak->ts;
-    count++;
-#if 0
-    if (count > 20) {
-      cnt2++;
-      if (cnt2 > 5) {
-	count = 0;
-	cnt2 = 0;
-      }
+    if (rpak->data_len == 0) {
       xfree(rpak);
-      player_debug_message("Dropped packet");
-    } else
-#endif
-      if (rpak->data_len == 0) {
-	xfree(rpak);
-      } else 
-    add_packet_to_queue(rpak);
+    } else {
+      add_rtp_packet_to_queue(rpak, &m_head, &m_tail);
+      m_rtp_queue_len++;
+    }
     break;
   case RX_SR:
     rtcp_sr *srpak;
     srpak = (rtcp_sr *)e->data;
-#if 0
-    player_debug_message("ntp time %u %u rtp %u", 
-			 srpak->ntp_sec, srpak->ntp_frac, srpak->rtp_ts);
-#endif
-    if (m_rtptime_tickpersec == 0) 
-      break;
 
-    uint64_t wclock;
-    wclock = srpak->ntp_frac;
-    wclock *= M_LLU;
-    wclock /= (I_LLU << 32);
-    wclock += (srpak->ntp_sec - NTP_TO_UNIX_TIME) * 1000;
-    uint64_t offset;
-    offset = srpak->rtp_ts;
-    offset *= M_LLU;
-    offset /= m_rtptime_tickpersec;
-#if 0
-    player_debug_message("%s offset is %llx", m_media_info->media, wclock - offset);
-#endif
-    // offset is now a consistent offset between wall clock time and rtp
-    // for rtp ts 0.
-    m_rtp_byte_stream->set_wallclock_offset(wclock - offset);
+    m_rtcp_ntp_frac = srpak->ntp_frac;
+    m_rtcp_ntp_sec = srpak->ntp_sec;
+    m_rtcp_rtp_ts = srpak->rtp_ts;
+    m_rtcp_received = 1;
     break;
   default:
 #if 0
@@ -1133,108 +1056,6 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
   }
 }
 
-
-/*
- * add_packet_to_queue - adds the rtp packet to the queue - this is 
- * an ordered link list base on rpak->seq
- */
-int CPlayerMedia::add_packet_to_queue (rtp_packet *pak)
-{
-  rtp_packet *q;
-  int inserted = TRUE;
-  int16_t diff;
-#if 0
-    player_debug_message("CBThread %u - m %u pt %u seq %x ts %u len %d", 
-			 SDL_ThreadID(),
-			 pak->m, pak->pt, pak->seq, pak->ts, 
-			 
-			 pak->data_len);
-#endif
-  if (SDL_mutexP(m_rtp_packet_mutex) == -1) {
-    player_error_message("SDL Lock mutex failure in recv thread");
-    return (-1);
-  }
-  
-  if (m_head == NULL) {
-    m_head = m_tail = pak;
-  } else if (m_head == m_tail) {
-    m_head->next = pak;
-    m_head->prev = pak;
-    pak->next = pak->prev = m_head;
-    diff = pak->seq - m_head->seq;
-    if (diff > 0) {
-      m_tail = pak;
-    } else {
-      m_head = pak;
-    }
-  } else if (((m_head->seq < m_tail->seq) &&
-	      ((pak->seq > m_tail->seq) || pak->seq < m_head->seq)) ||
-	     ((m_head->seq > m_tail->seq) &&
-	      ((pak->seq > m_tail->seq && pak->seq < m_head->seq)))) {
-    // insert between tail and head
-    // Maybe move head - probably move tail.
-    m_tail->next = pak;
-    pak->prev = m_tail;
-    m_head->prev = pak;
-    pak->next = m_head;
-    diff = m_head->seq - pak->seq;
-    if (diff > 0 && diff < 4) {
-      // between tail and head, and really close to the head - move the
-      // head pointer
-      m_head = pak;
-    } else {
-      // otherwise, just insert at end
-      m_tail = pak;
-    }
-  } else {
-    // insert in middle
-    // Loop through until we find where it should fit
-    q = m_head;
-    do {
-      // check for duplicates
-      if (pak->seq == q->seq || pak->seq == q->next->seq) {
-	// dup seq number
-	inserted = FALSE;
-	break;
-      }
-      // Okay - this is disgusting, but works.  The first part (before the
-      // or) will see if pak->seq is between q and q->next, assuming that the 
-      // sequence number for q and q->next are ascending.
-      //
-      // 2nd part of the if is the converse case (q->next->seq is smaller
-      // than q->seq).  In that case, we need to make sure that pak->seq is
-      // either larger than q->seq or less than q->next->seq
-      if (((q->next->seq > q->seq) &&
-	   (q->seq < pak->seq && pak->seq < q->next->seq)) ||
-	  ((q->next->seq < q->seq) &&
-	   (pak->seq < q->next->seq || pak->seq > q->seq))) {
-	q->next->prev = pak;
-	pak->next = q->next;
-	q->next = pak;
-	pak->prev = q;
-	break;
-      }
-      q = q->next;
-    } while (q != m_tail);
-    if (q == m_tail) {
-      inserted = FALSE;
-      player_error_message("Couldn't insert %u between %u and %u", 
-			   pak->seq, m_head->seq, m_tail->seq);
-    }
-  }
-  if (inserted == TRUE)
-    m_rtp_queue_len++;
-  if (SDL_mutexV(m_rtp_packet_mutex) == -1) {
-    player_error_message("SDL unlock mutex failure in recv thread");
-    return (-1);
-  }
-  if (inserted == FALSE) {
-    player_error_message("Couldn't insert pak");
-    xfree(pak);
-  }
-  return (0);
-}
-
 /*
  * determine_proto_from_rtp - determine with protocol we're dealing with
  * in the rtp session.  Set various calculations for the sync task, as well...
@@ -1243,42 +1064,47 @@ int CPlayerMedia::determine_proto_from_rtp(void)
 {
   char proto = m_head->pt, temp;
   format_list_t *fmt;
+  uint64_t tickpersec;
 
   fmt = m_media_info->fmt;
   while (fmt != NULL) {
     temp = atoi(fmt->fmt);
     if (temp == proto) {
       m_media_fmt = fmt;
-      m_rtp_proto = proto;
       if (fmt->rtpmap != NULL) {
-	m_rtptime_tickpersec = fmt->rtpmap->clock_rate;
-#if 0
-	player_debug_message("media %s - rtp proto %u - clock rate %u",
-			     m_media_info->media, m_rtp_proto, 
-			     m_rtptime_tickpersec);
-#endif
+	tickpersec = fmt->rtpmap->clock_rate;
 	set_codec_type(fmt->rtpmap->encode_name);
       } else {
-	if (m_rtp_proto >= 96) {
+	if (proto >= 96) {
 	  player_error_message("Media %s, rtp proto of %u, no rtp map",
-			       m_media_info->media, m_rtp_proto);
+			       m_media_info->media, proto);
 	  return (FALSE);
 	}
-	m_rtptime_tickpersec = 90000;
-	if (m_rtp_proto == 14) {
+	tickpersec = 90000;
+	if (proto == 14) {
 	  set_codec_type("mp3 ");
 	}
       }
 
-      m_rtptime_ntptickperrtptick = 1;
-	  m_rtptime_ntptickperrtptick <<= 32;
-	  m_rtptime_ntptickperrtptick /= m_rtptime_tickpersec;
-      m_rtp_byte_stream->set_rtp_config(m_rtptime_tickpersec);
+      m_rtp_byte_stream = 
+	create_rtp_byte_stream_for_format(m_media_fmt,
+					  m_stream_ondemand,
+					  proto,
+					  tickpersec,
+					  &m_head,
+					  &m_tail,
+					  m_rtp_rtpinfo_received,
+					  m_rtp_rtptime,
+					  m_rtcp_received,
+					  m_rtcp_ntp_frac,
+					  m_rtcp_ntp_sec,
+					  m_rtcp_rtp_ts);
+      m_byte_stream = m_rtp_byte_stream;
+      m_byte_stream->set_start_time((uint64_t)(m_play_start_time * 1000.0));
 #if 1
-      player_debug_message("media %s - rtp tps %u ntp per rtp " LLU,
+      player_debug_message("media %s - rtp tps %u ntp per rtp ",
 			   m_media_info->media,
-			   m_rtptime_tickpersec, 
-			   m_rtptime_ntptickperrtptick);
+			   m_rtptime_tickpersec);
 #endif
 
       return (TRUE);
@@ -1288,32 +1114,12 @@ int CPlayerMedia::determine_proto_from_rtp(void)
   return (FALSE);
 }
 
-void CPlayerMedia::flush_rtp_packets (void) 
-{
-  SDL_mutexP(m_rtp_packet_mutex);
-  if (m_head != NULL) {
-    m_tail->next = NULL;
-    while (m_head != NULL) {
-      rtp_packet *p;
-      p = m_head;
-      m_head = m_head->next;
-      p->next = p->prev = NULL;
-      xfree(p);
-    }
-  }
-  m_tail = NULL;
-  m_rtp_queue_len = 0;
-  SDL_mutexV(m_rtp_packet_mutex);
-}
-
 /*
  * set up rtptime
  */
 void CPlayerMedia::set_rtp_rtptime (uint32_t time)
 {
   m_rtp_rtptime = time;
-  m_rtp_byte_stream->set_rtp_rtptime(time);
-  player_debug_message("setting rtptime to %u", time);
 };
 
 /* end player_media.cpp */

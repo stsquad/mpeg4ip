@@ -1,13 +1,13 @@
 if SERVER
 if PLAYER
-SUBDIRS = common server player util
+SUBDIRS = lib common player server util
 else
-SUBDIRS = common server util
+SUBDIRS = lib common player server util
 endif
 else
 if PLAYER
-SUBDIRS = common player util
+SUBDIRS = lib common player util
 else
-SUBDIRS = common util
+SUBDIRS = lib common util
 endif
 endif

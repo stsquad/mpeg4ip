@@ -32,82 +32,6 @@
 
 //#define DEBUG_DECODE 1
 //#define DEBUG_DECODE_MSGS 1
-/*
- * CPlayerMedia::advance_head - move to the next rtp packet in the
- * bytestream.  This really should be in the rtp bytestream.
- */
-rtp_packet *CPlayerMedia::advance_head (int bookmark_set, const char **err) 
-{
-  rtp_packet *p;
-  uint16_t nextseq;
-
-  if (bookmark_set == 1) {
-    /* 
-     * If we're doing bookmark - make sure we keep the previous packets
-     * around
-     */
-    if (SDL_mutexP(m_rtp_packet_mutex) == -1) {
-      player_error_message("SDL Lock mutex failure in decode thread");
-      return (NULL);
-    }
-    if (m_head == NULL || m_head == m_head->next || m_head->next == NULL) {
-      SDL_mutexV(m_rtp_packet_mutex);
-      *err = "bookmark - advance past end";
-      return (NULL);
-    }
-    p = m_head->next;
-    nextseq = m_head->seq + 1;
-    if (nextseq != p->seq) {
-#if 0
-      p = m_head;
-      m_head = m_head->next;
-      m_tail->next = m_head;
-      m_head->prev = m_tail;
-      xfree(p);
-#endif
-	  //player_debug_message("bookmark seq number");
-      *err = "bookmark Sequence number violation";
-      p = NULL;
-    }
-    SDL_mutexV(m_rtp_packet_mutex);
-    return (p);
-  }
-
-  if (SDL_mutexP(m_rtp_packet_mutex) == -1) {
-      player_error_message("SDL Lock mutex failure in decode thread");
-      return (NULL);
-  }
-
-  p = m_head;
-  if (m_head->next == NULL || m_head->next == m_head) {
-    m_head = NULL;
-    m_tail = NULL;
-  } else {
-    m_head = p->next;
-    m_head->prev = m_tail;
-    m_tail->next = m_head;
-  }
-  if (SDL_mutexV(m_rtp_packet_mutex) == -1) {
-    player_error_message("SDL unlock mutex failure in decode thread");
-    return (NULL);
-  }
-  nextseq = p->seq + 1;
-  xfree(p);
-
-  /*
-   * Check the sequence number...
-   */
-  if (m_head && m_head->seq == nextseq) 
-    return (m_head);
-
-  if (m_head) {
-    *err = "Sequence number violation";
-    player_debug_message("seq # violation - should %d is %d", nextseq, m_head->seq);
-  } else {
-    *err = "No more data";
-  }
-  return (NULL);
-}
 
 /*
  * parse_decode_message - handle messages to the decode task
@@ -162,7 +86,6 @@ int CPlayerMedia::decode_thread (void)
   int avg_cnt = 0;
 #endif
   int thread_stop = 0, decoding = 0;
-  unsigned int codec_proto = 0;
 
   while (thread_stop == 0) {
     // waiting here for decoding or thread stop
@@ -202,12 +125,11 @@ int CPlayerMedia::decode_thread (void)
 				    m_user_data,
 				    m_user_data_size);
 	}
-	codec_proto = m_rtp_proto;
 	if (codec == NULL) {
 	  while (thread_stop == 0 && decoding) {
 	    SDL_Delay(100);
 	    if (m_rtp_byte_stream) {
-	      flush_rtp_packets();
+	      m_rtp_byte_stream->flush_rtp_packets();
 	    }
 	    parse_decode_message(thread_stop, decoding);
 	  }
@@ -229,13 +151,16 @@ int CPlayerMedia::decode_thread (void)
 	continue;
       if (decoding == 0) {
 	codec->do_pause();
-	if (m_rtp_byte_stream)
+#if 0
+	if (m_rtp_byte_stream) {
 	  m_byte_stream->reset(); // zero out our rtp bytestream
-	flush_rtp_packets();
+	  m_rtp_byte_stream->flush_rtp_packets();
+	}
+#endif
 	continue;
       }
       if (m_byte_stream->eof()) {
-	player_debug_message("hit eof");
+	player_debug_message("%s hit eof", m_is_video ? "video" : "audio");
 	if (m_audio_sync) m_audio_sync->set_eof();
 	if (m_video_sync) m_video_sync->set_eof();
 	decoding = 0;
@@ -260,42 +185,28 @@ int CPlayerMedia::decode_thread (void)
 #ifdef DEBUG_DECODE
       player_debug_message("Decoding %c frame " LLX, m_is_video ? 'v' : 'a', ourtime);
 #endif
-      do {
 #ifdef TIME_DECODE
-	clock_t start, end;
-	start = clock();
+      clock_t start, end;
+      start = clock();
 #endif
-	ret = codec->decode(ourtime, m_rtp_byte_stream != NULL);
+      ret = codec->decode(ourtime, m_streaming != 0);
 #ifdef TIME_DECODE
-	end = clock();
-	if (ret > 0) {
-	  diff = end - start;
-	  if (diff > max) max = diff;
-	  avg += diff;
-	  avg_cnt++;
+      end = clock();
+      if (ret > 0) {
+	diff = end - start;
+	if (diff > max) max = diff;
+	avg += diff;
+	avg_cnt++;
 #if 1
-	  if ((avg_cnt % 100) == 0) {
-	    player_debug_message("%s Decode avg time is " LLD " max " LLD, 
-				 m_codec_type,
+	if ((avg_cnt % 100) == 0) {
+	  player_debug_message("%s Decode avg time is " LLD " max " LLD, 
+			       m_codec_type,
 				 avg / avg_cnt, max);
-	    max = 0;
-	  }
-#endif
+	  max = 0;
 	}
 #endif
-      } while (ret >= 0 && 
-	       m_byte_stream->still_same_ts());
-#if 0
-      // This section will tell if the codec finishes
-      if (m_rtp_byte_stream->m_offset_in_pak != 0) {
-	player_debug_message("not at end - seq %x ts %x offset %d len %d", 
-			     m_rtp_byte_stream->m_pak->seq,
-			     m_rtp_byte_stream->m_pak->ts, 
-			     m_rtp_byte_stream->m_offset_in_pak,
-			     m_rtp_byte_stream->m_pak->data_len);
       }
 #endif
-
     }
 #ifdef DEBUG_DECODE
     player_debug_message("decode- out of inner loop");

@@ -47,6 +47,9 @@ socket_udp *udp_init(const char *addr, uint16_t rx_port, uint16_t tx_port, int t
 socket_udp *udp_init_if(const char *addr, const char *iface, uint16_t rx_port, uint16_t tx_port, int ttl);
 void        udp_exit(socket_udp *s);
 int         udp_send(socket_udp *s, char *buffer, int buflen);
+#ifndef _WIN32
+int         udp_send_iov(socket_udp *s, struct iovec *iov, int count);
+#endif
 int         udp_recv(socket_udp *s, char *buffer, int buflen);
 int         udp_select(struct timeval *timeout);
 void        udp_fd_zero(void);

@@ -5,7 +5,7 @@
 
 #include "momusys.h"
 
-#define VERSION		1	/* Image Structure Version */
+#define IMAGE_VERSION		1	/* Image Structure Version */
 
 /*****
 *

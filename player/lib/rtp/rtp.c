@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.2 $ 
- * $Date: 2001/05/09 21:15:12 $
+ * $Revision: 1.3 $ 
+ * $Date: 2001/06/28 23:54:22 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -1770,8 +1770,7 @@ const rtcp_rr *rtp_get_rr(struct rtp *session, uint32_t reporter, uint32_t repor
         return get_rr(session, reporter, reportee);
 }
 
-int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m, int cc, uint32_t csrc[], 
-                  char *data, int data_len, char *extn, uint16_t extn_len, uint16_t extn_type)
+int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m, int cc, uint32_t csrc[], char *data, int data_len, char *extn, uint16_t extn_len, uint16_t extn_type)
 {
 	int		 buffer_len, i, rc, pad, pad_len;
 	uint8_t		*buffer;
@@ -1862,6 +1861,86 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m, int cc, 
 	check_database(session);
 	return rc;
 }
+
+#ifndef _WIN32
+int rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, char pt, int m, int cc, uint32_t csrc[], struct iovec *iov, int iov_count, char *extn, uint16_t extn_len, uint16_t extn_type)
+{
+	int		 buffer_len, i, rc;
+	uint8_t		*buffer;
+	rtp_packet	*packet;
+	int my_iov_count = iov_count + 1;
+	struct iovec *my_iov;
+
+	/* operation not supported on encrypted sessions */
+	if ((session->encryption_key != NULL)) {
+		return -1;
+	}
+
+	check_database(session);
+
+	buffer_len = 12 + (4 * cc);
+	if (extn != NULL) {
+		buffer_len += (extn_len + 1) * 4;
+	}
+
+	/* Allocate memory for the packet... */
+	buffer     = (uint8_t *) xmalloc(buffer_len + RTP_PACKET_HEADER_SIZE);
+	packet     = (rtp_packet *) buffer;
+
+	/* These are internal pointers into the buffer... */
+	packet->csrc = (uint32_t *) (buffer + RTP_PACKET_HEADER_SIZE + 12);
+	packet->extn = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
+	packet->data = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
+	if (extn != NULL) {
+		packet->data += (extn_len + 1) * 4;
+	}
+	/* ...and the actual packet header... */
+	packet->v    = 2;
+	packet->p    = 0;
+	packet->x    = (extn != NULL);
+	packet->cc   = cc;
+	packet->m    = m;
+	packet->pt   = pt;
+	packet->seq  = htons(session->rtp_seq++);
+	packet->ts   = htonl(rtp_ts);
+	packet->ssrc = htonl(rtp_my_ssrc(session));
+	/* ...now the CSRC list... */
+	for (i = 0; i < cc; i++) {
+		packet->csrc[i] = htonl(csrc[i]);
+	}
+	/* ...a header extension? */
+	if (extn != NULL) {
+		/* We don't use the packet->extn_type field here, that's for receive only... */
+		uint16_t *base = (uint16_t *) packet->extn;
+		base[0] = htons(extn_type);
+		base[1] = htons(extn_len);
+		memcpy(packet->extn + 4, extn, extn_len * 4);
+	}
+
+	/* Add the RTP packet header to the beginning of the iov list */
+	my_iov = (struct iovec*)xmalloc(my_iov_count * sizeof(struct iovec));
+
+	my_iov[0].iov_base = buffer;
+	my_iov[0].iov_len = buffer_len;
+
+	for (i = 1; i < my_iov_count; i++) {
+		my_iov[i].iov_base = iov[i-1].iov_base;
+		my_iov[i].iov_len = iov[i-1].iov_len;
+		buffer_len += my_iov[i].iov_len;
+	}
+
+	/* Send the data */
+	rc = udp_send_iov(session->rtp_socket, my_iov, my_iov_count);
+
+	/* Update the RTCP statistics... */
+	session->we_sent     = TRUE;
+	session->rtp_pcount += 1;
+	session->rtp_bcount += buffer_len;
+
+	check_database(session);
+	return rc;
+}
+#endif
 
 static int format_report_blocks(rtcp_rr *rrp, int remaining_length, struct rtp *session)
 {

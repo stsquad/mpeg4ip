@@ -212,12 +212,17 @@ int main(int argc, char** argv)
 	/* initialize encoder */
 	encParams.x_dim = frameWidth;
 	encParams.y_dim = frameHeight;
+	encParams.raw_y_dim = frameHeight;
+	encParams.enable_8x8_mv = 1;
 	encParams.framerate = frameRate;
 	encParams.bitrate = bitRate;
-	encParams.rc_period = iFrameFrequency;
+	encParams.rc_period = 2000;
+	encParams.rc_reaction_period = 10;
+	encParams.rc_reaction_ratio = 20;
+	encParams.max_key_interval = iFrameFrequency;
+	encParams.search_range = 64;
 	encParams.max_quantizer = 15;
-	encParams.min_quantizer = 1;
-	encParams.search_range = 128;
+	encParams.min_quantizer = 2;
 
 	if (encore(myHandle, ENC_OPT_INIT, &encParams, NULL) != ENC_OK) {
 		fprintf(stderr, 

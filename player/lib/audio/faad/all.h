@@ -1,56 +1,61 @@
-/************************* MPEG-2 NBC Audio Decoder **************************
- *                                                                           *
-"This software module was originally developed by 
-AT&T, Dolby Laboratories, Fraunhofer Gesellschaft IIS and edited by
-Yoshiaki Oikawa (Sony Corporation),
-Mitsuyuki Hatanaka (Sony Corporation),
-in the course of development of the MPEG-2 NBC/MPEG-4 Audio standard ISO/IEC 13818-7, 
-14496-1,2 and 3. This software module is an implementation of a part of one or more 
-MPEG-2 NBC/MPEG-4 Audio tools as specified by the MPEG-2 NBC/MPEG-4 
-Audio standard. ISO/IEC  gives users of the MPEG-2 NBC/MPEG-4 Audio 
-standards free license to this software module or modifications thereof for use in 
-hardware or software products claiming conformance to the MPEG-2 NBC/MPEG-4
-Audio  standards. Those intending to use this software module in hardware or 
-software products are advised that this use may infringe existing patents. 
-The original developer of this software module and his/her company, the subsequent 
-editors and their companies, and ISO/IEC have no liability for use of this software 
-module or modifications thereof in an implementation. Copyright is not released for 
-non MPEG-2 NBC/MPEG-4 Audio conforming products.The original developer
-retains full right to use the code for his/her  own purpose, assign or donate the 
-code to a third party and to inhibit third party from using the code for non 
-MPEG-2 NBC/MPEG-4 Audio conforming products. This copyright notice must
-be included in all copies or derivative works." 
-Copyright(c)1996.
- *                                                                           *
- ****************************************************************************/
+/*
+ * FAAD - Freeware Advanced Audio Decoder
+ * Copyright (C) 2001 Menno Bakker
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * $Id: all.h,v 1.3 2001/06/28 23:54:22 wmaycisco Exp $
+ */
 
 #ifndef	_all_h_
 #define _all_h_
 
+#include <stdio.h>
+#ifdef _WIN32
+#include <conio.h>
+#include <io.h>
+#endif
+#include <stdlib.h>
 #include <sys/types.h>
+#include <math.h>
+#include <string.h>
+
+#include "interface.h"
+#include "tns.h"
+#include "nok_ltp_common.h"
+#include "monopred.h"
+#include "bits.h"
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #ifndef _POSIX_SOURCE
 #define                 _POSIX_SOURCE   /* stops repeat typdef of ulong */
 #endif
 
-#include		<stdio.h>
-#ifdef _WIN32
-#include		<conio.h>
-#include		<io.h>
+#ifdef __cplusplus
+extern "C" {
 #endif
-#include		<stdlib.h>
-#include		<sys/types.h>
-#include 		<math.h>
-#include		<string.h>
 
-#include "interface.h"
-#include "tns.h"
-
-typedef	float	Float;
+typedef	float Float;
 #ifndef HAS_ULONG
 typedef unsigned long   ulong;
 #endif
 typedef	unsigned char	byte;
+
 
 enum
 {
@@ -58,7 +63,15 @@ enum
      * channels for 5.1 main profile configuration 
      * (modify for any desired decoder configuration)
      */
-#if 0
+#ifdef BIGDECODER
+    FChans	= 15,	/* front channels: left, center, right */
+    FCenter	= 1,	/* 1 if decoder has front center channel */
+    SChans	= 18,	/* side channels: */
+    BChans	= 15,	/* back channels: left surround, right surround */
+    BCenter	= 1,	/* 1 if decoder has back center channel */
+    LChans	= 1,	/* LFE channels */
+    XChans	= 1,	/* scratch space for parsing unused channels */  
+#else
     FChans	= 3,	/* front channels: left, center, right */
     FCenter	= 0,	/* 1 if decoder has front center channel */
     SChans	= 2,	/* side channels: */
@@ -66,14 +79,6 @@ enum
     BCenter	= 0,	/* 1 if decoder has back center channel */
     LChans	= 1,	/* LFE channels */
     XChans	= 1,	/* scratch space for parsing unused channels */  
-#else
-    FChans	= 2,	/* front channels: left, center, right */
-    FCenter	= 0,	/* 1 if decoder has front center channel */
-    SChans	= 0,	/* side channels: */
-    BChans	= 0,	/* back channels: left surround, right surround */
-    BCenter	= 0,	/* 1 if decoder has back center channel */
-    LChans	= 0,	/* LFE channels */
-    XChans	= 0,	/* scratch space for parsing unused channels */  
 #endif
     
     Chans	= FChans + SChans + BChans + LChans + XChans
@@ -100,12 +105,13 @@ enum
     /* average channel block length, bytes */
     Avjframe	= 341,	
 
-    TEXP	= 128,		/* size of exp cache table */
-    MAX_IQ_TBL	= 128,		/* size of inv quant table */
+    TEXP	= 128, /* size of exp cache table */
+    MAX_IQ_TBL	= 8192+15, /* size of inv quant table */
     MAXFFT	= LN4,
 
     XXXXX
 };
+
 
 typedef struct
 {
@@ -116,20 +122,20 @@ typedef struct
     int	    bins_per_sbk[MAX_SBK];	/* coef's per SB */
     int	    sfb_per_sbk[MAX_SBK];	/* sfb per SB */
     int	    sectbits[MAX_SBK];
-    short   *sbk_sfb_top[MAX_SBK];	/* top coef per sfb per SB */
-    short   *sfb_width_128;		/* sfb width for short blocks */
-    short   bk_sfb_top[200];		/* cum version of above */
+    int   *sbk_sfb_top[MAX_SBK];	/* top coef per sfb per SB */
+    int   *sfb_width_128;		/* sfb width for short blocks */
+    int   bk_sfb_top[200];		/* cum version of above */
     int	    num_groups;
-    short   group_len[8];
-    short   group_offs[8];
+    int   group_len[8];
+    int   group_offs[8];
 } Info;
 
 typedef struct {
-    int	    samp_rate;
-    int	    nsfb1024;
-    short*  SFbands1024;
-    int	    nsfb128;
-    short*  SFbands128;
+    int	samp_rate;
+    int	nsfb1024;
+    int *SFbands1024;
+    int	nsfb128;
+    int *SFbands128;
 } SR_Info;
 
 typedef struct
@@ -140,20 +146,23 @@ typedef struct
 
 typedef struct
 {
-    int		index;
-    int		len;
-    ulong	cw;
+    int len;
+    unsigned long cw;
+	char x, y, v, w;
 } Huffman;
+
+typedef struct
+{
+    int len;
+    unsigned long cw;
+	int scl;
+} Huffscl;
 
 typedef	struct
 {
-    int		n;
-    int		dim;
-    int		lav;
-    int		mod;
-    int		off;
-    int		signed_cb;
-    Huffman	*hcw;
+	int dim;
+    int signed_cb;
+    Huffman *hcw;
 } Hcb;
 
 
@@ -168,11 +177,6 @@ typedef struct
     int widx;		/* window element index for this channel */
     int is_present;	/* intensity stereo is used */
     int ncch;		/* number of coupling channels for this ch */
-#if (CChans > 0)
-    int cch[CChans];	/* coupling channel idx */
-    int cc_dom[CChans];	/* coupling channel domain */
-    int cc_ind[CChans];	/* independently switched coupling channel flag */
-#endif
     char *fext;		/* filename extension */
 } Ch_Info;
 
@@ -185,7 +189,7 @@ typedef struct {
     int nlch;		/* number of lfe channels */
     int ncch;		/* number of valid coupling channels */
     int cch_tag[(1<<LEN_TAG)];	/* tags of valid CCE's */
-    int profile;
+    int object_type;
     int sampling_rate_idx;
     Ch_Info ch_info[Chans];
 } MC_Info;
@@ -203,7 +207,7 @@ typedef struct {
 } MIXdown;
 
 typedef struct {
-    int profile;
+    int object_type;
     int sampling_rate_idx;
     EleList front;
     EleList side;
@@ -242,7 +246,7 @@ typedef struct {
 	int ID;
 	int layer;
 	int protection_absent;
-	int profile;
+	int object_type;
 	int sampling_rate_idx;
 	int private_bit;
 	int channel_configuration;
@@ -252,55 +256,166 @@ typedef struct {
 } ADTS_Fixed;
 
 typedef struct {
-	int first;
 	ADTS_Fixed fixed;
 	ADTS_Variable variable;
 	int adts_error_check;
 } ADTS_Header;
 
-void CommonExit(int errorcode, char *message);
-void CommonWarning(char *message);
+struct Pulse_Info
+{
+    int pulse_data_present;
+    int number_pulse;
+    int pulse_start_sfb;
+    int pulse_position[NUM_PULSE_LINES];
+    int pulse_offset[NUM_PULSE_LINES];
+    int pulse_amp[NUM_PULSE_LINES];
+};
 
-extern  int binisopen;
-extern  int stop_now;
-extern  int         framebits;
-extern	long		bno;
-extern	Huffman		book1[];
-extern	Huffman		book2[];
-extern	Huffman		book3[];
-extern	Huffman		book4[];
-extern	Huffman		book5[];
-extern	Huffman		book6[];
-extern	Huffman		book7[];
-extern	Huffman		book8[];
-extern	Huffman		book9[];
-extern	Huffman		book10[];
-extern	Huffman		book11[];
-extern	Huffman		bookscl[];
+
+extern Huffman book1[];
+extern Huffman book2[];
+extern Huffman book3[];
+extern Huffman book4[];
+extern Huffman book5[];
+extern Huffman book6[];
+extern Huffman book7[];
+extern Huffman book8[];
+extern Huffman book9[];
+extern Huffman book10[];
+extern Huffman book11[];
+extern Huffscl bookscl[];
 extern Hcb book[NSPECBOOKS+2];
-extern	long		cword;
-extern	Info		eight_short_info;
-extern	Float		exptable[TEXP];
-extern	Float		iq_exp_tbl[MAX_IQ_TBL];
-extern	int		nbits;
-extern	Info		only_long_info;
-extern	short		sfbwidth128[];
-extern	SR_Info		samp_rate_info[];
-extern	int		tns_max_bands_tbl[(1<<LEN_SAMP_IDX)][4];
-extern	Info*		winmap[NUM_WIN_SEQ];
-extern	Info		*win_seq_info[NUM_WIN_SEQ];
+extern int sfbwidth128[];
+extern SR_Info samp_rate_info[];
+extern int tns_max_bands_tbl[(1<<LEN_SAMP_IDX)][4];
+extern const int SampleRates[];
+extern int pred_max_bands_tbl[(1<<LEN_SAMP_IDX)];
 
-extern	int		default_config;
-extern	int		adif_header_present;
-extern	int		adts_header_present;
-extern	int		current_program;
-extern	ADIF_Header	adif_header;
-extern	ADTS_Header	adts_header;
-extern	ProgConfig	prog_config;
-extern	MC_Info		mc_info;
+#ifdef WIN32
+  #pragma pack(push, 8)
+  #ifndef FAADAPI
+    #define FAADAPI __stdcall
+  #endif
+#else
+  #ifndef FAADAPI
+    #define FAADAPI
+  #endif
+#endif
+
+#define FAAD_OK 0
+#define FAAD_OK_CHUPDATE 1
+#define FAAD_ERROR 2
+#define FAAD_FATAL_ERROR 3
+
+typedef void *faacProgConfig;
+
+typedef struct faacDecConfiguration
+{
+	unsigned int dummy;
+} faacDecConfiguration, *faacDecConfigurationPtr;
+
+typedef struct {
+	int isMpeg4;
+	int frameNum;
+	int pceChannels;
+	int numChannels;
+  int chans_inited;
+
+	/* Configuration data */
+	faacDecConfiguration config;
+
+	bitfile ld;
+
+	int adif_header_present;
+	int adts_header_present;
+	ADIF_Header adif_header;
+	ADTS_Header adts_header;
+
+	/* decoder data */
+	Float *coef[Chans];
+	Float *data[Chans];
+	Float *state[Chans];
+	byte hasmask[Winds];
+	byte *mask[Winds];
+	byte *group[Chans];
+	byte wnd[Chans];
+	byte max_sfb[Chans];
+	byte *cb_map[Chans];
+    int *lpflag[Chans];
+	int *prstflag[Chans];
+
+	/* prediction */
+	int last_rstgrp_num[Chans];
+	PRED_STATUS	*sp_status[Chans];
+	float *mnt_table;
+	float *exp_table;
+	int warn_flag;
+
+	/* long term prediction */
+	NOK_LT_PRED_STATUS *nok_lt_status[Chans];
+	/* Pulse coding */
+	struct Pulse_Info pulse_info;
+
+	MC_Info mc_info;
+	MC_Info save_mc_info;
+	int default_config;
+	int current_program;
+	ProgConfig prog_config;
+	Info eight_short_info;
+	Info *win_seq_info[NUM_WIN_SEQ];
+	Info *winmap[NUM_WIN_SEQ];
+	Info only_long_info;
+
+	Wnd_Shape wnd_shape[Chans];
+	int *factors[Chans];
+	TNS_frame_info *tns[Chans];
+
+	int dolbyShortOffset_f2t;
+	int dolbyShortOffset_t2f;
+	int first_cpe;
+
+	/* PNS data */
+    long cur_noise_state;
+    long noise_state_save[MAXBANDS];
+    int lp_store[MAXBANDS];
+
+	/* tables */
+	Float *iq_exp_tbl;
+	Float *exptable;
+
+	/* FFT data */
+	int *unscambled64;
+	int *unscambled512;
+
+} faacDecStruct, *faacDecHandle;
+
+faacDecHandle FAADAPI faacDecOpen();
+
+faacDecConfigurationPtr FAADAPI faacDecGetCurrentConfiguration(faacDecHandle hDecoder);
+
+int FAADAPI faacDecSetConfiguration(faacDecHandle hDecoder,
+									faacDecConfigurationPtr config);
+
+int FAADAPI faacDecInit(faacDecHandle hDecoder,
+						unsigned char *buffer,
+						unsigned long *samplerate,
+						unsigned long *channels);
+
+int FAADAPI faacDecGetProgConfig(faacDecHandle hDecoder,
+								 faacProgConfig *progConfig);
+
+int FAADAPI faacDecDecode(faacDecHandle hDecoder,
+						  unsigned char *buffer,
+						  unsigned long *bytesconsumed,
+						  short *sample_buffer);
+
+void FAADAPI faacDecClose(faacDecHandle hDecoder);
+
 
 #include "nok_lt_prediction.h"
 #include "port.h"
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif	/* _all_h_ */
