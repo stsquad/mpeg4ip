@@ -1,0 +1,657 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<HTML lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+<title>MP4LIVE  README</title></head>
+<body id="top">
+<h1>MP4LIVE README</h1>
+<p>
+May, 2004<br>  
+Dave Mackie<br>
+Bill May<br>
+<P>
+<b>
+<a href="#mp4live">MP4LIVE</a><br>
+<a href="#s1.1">Changes in Version 1.1</a><br>
+<a href="#hw">Hardware Requirements</a><br>
+<a href="#soft">Software Requirements</a><br>
+<a href="#warning">Warnings</a><br>
+<a href="#tips">Tips</a><br>
+<a href="#build">Building and Installing</a><br>
+<a href="#using">Using mp4live</a><br>
+<a href="#qt">Use with QT 6.0 and Real One</a><br>
+<a href="#nw">Network Transmission</a><br>
+<a href="#dss">Use with Darwin Streaming Server</a><br>
+<a href="#capture">Sharing Capture Cards</a><br>
+<a href="#cli">Command Line Options</a><br>
+<a href="#issues">Known Issues</a><br>
+<a href="#unknown">Unknowns</a><br>
+<a href="#links">Links</a><br>
+<a href="#config">Configuration Variables</a><br>
+</b>
+
+<P>
+<div id="mp4live">
+<h2>MP4LIVE</h2>
+</div>
+<P>
+MP4LIVE is a Linux audio/video capture utility that can capture and encode 
+audio and video in real-time. The results can be written to either an .mp4
+file, transmitted onto the network via either unicast or multicast, or both 
+simultaneously! The audio is encoded with MP3 or AAC, and the video with 
+MPEG-4 Simple Profile.
+<P>
+Please use the MPEG4IP SourceForge site to report problems, suggest 
+enhancements, ask questions, etc. The URL is 
+<a href="http://www.sourceforge.net/projects/mpeg4ip">http://www.sourceforge.net/projects/mpeg4ip</a>
+<P>
+<b>Do not contact us via email</b>
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="s1.1">
+<h2>Changes in Version 1.1</h2>
+</div>
+<p>
+Default mpeg4 encoder is no longer included with the package.
+<p>
+Add option to create new file name based on existing name when
+recording files
+<P> 
+Added mpeg2 video and mpeg1 layer 2 audio encoding with ffmpeg.
+<p>
+Added XVID 1.0 API code
+<p>
+Added decimate and deinterlace filters
+<p>
+<div id="hw">
+<h2>Hardware Requirements</h2>
+</div>
+<P>
+Pentium III class machine of at least 500 MHz 
+(Pentium IV class machine at 2 GHz is very nice.)
+<P>
+Note systems vary quite a bit in their video capture abilities. For instance,
+I have a name brand 750 MHz PIII that drops frames when pushed to CIF sizes
+at greater than 15 fps, but I have a no-name clone with a 800 MHz PIII that 
+can encode CIF @ 24 fps no problem.
+<P>
+RAM is not typically an issue. I develop on machines with 128 MB, but I believe much smaller configurations would work fine. The real issue is CPU speed.
+We recommend at least 256Mb.
+<P>
+A sound card with an OSS compatible driver and capture ability, preferrably 
+at least 3.8.2 that have the SNDCTL_DSP_GETERROR define, and that support
+the SNDCTRL_DSP_GETISPACE ioctl accurately.
+<P>
+A video device with a video4linux (v4l) compatible driver and memory mapped 
+capture ability.  We also support (and recommend) the video4linux2 (v4l2) driver.
+<P>
+Known to work are:
+<ul>
+<li>
+	Video capture cards based on the Brooktree 8x8 chip
+	with an analog A/V source - VCR, DVD, Camcorder, Settop box, Tivo, etc.
+		Typically a video capture card will support composite video inputs.
+		Some will also have S-Video input.
+		Others will also have a TV Tuner input.
+</li>
+<li>
+	Logitech Quickcam Express Webcam
+</li>
+</ul>
+<P>
+Note on multi-processor machines (SMP): mp4live is multithreaded at a coarse
+level. Specifically the video encoder, audio encoder, file recorder, network
+transmitter, and user interface each have their own thread. Unfortunately for
+owners of multiprocessor machines, the video encoder thread dominates the 
+computational requirements so one CPU will be very busy, and the others will
+be lightly to moderately loaded. For those looking for a project, a multi-
+threaded video encoder would certainly provide an interesting challenge.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="soft">
+<h2>Software Requirements</h2>
+</div>
+<P>
+Linux with a 2.4 or later kernel.<br>
+We recommend a kernel with V4L2 built in.  See the instructions on
+<a href="Building_mpeg4ip_with_V4L2_support.html">building it yourself</a>
+<P>
+The 2.6 kernel should have the correct V4L2 interface.
+<p>
+Drivers for sound and video devices
+<P>
+	bttv 0.7 or later video capture driver
+		(Included with RedHat 7.1 and later)
+        (0.9 required for v4l2)<br>
+	qce webcam driver
+
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="warning">
+<h2>WARNINGS!</h2>
+</div>
+<P>
+
+Please see the MPEG4IP README regarding legal issues, and the list of 
+open source packages that are redistributed with this code.
+<P>
+This is a LINUX program! Do not even think about trying to get this to 
+run on Windows! Even moving it to other UNIX systems would require some 
+re-programming since the sound and video capture interfaces are Linux 
+specific.
+<p>
+We no longer include a mpeg-4 encoder native with the package.  You will
+have to download ffmpeg or xvid if you want to encode with mpeg-4.
+<P>
+By far the easiest route is to use a Linux distribution that already has a
+2.4 kernel, the bttv driver, and the associated i2c module built into it.
+However, this will not get you good long term audio and video lip sync.  See
+the <a href="Building_mpeg4ip_with_V4L2_support.html">instructions</a> on
+how to build your own kernel with V4L2 included. 
+<P>
+I've had many headaches with sound cards under Linux. Before you start using 
+mp4live, please make sure you're able to playback and record with your sound 
+card!
+<P>
+You should definitely increase the number of capture buffers for the bttv 
+driver. This reduces the chance of dropping video frames due to transient
+delays in the system. By default bttv uses 2 buffers. You can increase this 
+by editting /etc/modules.conf and adding the line 
+"add options bttv gbuffers=32"
+at the end of the file. The value 32 is my recommendation but you can 
+experiment with other values if you are so inclined.
+<br>Note: with v4l2, we're not sure if this is required any more.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="tips">
+<h2>Tips</h2>
+</div>
+<P>
+
+I suggest you disable any fancy, computationally intensive screensavers 
+when using mp4live to capture long programs. Along the same lines, don't
+run any programs that make large resource demands (CPU, bus, disk, network)
+while mp4live is running.
+<P>
+If you're capturing large video image sizes, then you may be able to boost
+the encoded video frame rate by disabling video preview.  In general, once
+you've got the system working, disabling preview is a good idea.
+<P>
+The AAC audio encoder is somewhat slower than the MP3 audio encoder so 
+you may see lower video frame rates and greater sensitivity to CPU load 
+if you are using AAC.
+<P>
+Linux supports the POSIX soft real-time extensions and mp4live will attempt
+to use these to give it priority over non-real time processes. Typically
+these calls can only be made by processes with root privileges, so you may
+want to run mp4live as root for this reason.
+<P>
+If you have the latest version of OSS, you have a chance of detecting
+audio overruns.  That, in combination with the latest version and
+working on a fast machine will give fairly good lip syncronization up to
+about the hour mark running 90% of the CPU with V4L.  With V4L2, we've
+had good audio and video sync out beyond 500 hours in our lab.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="build">
+<h2>Building and Installing</h2>
+</div>
+<P>
+See the MPEG4IP README for general notes about the build environment. 
+<P>
+Assuming you've already done a build at the top level of mpeg4ip, and
+you're on a Linux system then mp4live should be built and waiting for you
+in this directory. If you've done a top level 'make install', the mp4live
+will be installed into '/usr/local/bin'. Of course, you can also issue 
+'make' and 'make install' from this directory as well.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="using">
+<h2>Using mp4live</h2>
+</div>
+<P>
+
+Typically, there is no need for command line options to mp4live. You can
+just type 'mp4live' and you'll be up and running.
+<P>
+If you change an mp4live configuration setting, then that change will be 
+saved in your home directory in ~/.mp4live_rc. This file is read when 
+mp4live is started, and the configuration settings adjusted accordingly.
+<P>
+The default settings for mp4live are to record 1 minute of audio and video
+to an mp4 file, ./capture.mp4  The first time you use the program, it's
+a good idea to just hit the Start button, and see what happens. If all
+goes well, 1 minute later you have a playable/streamable mp4 file. If you
+don't get this, then it's time to review this README, and it that doesn't
+help, then fire off a message on the MPEG4IP SourceForge discussion group.
+<P>
+Assuming things are working you can now use the Settings buttons to adjust
+things like the video size and frame rate, the audio sampling rate, the 
+encoded bitrates, etc. The UI is hopefully self-explanatory. If not, let us
+know what's confusing and we'll look at fixing that. (I'm a big believer that
+if you need to read a document to use a UI, then the UI is broken and should
+be fixed. Of course, as I've re-learned many times, what is obvious and natural
+to me, isn't always to other people.)
+<P>
+If you're capturing video that uses "widescreen" or "letterbox" format, 
+it's a big win to change the "Aspect Ratio" in the Video Settings. This 
+will cause the video to be automatically cropped so you don't waste precious 
+CPU time encoding the empty black bars at the top and bottom of the screen. 
+<P>
+The capture cards will always try to capture frame rates based on what
+the setting of the video card is (either NTSC or PAL).
+<P>
+The default is to assume that the video driver is going to capture close
+to the correct frame rate of 29.97 for NTSC, 25 for PAL.  If you don't 
+think that this is working quite right, try the "videoTimestampCache=0"
+to the .mp4live_rc before you start.  (This may be the case with usb
+web cams, but most likely not regular capture cards).  Note: this is
+for v4l users only.
+<p>
+A user contributed some simple video filters.  We have a decimate
+filter (which captures video at 2 times the resolution, and scales it
+back down), and a deinterlace filter (which will do a linear blend style
+of deinterlace on the Y plane before encoding).
+<p>
+These filters do take up some processing power, so be careful.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="qt">
+<h2>Use with QT 6.0 and Real One</h2>
+</div>
+<P>
+It is possible to create content for QT 6.0 and Real One with the 
+Envivio plug in.  You must create with the audio encoding set to 
+AAC for both of these.  
+<P>
+If you want to stream (using the instructions below), you must have
+Envivio version 1.2.  Download Real One, then download Envivio TV
+version 1.2 afterwards.  The Envivio plugin downloaded with Real One
+will not play multiple AAC frames in a RTP packet, so your sound will
+appear to stutter.
+<P>
+If you want to stream mpeg2 to the QT player (with the mpeg2 add-on), you
+will need to broadcast MPEG2 video and MPEG layer 2 audio.  For both of 
+these, ffmpeg is required.  Make sure to use the rtpUseMp3RtpPayload14=1
+configuration setting.
+<p>
+<a href="#top">Back to top</a>
+<P>
+<div id="nw">
+<h2>Network Transmission</h2>
+</div>
+<P>
+
+To use mp4live to transmit live audio/video to the network, follow these
+directions: 
+<P>
+Select 'Enabled' in the Transmission section of the main window.
+<P>
+By default, mp4live will multicast the media to IP address 224.1.2.3
+<P>
+If you wish to change this, select the 'Settings...' button in the
+Transmission section of the main window. A dialog will appear that allows
+selection of the destination IP address (either unicast or multicast),
+the UDP port numbers used, the TTL used if multicasting, and the name of
+the .sdp file to generate (more about that in a minute). When you're done
+making changes, select 'OK'.
+<P>
+When you press mp4live's 'Start' button, media transmission to the network 
+will begin. Also a small text file with extension .sdp will be created that 
+describes the media transmission for the player. The player needs the .sdp 
+file to be able to tune into the media streams. (Note the .sdp file can also
+be generated from the Transmission Settings dialog)
+<P>
+The most convenient way to distribute the .sdp file is to have mp4live write
+it to a directory that is accessible from a web server (httpd) that is running
+on the same machine as mp4live. This allows the client to be started with
+the HTTP URL of the sdp file, and it will download the .sdp file via http
+and then use the information in the .sdp file to tune into the network
+transmission. E.g.: <P><samp>gmp4player http://myserver/myprogram.sdp</samp>
+<P>
+For Real One, use the Open command with http://myserver/myprogram.sdp.  For
+QT6.0, use Open URL.
+<P>
+You can of course distribute the .sdp file in a number of other ways, say
+ftp, or email. You would then start the player with the local file name 
+of the sdp file, e.g.:
+<P><samp>gmp4player myprogram.sdp</samp>
+
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="dss">
+<h2>Use with Darwin Streaming Server</h2>
+</div>
+<P>
+
+If you would like to use mp4live in conjunction with the Darwin Streaming
+Server (DSS), that is easy to do. You can have mp4live both record and 
+transmit live media streams. When you record the .mp4 files, just ensure 
+that they are written to the media directory that is accessible via the Darwin 
+Streaming Server, typically /usr/local/movies. Once the recording is complete,
+it will be available for on-demand playback.
+<P>
+For example: 
+<P><samp>gmp4player rtsp://DSS/mymovie.mp4</samp>
+<P>
+The Darwin Streaming Server can also be configured to act as a relay agent
+for the mp4live media streams. Copy the .sdp file generated by mp4live to
+the media directory of the Darwin Streaming Server (e.g. /usr/local/movies)
+Players can now request the .sdp file from DSS which will cause DSS to act
+as a relay between mp4live and the player.
+<P>
+For example:
+<P><samp> gmp4player rtsp://DSS/mymovie.sdp</samp>
+<P>
+If you're having problems where gmp4player is stopping after 2 minutes when 
+relaying through a Darwin Streaming Server, add the line <code>rtpNoBRR0=1</code>
+to your .mp4live_rc.  Darwin is expecting RTCP messages from gmp4player, and the b=RR:0 statement
+in the SDP stops gmp4player from sending them.
+
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="capture">
+<h2>Sharing Capture Cards</h2>
+</div>
+<P>
+
+If you have another program that wants to simultaneously process the raw
+audio and/or video from the capture cards, there is typically a problem
+in that many drivers only support one reader at a time. To address this
+issue, mp4live can be configure to write the raw audio and/or video that
+it reads from the capture cards to a named pipe (fifo). A named pipe looks
+like a file, but the data only exists in memory and never goes to disk.
+This is an efficient way to have the two applications share the media data. 
+<P>
+To configure this feaure, add the following to ~/.mp4live_rc (or whatever
+configuration file you want to use), changing "/dir" to some directory 
+where you want the named pipes to exist:
+<P>
+rawEnable=1<br>
+rawAudioFile=/dir/audio_pipe<br>
+rawAudioUseFifo=1 <br>
+rawVideoFile=/dir/video_pipe<br>
+rawVideoUseFifo=1 <br>
+<P>
+The audio format is 16 bit PCM, the video format is YUV12 (planar 4:2:0 YUV).
+
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="cli">
+<h2>Command Line Options</h2>
+</div>
+<P>
+
+There are currently four command line options to mp4live:<br>
+<code>
+--file &lt;config-file&gt;<br>
+--automatic<br>
+--headless<br>
+--sdp<br>
+--config-vars<br>
+</code>
+<P>
+<code>--file &lt;config-file&gt;</code> allows specification of the mp4live configuration file
+to something other than ~/.mp4live_rc. Perhaps you have a several frequently
+used configurations. You can save the configuration settings to different
+files, and then use this option to choose among them.
+<P>
+<code>--automatic</code> causes mp4live to act as if the Start button was pressed
+immediately upon startup. The program will do whatever the current 
+configuration instructs it to do. This option can be used in conjunction
+with the 'cron' utlity to do scheduled recording and/or transmission.
+<P>
+<code>--headless</code> causes mp4live to behave in the <code>--automatic</code> mode AND not display any user interface.
+<P>
+<code>--sdp</code> causes mp4live to just generate the sdp file based on its configuration file and then exit.
+<p>
+<code>--config-vars</code> will cause mp4live to display the list of all 
+possible configuration variables and exit.
+<p>
+In addition, any of the configuration variables can be overwritten by
+using --&lt;variable&gt;=&lt;value&gt;.  Make sure that the case of 
+variable matches the case from the --config-vars display.
+<p>
+
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="issues">
+<h2>Known Issues</h2>
+</div>
+<P>
+
+Using a system with a PCI instead of an AGP video display card can cause 
+video "tearing" with CIF or larger size images. I.e. the PCI bus quickly
+gets swamped moving raw video from the video capture card to the CPU, and 
+then from the CPU to the video display card. Having the AGP bus for the
+CPU to video display card transfer alleviates this problem. If someone is
+interested one could experiment with the video overlay capabilities of the
+Bt8x8 to bypass this problem, but it would require some rework of our code
+with respect to the video preview function.
+<P>
+It took me awhile to figure this out so perhaps I can save some of you some
+time. If you use the Hauppage WinTV Go card you need to connect the mini-jack
+on the card to the line-in input on your sound card in order to get the
+audio signal from the TV tuner.
+<P>
+Note there is currently no support for DV/mini-DV camcorders via FireWire. 
+You can of course still use these via their composite or S-Video outputs.
+<P>
+More recent versions of mp4live add streaming hint tracks as a post-processing
+step (i.e. after the recording is finished). For long duration recording
+(1 hour or greater), this step can take a minute or two. I'm hoping to 
+enhance the UI to provide user feedback while this is taking place, but
+for now the application gets very unresponsive during this period. If this
+is a big problem for you, there is a configuration option to disable the
+hinting process, "recordMp4HintTracks=0". The mp4 file can always be hinted
+later with the mp4creator utility.
+<P>
+The audio and video should be in sync if you're using the latest tools
+(V4L2 and the latest OSS driver).  If you're not, you will have problems
+in long term (usually an hour or so).
+<P>
+The current audio/video synchronization algorithm in the MP4 File Recorder
+starts by dropping video frames until an audio frame is loaded. It then
+drops subsequent video frames until the next I video frame is loaded.
+This I frame is stretched to the beginning of the first audio frame to
+synchronize the video and audio.
+Because of this, the first video frame is displayed for a longer duration
+before the video starts rolling. This duration is usually of the order of
+4 or 5 video frame times and generally unnoticable.
+<br>
+We've done our best to try to start the audio first, but since the video
+is already running in the preview (if turned on), the file recorder receives
+a bunch of video frames before the first audio frame propagates to the
+file recorder. Given this, the above algorithm seems to be a resonable
+solution.
+<p>
+Sometimes, you may experience a crash while changing the video parameters such
+as height/width or aspect ratio.  If this occurs, change the 
+<a href="#vheight">parameter </a> in your .mp4live_rc file, and restart 
+mp4live, or just pass the videoRawWidth and videoRawHeight as command
+line parameters.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="unknown">
+<h2>Unknowns</h2>
+</div>
+<P>
+
+I've only used mp4live with two video capture cards the Viewcast Osprey 100
+and the Hauppage WinTV Go. There are many other Bt8x8 based capture cards 
+listed in the bttv driver documentation. Odds are you're using one of these ;-)
+Reports from initial users suggest though that the bttv driver handles the
+wide variety of cards gracefully, and mp4live doesn't have card specific 
+issues.
+<P>
+If you do have problems with mp4live, my first suggestion is that you download 
+the latest version of the xawtv package, and try it with your capture card. 
+If it works and mp4live doesn't then I'd be glad to hear from you. If xawtv 
+doesn't work with your capture card, then I can't help you. Something is 
+wrong with your capture card/system/bttv driver/kernel combination. I don't
+have the capability or inclination to debug that for you! 
+<p>
+<a href="#top">Back to top</a>
+<P>
+<div id="links">
+<h2>Links</h2>
+</div>
+<P>
+<table summary="links">
+<tr>
+  <td>MPEG4IP</td>			
+  <td><a href="http://www.mpeg4ip.net/">http://www.mpeg4ip.net/</a></td>
+</tr>
+<tr>
+  <td>bttv driver</td>		
+  <td><a href="http://bytesex.org/bttv/">http://bytesex.org/bttv/</a></td>
+</tr>
+<tr>
+  <td>qce driver</td>		
+  <td><a href="http://www.sourceforge.net/projects/qce-ga">http://www.sourceforge.net/projects/qce-ga</a></td>
+</tr>
+<tr>
+  <td>xawtv</td>			
+  <td><a href="http://bytesex.org/xawtv/">http://bytesex.org/xawtv/</a></td>
+</tr>
+<tr>
+  <td>Xvid</td>			
+  <td><a href="http://www.xvid.org/">http://www.xvid.org/</a></td>
+</tr>
+<tr>
+  <td>LAME</td>			
+  <td><a href="http://www.sourceforge.net/projects/lame">http://www.sourceforge.net/projects/lame</a></td>
+</tr>
+<tr>
+  <td>FAAC</td>			
+  <td><a href="http://www.audiocoding.com">http://www.audiocoding.com</a></td>
+</tr>
+<tr>
+  <td>FFMPEG</td>
+  <td><a href="http://ffmpeg.sourceforge.net">http://ffmpeg.sourceforge.net</a></td>
+</tr>
+</table>
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="config">
+<h2>Configuration Variables</h2>
+</div>
+<P>
+<table border cellpadding=4 summary="Configuration variables">
+<tbody>
+<tr><th colspan=5 align=center><b>Application Level</b></th></tr></tbody>
+<tbody>
+<tr><th>Name</th><th>Type</th><th>Default</th><th>Does</th></tr>
+<tr align=center>
+<td>useRealTimeScheduler</td><td>bool</td><td>true</td><td>attempts to use real time features of the OS<br>Probably only suceeds as root</td></tr>
+<tr align=center><td>duration</td><td>int</td><td>1</td><td>duration in durationUnits</td></tr>
+<tr align=center><td>durationUnits</td><td>int</td><td>60</td><td>Number of seconds per duration unit (1, 60, 3600, 86400)</td></tr>
+<tr align=center><td>debug</td><td>bool</td><td>false</td><td>Enable debug output</td></tr>
+<tr align=center><td>signalHalt</td><td>string</td><td>sighup</td><td>Signal used in no gui mode to stop</td></tr>
+<tr><th colspan=5 align=center><b>Audio Options</b></tr>
+<tr align=center><td>audioEnable</td><td>bool</td><td>true</td><td>True if audio is enabled</td></tr>
+<tr align=center><td>audioSourceType</td><td>string</td><td>OSS</td><td>Audio Source Type (only OSS for now)</td></tr>
+<tr align=center><td>audioDevice</td><td>string</td><td>/dev/dsp</td><td>Audio Device to use</td></tr>
+<tr align=center><td>audioMixer</td><td>string</td><td>/dev/mixer</td><td>Audio Mixer to use</td></tr>
+<tr align=center><td>audioInput</td><td>string</td><td>mix</td><td>Audio Input Type to use</td></tr>
+<tr align=center><td>audioChannels</td><td>int</td><td>2</td><td>Number of Encoded Audio Channels (1 or 2)</td></tr>
+<tr align=center><td>audioSampleRate</td><td>int</td><td>44100</td><td>Audio Frequency Sample Rate</td></tr>
+<tr align=center><td>audioBitRate</td><td>int</td><td>128</td><td>Encoded Audio Bit Rate (in 1000 Hz)</td></tr>
+<tr align=center><td>audioBitRateBps</td><td>int</td><td>128000</td><td>Encoded Audio Bit Rate</td></tr>
+<tr align=center><td>audioEncoding</td><td>string</td><td>MP3</td><td>Audio Encoding to use</tr>
+<tr align=center><td>audioEncoder</td><td>string</td><td>LAME</td><td>Audio Encoder to use</tr>
+<tr align=center><td>audioOssUseSmallFrags</td><td>bool</td><td>true</td><td>Enable small fragments size in OSS</tr>
+<tr align=center><td>audioOssFragments</td><td>int</td><td>128</td><td>Number of fragments</tr>
+<tr align=center><td>audioOssFragSize</td><td>int</td><td>8</td><td>Size of fragments</tr>
+<tr><th colspan=5 align=center><b>Video Options</b></tr>
+<tr align=center><td>videoEnable</td><td>bool</td><td>true</td><td>Enable Video</tr>
+<tr align=center><td>videoSourceType</td><td>string</td><td>V4L</td><td>Video Source to use <br>(V4L is for both V4L and V4L2)</tr>
+<tr align=center><td>videoDevice</td><td>string</td><td>/dev/video0</td><td>Video Device to use</tr>
+<tr align=center><td>videoInput</td><td>int</td><td>1</td><td>Video Input to use (index from V4L)</tr>
+<tr align=center><td>videoSignal</td><td>int</td><td>1</td><td>PAL-0, NTSC-1, SECAM-2</tr>
+<tr align=center><td>videoChannelListIndex</td><td>int</td><td>0</td><td>Which channel list to use for tuner<br>see video_util_tv.cpp</tr>
+<tr align=center><td>videoChannelIndex</td><td>int</td><td>1</td><td>0 based index for channel in above list</tr>
+<tr align=center><td>videoPreview</td><td>bool</td><td>true</td><td>Show Video Preview in Gui</tr>
+<tr align=center><td>videoRawPreview</td><td>bool</td><td>false</td><td>Show Raw Video Preview in Gui</tr>
+<tr align=center><td>videoEncodedPreview</td><td>bool</td><td>true</td><td>Show Encoded Video Preview in Gui</tr>
+<tr align=center><td>videoEncoder</td><td>string</td><td>xvid</td><td>Video Encoder Type</tr>
+<tr align=center><td>videoEncoding</td><td>string</td><td>MPEG4</td><td>Video Encoding Type</tr>
+<tr align=center><td id="vheight">videoRawWidth</td><td>int</td><td>320</td><td>Width of output frame in pixels</tr>
+<tr align=center><td>videoRawHeight</td><td>int</td><td>240</td><td>Height of output frame in pixels</tr>
+<tr align=center><td>videoAspectRatio</td><td>float</td><td>1.33</td><td>Aspect ratio</tr>
+<tr align=center><td>videoFrameRate</td><td>float</td><td>29.97</td><td>Frame Rate</tr>
+<tr align=center><td>videoKeyFrameInterval</td><td>float</td><td>2.0</td><td>Number of Seconds between Key Frames</tr>
+<tr align=center><td>videoBitRate</td><td>int</td><td>500</td><td>Encoded Video Bit Rate in 1000 bits per second</tr>
+<tr align=center><td>videoForceProfileId</td><td>bool</td><td>false</td><td>True to force MPEG4 Video Profile to videoProfileId</tr>
+<tr align=center><td>videoProfileId</td><td>int</td><td>3 (SP@L3)</td><td>MPEG4 Video Profile when forcing</tr>
+<tr align=center><td>videoBrightness</td><td>int</td><td>50</td><td>Brightness level (0 to 100)</tr>
+<tr align=center><td>videoHue</td><td>int</td><td>50</td><td>Hue level (0 to 100)</tr>
+<tr align=center><td>videoColor</td><td>int</td><td>50</td><td>Color level (0 to 100)</tr>
+<tr align=center><td>videoContrast</td><td>int</td><td>50</td><td>Contrast level (0 to 100)</tr>
+<tr align=center><td>videoTimestampCache</td><td>bool</td><td>true</td><td>Calculate timestamps, rather than read with timestamp<br>(V4L only)</tr>
+<tr align=center><td>videoH261Quality</td><td>int</td><td>10</td><td>Starting H.261 Video Quality</tr>
+<tr align=center><td>videoH261QualityAdjFrames</td><td>int</td><td>8</td><td>Number of frames to adjust H.261 Quality over</tr>
+<tr align=center><td>videoCaptureBuffersCount</td><td>int</td><td>16</td><td>Number of capture buffers to request<br>(V4L2 only)</tr>
+<tr align=center><td>videoFilter</td><td>string</td><td>none</td><td>Video filter to use (none, "deinterlace - blend", "deinterlace - decimate")</td></tr>
+<tr><th colspan=5 align=center><b>XVID 1.0 Video Options</b></tr>
+<tr align=center><td>xvid10VideoQuality</td><td>int</td><td>6</td><td>Video Quality (0 to 6 values)</td>
+<tr align=center><td>xvid10UseGMC</td><td>bool</td><td>false</td><td>Use GMC (do not use if using Quicktime Clients</td>
+<tr align=center><td>xvid10UseQpel</td><td>bool</td><td>false</td><td>Use Quarter Pel (do not use if using Quicktime Clients</td>
+<tr align=center><td>xvid10UseLumimask</td><td>bool</td><td>false</td><td>Use XVID lumimask filter plugin</td>
+<tr><th colspan=5 align=center><b>Recording Options</b></tr>
+<tr align=center><td>recordEnable</td><td>bool</td><td>true</td><td>True to record</tr>
+<tr align=center><td>recordRawAudio</td><td>bool</td><td>false</td><td>True to record raw audio <br>(PCM at encode frequency)</tr>
+<tr align=center><td>rawAudioFile</td><td>String</td><td>capture.pcm</td><td>File to store raw PCM</tr>
+<tr align=center><td>rawAudioUseFifo</td><td>bool</td><td>0</td><td>Output to pipe (see Sharing Capture Cards)</tr>
+<tr align=center><td>recordRawVideo</td><td>bool</td><td>false</td><td>True to record raw video <br>(YUV at height/width)</tr>
+<tr align=center><td>rawVideoFile</td><td>String</td><td>capture.yuv</td><td>File to store raw PCM</tr>
+<tr align=center><td>rawVideoUseFifo</td><td>bool</td><td>0</td><td>Output to pipe (see Sharing Capture Cards)</tr>
+<tr align=center><td>recordEncodedAudio</td><td>bool</td><td>true</td><td>True to record encoded audio</tr>
+<tr align=center><td>recordEncodedVideo</td><td>bool</td><td>true</td><td>True to record encoded video</tr>
+<tr align=center><td>recordMp4File</td><td>string</td><td>capture.mp4</td><td>Filename to create</tr>
+<tr align=center><td>recordMp4HintTracks</td><td>bool</td><td>true</td><td>Record hint tracks when recording completed</tr>
+<tr align=center><td>recordMp4Optimize</td><td>bool</td><td>false</td><td>Optimize mp4 file when recording completed</tr>
+<tr align=center><td>recordMp4FileStatus</td><td>integer</td><td>1</td><td>What happens to file when restarted:<br>
+0 - append, 1 - overwrite,<br> 2 - create new file with timestamp</tr>
+<tr><th colspan=5 align=center><b>Transmission (RTP) Options</b></tr>
+<tr align=center><td>rtpEnable</td><td>bool</td><td>false</td><td>True to transmit over the network</tr>
+<tr align=center><td>rtpDestAddress</td><td>string</td><td>224.1.2.3</td><td>Video Stream destination address</tr>
+<tr align=center><td>audioRtpDestAddress</td><td>string</td><td>224.1.2.3</td><td>Audio Stream destination address</tr>
+<tr align=center><td>rtpAudioDestPort</td><td>int</td><td>20002</td><td>Audio Stream destination port</tr>
+<tr align=center><td>rtpVideoDestPort</td><td>int</td><td>20000</td><td>Video Stream destination port</tr>
+<tr align=center><td>rtpPayloadSize</td><td>int</td><td>1460</td><td>max bytes of audio or video per packet</tr>
+<tr align=center><td>rtpMulticastTtl</td><td>int</td><td>15</td><td>Multicast TTl</tr>
+<tr align=center><td>rtpDisableTimestampOffset</td><td>bool</td><td>false</td><td>If true, start RTP timestamps at 0<br>if false, start at random offset</tr>
+<tr align=center><td>rtpUseSingleSourceMulticast</td><td>bool</td><td>false</td><td>Use SSM multicast</tr>
+<tr align=center><td>sdpFile</td><td>string</td><td>capture.sdp</td><td>Where to store sdp file describing session</tr>
+<tr align=center><td>rtpUseMp4RtpPayload14</td><td>bool</td><td>false</td><td>if true, use RTP payload 14 and 90000 timescale<br>if false, use dynamic payload and frequency timescale</tr>
+<tr align=center><td>rtpNoBRR0</td><td>bool</td><td>false</td><td>If true, do not include b=RR:0 in SDP</tr>
+</tbody>
+</table>
+
+<p>
+<a href="#top">Back to top</a>
+<p>
+Dave Mackie<br>
+Bill May<br>
+<a href="http://www.cisco.com">Cisco Systems, Inc.</a>
+<p>
+<a href="http://validator.w3.org/check/referer"><img
+   src="http://www.w3.org/Icons/valid-html401"
+   alt="Valid HTML 4.01!" height="31" width="88"></a>
+ </p>
+</body>
+</html>
