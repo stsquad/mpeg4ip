@@ -127,7 +127,7 @@ int process_mpeg2t_mpeg_audio (mpeg2t_es_t *es_pid,
   int ret;
   uint32_t tocopy;
 
-  if ((es_pid->stream_id & 0xe0) != 0xc0) {
+  if ((es_pid->peshdr_loaded != 0) && ((es_pid->stream_id & 0xe0) != 0xc0)) {
     mpeg2t_message(LOG_ERR, 
 		   "Illegal stream id %x in mpeg audio stream - PID %x",
 		   es_pid->stream_id, es_pid->pid.pid);

@@ -57,7 +57,7 @@ class CMpeg3RtpByteStream : public CRtpByteStream
   uint32_t m_rtp_frame_add;
   int m_have_mpeg_ip_ts;
   uint32_t m_mpeg_ip_ts;
-  uint32_t calc_this_ts_from_future(int frame_type, uint32_t pak_ts);
+  uint32_t calc_this_ts_from_future(int frame_type, uint32_t pak_ts, uint8_t temp_ref);
   
 };
 #endif

@@ -89,17 +89,9 @@ static uint32_t mpeg2t_decode_buffer (mpeg2t_client_t *info,
 	      if (es_pid->info_loaded == 0) {
 		// just dump the frame - record the psts
  		mpeg2t_frame_t *fptr;
-		do {
-		  fptr = mpeg2t_get_es_list_head(es_pid);
-		  if (fptr != NULL) {
-		    if (fptr->have_ps_ts) {
-		      sptr->m_last_psts = fptr->ps_ts;
-		      sptr->m_frames_since_last_psts = 0;
-		    } else 
-		      sptr->m_frames_since_last_psts++;
+		while ((fptr = mpeg2t_get_es_list_head(es_pid)) != NULL) {
 		    mpeg2t_free_frame(fptr);
-		  }
-		} while (fptr != NULL);
+		}
 	      } else {
 		// just got the info in pid
 		sptr->m_have_info = 1;
@@ -125,7 +117,7 @@ static uint32_t mpeg2t_decode_buffer (mpeg2t_client_t *info,
 		msec *= es_pid->sample_per_frame;
 		msec /= es_pid->sample_freq;
 	      }
-#if 0
+#if 1
 	      mpeg2t_message(LOG_DEBUG, "%s buffer %d", 
 			     sptr->m_is_video ? "video" : "audio", msec);
 #endif
@@ -585,12 +577,9 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
       mpeg2t_stream_t *stream;
       stream = MALLOC_STRUCTURE(mpeg2t_stream_t);
       stream->m_parent = info;
-      stream->m_last_psts = 0;
       stream->m_mptr = mptr;
       stream->m_is_video = 1;
       stream->m_buffering = 1;
-      stream->m_frames_since_last_psts = 0;
-      stream->m_last_psts = 0;
       stream->m_have_info = 0;
       stream->m_have_eof = 0;
       stream->next_stream = info->stream;
@@ -687,8 +676,6 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
       stream->m_mptr = mptr;
       stream->m_is_video = 0;
       stream->m_buffering = 1;
-      stream->m_frames_since_last_psts = 0;
-      stream->m_last_psts = 0;
       stream->m_have_info = 0;
       stream->next_stream = info->stream;
       info->stream = stream;
@@ -914,7 +901,8 @@ void mpeg2t_check_streams (video_query_t **pvq,
   passes++;
   if (audio_count != audio_info_count ||
       video_info_count != video_count) {
-    SDL_Delay(1 * 1000);
+    player_error_message("Check streams delay");
+    SDL_Delay(1 * 100);
   }
   } while (audio_info_count != audio_count && video_info_count != video_info_count);
   video_query_t *vq;

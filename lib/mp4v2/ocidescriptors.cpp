@@ -190,7 +190,7 @@ MP4CreatorDescriptor::MP4CreatorDescriptor(u_int8_t tag)
 	AddProperty(pTable); /* 1 */
 
 	pTable->AddProperty( /* Table 0 */
-		new MP4BytesProperty("languageCode", 3));
+		new MP4BytesProperty("languageCode", 3, 3));
 	pTable->AddProperty( /* Table 1 */
 		new MP4BitfieldProperty("isUTF8String", 1));
 	pTable->AddProperty( /* Table 2 */

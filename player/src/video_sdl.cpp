@@ -128,7 +128,6 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
 				 int pixel_width, int pixel_height,
 				 int max_width, int max_height)
 {
-
   if (pixel_width > -1) m_pixel_width = pixel_width;
   if (pixel_height > -1) m_pixel_height = pixel_height;
   if (max_width > -1) m_max_width = max_width;
@@ -182,8 +181,12 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
     }
   }
   if (fullscreen == 1) {
-    if (max_width > 0 && win_w > max_width) win_w = max_width;
-    if (max_height > 0 && win_h > max_height) win_h = max_height;
+    //Suren, get the max resolution of window system and scale to that
+    //--------
+    if(m_max_width > 0 ) win_w = m_max_width;
+    if (m_max_height > 0 ) win_h = m_max_height;
+    video_message(LOG_INFO, "Setting full screen mode %dx%d\n", win_w, win_h);
+    //--------
   }
 
   m_video_scale = video_scale;
@@ -392,7 +395,73 @@ void CSDLVideo::display_image (uint8_t *y, uint8_t *u, uint8_t *v)
   // and unlock it.
   SDL_UnlockYUVOverlay(m_image);
 }
+
+#define BLANK_Y (0)
+#define BLANK_U (0x80)
+#define BLANK_V (0x80)
+void CSDLVideo::blank_image (void)
+{
+  unsigned int ix;
+  uint8_t *to;
+  if (SDL_LockYUVOverlay(m_image)) {
+    video_message(LOG_ERR, "Failed to lock image");
+    return;
+  } 
+  uint32_t bufsize = m_image_w * m_image_h * sizeof(uint8_t);
+  unsigned int width = m_image_w, height = m_image_h;
+  if (width != m_image->pitches[0]) {
+    // The width is not equal to the size in the SDL buffers - 
+    // we need to copy a row at a time
+    to = (uint8_t *)m_image->pixels[0];
+    for (ix = 0; ix < height; ix++) {
+      memset(to, BLANK_Y, width);
+      to += m_image->pitches[0];
+    }
+  } else {
+    // Copy entire Y frame
+    memset(m_image->pixels[0], 
+	   BLANK_Y,
+	   bufsize);
+  }
       
+  // We reduce the sizes for U and V planes (they are 1/4 the size)
+  bufsize /= 4;
+  width /= 2;
+  height /= 2;
+#ifdef SWAP_UV
+#define V 2
+#define U 1
+#else
+#define V 1
+#define U 2
+#endif
+  // Copy the U and V - same comments as above
+  if (width != m_image->pitches[V]) {
+    to = (uint8_t *)m_image->pixels[V];
+    for (ix = 0; ix < height; ix++) {
+      memset(to, BLANK_U, width);
+      to += m_image->pitches[V];
+    }
+  } else {
+    memset(m_image->pixels[V], 
+	   BLANK_U,
+	   bufsize);
+  }
+  if (width != m_image->pitches[U]) {
+    to = (uint8_t *)m_image->pixels[U];
+    for (ix = 0; ix < height; ix++) {
+      memset(to, BLANK_V, width);
+      to += m_image->pitches[U];
+    }
+  } else {
+    memset(m_image->pixels[U], 
+	   BLANK_V,
+	   bufsize);
+  }
+      
+  SDL_DisplayYUVOverlay(m_image, &m_dstrect);
+  SDL_UnlockYUVOverlay(m_image);
+}
 /*
  * CSDLVideoSync - actually a ring buffer for YUV frames - probably
  * can pull it out if you want to replace SDL
@@ -442,6 +511,9 @@ CSDLVideoSync::~CSDLVideoSync (void)
     }
     video_message(LOG_ERR, "deleteing video sdl");
     delete m_sdl_video;
+  } else {
+    if (m_sdl_video != NULL) 
+      m_sdl_video->blank_image();
   }
   for (int ix = 0; ix < MAX_VIDEO_BUFFERS; ix++) {
     if (m_y_buffer[ix] != NULL) {

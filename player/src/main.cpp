@@ -339,6 +339,20 @@ int main (int argc, char **argv)
     { NULL, 0, 0, 0 }
   };
   bool have_unknown_opts = false;
+  if (home == NULL) {
+#ifdef _WIN32
+	strcpy(buffer, "gmp4player_rc");
+#else
+    strcpy(buffer, ".gmp4player_rc");
+#endif
+  } else {
+    strcpy(buffer, home);
+    strcat(buffer, "/.gmp4player_rc");
+  }
+  
+  config.SetDefaultFileName(buffer);
+  initialize_plugins();
+  config.InitializeIndexes();
   opterr = 0;
   while (true) {
     int c = -1;
@@ -374,20 +388,6 @@ int main (int argc, char **argv)
     }
   }
 
-  if (home == NULL) {
-#ifdef _WIN32
-	strcpy(buffer, "gmp4player_rc");
-#else
-    strcpy(buffer, ".gmp4player_rc");
-#endif
-  } else {
-    strcpy(buffer, home);
-    strcat(buffer, "/.gmp4player_rc");
-  }
-  
-  initialize_plugins();
-  config.SetDefaultFileName(buffer);
-  config.InitializeIndexes();
   config.ReadDefaultFile();
   if (have_unknown_opts) {
     /*
@@ -468,9 +468,9 @@ int main (int argc, char **argv)
   const char *suffix = strrchr(name, '.');
 
     void *persist = NULL;
-#ifdef _darwin
+#ifdef darwin
  CSDLVideo *sdl_video = new CSDLVideo();
-  sdl_video->set_image_size(720, 480, 1.0);
+  sdl_video->set_image_size(176, 144, 1.0);
   sdl_video->set_screen_size(0, 2);
   persist = sdl_video;
 #endif

@@ -378,13 +378,15 @@ void MP4StringProperty::Dump(FILE* pFile, u_int8_t indent,
 
 // MP4BytesProperty
 
-MP4BytesProperty::MP4BytesProperty(char* name, u_int32_t valueSize)
+MP4BytesProperty::MP4BytesProperty(char* name, u_int32_t valueSize,
+                                   u_int32_t defaultValueSize)
 	: MP4Property(name)
 {
 	SetCount(1);
 	m_values[0] = (u_int8_t*)MP4Calloc(valueSize);
 	m_valueSizes[0] = valueSize;
 	m_fixedValueSize = 0;
+        m_defaultValueSize = defaultValueSize;
 }
 
 MP4BytesProperty::~MP4BytesProperty() 
@@ -404,7 +406,7 @@ void MP4BytesProperty::SetCount(u_int32_t count)
 
 	for (u_int32_t i = oldCount; i < count; i++) {
 		m_values[i] = NULL;
-		m_valueSizes[i] = 0;
+		m_valueSizes[i] = m_defaultValueSize;
 	}
 }
 

@@ -1,0 +1,70 @@
+This library, ismacryp, implements the ISMA encryption and authentication 
+protocol defined in "ISMA 1.0 Encryption and Authentication, Version 1.0"
+specification which is published on the ISMA web site, www.isma.tv This
+specification is referred to as Ismacryp in the remainder of this README.
+
+Certain portions of the protocol are not implemented. Specifically,
+selective encryption which allows for the encryption of selected streaming
+packets,  and alternating keys.
+
+The ismacryp lib utilizes a separate library, srtplib, for AES Integer
+Counter Mode encryption functions. The srtplib is not included in the
+mpeg4ip distribution. However, the ismacryp library implemented here
+will still operate correctly in the absence of the srtplib. All new
+mp4 atoms and headers in the case of streamed files are included in
+an Ismacryp file but the data will not be encrypted. The player will
+properly decode and play Ismacryp files or streams that are created
+without the encryption functions provided by srtplib.
+
+To build and install mpeg4ip without the separate srtplib, follow
+instructions provided elsewhere. 
+
+To build and install mpeg4ip with srtplib, perform the following 
+steps.
+
+1. Obtain the srtplib package from <where?>
+2. Unpack the srtplib files into some directory. The
+   following steps assume the srtplib files are in directory
+   /root/srtp
+3. Configure srtplib with the generic option. This provides
+   some changes to the AES ICM functions to remove srtp-specific
+   limitations. Then build the srtplib libraries.
+   % configure -enable-generic
+   % make
+
+4. Once these steps are complete it is necessary to configure mpeg4ip so
+   that the srtplib libraries are included in the build process. Go to 
+   the mpeg4ip directory and use this configuration:
+   % ./cvs_bootstrap -enable-aesicm=/root/srtp
+
+   The directory specified is the directory where you have installed and
+   built the srtplib package.
+
+5. Finally build mpeg4ip.
+   % make
+   % make install
+
+6. Prior to using Ismacryp functions, it necessary to provide a key file.
+   The key file must be named .kms_data and a sample is included in this
+   directory. This file must be placed in the home directory of the user
+   of the mpeg4ip applications. e.g. If you are root, put the key file in
+   /root.
+   The key file is only necessary if srtplib is included.
+
+Using Ismacryp functions:
+
+1. To create an Ismacryp mp4 file:
+   mp4creator -encrypt <filename>
+   A new file named <enc-filename> will be created. 
+
+2. To play an Ismacryp file locally. Use mp4player or gmp4player in
+   the usual way.
+
+3. To stream an Ismacryp file it is first necessary to create hint
+   tracks. Use mp4creator in the usual way.
+
+Functions provided by ismacryplib are described in ismacryp.h
+
+alexv@cisco.com
+   
+

@@ -43,7 +43,9 @@ class CSDLVideo {
   void set_screen_size(int fullscreen, int scale, 
 		       int pixel_width = -1, int pixel_height = -1,
 		       int max_width = -1, int max_height = -1);
+
   void display_image(uint8_t *y, uint8_t *u, uint8_t *v);
+  void blank_image(void);
  private:
   int m_pos_x, m_pos_y;
   SDL_Surface *m_screen;

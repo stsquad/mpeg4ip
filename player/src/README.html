@@ -125,7 +125,10 @@ Here is the current list by categories:
 <td>RtpBufferTimeMsec</td><td>Integer</td><td>2000</td><td>no</td><td>Sets time of initial RTP buffering.</td>
 </tr>
 <tr align=center>
-<td>RtpBufferTime</td><td>Integer</td><td>2</td><td>no</td><td>Do not use</td>
+<td>MulticastIf</td><td>String</td><td></td><td>no </td><td>Sets the interface to use for multicast receive</td>
+</tr>
+<tr align=center>
+<td>RxSocketSize</td><td>Integer</td><td>0</td><td>no </td><td>Set the receive buffer size (0 use default)</td>
 </tr>
 <tr align=center>
 <td>RtpIpPortMin</td><td>Integer</td><td>-1</td><td>no </td><td>Sets local ip port to start with in RTSP session</td>
@@ -168,6 +171,9 @@ Here is the current list by categories:
 </tr>
 <tr align=center>
 <td>UseMpeg3</td><td>Boolean</td><td>0</td><td>no</td><td>Forces use of libmpeg3 decoder</td>
+</tr>
+<tr align=center>
+<td>UseOldXvid</td><td>Boolean</td><td>0</td><td>no</td><td>Forces use of xvid included with mpeg4ip</td>
 </tr>
 </table>
 <P>

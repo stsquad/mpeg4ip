@@ -12,14 +12,16 @@ AM_CXXFLAGS = -DMPEG4IP -fexceptions @BILLS_CPPWARNINGS@
 bin_PROGRAMS = mp4creator
 
 mp4creator_SOURCES = \
+	aac.cpp \
+	amr.cpp \
+	avi.cpp \
+	h263.cpp \
+	mp3.cpp \
 	mp4creator.h \
 	mp4creator.cpp \
-	aac.cpp \
-	mp3.cpp \
 	mp4v.cpp \
 	mpeg.cpp \
-	mpeg.h \
-	avi.cpp
+	mpeg.h 
 
 mp4creator_LDADD = \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \

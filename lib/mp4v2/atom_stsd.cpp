@@ -13,11 +13,18 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
- * 
+ * Copyright (C) Cisco Systems Inc. 2001 - 2004.  All Rights Reserved.
+ *
+ * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
+ * and was contributed by Ximpo Group Ltd.
+ *
+ * Portions created by Ximpo Group Ltd. are
+ * Copyright (C) Ximpo Group Ltd. 2003, 2004.  All Rights Reserved.
+ *
  * Contributor(s): 
  *		Dave Mackie			dmackie@cisco.com
  *		Alix Marchandise-Franquet	alix@cisco.com
+ *              Ximpo Group Ltd.                mp4v2@ximpo.com
  */
 
 #include "mp4common.h"
@@ -38,6 +45,9 @@ MP4StsdAtom::MP4StsdAtom()
 	ExpectChildAtom("mp4v", Optional, Many);
 	ExpectChildAtom("encv", Optional, Many);
 	ExpectChildAtom("rtp ", Optional, Many);
+ 	ExpectChildAtom("samr", Optional, Many); // For AMR-NB
+ 	ExpectChildAtom("sawb", Optional, Many); // For AMR-WB
+ 	ExpectChildAtom("s263", Optional, Many); // For H.263
 }
 
 void MP4StsdAtom::Read() 

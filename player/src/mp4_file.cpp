@@ -163,6 +163,8 @@ int CMp4File::create_video(CPlayerSession *psptr,
       uint64_t IVLength;
      
       /* check if ismacryp */
+      uint32_t verb = MP4GetVerbosity(m_mp4file);
+      MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
       if (MP4IsIsmaCrypMediaTrack(m_mp4file, vq[ix].track_id)) {
         IVLength = MP4GetTrackIntegerProperty(m_mp4file,
                     vq[ix].track_id, "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.IV-length");
@@ -170,6 +172,7 @@ int CMp4File::create_video(CPlayerSession *psptr,
       } else {
 	vbyte = new CMp4VideoByteStream(this, vq[ix].track_id);
       }
+      MP4SetVerbosity(m_mp4file, verb);
 
       if (vbyte == NULL) {
 	delete mptr;
@@ -180,7 +183,9 @@ int CMp4File::create_video(CPlayerSession *psptr,
       if (ret != 0) {
 	return (-1);
       }
+      MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
       char *mp4info = MP4Info(m_mp4file, vq[ix].track_id);
+      MP4SetVerbosity(m_mp4file, verb);
       char *temp = mp4info;
       while (*temp != '\0') {
 	if (isspace(*temp)) *temp = ' ';
@@ -217,6 +222,8 @@ int CMp4File::create_audio(CPlayerSession *psptr,
       }
 
       /* check if ismacryp */
+      uint32_t verb = MP4GetVerbosity(m_mp4file);
+      MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
       if (MP4IsIsmaCrypMediaTrack(m_mp4file, aq[ix].track_id)) {
         IVLength = MP4GetTrackIntegerProperty(m_mp4file,
                     aq[ix].track_id, "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.IV-length");
@@ -224,6 +231,7 @@ int CMp4File::create_audio(CPlayerSession *psptr,
       } else {
 	abyte = new CMp4AudioByteStream(this, aq[ix].track_id);
       }
+      MP4SetVerbosity(m_mp4file, verb);
 
       audio_info_t *ainfo;
       ainfo = (audio_info_t *)malloc(sizeof(audio_info_t));
@@ -265,7 +273,9 @@ int CMp4File::create_audio(CPlayerSession *psptr,
       if (ret != 0) {
 	return (-1);
       }
+      MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
       char *mp4info = MP4Info(m_mp4file, aq[ix].track_id);
+      MP4SetVerbosity(m_mp4file, verb);
       char *temp = mp4info;
       while (*temp != '\0') {
 	if (isspace(*temp)) *temp = ' ';

@@ -270,7 +270,7 @@ static void create_pmap (mpeg2t_t *ptr, uint16_t prog_num, uint16_t pid)
 {
   mpeg2t_pmap_t *pmap;
 
-  mpeg2t_message(LOG_INFO, "Adding pmap prog_num %x pid %x", prog_num, pid);
+  mpeg2t_message(LOG_NOTICE, "Adding pmap prog_num %x pid %x", prog_num, pid);
   pmap = MALLOC_STRUCTURE(mpeg2t_pmap_t);
   if (pmap == NULL) return;
   memset(pmap, 0, sizeof(*pmap));
@@ -501,7 +501,7 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
     es_len = ((pmapptr[3] << 8) | pmapptr[4]) & 0xfff;
     if (es_len + len > section_len) return 0;
     if (mpeg2t_lookup_pid(ptr, e_pid) == NULL) {
-      mpeg2t_message(LOG_INFO, "Creating es pid %x", e_pid);
+      mpeg2t_message(LOG_NOTICE, "Creating es pid %x", e_pid);
       create_es(ptr, e_pid, stream_type, &pmapptr[5], es_len);
       ptr->program_maps_recvd++;
     }
@@ -646,6 +646,8 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   int ret;
   int ac;
   int have_psts;
+  uint64_t pts;
+  uint32_t offset;
 
   if (es_pid->save_frames == 0 &&
       es_pid->report_psts == 0 &&
@@ -680,6 +682,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   have_psts = 0;
   if (mpeg2t_payload_unit_start_indicator(buffer) != 0) {
     // start of PES packet
+    es_pid->peshdr_loaded = 1;
     if ((esptr[0] != 0) ||
 	(esptr[1] != 0) ||
 	(esptr[2] != 1)) {
@@ -730,8 +733,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
 	mpeg2t_message(LOG_INFO, "pid %x has ES rate", es_pid->pid.pid);
       }
 #endif
-      uint64_t pts;
-      uint32_t offset = 3;
+      offset = 3;
       //mpeg2t_read_pes_options(es_pid, esptr);
       if (esptr[1] & 0x80) {
 	// read presentation timestamp

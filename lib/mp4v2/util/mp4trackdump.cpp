@@ -36,7 +36,9 @@ static void DumpTrack (MP4FileHandle mp4file, MP4TrackId tid)
   MP4SampleId sid;
   MP4Duration time;
   uint32_t timescale;
-  double sectime, mintime, hrtime, msectime;
+  uint64_t msectime;
+
+  uint64_t sectime, mintime, hrtime;
 
   numSamples = MP4GetTrackNumberOfSamples(mp4file, tid);
   timescale = MP4GetTrackTimeScale(mp4file, tid);
@@ -46,24 +48,23 @@ static void DumpTrack (MP4FileHandle mp4file, MP4TrackId tid)
   for (sid = 1; sid <= numSamples; sid++) {
     time = MP4GetSampleTime(mp4file, tid, sid);
     msectime = time;
+    msectime *= TO_U64(1000);
     msectime /= timescale;
-	if (msectime == 0) {
-		hrtime = mintime = sectime = 0.0;
-	} else {
-		hrtime = floor(msectime / 3600.0);
-		msectime -= hrtime * 3600.0;
-		mintime = floor(msectime / 60.0);
-		msectime -= mintime * 60.0;
-		sectime = floor(msectime);
-		msectime -= sectime;
-	}
-    char buf[12];
-    sprintf(buf, "%0.6f", msectime);
+    if (msectime == 0) {
+      hrtime = mintime = sectime = TO_U64(0);
+    } else {
+      hrtime = msectime / TO_U64(3600 * 1000);
+      msectime -= hrtime * TO_U64(3600 * 1000);
+      mintime = msectime / TO_U64(60 * 1000);
+      msectime -= (mintime * TO_U64(60 * 1000));
+      sectime = msectime / TO_U64(1000);
+      msectime -= sectime * TO_U64(1000);
+    }
 
-    printf("sampleId %6d, size %5u duration %8"U64F" time %8"U64F" %02.f:%02.f:%02.f.%s %c\n",
+    printf("sampleId %6d, size %5u duration %8"U64F" time %8"U64F" %02"U64F":%02"U64F":%02"U64F".%03"U64F" %c\n",
 	  sid,  MP4GetSampleSize(mp4file, tid, sid), 
 	   MP4GetSampleDuration(mp4file, tid, sid),
-	   time, hrtime, mintime, sectime, buf + 2,
+	   time, hrtime, mintime, sectime, msectime,
 	   MP4GetSampleSync(mp4file, tid, sid) == 1 ? 'S' : ' ');
   }
 }

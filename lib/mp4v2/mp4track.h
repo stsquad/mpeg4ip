@@ -13,10 +13,17 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001 - 2004.  All Rights Reserved.
+ * 
+ * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
+ * and was contributed by Ximpo Group Ltd.
+ *
+ * Portions created by Ximpo Group Ltd. are
+ * Copyright (C) Ximpo Group Ltd. 2003, 2004.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
+ *              Ximpo Group Ltd.        mp4v2@ximpo.com
  */
 
 #ifndef __MP4_TRACK_INCLUDED__
@@ -197,6 +204,10 @@ protected:
 	// controls for chunking
 	u_int32_t 	m_samplesPerChunk;
 	MP4Duration m_durationPerChunk;
+
+	// controls for AMR chunking
+	int		m_isAmr;
+	u_int8_t	m_curMode;
 
 	MP4Integer32Property* m_pTimeScaleProperty;
 	MP4IntegerProperty* m_pTrackDurationProperty;		// 32 or 64 bits

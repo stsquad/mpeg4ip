@@ -169,21 +169,25 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
 
 	// determine earliest PS_TS
 	while ((fptr = mpeg2t_get_es_list_head(es_pid)) != NULL) {
-	  if (fptr->have_ps_ts != 0) {
+	  if (fptr->have_ps_ts != 0 || fptr->have_dts != 0) {
 	    uint64_t ps_ts = 0;
 	    bool store_psts = true;
-	    if (es_pid->is_video) {
-	      // video - make sure we get the first I frame, then we can
-	      // get the real timestamp
-	      if (fptr->frame_type != 1) {
-		store_psts = false;
+	    if (fptr->have_dts != 0) {
+	      ps_ts = fptr->dts;
+	    } else {
+	      if (es_pid->is_video) {
+		// video - make sure we get the first I frame, then we can
+		// get the real timestamp
+		if (fptr->frame_type != 1) {
+		  store_psts = false;
+		} else {
+		  ps_ts = fptr->ps_ts;
+		  uint16_t temp_ref = MP4AV_Mpeg3PictHdrTempRef(fptr->frame + fptr->pict_header_offset);
+		  ps_ts -= ((temp_ref + 1) * es_pid->tick_per_frame);
+		}
 	      } else {
 		ps_ts = fptr->ps_ts;
-		uint16_t temp_ref = MP4AV_Mpeg3PictHdrTempRef(fptr->frame + fptr->pict_header_offset);
-		ps_ts -= ((temp_ref + 1) * es_pid->tick_per_frame);
 	      }
-	    } else {
-	      ps_ts = fptr->ps_ts;
 	    }
 	    if (store_psts) {
 	      // when we have the first psts for a ES_PID, turn off
@@ -269,7 +273,7 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
   cur = perc;
 
   bool is_seekable = true;
-  uint64_t last_psts;
+  uint64_t last_psts, ts;
   last_psts = earliest_psts;
 
   // Now - skip to the next perc chunk, and try to find the next psts
@@ -313,19 +317,20 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
 	// If we have a psts, record it.
 	// If it is less than the previous one, we've got a discontinuity, so
 	// we can't seek.
-	if (es_pid->have_ps_ts) {
-	  if (es_pid->ps_ts < last_psts) {
+	if (es_pid->have_ps_ts || es_pid->have_dts) {
+	  ts = es_pid->have_ps_ts ? es_pid->ps_ts : es_pid->dts;
+	  if (ts < last_psts) {
 	    player_error_message("pid %x psts "U64" is less than prev record point "U64, 
-				 es_pid->pid.pid, es_pid->ps_ts, last_psts);
+				 es_pid->pid.pid, ts, last_psts);
 	    cur = end;
 	    is_seekable = false;
 	  } else {
 #ifdef DEBUG_MPEG2F_SEARCH
 	    mpeg2f_message(LOG_DEBUG, "pid %x psts "U64" %d", 
-			       pidptr->pid, es_pid->ps_ts, 
+			       pidptr->pid, ts, 
 			       es_pid->is_video);
 #endif
-	    m_file_record.record_point(cur, es_pid->ps_ts, 0);
+	    m_file_record.record_point(cur, ts, 0);
 	  }
 	  done = true;
 	}
@@ -359,6 +364,9 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
 	if (es_pid->have_ps_ts) {
 	  es_pid->have_ps_ts = 0;
 	  max_psts = MAX(es_pid->ps_ts, max_psts);
+	} else if (es_pid->have_dts) {
+	  es_pid->have_dts = 0;
+	  max_psts = MAX(es_pid->dts, max_psts);
 	}
       }
     }

@@ -104,6 +104,7 @@ typedef struct mpeg2t_es_t {
   uint32_t work_loaded;
   mpeg2t_frame_t *list;
   uint8_t left_buff[12];
+  int peshdr_loaded;
   int left;
   int have_ps_ts;
   int have_dts;

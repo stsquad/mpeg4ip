@@ -13,11 +13,18 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
- * 
+ * Copyright (C) Cisco Systems Inc. 2001 - 2004.  All Rights Reserved.
+ *
+ * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
+ * and was contributed by Ximpo Group Ltd.
+ *
+ * Portions created by Ximpo Group Ltd. are
+ * Copyright (C) Ximpo Group Ltd. 2003, 2004.  All Rights Reserved.
+ *
  * Contributor(s): 
  *		Dave Mackie		  dmackie@cisco.com
  *              Alix Marchandise-Franquet alix@cisco.com
+ *              Ximpo Group Ltd.                mp4v2@ximpo.com
  */
 
 #include "mp4common.h"
@@ -34,7 +41,6 @@ void MP4File::MakeIsmaCompliant(bool addIsmaComplianceSdp)
 		// already done
 		return;
 	}
-	m_useIsma = true;
 
 	// find first audio and/or video tracks
 
@@ -53,6 +59,18 @@ void MP4File::MakeIsmaCompliant(bool addIsmaComplianceSdp)
 	catch (MP4Error* e) {
 		delete e;
 	}
+	// Check whether it's an AMR-NB or AMR-WB trak
+        if ((MP4HaveTrackIntegerProperty(this, audioTrackId, "mdia.minf.stbl.stsd.sawb.damr.vendor"))  ||
+            (MP4HaveTrackIntegerProperty(this, audioTrackId, "mdia.minf.stbl.stsd.samr.damr.vendor"))) {
+		throw new MP4Error("can't make ISMA compliant when file contains an AMR track", "MakeIsmaCompliant");
+	}
+	//
+	// Check whether it's an H.263 file
+        if (MP4HaveTrackIntegerProperty(this, videoTrackId, "mdia.minf.stbl.stsd.s263.d263.vendor")) {
+		throw new MP4Error("can't make ISMA compliant when file contains an H.263 track", "MakeIsmaCompliant");
+	}
+
+	m_useIsma = true;
 
 	u_int64_t fileMsDuration =
 		ConvertFromMovieDuration(GetDuration(), MP4_MSECS_TIME_SCALE);

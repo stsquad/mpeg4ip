@@ -13,14 +13,25 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001 - 2004.  All Rights Reserved.
+ * 
+ * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
+ * and was contributed by Ximpo Group Ltd.
+ *
+ * Portions created by Ximpo Group Ltd. are
+ * Copyright (C) Ximpo Group Ltd. 2003, 2004.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie			dmackie@cisco.com
  *		Alix Marchandise-Franquet	alix@cisco.com
+ *              Ximpo Group Ltd.                mp4v2@ximpo.com
  */
 
 #include "mp4common.h"
+
+#define AMR_UNINITIALIZED -1
+#define AMR_TRUE 0
+#define AMR_FALSE 1
 
 MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom) 
 {
@@ -43,6 +54,8 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 
 	m_samplesPerChunk = 0;
 	m_durationPerChunk = 0;
+	m_isAmr = AMR_UNINITIALIZED;
+	m_curMode = 0;
 
 	bool success = true;
 
@@ -342,6 +355,8 @@ void MP4Track::WriteSample(
 	MP4Duration renderingOffset, 
 	bool isSyncSample)
 {
+	u_int8_t curMode = 0;
+
 	VERBOSE_WRITE_SAMPLE(m_pFile->GetVerbosity(),
 		printf("WriteSample: track %u id %u size %u (0x%x) ",
 			m_trackId, m_writeSampleId, numBytes, numBytes));
@@ -350,12 +365,33 @@ void MP4Track::WriteSample(
 		throw new MP4Error("no sample data", "MP4WriteSample");
 	}
 
+	if (m_isAmr == AMR_UNINITIALIZED ) {
+		// figure out if this is an AMR audio track
+		if (m_pTrakAtom->FindAtom("trak.mdia.minf.stbl.stsd.samr") ||
+				m_pTrakAtom->FindAtom("trak.mdia.minf.stbl.stsd.sawb")) {
+			m_isAmr = AMR_TRUE;
+			m_curMode = (pBytes[0] >> 3) & 0x000F;
+		} else {
+			m_isAmr = AMR_FALSE;
+		}
+	}
+	
+	if (m_isAmr == AMR_TRUE) {
+		curMode = (pBytes[0] >> 3) &0x000F; // The mode is in the first byte
+	}
+
 	if (duration == MP4_INVALID_DURATION) {
 		duration = GetFixedSampleDuration();
 	}
 
 	VERBOSE_WRITE_SAMPLE(m_pFile->GetVerbosity(),
 		printf("duration "U64"\n", duration));
+
+	if ((m_isAmr == AMR_TRUE) &&
+		(m_curMode != curMode)) {
+		WriteChunkBuffer();
+		m_curMode = curMode;
+	}
 
 	// append sample bytes to chunk buffer
 	m_pChunkBuffer = (u_int8_t*)MP4Realloc(m_pChunkBuffer, 
@@ -373,8 +409,10 @@ void MP4Track::WriteSample(
 
 	UpdateSyncSamples(m_writeSampleId, isSyncSample);
 
-	if (IsChunkFull(m_writeSampleId)) {
+	if ((m_isAmr == AMR_FALSE) &&
+		IsChunkFull(m_writeSampleId)) {
 		WriteChunkBuffer();
+		m_curMode = curMode;
 	}
 
 	UpdateDurations(duration);
@@ -1346,6 +1384,7 @@ const char* MP4Track::NormalizeTrackType(const char* type)
 	if (!strcasecmp(type, "vide")
 	  || !strcasecmp(type, "video")
 	  || !strcasecmp(type, "mp4v")
+	  || !strcasecmp(type, "s263")	// 3GPP H.263
 	  || !strcasecmp(type, "encv")) {
 		return MP4_VIDEO_TRACK_TYPE;
 	}
@@ -1354,6 +1393,8 @@ const char* MP4Track::NormalizeTrackType(const char* type)
 	  || !strcasecmp(type, "sound")
 	  || !strcasecmp(type, "audio")
 	  || !strcasecmp(type, "enca") 
+	  || !strcasecmp(type, "samr")	// 3GPP AMR 
+	  || !strcasecmp(type, "sawb")	// 3GPP AMR/WB
 	  || !strcasecmp(type, "mp4a")) {
 		return MP4_AUDIO_TRACK_TYPE;
 	}

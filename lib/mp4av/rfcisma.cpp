@@ -90,6 +90,11 @@ bool MP4AV_RfcIsmaConcatenator(
 			payloadHeader[auPayloadHdrSize - 1] 
 				|= ((sampleId - pSampleIds[i-1]) - 1); 
 		}
+#if 0
+		printf("sample %u size %u %02x %02x prev sample %d\n", 
+		       sampleId, sampleSize, payloadHeader[0],
+		       payloadHeader[1], pSampleIds[i-1]);
+#endif
 
 		MP4AddRtpImmediateData(mp4File, hintTrackId,
 			(u_int8_t*)&payloadHeader, auPayloadHdrSize);
@@ -261,7 +266,7 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 				  channels != 1 ? buffer : NULL);
 
 	MP4Duration maxLatency;
-
+	bool OneByteHeader = false;
 	if (mpeg4AudioType == MP4_MPEG4_CELP_AUDIO_TYPE) {
 		sprintf(sdpBuf,
 			"a=fmtp:%u "
@@ -273,7 +278,7 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 
 		// 200 ms max latency for ISMA profile 1
 		maxLatency = timeScale / 5;
-
+		OneByteHeader = true;
 	} else { // AAC
 		sprintf(sdpBuf,
 			"a=fmtp:%u "
@@ -313,13 +318,23 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 
 	if (interleave) {
 		u_int32_t samplesPerGroup = maxLatency / sampleDuration;
+		u_int32_t stride;
+		stride = samplesPerGroup / samplesPerPacket;
 
+		if (OneByteHeader && stride > 3) stride = 3;
+		if (!OneByteHeader && stride > 7) stride = 7;
+
+#if 0
+		printf("max latency %llu sampleDuration %llu spg %u spp %u strid %u\n",
+		       maxLatency, sampleDuration, samplesPerGroup,
+		       samplesPerPacket, stride);
+#endif
 		rc = MP4AV_AudioInterleaveHinter(
 			mp4File, 
 			mediaTrackId, 
 			hintTrackId,
 			sampleDuration, 
-			samplesPerGroup / samplesPerPacket,		// stride
+			stride,		// stride
 			samplesPerPacket,						// bundle
 			maxPayloadSize,
 			MP4AV_RfcIsmaConcatenator);

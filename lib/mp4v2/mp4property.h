@@ -355,7 +355,8 @@ protected:
 
 class MP4BytesProperty : public MP4Property {
 public:
-	MP4BytesProperty(char* name, u_int32_t valueSize = 0);
+	MP4BytesProperty(char* name, u_int32_t valueSize = 0,
+                         u_int32_t defaultValueSize = 0);
 
 	~MP4BytesProperty();
 
@@ -410,7 +411,8 @@ public:
 		 bool dumpImplicits, u_int32_t index = 0);
 
 protected:
-	u_int32_t			m_fixedValueSize;
+	u_int32_t		m_fixedValueSize;
+	u_int32_t		m_defaultValueSize;
 	MP4Integer32Array	m_valueSizes;
 	MP4BytesArray		m_values;
 };

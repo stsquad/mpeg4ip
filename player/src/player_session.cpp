@@ -576,12 +576,16 @@ void CPlayerSession::set_screen_location (int x, int y)
 void CPlayerSession::set_screen_size (int scaletimes2, 
 				      int fullscreen, 
 				      int pixel_width, 
-				      int pixel_height)
+				      int pixel_height,
+				      int max_width, 
+				      int max_height)
 {
   m_screen_scale = scaletimes2;
   m_fullscreen = fullscreen;
   m_pixel_width = pixel_width;
   m_pixel_height = pixel_height;
+  m_max_width = max_width;
+  m_max_height = max_height;
   // Note - wmay - used to set the video sync directly here - now
   // we wait until we're initing or get resize message in sync thread.
   send_sync_thread_a_message(MSG_SYNC_RESIZE_SCREEN);
@@ -708,4 +712,5 @@ void *CPlayerSession::grab_video_persistence (void)
 {
   return m_video_sync->grab_video_persistence();
 }
+
 /* end file player_session.cpp */

@@ -155,7 +155,13 @@ static bool open_library (plugin_list_t *p, const char *fname)
 				NSLINKMODULE_OPTION_BINDNOW |
 				NSLINKMODULE_OPTION_PRIVATE |
 				NSLINKMODULE_OPTION_RETURN_ON_ERROR);
+    // see if this works for xvid
+    NSDestroyObjectFileImage(p->file_handle);
+    p->file_handle = NULL;
 #else
+#ifndef RTLD_LOCAL
+#define RTLD_LOCAL 0
+#endif
     p->dl_handle = dlopen(fname, RTLD_NOW | RTLD_LOCAL);
 #endif
 #endif
@@ -193,7 +199,14 @@ static void close_library (plugin_list_t *p)
 #ifdef _WIN32
   FreeLibrary(p->dl_handle);
 #else
+#ifdef HAVE_MACOSX
+  if (p->dl_handle)
+    NSUnLinkModule(p->dl_handle, NSUNLINKMODULE_OPTION_NONE);
+  if (p->file_handle)
+    NSDestroyObjectFileImage(p->file_handle);
+#else
   dlclose(p->dl_handle);
+#endif
 #endif
 }
 
@@ -283,6 +296,8 @@ void initialize_plugins (void)
       p->next_plugin = plugins;
       plugins = p;
       p = NULL; // so we add a new one    } 
+    } else {
+      close_library(p);
     }
     fname = find_next_file(&dir, PLAYER_PLUGIN_DIR);
   }

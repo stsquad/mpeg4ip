@@ -135,7 +135,8 @@ class CPlayerSession {
   int get_audio_volume(void) { return m_audio_volume; };
   void set_screen_location(int x, int y);
   void set_screen_size(int scaletimes2, int fullscreen = 0,
-		       int pixel_width = -1, int pixel_height = -1);
+		       int pixel_width = -1, int pixel_height = -1,
+		       int max_width = -1, int max_height = -1);
   void session_set_seekable (int seekable) {
     m_seekable = seekable;
   };
@@ -254,6 +255,8 @@ class CPlayerSession {
   uint64_t m_end_time;
   int m_dont_send_first_rtsp_play;
   void *m_video_persistence;
+  int m_max_width;
+  int m_max_height;
 };
 
 int c_sync_thread(void *data);

@@ -13,11 +13,18 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001 - 2004.  All Rights Reserved.
  * 
+ * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
+ * and was contributed by Ximpo Group Ltd.
+ *
+ * Portions created by Ximpo Group Ltd. are
+ * Copyright (C) Ximpo Group Ltd. 2003, 2004.  All Rights Reserved.
+ *
  * Contributor(s): 
  *		Dave Mackie			dmackie@cisco.com
  *		Alix Marchandise-Franquet	alix@cisco.com
+ *              Ximpo Group Ltd.                mp4v2@ximpo.com
  */
 
 #ifndef __MP4_INCLUDED__
@@ -282,6 +289,15 @@ MP4FileHandle MP4Create(
 	u_int32_t verbosity DEFAULT(0),
 	u_int32_t flags DEFAULT(0));
 
+MP4FileHandle MP4CreateEx(
+		const char* fileName,
+		u_int32_t verbosity DEFAULT(0),
+		u_int32_t flags  DEFAULT(0),
+		char* majorBrand DEFAULT(0),
+		u_int32_t minorVersion DEFAULT(0),
+		char** supportedBrands DEFAULT(0),
+		u_int32_t supportedBrandsCount DEFAULT(0));
+
 MP4FileHandle MP4Modify(
 	const char* fileName, 
 	u_int32_t verbosity DEFAULT(0),
@@ -350,6 +366,10 @@ bool MP4SetGraphicsProfileLevel(MP4FileHandle hFile, u_int8_t value);
 
 u_int64_t MP4GetIntegerProperty(
 	MP4FileHandle hFile, 
+	const char* propName);
+
+bool MP4HaveTrackIntegerProperty(
+	MP4FileHandle hFile, MP4TrackId trackId, 
 	const char* propName);
 
 float MP4GetFloatProperty(
@@ -421,6 +441,28 @@ MP4TrackId MP4AddEncAudioTrack(
 	MP4Duration sampleDuration,
         mp4v2_ismacrypParams *icPp,
 	u_int8_t audioType DEFAULT(MP4_MPEG4_AUDIO_TYPE));
+MP4TrackId MP4AddAmrAudioTrack(
+		MP4FileHandle hFile,
+		u_int32_t timeScale,
+		u_int16_t modeSet,
+		u_int8_t modeChangePeriod,
+		u_int8_t framesPerSample,
+		bool isAmrWB);
+
+void MP4SetAmrVendor(
+		MP4FileHandle hFile,
+		MP4TrackId trackId,
+		u_int32_t vendor);
+
+void MP4SetAmrDecoderVersion(
+		MP4FileHandle hFile,
+		MP4TrackId trackId,
+		u_int8_t decoderVersion);
+
+void MP4SetAmrModeSet(
+		MP4FileHandle hFile,
+		MP4TrackId trackId,
+		u_int16_t modeSet);
 
 MP4TrackId MP4AddVideoTrack(
 	MP4FileHandle hFile, 
@@ -438,6 +480,33 @@ MP4TrackId MP4AddEncVideoTrack(
 	u_int16_t height,
         mp4v2_ismacrypParams *icPp,
 	u_int8_t videoType DEFAULT(MP4_MPEG4_VIDEO_TYPE));
+
+void MP4SetH263Vendor(
+		MP4FileHandle hFile,
+		MP4TrackId trackId,
+		u_int32_t vendor);
+
+void  MP4SetH263DecoderVersion(
+		MP4FileHandle hFile,
+		MP4TrackId trackId,
+		u_int8_t decoderVersion);
+
+void MP4SetH263Bitrates(
+		MP4FileHandle hFile,
+		MP4TrackId trackId,
+		u_int32_t avgBitrate,
+		u_int32_t maxBitrate);
+
+MP4TrackId MP4AddH263VideoTrack(
+		MP4FileHandle hFile,
+		u_int32_t timeScale,
+		MP4Duration sampleDuration,
+		u_int16_t width,
+		u_int16_t height,
+		u_int8_t h263Level,
+		u_int8_t h263Profile,
+		u_int32_t avgBitrate,
+		u_int32_t maxBitrate);
 
 MP4TrackId MP4AddHintTrack(
 	MP4FileHandle hFile, 
@@ -859,6 +928,17 @@ bool MP4WriteRtpHint(
 	MP4TrackId hintTrackId,
 	MP4Duration duration,
 	bool isSyncSample DEFAULT(true));
+
+/* 3GP specific utilities */
+
+bool MP4Make3GPCompliant(
+	const char* fileName,
+	u_int32_t verbosity DEFAULT(0),
+	char* majorBrand DEFAULT(0),
+	u_int32_t minorVersion DEFAULT(0),
+	char** supportedBrands DEFAULT(NULL),
+	u_int32_t supportedBrandsCount DEFAULT(0),
+	bool deleteIodsAtom DEFAULT(true));
 
 /* ISMA specific utilities */
 

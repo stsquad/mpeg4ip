@@ -35,12 +35,11 @@ Directory:  mpeg4ip/lib/avi
 License:    GNU Library General Public License (LGPL), version 2 1991
 Notes:      Extracted from lavtools package,
 
-Name:       Freeware Advanced Audio Coder (FAAC) / Decoder (FAAD)
+Name:       Freeware Advanced Audio Decoder (FAAD)
 Version:    1.2
 Origin:     http://www.sourceforge.net/projects/FAAC
 Author:     Menno Bakker
-Directory:  mpeg4ip/server/audio/faac
-            mpeg4ip/player/lib/audio/faad
+Directory:  mpeg4ip/player/lib/audio/faad
 License:    GNU Library General Public License (LGPL), version 2 1991 
             ISO MPEG-4 reference software license for original base code
 Notes:      Use may require payment of patent royalties
@@ -63,14 +62,6 @@ License:    Other, see COPYRIGHT file
 Notes:      Use may require payment of patent royalties
             This code is being used for evaluation and experimentation.
 
-Name:       libdv
-Version:    0.9.5
-Origin:     http://sourceforge.net/projects/libdv
-Authors:    Erik Walthinsen, Charles Krasic, et. al.
-Directory:  lib/libdv
-License:    GNU Library General Public License (LGPL), version 2 1991
-Notes:      This is not currently used by mpeg4ip, but will be soon.
-
 Name:       libmpeg3
 Version:    1.5
 Origin:     http://heroinewarrior.com/libmpeg3.php3
@@ -88,8 +79,8 @@ License:    Other, see README_ORIGINAL
 Notes:      This directory also contains original MPEG4IP code.
             Use of this code is deprecated.
 
-Name:       Simple DirectMedia Layer
-Version:    1.2.3
+Name:       Simple DirectMedia Layer (Audio code only)
+Version:    1.2.7
 Origin:     http://www.libsdl.org/
 Author:     Sam Lantinga
 Directory:  mpeg4ip/lib/SDL

@@ -13,10 +13,17 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001 - 2004.  All Rights Reserved.
  * 
+ * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
+ * and was contributed by Ximpo Group Ltd.
+ *
+ * Portions created by Ximpo Group Ltd. are
+ * Copyright (C) Ximpo Group Ltd. 2003, 2004.  All Rights Reserved.
+ *
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
+ *              Ximpo Group Ltd.        mp4v2@ximpo.com
  */
 
 #ifndef __MP4_ATOM_INCLUDED__
@@ -173,6 +180,7 @@ public:
 	virtual void Read();
 	virtual void BeginWrite(bool use64 = false);
 	virtual void Write();
+	virtual void Rewrite();
 	virtual void FinishWrite(bool use64 = false);
 	virtual void Dump(FILE* pFile, u_int8_t indent, bool dumpImplicits);
 

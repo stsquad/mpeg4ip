@@ -13,11 +13,15 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001-2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001-2004.  All Rights Reserved.
  * 
+ * Portions created by Ximpo Group Ltd. are
+ * Copyright (C) Ximpo Group Ltd. 2003, 2004.  All Rights Reserved.
+ *
  * Contributor(s): 
  *		Dave Mackie			dmackie@cisco.com
  *		Alix Marchandise-Franquet	alix@cisco.com
+ *		Ximpo Group Ltd.		mp4v2@ximpo.com
  */
 
 #define MP4CREATOR_GLOBALS
@@ -45,6 +49,9 @@ void ExtractTrack(
 		  MP4TrackId trackId, 
 		  const char* outputFileName);
 
+bool CanBeIsmaCompliant(
+                  MP4FileHandle mp4File);
+
 // external declarations
 
 // track creators
@@ -57,6 +64,16 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt);
 
 MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt);
 
+MP4TrackId AmrCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt);
+
+MP4TrackId H263Creator(MP4FileHandle mp4File, FILE* inFile,
+                       u_int8_t h263Profile, u_int8_t h263Level,
+                       bool setBitrates, u_int8_t cbrTolerance);
+
+u_int8_t h263Profile = 0;
+u_int8_t h263Level = 10;
+u_int8_t H263CbrTolerance = 0;
+bool setBitrates = false;
 
 // main routine
 int main(int argc, char** argv)
@@ -66,11 +83,16 @@ int main(int argc, char** argv)
     "  Options:\n"
     "  -aac-old-file-format    Use old file format with 58 bit adts headers\n"
     "  -aac-profile=[2|4]      Force AAC to mpeg2 or mpeg4 profile\n"
+    "  -calcH263Bitrates           Calculate and add bitrate information\n"
     "  -create=<input-file>    Create track from <input-file>\n"
     "    input files can be of type: .aac .mp3 .divx .mp4v .m4v .cmp .xvid\n"
     "  -extract=<track-id>     Extract a track\n"
     "  -encrypt[=<track-id>]   Encrypt a track, also -E\n"
     "  -delete=<track-id>      Delete a track\n"
+    "  -force3GPCompliance         Force making the file 3GP compliant. This disables ISMA compliance.\n"
+    "  -forceH263Profile=<profile> Force using H.263 Profile <profile> (default is 0)\n"
+    "  -forceH263Level=<level>     Force using H.263 level <level> (default is 10)\n"
+    "  -H263CbrTolerance=<value>   Define H.263 CBR tolerance of [value] (default: 10%)\n"
     "  -hint[=<track-id>]      Create hint track, also -H\n"
     "  -interleave             Use interleaved audio payload format, also -I\n"
     "  -list                   List tracks in mp4 file\n"
@@ -105,6 +127,8 @@ int main(int argc, char** argv)
   MP4TrackId extractTrackId = MP4_INVALID_TRACK_ID;
   MP4TrackId deleteTrackId = MP4_INVALID_TRACK_ID;
   u_int16_t maxPayloadSize = 1460;
+  bool force3GPCompliance = false;
+  char* p3gppSupportedBrands[2] = {"3gp5", "3gp4"};
 
   Verbosity = MP4_DETAILS_ERROR;
   VideoFrameRate = 0;		// determine from input file
@@ -123,10 +147,15 @@ int main(int argc, char** argv)
     static struct option long_options[] = {
       { "aac-old-file-format", 0, 0, 'a' },
       { "aac-profile", 1, 0, 'A'},
+      { "calcH263Bitrates", 0, 0, 'C'},
       { "create", 1, 0, 'c' },
       { "delete", 1, 0, 'd' },
       { "extract", 2, 0, 'e' },
       { "encrypt", 2, 0, 'E' },
+      { "force3GPCompliance", 0, 0, 'G'},
+      { "forceH263Profile", 1, 0, 'P'},
+      { "forceH263Level", 1, 0, 'L'},
+      { "H263CbrTolerance", 1, 0, 'T' },
       { "help", 0, 0, '?' },
       { "hint", 2, 0, 'H' },
       { "interleave", 0, 0, 'I' },
@@ -144,7 +173,7 @@ int main(int argc, char** argv)
       { NULL, 0, 0, 0 }
     };
 
-    c = getopt_long_only(argc, argv, "ac:d:e:E::H::Ilm:Op:r:t:uUv::V",
+    c = getopt_long_only(argc, argv, "ac:Cd:e:E::GH::IlL:m:Op:P:r:t:T:uUv::V",
 			 long_options, &option_index);
 
     if (c == -1)
@@ -167,6 +196,9 @@ int main(int argc, char** argv)
     case 'c':
       doCreate = true;
       inputFileName = optarg;
+      break;
+    case 'C':
+      setBitrates = true;
       break;
     case 'd':
       if (optarg == NULL) {
@@ -210,6 +242,9 @@ int main(int argc, char** argv)
 	  exit(EXIT_COMMAND_LINE);
 	}
       }	
+      break;
+    case 'G':
+      force3GPCompliance = true;
       break;
     case 'H':
       doHint = true;
@@ -417,8 +452,25 @@ int main(int argc, char** argv)
   if (doCreate || doHint) {
     if (!mp4FileExists) {
       if (doCreate) {
-	mp4File = MP4Create(mp4FileName, Verbosity,
-			    createFlags);
+	const char* extension = strrchr(inputFileName, '.');
+        if (extension == NULL) {
+          fprintf(stderr,
+                  "%s: unknown file type: %s\n", ProgName, inputFileName);
+          exit(EXIT_COMMAND_LINE);
+        }
+
+	if ((!strcmp(extension, ".amr")) || (!strcmp(extension, ".263"))) {
+		mp4File = MP4CreateEx(mp4FileName,
+				Verbosity,
+				createFlags,
+				p3gppSupportedBrands[0],
+				0x0001,
+				p3gppSupportedBrands,
+				sizeof(p3gppSupportedBrands) / sizeof(p3gppSupportedBrands[0]));
+	} else {
+	  mp4File = MP4Create(mp4FileName, Verbosity,
+			      createFlags);
+	}
 	if (mp4File) {
 	  MP4SetTimeScale(mp4File, Mp4TimeScale);
 	}
@@ -464,16 +516,19 @@ int main(int argc, char** argv)
       while (*pTrackId != MP4_INVALID_TRACK_ID) {			       
 	const char *type =
 	  MP4GetTrackType(mp4File, *pTrackId);
-	
-	if (!strcmp(type, MP4_AUDIO_TRACK_TYPE)) { 
-	  allMpeg4Streams &=
-	    (MP4GetTrackEsdsObjectTypeId(mp4File, *pTrackId) 
-	     == MP4_MPEG4_AUDIO_TYPE);
-	  
-	} else if (!strcmp(type, MP4_VIDEO_TRACK_TYPE)) { 
-	  allMpeg4Streams &=
-	    (MP4GetTrackEsdsObjectTypeId(mp4File, *pTrackId)
-	     == MP4_MPEG4_VIDEO_TYPE);
+	// look for objectTypeId (GetTrackEsdsObjectTypeId)
+	if (MP4HaveTrackIntegerProperty(mp4File, *pTrackId,
+					"mdia.minf.stbl.stsd.*.esds.decConfigDescr.objectTypeId")) {
+	  if (!strcmp(type, MP4_AUDIO_TRACK_TYPE)) { 
+	    allMpeg4Streams &=
+	      (MP4GetTrackEsdsObjectTypeId(mp4File, *pTrackId) 
+	       == MP4_MPEG4_AUDIO_TYPE);
+	    
+	  } else if (!strcmp(type, MP4_VIDEO_TRACK_TYPE)) { 
+	    allMpeg4Streams &=
+	      (MP4GetTrackEsdsObjectTypeId(mp4File, *pTrackId)
+	       == MP4_MPEG4_VIDEO_TYPE);
+	  }
 	}
 	pTrackId++;
       }
@@ -501,15 +556,18 @@ int main(int argc, char** argv)
 	
 	const char *type =
 	  MP4GetTrackType(mp4File, trackId);
-	if (!strcmp(type, MP4_AUDIO_TRACK_TYPE)) { 
-	  allMpeg4Streams &=
-	    (MP4GetTrackEsdsObjectTypeId(mp4File, trackId) 
-	     == MP4_MPEG4_AUDIO_TYPE);
+	if (MP4HaveTrackIntegerProperty(mp4File, trackId,
+					"mdia.minf.stbl.stsd.*.esds.decConfigDescr.objectTypeId")) {
+	  if (!strcmp(type, MP4_AUDIO_TRACK_TYPE)) { 
+	    allMpeg4Streams &=
+	      (MP4GetTrackEsdsObjectTypeId(mp4File, trackId) 
+	       == MP4_MPEG4_AUDIO_TYPE);
 			    
-	} else if (!strcmp(type, MP4_VIDEO_TRACK_TYPE)) { 
-	  allMpeg4Streams &=
-	    (MP4GetTrackEsdsObjectTypeId(mp4File, trackId) 
-	     == MP4_MPEG4_VIDEO_TYPE);
+	  } else if (!strcmp(type, MP4_VIDEO_TRACK_TYPE)) { 
+	    allMpeg4Streams &=
+	      (MP4GetTrackEsdsObjectTypeId(mp4File, trackId) 
+	       == MP4_MPEG4_VIDEO_TYPE);
+	  }
 	}
       }
     }
@@ -533,10 +591,20 @@ int main(int argc, char** argv)
       sprintf(buffer, "mp4creator %s", MPEG4IP_VERSION);
       MP4SetMetadataTool(mp4File, buffer);
     }
-    
+    bool canBeIsmaCompliant = CanBeIsmaCompliant(mp4File);
     MP4Close(mp4File);
-    MP4MakeIsmaCompliant(mp4FileName, Verbosity, allMpeg4Streams);
-
+    
+    if (canBeIsmaCompliant && (!force3GPCompliance)) {
+      MP4MakeIsmaCompliant(mp4FileName, Verbosity, allMpeg4Streams);
+    } else {
+      // If we created the file, CreateEX already takes care of this...
+      MP4Make3GPCompliant(mp4FileName,
+                          Verbosity,
+                          p3gppSupportedBrands[0],
+                          0x0001,
+                          p3gppSupportedBrands,
+                          sizeof(p3gppSupportedBrands) / sizeof(p3gppSupportedBrands[0]));
+    }
   } else if (doEncrypt) { 
     // just encrypting, not creating nor hinting, but may already be hinted
     if (!mp4FileExists) {
@@ -781,6 +849,11 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName,
 
     pTrackIds = MpegCreator(mp4File, inputFileName, doEncrypt);
 
+  } else if (strcasecmp(extension, ".amr") == 0) {
+	  trackIds[0] = AmrCreator(mp4File, inFile, false);
+  } else if (strcasecmp(extension, ".263") == 0) {
+	  trackIds[0] = H263Creator(mp4File, inFile, h263Profile, h263Level,
+                                    setBitrates, H263CbrTolerance);
   } else {
     fprintf(stderr, 
 	    "%s: unknown file type\n", ProgName);
@@ -1076,3 +1149,20 @@ void ExtractTrack( MP4FileHandle mp4File, MP4TrackId trackId,
   close(outFd);
 }
 
+bool CanBeIsmaCompliant(MP4FileHandle mp4File)
+{
+  u_int32_t numberOfTracks = MP4GetNumberOfTracks(mp4File);
+  u_int32_t i;
+
+  for (i = 0 ; i < numberOfTracks ; i++) {
+    MP4TrackId trackId = MP4FindTrackId(mp4File, i);
+    // this is probably wrong.  Instead of doing a negative, we should do 
+    // a positive.
+    if (MP4HaveTrackIntegerProperty(mp4File, trackId, "mdia.minf.stbl.stsd.samr.damr.vendor") ||
+      MP4HaveTrackIntegerProperty(mp4File, trackId, "mdia.minf.stbl.stsd.sawb.damr.vendor") ||
+      MP4HaveTrackIntegerProperty(mp4File, trackId, "mdia.minf.stbl.stsd.s263.d263.vendor")) {
+      return false;
+    }
+  }
+  return true;
+}

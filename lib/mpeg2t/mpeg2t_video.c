@@ -38,7 +38,7 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 {
   int framesfinished = 0;
 
-  if ((es_pid->stream_id & 0xf0) != 0xe0) {
+  if (es_pid->peshdr_loaded != 0 && ((es_pid->stream_id & 0xf0) != 0xe0)) {
     mpeg2t_message(LOG_ERR, "Video stream PID %x with bad stream_id %x", 
 		   es_pid->pid.pid,
 		   es_pid->stream_id);

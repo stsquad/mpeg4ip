@@ -13,11 +13,18 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001 - 2004.  All Rights Reserved.
+ * 
+ * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
+ * and was contributed by Ximpo Group Ltd.
+ *
+ * Portions created by Ximpo Group Ltd. are
+ * Copyright (C) Ximpo Group Ltd. 2003, 2004.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie			dmackie@cisco.com
  *		Alix Marchandise-Franquet	alix@cisco.com
+ *              Ximpo Group Ltd.                mp4v2@ximpo.com
  */
 
 #include "mp4common.h"
@@ -66,6 +73,11 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
     pAtom = new MP4RootAtom();
   } else {
     switch((uint8_t)type[0]) {
+    case 'b':
+      if (ATOMID(type) == ATOMID("bitr")) {
+	pAtom = new MP4BitrAtom();
+      }
+      break;
     case 'c':
       if (ATOMID(type) == ATOMID("ctts")) {
 	pAtom = new MP4CttsAtom();
@@ -80,7 +92,11 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
       }
       break;
     case 'd':
-      if (ATOMID(type) == ATOMID("dinf")) {
+      if (ATOMID(type) == ATOMID("d263")) {
+	pAtom = new MP4D263Atom();
+      } else if (ATOMID(type) == ATOMID("damr")) {
+	pAtom = new MP4DamrAtom();
+      } else if (ATOMID(type) == ATOMID("dinf")) {
 	pAtom = new MP4DinfAtom();
       } else if (ATOMID(type) == ATOMID("dref")) {
 	pAtom = new MP4DrefAtom();
@@ -210,7 +226,13 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
       }
       break;
     case 's':
-      if (ATOMID(type) == ATOMID("schi")) {
+      if (ATOMID(type) == ATOMID("s263"))  {
+        pAtom = new MP4S263Atom();
+      } else if (ATOMID(type) == ATOMID("samr")) {
+	pAtom = new MP4SamrAtom();
+      } else if (ATOMID(type) == ATOMID("sawb")) {
+	pAtom = new MP4SawbAtom();
+      } else if (ATOMID(type) == ATOMID("schi")) {
 	pAtom = new MP4SchiAtom();
       } else if (ATOMID(type) == ATOMID("schm")) {
 	pAtom = new MP4SchmAtom();
@@ -704,6 +726,21 @@ void MP4Atom::Write()
 	WriteChildAtoms();
 
 	FinishWrite();
+}
+
+void MP4Atom::Rewrite()
+{
+       ASSERT(m_pFile);
+       
+       if (!m_end) {
+	       // This atom hasn't been written yet...
+	       return;
+       }
+       
+       u_int64_t fPos = m_pFile->GetPosition();
+       m_pFile->SetPosition(GetStart());
+       Write();
+       m_pFile->SetPosition(fPos);
 }
 
 void MP4Atom::BeginWrite(bool use64)

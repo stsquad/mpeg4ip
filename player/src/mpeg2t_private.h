@@ -47,8 +47,6 @@ typedef struct mpeg2t_stream_t {
   int m_have_info;
   int m_is_video;
   int m_buffering;
-  int m_frames_since_last_psts;
-  uint64_t m_last_psts;
   int m_have_eof;
 } mpeg2t_stream_t;
 

@@ -1265,6 +1265,22 @@ int main (int argc, char **argv)
   };
 
   bool have_unknown_opts = false;
+  char buffer[FILENAME_MAX];
+  char *home = getenv("HOME");
+  if (home == NULL) {
+#ifdef _WIN32
+	strcpy(buffer, "gmp4player_rc");
+#else
+    strcpy(buffer, ".gmp4player_rc");
+#endif
+  } else {
+    strcpy(buffer, home);
+    strcat(buffer, "/.gmp4player_rc");
+  }
+  
+  initialize_plugins();
+  config.SetDefaultFileName(buffer);
+  config.InitializeIndexes();
   opterr = 0;
   while (true) {
     int c = -1;
@@ -1298,22 +1314,6 @@ int main (int argc, char **argv)
   }
 
   command_mutex = SDL_CreateMutex();
-  char buffer[FILENAME_MAX];
-  char *home = getenv("HOME");
-  if (home == NULL) {
-#ifdef _WIN32
-	strcpy(buffer, "gmp4player_rc");
-#else
-    strcpy(buffer, ".gmp4player_rc");
-#endif
-  } else {
-    strcpy(buffer, home);
-    strcat(buffer, "/.gmp4player_rc");
-  }
-  
-  initialize_plugins();
-  config.SetDefaultFileName(buffer);
-  config.InitializeIndexes();
   config.ReadDefaultFile();
 
   if (have_unknown_opts) {

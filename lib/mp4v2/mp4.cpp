@@ -13,11 +13,18 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001 - 2004.  All Rights Reserved.
+ *
+ * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
+ * and was contributed by Ximpo Group Ltd.
+ *
+ * Portions created by Ximpo Group Ltd. are
+ * Copyright (C) Ximpo Group Ltd. 2003, 2004.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie			dmackie@cisco.com
  *		Alix Marchandise-Franquet	alix@cisco.com
+ *              Ximpo Group Ltd.                mp4v2@ximpo.com
  */
 
 /* 
@@ -51,15 +58,20 @@ extern "C" MP4FileHandle MP4Read(const char* fileName, u_int32_t verbosity)
 	}
 }
 
-extern "C" MP4FileHandle MP4Create(const char* fileName, 
-				   u_int32_t verbosity, 
-				   u_int32_t flags)
+extern "C" MP4FileHandle MP4CreateEx(const char* fileName,
+		u_int32_t verbosity, u_int32_t  flags,
+		char* majorBrand, u_int32_t minorVersion,
+		char** supportedBrands, u_int32_t supportedBrandsCount)
 {
 	MP4File* pFile = NULL;
 	try {
 		pFile = new MP4File(verbosity);
 		// LATER useExtensibleFormat, moov first, then mvex's
-		pFile->Create(fileName, flags);
+		if (!majorBrand) {
+			pFile->Create(fileName, flags);
+		} else {
+			pFile->CreateEx(fileName, flags, majorBrand, minorVersion, supportedBrands, supportedBrandsCount);
+                }
 		return (MP4FileHandle)pFile;
 	}
 	catch (MP4Error* e) {
@@ -68,6 +80,13 @@ extern "C" MP4FileHandle MP4Create(const char* fileName,
 		delete pFile;
 		return MP4_INVALID_FILE_HANDLE;
 	}
+}
+
+extern "C" MP4FileHandle MP4Create(const char* fileName, 
+				   u_int32_t verbosity, 
+				   u_int32_t flags)
+{
+	return MP4CreateEx(fileName, verbosity, flags, NULL, 0, NULL, 0 );
 }
 
 extern "C" MP4FileHandle MP4Modify(const char* fileName, 
@@ -591,6 +610,78 @@ extern "C" MP4TrackId MP4AddEncAudioTrack(MP4FileHandle hFile,
   }
   return MP4_INVALID_TRACK_ID;
 }
+extern "C" MP4TrackId MP4AddAmrAudioTrack(
+		MP4FileHandle hFile,
+		u_int32_t timeScale,
+		u_int16_t modeSet,
+		u_int8_t modeChangePeriod,
+		u_int8_t framesPerSample,
+		bool isAmrWB)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->
+				AddAmrAudioTrack(timeScale, modeSet, modeChangePeriod, framesPerSample, isAmrWB);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return MP4_INVALID_TRACK_ID;
+}
+
+extern "C" void MP4SetAmrVendor(
+		MP4FileHandle hFile,
+		MP4TrackId trackId,
+		u_int32_t vendor)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->
+				SetAmrVendor(trackId, vendor);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+}
+
+extern "C" void MP4SetAmrDecoderVersion(
+		MP4FileHandle hFile,
+		MP4TrackId trackId,
+		u_int8_t decoderVersion)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->
+				SetAmrDecoderVersion(trackId, decoderVersion);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+}
+
+extern "C" void MP4SetAmrModeSet(
+		MP4FileHandle hFile,
+		MP4TrackId trackId,
+		u_int16_t modeSet)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->
+				SetAmrModeSet(trackId, modeSet);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+}
+
 
 extern "C" MP4TrackId MP4AddVideoTrack(
 	MP4FileHandle hFile, 
@@ -635,6 +726,84 @@ extern "C" MP4TrackId MP4AddEncVideoTrack(MP4FileHandle hFile,
     }
   }
   return MP4_INVALID_TRACK_ID;
+}
+extern "C" MP4TrackId MP4AddH263VideoTrack(
+		MP4FileHandle hFile,
+		u_int32_t timeScale,
+		MP4Duration sampleDuration,
+		u_int16_t width,
+		u_int16_t height,
+		u_int8_t h263Level,
+		u_int8_t h263Profile,
+		u_int32_t avgBitrate,
+		u_int32_t maxBitrate)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->
+				AddH263VideoTrack(timeScale, sampleDuration, width, height, h263Level, h263Profile, avgBitrate, maxBitrate);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	
+	return MP4_INVALID_TRACK_ID;
+}
+
+extern "C" void MP4SetH263Vendor(
+		MP4FileHandle hFile,
+		MP4TrackId trackId,
+		u_int32_t vendor)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->
+				SetH263Vendor(trackId, vendor);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+}
+
+extern "C" void MP4SetH263DecoderVersion(
+		MP4FileHandle hFile,
+		MP4TrackId trackId,
+		u_int8_t decoderVersion)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		
+		try {
+			((MP4File*)hFile)->
+				SetH263DecoderVersion(trackId, decoderVersion);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+}
+
+extern "C" void MP4SetH263Bitrates(
+		MP4FileHandle hFile,
+		MP4TrackId trackId,
+		u_int32_t avgBitrate,
+		u_int32_t maxBitrate)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+
+		try {
+			((MP4File*)hFile)->
+				SetH263Bitrates(trackId, avgBitrate, maxBitrate);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
 }
 
 extern "C" MP4TrackId MP4AddHintTrack(
@@ -1433,7 +1602,7 @@ extern "C" bool MP4IsIsmaCrypMediaTrack(
 
 /* generic track properties */
 
-extern "C" u_int64_t MP4GetTrackIntegerProperty(
+extern "C" u_int64_t MP4GetTrackIntegerProperty (
 	MP4FileHandle hFile, MP4TrackId trackId, 
 	const char* propName)
 {
@@ -1448,6 +1617,23 @@ extern "C" u_int64_t MP4GetTrackIntegerProperty(
 		}
 	}
 	return (u_int64_t)-1;
+}
+extern "C" bool MP4HaveTrackIntegerProperty(
+	MP4FileHandle hFile, MP4TrackId trackId,
+	const char* propName)
+{
+  // The same as MP4GetTrackIntegerProperty but with no error reporting
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetTrackIntegerProperty(trackId, 
+				propName) != (u_int64_t)-1;
+		}
+		catch (MP4Error* e) {
+			// No error reporting
+			delete e;
+		}
+	}
+	return false;
 }
 
 extern "C" float MP4GetTrackFloatProperty(
@@ -2485,6 +2671,32 @@ extern "C" bool MP4WriteRtpHint(
 			delete e;
 		}
 	}
+	return false;
+}
+/* 3GPP specific operations */
+
+extern "C" bool MP4Make3GPCompliant(
+	const char* fileName,
+	u_int32_t verbosity,
+	char* majorBrand,
+	u_int32_t minorVersion,
+	char** supportedBrands,
+	u_int32_t supportedBrandsCount,
+	bool deleteIodsAtom)
+{
+	MP4File* pFile = NULL;
+
+	try {
+		pFile = new MP4File(verbosity);
+		pFile->Make3GPCompliant(fileName, majorBrand, minorVersion, supportedBrands, supportedBrandsCount, deleteIodsAtom);
+		delete pFile;
+		return true;
+	}
+	catch (MP4Error* e) {
+		VERBOSE_ERROR(verbosity, e->Print());
+		delete e;
+	}
+	delete pFile;
 	return false;
 }
 

@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001-2004.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -74,9 +74,7 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
   int32_t diff;
   int correct_hdr;
   int dropped_seq;
-#ifdef DEBUG_MPEG3_RTP_TIME
-  int temp_ref;
-#endif
+  uint8_t temp_ref;
   diff = m_buffer_len - m_bytes_used;
 
   if (diff > 2) {
@@ -102,6 +100,7 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
     correct_hdr = 1;
     if (check_seq(rpak->rtp_pak_seq) == false) {
       correct_hdr = 0;
+      dropped_seq = 1;
       first = 0;
     } else {
       if (first == 0) {
@@ -120,9 +119,7 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
     }
     if (correct_hdr == 0) {
       m_buffer_len = 0;
-    } else {
-      dropped_seq = 1;
-    }
+    } 
 
     set_last_seq(rpak->rtp_pak_seq);
 
@@ -135,9 +132,7 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
       }
     }
     frame_type = rpak->rtp_data[2] & 0x7;
-#ifdef DEBUG_MPEG3_RTP_TIME
     temp_ref = ((rpak->rtp_data[0] & 0x3) << 8) | rpak->rtp_data[1];
-#endif
     from = (uint8_t *)rpak->rtp_data + m_skip_on_advance_bytes;
     len = rpak->rtp_data_len - m_skip_on_advance_bytes;
     if ((m_buffer_len + len) > m_buffer_len_max) {
@@ -163,24 +158,19 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
   rtp_message(LOG_DEBUG, "%s buffer len %d", m_name, m_buffer_len);
 #endif
   if (dropped_seq || m_have_mpeg_ip_ts == 0) {
-    outts = calc_this_ts_from_future(frame_type, ts);
+    outts = calc_this_ts_from_future(frame_type, ts, temp_ref);
   } else {
     if (frame_type == 3) {
       // B frame
-      outts = ts + m_rtp_frame_add;
+      outts = ts; // this shouldn't be needed any more + m_rtp_frame_add;
     } else {
-      outts = m_mpeg_ip_ts + m_rtp_frame_add;
+      outts = m_mpeg_ip_ts; //  + m_rtp_frame_add;
       m_mpeg_ip_ts = ts;
     }
   }
 #ifdef DEBUG_MPEG3_RTP_TIME
-#if 0
-  rtp_message(LOG_DEBUG, "frame type %d pak ts %u out ts %u", frame_type, 
-	      ts, outts);
-#else
-  rtp_message(LOG_DEBUG, "frame type %d pak ts %u temp ref %d", 
-	      frame_type, ts, temp_ref);
-#endif
+  rtp_message(LOG_DEBUG, "frame type %d pak ts %u out ts %u %d", frame_type, 
+	      ts, outts, temp_ref);
 #endif
 
   if (m_rtpinfo_set_from_pak != 0) {
@@ -196,31 +186,43 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
 }
 
 uint32_t CMpeg3RtpByteStream::calc_this_ts_from_future (int frame_type,
-						   uint32_t pak_ts)
+							uint32_t pak_ts,
+							uint8_t temp_ref)
 {
   int new_frame_type;
   uint32_t outts = 0;
 
   m_have_mpeg_ip_ts = 0;
   if (frame_type >= 3) {
-    // B frame - ts is always pak_ts + 1 frame time
-    return pak_ts + m_rtp_frame_add;
+    // B frame - ts is always pak_ts
+    return pak_ts; //  + m_rtp_frame_add;
+  }
+  if (frame_type == 1) {
+    outts = pak_ts - ((temp_ref + 1) * m_rtp_frame_add);
+    m_mpeg_ip_ts = pak_ts;
+    m_have_mpeg_ip_ts = 1;
+    return outts;
   }
 
   SDL_LockMutex(m_rtp_packet_mutex);
   if (check_seq(m_head->rtp_pak_seq) == false) {
     outts = m_head->rtp_pak_ts - m_rtp_frame_add; // not accurate, but close enuff
+#ifdef DEBUG_MPEG3_RTP_TIME
+    rtp_message(LOG_DEBUG, "calc no checkseq");
+#endif
   } else {
     new_frame_type = m_head->rtp_data[2] & 0x7;
+#ifdef DEBUG_MPEG3_RTP_TIME
+    rtp_message(LOG_DEBUG, "calc ftype %d next %d", frame_type, new_frame_type);
+#endif
     if (new_frame_type >= 3) {
-      // I/P frame followed by B frame - take the B frame's timestamp
-      outts = m_head->rtp_pak_ts;
+      // P frame followed by B frame - take the B frame's timestamp
+      outts = m_head->rtp_pak_ts - m_rtp_frame_add;
       m_mpeg_ip_ts = pak_ts;
       m_have_mpeg_ip_ts = 1;
-    }  else if (frame_type == 2 ||
-		(frame_type == 1 && new_frame_type == 1)) {
-    // I/P frame followed by I frame, P frame followed by I or P frame
-      outts = pak_ts - (m_head->rtp_pak_ts - pak_ts);
+    }  else {
+      // P frame followed by I frame, P frame followed by I or P frame
+      outts = pak_ts - m_rtp_frame_add;
       m_mpeg_ip_ts = pak_ts;
       m_have_mpeg_ip_ts = 1;
     } 

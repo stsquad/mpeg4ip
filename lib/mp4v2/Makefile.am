@@ -9,9 +9,13 @@ lib_LTLIBRARIES = libmp4v2.la
 include_HEADERS = mp4.h
 
 libmp4v2_la_SOURCES = \
+	3gp.cpp \
+	atom_bitr.cpp \
 	atom_co64.cpp \
 	atom_cprt.cpp \
 	atom_ctts.cpp \
+	atom_d263.cpp \
+	atom_damr.cpp \
 	atom_dimm.cpp \
 	atom_dinf.cpp \
 	atom_dmax.cpp \
@@ -53,6 +57,9 @@ libmp4v2_la_SOURCES = \
 	atom_pmax.cpp \
 	atom_root.cpp \
 	atom_rtp.cpp \
+	atom_s263.cpp \
+	atom_samr.cpp \
+	atom_sawb.cpp \
 	atom_schi.cpp \
 	atom_schm.cpp \
 	atom_sdp.cpp \

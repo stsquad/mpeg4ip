@@ -152,7 +152,7 @@ static void printSessionList (void) {
                                        ismacryp_keytypeStr[temp->key_type][7]);
      fprintf(stdout, "                 key : %s", 
 #ifndef NULL_ISMACRYP
-                octet_string_hex_string(temp->key, AES_KEY_LEN)
+                octet_string_hex_string(temp->ksc.key, AES_KEY_LEN)
 #else
                 "n/a"
 #endif
@@ -160,7 +160,7 @@ static void printSessionList (void) {
      fprintf(stdout, "\n");
      fprintf(stdout, "                 salt: %s", 
 #ifndef NULL_ISMACRYP
-                octet_string_hex_string(temp->salt, AES_SALT_LEN)
+                octet_string_hex_string(temp->ksc.salt, AES_SALT_LEN)
 #else
                 "n/a"
 #endif
@@ -168,7 +168,7 @@ static void printSessionList (void) {
      fprintf(stdout, "\n");
      fprintf(stdout, "                 ctr : %s", 
 #ifndef NULL_ISMACRYP
-                octet_string_hex_string(temp->counter, AES_COUNTER_LEN)
+                octet_string_hex_string(temp->ksc.counter, AES_COUNTER_LEN)
 #else
                 "n/a"
 #endif
@@ -500,12 +500,12 @@ ismacryp_rc_t ismacrypGetKey (ismacryp_session_id_t session,
   }
 
   for (i=0; i<*key_len; i++ ) {
-    tempk[i] = sp->key[i];
+    tempk[i] = sp->ksc.key[i];
   }
   *key = tempk;
 
   for (i=0; i<*salt_len; i++ ) {
-    temps[i] = sp->salt[i];
+    temps[i] = sp->ksc.salt[i];
   }
   *salt = temps;
 

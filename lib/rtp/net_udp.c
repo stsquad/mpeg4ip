@@ -267,6 +267,8 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 	int                 	 reuse = 1;
 	struct sockaddr_in  	 s_in;
 	int recv_buf_size;
+	int test_buffer;
+	int test_buffer_size=sizeof(test_buffer);
 
 	socket_udp         	*s = (socket_udp *)malloc(sizeof(socket_udp));
 	s->mode    = IPv4;
@@ -310,8 +312,6 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
         //Since setsockopt would not return the error if /proc/sys/net/core/rmem_max is smaller
         //then the value you are trying to set. use sysctl -w net.core.rmem_max=new_val
         //to set the value higher than what is desired in RCVBUF
-	  int test_buffer;
-	  int test_buffer_size=sizeof(test_buffer);
 	  if( getsockopt( s->fd, SOL_SOCKET, SO_RCVBUF, (void*)&test_buffer, &test_buffer_size ) == -1 )
 	    {
 	      socket_error("getsockopt SO_RCVBUF");

@@ -154,7 +154,7 @@ int CPlayerSession::process_msg_queue (int state)
       if (m_video_sync) {
 	m_video_sync->set_screen_size(m_screen_scale);
 	m_video_sync->set_fullscreen(m_fullscreen);
-	m_video_sync->do_video_resize(m_pixel_width, m_pixel_height);
+	m_video_sync->do_video_resize(m_pixel_width, m_pixel_height, m_max_width, m_max_height);
       }
       break;
     default:

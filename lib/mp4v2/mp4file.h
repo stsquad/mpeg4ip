@@ -13,11 +13,18 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001 - 2004.  All Rights Reserved.
  * 
+ * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
+ * and was contributed by Ximpo Group Ltd.
+ *
+ * Portions created by Ximpo Group Ltd. are
+ * Copyright (C) Ximpo Group Ltd. 2003, 2004.  All Rights Reserved.
+ *
  * Contributor(s): 
  *		Dave Mackie			dmackie@cisco.com
  *		Alix Marchandise-Franquet	alix@cisco.com
+ *              Ximpo Group Ltd.                mp4v2@ximpo.com
  */
 
 #ifndef __MP4_FILE_INCLUDED__
@@ -40,6 +47,9 @@ public: /* equivalent to MP4 library API */
 	/* file operations */
 	void Read(const char* fileName);
 	void Create(const char* fileName, u_int32_t flags);
+	void CreateEx(const char* fileName, u_int32_t flags, char* majorBrand, 
+		      u_int32_t minorVersion, char** supportedBrands, 
+		      u_int32_t supportedBrandsCount);
 	void Modify(const char* fileName);
 	void Optimize(const char* orgFileName, 
 		const char* newFileName = NULL);
@@ -203,6 +213,25 @@ public: /* equivalent to MP4 library API */
                 bool      selective_enc,
                 char      *kms_uri);
 
+	void SetAmrVendor(
+			MP4TrackId trackId,
+			u_int32_t vendor);
+	
+	void SetAmrDecoderVersion(
+			MP4TrackId trackId,
+			u_int8_t decoderVersion);
+	
+	void SetAmrModeSet(
+			MP4TrackId trackId,
+			u_int16_t modeSet);
+
+	MP4TrackId AddAmrAudioTrack(
+			u_int32_t timeScale,
+			u_int16_t modeSet,
+			u_int8_t modeChangePeriod,
+			u_int8_t framesPerSample,
+			bool isAmrWB);
+
 	MP4TrackId AddVideoTrack(
 		u_int32_t timeScale, 
 		MP4Duration sampleDuration,
@@ -223,6 +252,28 @@ public: /* equivalent to MP4 library API */
                 bool      selective_enc,
                 char      *kms_uri);
 
+	void SetH263Vendor(
+			MP4TrackId trackId,
+			u_int32_t vendor);
+	
+	void SetH263DecoderVersion(
+			MP4TrackId trackId,
+			u_int8_t decoderVersion);
+	
+	void SetH263Bitrates(
+			MP4TrackId,
+			u_int32_t avgBitrate,
+			u_int32_t maxBitrate);
+	
+	MP4TrackId AddH263VideoTrack(
+			u_int32_t timeScale,
+			MP4Duration sampleDuration,
+			u_int16_t width,
+			u_int16_t height,
+			u_int8_t h263Level,
+			u_int8_t h263Profile,
+			u_int32_t avgBitrate,
+			u_int32_t maxBitrate);
 
 	MP4TrackId AddHintTrack(MP4TrackId refTrackId);
 
@@ -254,6 +305,18 @@ public: /* equivalent to MP4 library API */
 	const char* GetHintTrackSdp(MP4TrackId hintTrackId);
 	void SetHintTrackSdp(MP4TrackId hintTrackId, const char* sdpString);
 	void AppendHintTrackSdp(MP4TrackId hintTrackId, const char* sdpString);
+
+	// 3GPP specific functions
+	void MakeFtypAtom(char* majorBrand, 
+			  u_int32_t minorVersion, 
+			  char** supportedBrands, 
+			  u_int32_t supportedBrandsCount);
+	void Make3GPCompliant(const char* fileName, 
+			      char* majorBrand, 
+			      u_int32_t minorVersion, 
+			      char** supportedBrands, 
+			      u_int32_t supportedBrandsCount, 
+			      bool deleteIodsAtom);
 
 	// ISMA specific functions
 
@@ -583,6 +646,8 @@ protected:
 	void FinishWrite();
 	void CacheProperties();
 	void RewriteMdat(FILE* pReadFile, FILE* pWriteFile);
+	MP4Atom* GetTrakDamrAtom(MP4TrackId trackId);
+	bool ShallHaveIods();
 
 	const char* TempFileName();
 	void Rename(const char* existingFileName, const char* newFileName);
@@ -603,7 +668,7 @@ protected:
 
 	void AddTrackToIod(MP4TrackId trackId);
 
-	void RemoveTrackFromIod(MP4TrackId trackId);
+	void RemoveTrackFromIod(MP4TrackId trackId, bool shallHaveIods = true);
 
 	void AddTrackToOd(MP4TrackId trackId);
 

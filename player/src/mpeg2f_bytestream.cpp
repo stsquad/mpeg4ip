@@ -35,26 +35,39 @@ static inline bool convert_psts (mpeg2t_es_t *es_pid,
 				 uint64_t start_psts)
 {
   uint64_t ps_ts;
+#ifdef DEBUG_MPEG2T_PSTS
+  uint64_t initial;
+#endif
   // we want to 0 out the timestamps of the incoming transport
   // stream so that the on-demand shows the correct timestamps
 
   // see if we've set the initial timestamp
   // here, we want to check for a gross change in the psts
-  if (fptr->have_ps_ts == 0) return true;
+  if (fptr->have_ps_ts == 0 && fptr->have_dts == 0) return true;
 
-  ps_ts = fptr->ps_ts;
-  // need to put a limit on how much less before we restart
-  if (ps_ts < start_psts) return false;
-
+  if (fptr->have_dts) {
+    ps_ts = fptr->dts;
+    if (ps_ts < start_psts) return false;
 #ifdef DEBUG_MPEG2T_PSTS
-  uint64_t initial = fptr->ps_ts;
+    initial = fptr->dts;
 #endif
-  fptr->ps_ts -= start_psts;
+    fptr->dts -= start_psts;
 #ifdef DEBUG_MPEG2T_PSTS
-  player_debug_message(" convert psts "U64" to "U64" "U64,
-		       fptr->ps_ts, start_psts, initial);
-  
+    player_debug_message(" convert psts "U64" to "U64" "U64,
+			 fptr->dts, start_psts, initial);
 #endif
+  } else {
+    ps_ts = fptr->ps_ts;
+    if (ps_ts < start_psts) return false;
+#ifdef DEBUG_MPEG2T_PSTS
+    initial = fptr->dts;
+#endif
+    fptr->ps_ts -= start_psts;
+#ifdef DEBUG_MPEG2T_PSTS
+    player_debug_message(" convert psts "U64" to "U64" "U64,
+			 fptr->ps_ts, start_psts, initial);
+#endif
+  }
   return true;
 }
 
@@ -210,10 +223,15 @@ int CMpeg2fVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
   double value = 90000.0 / m_es_pid->frame_rate;
   uint64_t frame_time = (uint64_t)value;
 #ifdef DEBUG_MPEG2T_PSTS
-  player_debug_message("video frame len %d have psts %d ts "U64, 
-		       fptr->frame_len, fptr->have_ps_ts, fptr->ps_ts);
+  if (fptr->have_dts) {
+    player_debug_message("video frame len %d have  dts %d ts "U64,
+			 fptr->frame_len, fptr->have_dts, fptr->dts);
+  } if (fptr->have_ps_ts) {
+    player_debug_message("video frame len %d have psts %d ts "U64, 
+			 fptr->frame_len, fptr->have_ps_ts, fptr->ps_ts);
+  }
 #endif
-  if (fptr->have_ps_ts == 0) {
+  if (fptr->have_ps_ts == 0 && fptr->have_dts == 0) {
     // We don't have a timestamp on this - just increment from
     // the previous timestamp.
     if (m_timestamp_loaded == 0) return -1;
@@ -228,23 +246,27 @@ int CMpeg2fVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
     return 0;
   }
   m_timestamp_loaded = 1;
-  ts = fptr->ps_ts;
-
-  if (m_have_prev_frame_type) {
-    if (fptr->frame_type == 3) {
-      // B frame
-      outts = ts + frame_time;
-    } else {
-      outts = m_prev_ts + frame_time;
-    }
+  if (fptr->have_dts != 0) {
+    outts = fptr->dts;
   } else {
-    if (fptr->frame_type == 1) {
-      uint16_t temp_ref = MP4AV_Mpeg3PictHdrTempRef(fptr->frame + fptr->pict_header_offset);
-      ts -= ((temp_ref + 1) * m_es_pid->tick_per_frame);
-      outts = ts;
+    ts = fptr->ps_ts;
+
+    if (m_have_prev_frame_type) {
+      if (fptr->frame_type == 3) {
+	// B frame
+	outts = ts;
+      } else {
+	outts = m_prev_ts + frame_time;
+      }
     } else {
-      player_error_message( "no psts and no prev frame");
-      outts = ts;
+      if (fptr->frame_type == 1) {
+	uint16_t temp_ref = MP4AV_Mpeg3PictHdrTempRef(fptr->frame + fptr->pict_header_offset);
+	ts -= ((temp_ref + 1) * m_es_pid->tick_per_frame);
+	outts = ts;
+      } else {
+	player_error_message( "no psts and no prev frame");
+	outts = ts;
+      }
     }
   }
 
@@ -275,9 +297,9 @@ int CMpeg2fAudioByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
 		       m_es_pid->sample_per_frame, 
 		       m_es_pid->sample_freq);
 #endif
-  if (fptr->have_ps_ts != 0) {
+  if (fptr->have_ps_ts != 0 || fptr->have_dts != 0) {
     m_timestamp_loaded = 1;
-    pts_in_msec = fptr->ps_ts;
+    pts_in_msec = fptr->have_ps_ts ? fptr->ps_ts : fptr->dts;
     pts_in_msec *= TO_U64(1000);
     pts_in_msec /= TO_U64(90000);
     m_last_timestamp = pts_in_msec;
