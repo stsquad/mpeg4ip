@@ -142,11 +142,13 @@ bool MPEGaudio::loadheader(void)
     flag = false;
     do
     {
+      if (fillbuffer(4) == false)
+	return false;
 #if 0
         if( (c = mpeg->copy_byte()) < 0 )
             break;
 #else
-        c = m_byte_get(m_userdata);
+        c = _buffer[0];
 #endif
 
         if( c == 0xff )
@@ -160,7 +162,7 @@ bool MPEGaudio::loadheader(void)
                     break;
                 }
 #else
-	      c = m_byte_get(m_userdata);
+	      c = _buffer[1];
 #endif
                 if( (c & 0xf0) == 0xf0 )
                 {
@@ -174,9 +176,15 @@ bool MPEGaudio::loadheader(void)
 #else
 		    return false;
 #endif
-                }
+                } else {
+		  _buflen--;
+		  _buffer++;
+		}
             }
-        }
+        } else {
+	  _buflen--;
+	  _buffer++;
+	}
     } while( ! flag );
 
 #if 0
@@ -195,7 +203,7 @@ bool MPEGaudio::loadheader(void)
 #if 0
     c = mpeg->copy_byte() >> 1;
 #else
-    c = m_byte_get(m_userdata) >> 1;
+    c = _buffer[2] >> 1;
 #endif
     padding = (c & 1);
     c >>= 1;
@@ -210,7 +218,7 @@ bool MPEGaudio::loadheader(void)
 #if 0
     c = ((unsigned int)mpeg->copy_byte()) >> 4;
 #else
-    c = m_byte_get(m_userdata) >> 4;
+    c = _buffer[3] >> 4;
 #endif
     extendedmode = c & 3;
     mode = (_mode) (c >> 2);
@@ -294,15 +302,7 @@ bool MPEGaudio::loadheader(void)
   fprintf(stderr, "MPEG %d audio layer %d (%d kbps), at %d Hz %s [%d]\n", version+1, layer,  bitrate[version][layer-1][bitrateindex], frequencies[version][frequency], (mode == single) ? "mono" : "stereo", framesize);
 #endif
 
-  /* Fill the buffer with new data */
-  if(!fillbuffer(framesize-4))
-    return false;
 
-  if(!protection)
-  {
-    getbyte();                      // CRC, Not check!!
-    getbyte();
-  }
   return true;
 }
 

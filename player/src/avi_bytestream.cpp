@@ -32,6 +32,7 @@ CAviByteStreamBase::CAviByteStreamBase (CAviFile *parent)
   : COurInByteStream()
 {
   m_frame_on = 0;
+  m_frame_in_buffer = 0xffffffff;
   m_bookmark = 0;
   m_parent = parent;
   m_eof = 0;
@@ -68,7 +69,7 @@ void CAviByteStreamBase::check_for_end_of_frame (void)
 			   m_frame_on,
 			   m_bookmark);
 #endif
-      read_frame();
+      read_frame(0);
     }
   }
 }
@@ -156,55 +157,75 @@ void CAviVideoByteStream::video_set_timebase (long frame)
   m_bookmark_read_frame = 0;
   m_frame_on = frame;
   m_bookmark = 0;
-  read_frame();
+  read_frame(frame);
 }
 void CAviVideoByteStream::reset (void) 
 {
   video_set_timebase(0);
 }
 
-uint64_t CAviVideoByteStream::start_next_frame (void)
+uint64_t CAviVideoByteStream::start_next_frame (unsigned char **buffer, 
+						uint32_t *buflen)
 {
   uint64_t ret;
-#if 0
-  if (m_byte_on != 0) {
-    player_debug_message("Start next frame "LLU " offset %u %u", 
-			 m_total, m_byte_on, m_this_frame_size);
-  }
-#endif
-
+  
+  read_frame(m_frame_on);
   ret = m_frame_on;
   ret *= 1000;
   ret /= m_frame_rate;
+  *buffer = m_buffer_on;
+  *buflen = m_this_frame_size;
+  m_frame_on++;
+  if (m_frame_on > m_frames_max) m_eof = 1;
   return (ret);
 }
 
+void CAviVideoByteStream::used_bytes_for_frame (uint32_t bytes)
+{
+  m_total += bytes;
+}
+
+void CAviVideoByteStream::get_more_bytes (unsigned char **buffer,
+					  uint32_t *buflen,
+					  uint32_t used,
+					  int get)
+{
+  if (get != 0) 
+    throw THROW_AVI_END_OF_FRAME;
+  uint32_t next_frame;
+  next_frame = m_frame_in_buffer + 1;
+  if (next_frame >= m_frames_max) {
+    throw THROW_AVI_BUFFER_OVERFLOW;
+  }
+  uint32_t diff;
+  if (m_this_frame_size <= used) throw THROW_AVI_END_OF_FRAME;
+  diff = m_this_frame_size - used;
+  m_total += used;
+  if (diff > 0) {
+    memmove(m_buffer_on,
+	    m_buffer_on + used, 
+	    diff);
+  }
+  memset(m_buffer_on + diff, 4, 0);
+  m_byte_on = 0;
+  m_this_frame_size = diff;
+  *buffer = m_buffer_on;
+  *buflen = 4 + diff;
+}
 /*
  * read_frame for video - this will try to read the next frame - it
  * tries to be smart about reading it 1 time if we've already read it
  * while bookmarking
  */
-void CAviVideoByteStream::read_frame (void)
+void CAviVideoByteStream::read_frame (uint32_t frame_to_read)
 {
   uint32_t next_frame_size;
 
-  if (m_bookmark_read_frame != 0) {
-    // Had we already read it ?
-    if (m_bookmark == 0) {
-      // Yup - looks like it - just adjust the buffers and return
-      m_bookmark_read_frame = 0;
-      unsigned char *temp = m_buffer;
-      m_buffer = m_bookmark_buffer;
-      m_bookmark_buffer = temp;
-      m_buffer_on = m_buffer;
-    } else {
-      // Bookmarking, and had already read it.
-      m_buffer_on = m_bookmark_buffer;
-    }
-    m_this_frame_size = m_bookmark_read_frame_size;
+  if (m_frame_in_buffer == frame_to_read) {
     m_byte_on = 0;
     return;
   }
+
   // Haven't already read the next frame,  so - get the size, see if
   // it fits, then read it into the appropriate buffer
   m_parent->lock_file_mutex();
@@ -215,19 +236,10 @@ void CAviVideoByteStream::read_frame (void)
 
   if (next_frame_size > m_max_frame_size) {
     m_max_frame_size = next_frame_size;
-    m_buffer = (unsigned char *)realloc(m_buffer, next_frame_size * sizeof(char));
-    m_bookmark_buffer = (unsigned char *)realloc(m_bookmark_buffer, 
-						 next_frame_size * sizeof(char));
+    m_buffer = (unsigned char *)realloc(m_buffer, next_frame_size * sizeof(char) + 4);
   }
   m_this_frame_size = next_frame_size;
-  if (m_bookmark == 0) {
-    m_buffer_on = m_buffer;
-  } else {
-    // bookmark...
-    m_buffer_on = m_bookmark_buffer;
-    m_bookmark_read_frame = 1;
-    m_bookmark_read_frame_size = next_frame_size;
-  }
+  m_buffer_on = m_buffer;
   AVI_read_frame(m_parent->get_file(), (char *)m_buffer_on);
   m_parent->unlock_file_mutex();
   m_byte_on = 0;
@@ -255,7 +267,7 @@ void CAviAudioByteStream::audio_set_timebase (long frame)
   m_bookmark_read_frame = 0;
   m_frame_on = frame;
   m_bookmark = 0;
-  read_frame();
+  read_frame(frame);
 }
 
 void CAviAudioByteStream::reset (void) 
@@ -263,7 +275,8 @@ void CAviAudioByteStream::reset (void)
   audio_set_timebase(0);
 }
 
-uint64_t CAviAudioByteStream::start_next_frame (void)
+uint64_t CAviAudioByteStream::start_next_frame (unsigned char **buffer, 
+						uint32_t *buflen)
 {
   uint64_t ret;
   ret = m_frame_on;
@@ -277,7 +290,41 @@ uint64_t CAviAudioByteStream::start_next_frame (void)
   return (ret);
 }
 
-void CAviAudioByteStream::read_frame (void)
+
+void CAviAudioByteStream::used_bytes_for_frame (uint32_t bytes)
+{
+  m_total += bytes;
+}
+
+void CAviAudioByteStream::get_more_bytes (unsigned char **buffer,
+					  uint32_t *buflen,
+					  uint32_t used,
+					  int get)
+{
+  if (get != 0) 
+    throw THROW_AVI_END_OF_FRAME;
+  uint32_t next_frame;
+  next_frame = m_frame_in_buffer + 1;
+  if (next_frame >= m_frames_max) {
+    throw THROW_AVI_BUFFER_OVERFLOW;
+  }
+  uint32_t diff;
+  if (m_this_frame_size <= used) throw THROW_AVI_END_OF_FRAME;
+  diff = m_this_frame_size - used;
+  m_total += used;
+  if (diff > 0) {
+    memmove(m_buffer_on,
+	    m_buffer_on + used, 
+	    diff);
+  }
+  memset(m_buffer_on + diff, 4, 0);
+  m_byte_on = 0;
+  m_this_frame_size = diff;
+  *buffer = m_buffer_on;
+  *buflen = 4 + diff;
+}
+
+void CAviAudioByteStream::read_frame (uint32_t frame_to_read)
 {
   if (m_bookmark_read_frame != 0) {
     if (m_bookmark == 0) {

@@ -4,6 +4,10 @@ man_MANS = \
 	MP4AddAudioTrack.3 \
 	MP4AddHintTrack.3 \
 	MP4AddODTrack.3 \
+	MP4AddRtpHint.3 \
+	MP4AddRtpImmediateData.3 \
+	MP4AddRtpPacket.3 \
+	MP4AddRtpSampleData.3 \
 	MP4AddSceneTrack.3 \
 	MP4AddSystemsTrack.3 \
 	MP4AddVideoTrack.3 \
@@ -43,10 +47,13 @@ man_MANS = \
 	MP4Modify.3 \
 	MP4Optimize.3 \
 	MP4Read.3 \
+	MP4ReadRtpHint.3 \
+	MP4ReadRtpPacket.3 \
 	MP4ReadSample.3 \
 	MP4SetSampleRenderingOffset.3 \
 	MP4SetTimeScale.3 \
 	MP4SetTrackESConfiguration.3 \
 	MP4SetTrackTimeScale.3 \
 	MP4SetVerbosity.3 \
+	MP4WriteRtpHint.3 \
 	MP4WriteSample.3 

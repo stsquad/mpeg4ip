@@ -33,9 +33,6 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <string.h>
-#ifdef WIN32
-#include <io.h>
-#endif
 
 #define GLOBAL
 #include "mp4_decoder.h"

@@ -5,6 +5,7 @@ libourdivx_la_LDFLAGS = -static
 libourdivx_la_SOURCES = \
 basic_prediction.c \
 basic_prediction.h \
+getbits.c \
 global.h \
 idct.c \
 idct.h \
@@ -22,7 +23,6 @@ mp4_predict.h \
 mp4_recon.c \
 mp4_vld.c \
 mp4_vld.h \
-newgetbits.c \
 newmain.c \
 portab.h \
 postprocess.c \

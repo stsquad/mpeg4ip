@@ -229,10 +229,10 @@ static SConfigVariable MyConfigVariables[] = {
 		CONFIG_TYPE_STRING, "224.1.2.3", },
 
 	{ CONFIG_RTP_AUDIO_DEST_PORT, "rtpAudioDestPort",
-		CONFIG_TYPE_INTEGER, (config_integer_t)6972, },
+		CONFIG_TYPE_INTEGER, (config_integer_t)20002, },
 
 	{ CONFIG_RTP_VIDEO_DEST_PORT, "rtpVideoDestPort",
-		CONFIG_TYPE_INTEGER, (config_integer_t)6970, },
+		CONFIG_TYPE_INTEGER, (config_integer_t)20000, },
 
 	{ CONFIG_RTP_PAYLOAD_SIZE, "rtpPayloadSize",
 		CONFIG_TYPE_INTEGER, (config_integer_t)1460, },

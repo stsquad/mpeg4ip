@@ -16,14 +16,13 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: bits.c,v 1.1 2001/06/28 23:54:22 wmaycisco Exp $
+ * $Id: bits.c,v 1.2 2001/12/11 18:12:04 wmaycisco Exp $
  */
 
 #include <assert.h>
-#include "bits.h"
-
+#include "all.h"
 /* to mask the n least significant bits of an integer */
-static unsigned int msk[33] =
+unsigned int faad_bit_msk[33] =
 {
 	0x00000000, 0x00000001, 0x00000003, 0x00000007,
 	0x0000000f, 0x0000001f, 0x0000003f, 0x0000007f,
@@ -37,46 +36,25 @@ static unsigned int msk[33] =
 };
 
 /* initialize buffer, call once before first getbits or showbits */
-void faad_initbits(bitfile *ld, char *buffer)
+void faad_initbits(bitfile *ld, char *buffer, uint32_t buflen)
 {
 	ld->incnt = 0;
 	ld->framebits = 0;
 	ld->bitcnt = 0;
+	ld->buffer = buffer;
 	ld->rdptr = buffer;
-	ld->bookmark = 0;
+	ld->orig_buflen = ld->buflen = buflen;
+	ld->framebits_max = buflen * 8;
 }
 
-#define _SWAP(a) ((a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3])
-
-__inline unsigned int showbits(bitfile *ld, int n)
-{
-	unsigned char *v = ld->rdptr;
-	int rbit = 32 - ld->bitcnt;
-	unsigned int b;
-
-	b = _SWAP(v);
-	return ((b & msk[rbit]) >> (rbit-n));
-}
-
-__inline void flushbits(bitfile *ld, int n)
-{
-	ld->bitcnt += n;
-
-	if (ld->bitcnt >= 8) {
-		ld->rdptr += (ld->bitcnt>>3);
-		ld->bitcnt &= 7;
-	}
-
-	ld->framebits += n;
-}
 
 /* return next n bits (right adjusted) */
 unsigned int faad_getbits(bitfile *ld, int n)
 {
 	long l;
 
-	l = showbits(ld, n);
-	flushbits(ld, n);
+	l = faad_showbits(ld, n);
+	faad_flushbits(ld, n);
 
 	return l;
 }
@@ -85,6 +63,7 @@ unsigned int faad_getbits_fast(bitfile *ld, int n)
 {
 	unsigned int l;
 
+	check_buffer(ld, n);
 	l =  (unsigned char) (ld->rdptr[0] << ld->bitcnt);
 	l |= ((unsigned int) ld->rdptr[1] << ld->bitcnt)>>8;
 	l <<= n;
@@ -94,6 +73,7 @@ unsigned int faad_getbits_fast(bitfile *ld, int n)
 	ld->framebits += n;
 
 	ld->rdptr += (ld->bitcnt>>3);
+	ld->buflen -= (ld->bitcnt>>3);
 	ld->bitcnt &= 7;
 
 	return l;
@@ -102,35 +82,18 @@ unsigned int faad_getbits_fast(bitfile *ld, int n)
 unsigned int faad_get1bit(bitfile *ld)
 {
 	unsigned char l;
-
+	check_buffer(ld, 1);
 	l = *ld->rdptr << ld->bitcnt;
 
 	ld->bitcnt++;
 	ld->framebits++;
 	ld->rdptr += (ld->bitcnt>>3);
+	ld->buflen -= (ld->bitcnt>>3);
 	ld->bitcnt &= 7;
 
 	return l>>7;
 }
 
-void faad_bookmark(bitfile *ld, int state)
-{
-	if (state != 0) {
-		assert(ld->bookmark == 0);
-		ld->book_rdptr = ld->rdptr;
-		ld->book_incnt = ld->incnt;
-		ld->book_bitcnt = ld->bitcnt;
-		ld->book_framebits = ld->framebits;
-		ld->bookmark = 1;
-	} else {
-		assert(ld->bookmark == 1);
-		ld->rdptr = ld->book_rdptr;
-		ld->incnt = ld->book_incnt;
-		ld->bitcnt = ld->book_bitcnt;
-		ld->framebits = ld->book_framebits;
-		ld->bookmark = 0;
-	}
-}
 
 int faad_get_processed_bits(bitfile *ld)
 {
@@ -139,13 +102,21 @@ int faad_get_processed_bits(bitfile *ld)
 
 unsigned int faad_byte_align(bitfile *ld)
 {
-    int i=0;
-	
-	while(ld->bitcnt!=ld->m_alignment_offset)
-	{
-		faad_get1bit(ld);
-		i += 1;
-	}
-	
-    return(i);
+  int i;
+
+  if (ld->bitcnt == 0) return 0;
+  i = 8 - ld->bitcnt;
+
+  faad_flushbits(ld, i);
+  return i;
+}
+
+void faad_bitdump (bitfile *ld)
+{
+  #if 0
+  printf("processed %d %d bits left - %d\n",
+	 ld->m_total / 8,
+	 ld->m_total % 8,
+	 ld->m_uNumOfBitsInBuffer);
+  #endif
 }

@@ -27,7 +27,7 @@
 #include "systems.h"
 #include <sdp/sdp.h>
 
-class CInByteStreamBase;
+class COurInByteStream;
 class CAudioSync;
 class CVideoSync;
 struct audio_info_t;
@@ -35,19 +35,23 @@ struct video_info_t;
 
 class CCodecBase {
  public:
-  CCodecBase(CInByteStreamBase *bs) { m_bytestream = bs; };
+  CCodecBase(COurInByteStream *bs) { m_bytestream = bs; };
   virtual ~CCodecBase() {};
-  virtual int decode(uint64_t timestamp, int from_rtp) = 0;
-  virtual int skip_frame(uint64_t timestamp) = 0;
+  virtual int decode(uint64_t timestamp, int from_rtp,
+		     unsigned char *buffer,
+		     uint32_t buflen) = 0;
+  virtual int skip_frame(uint64_t timestamp,
+			 unsigned char *buffer,
+			 uint32_t buflen) = 0;
   virtual void do_pause(void) = 0;
  protected:
-  CInByteStreamBase *m_bytestream;
+  COurInByteStream *m_bytestream;
 };
 
 class CAudioCodecBase : public CCodecBase {
  public:
   CAudioCodecBase (CAudioSync *audio_sync,
-		   CInByteStreamBase *pbytestream,
+		   COurInByteStream *pbytestream,
 		   format_list_t *media_fmt,
 		   audio_info_t *audio,
 		   const unsigned char *userdata = NULL,
@@ -69,7 +73,7 @@ class CAudioCodecBase : public CCodecBase {
 class CVideoCodecBase : public CCodecBase {
  public:
   CVideoCodecBase (CVideoSync *video_sync,
-		   CInByteStreamBase *pbytestream,
+		   COurInByteStream *pbytestream,
 		   format_list_t *media_fmt,
 		   video_info_t *vid,
 		   const unsigned char *userdata = NULL,

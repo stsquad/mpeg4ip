@@ -49,7 +49,15 @@ class COurInByteStreamMem : public COurInByteStream
   void config_frame_per_sec (uint64_t sample_per_buffersize) {
     m_frame_per_sec = sample_per_buffersize;
   };
-  uint64_t start_next_frame(void);
+  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
+  void used_bytes_for_frame(uint32_t bytes);
+  void get_more_bytes (unsigned char **buffer,
+		       uint32_t *buflen,
+		       uint32_t used,
+		       int get) {
+    m_offset += used;
+    throw THROW_MEM_PAST_END;
+  };
   double get_max_playtime (void) { return 0.0; };
   ssize_t read(unsigned char *buffer, size_t read);
   ssize_t read(char *buffer, size_t readbytes) {

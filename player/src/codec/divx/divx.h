@@ -34,14 +34,14 @@
 class CDivxCodec: public CVideoCodecBase {
  public:
   CDivxCodec(CVideoSync *v, 
-	     CInByteStreamBase *pbytestrm, 
+	     COurInByteStream *pbytestrm, 
 	     format_list_t *media_fmt,
 	     video_info_t *vinfo,
 	     const unsigned char *userdata = NULL,
 	     uint32_t ud_size = 0);
   ~CDivxCodec();
-  int decode(uint64_t ts, int fromrtp);
-  int skip_frame(uint64_t ts);
+  int decode(uint64_t ts, int fromrtp, unsigned char *buffer, uint32_t buflen);
+  int skip_frame(uint64_t ts, unsigned char *buffer, uint32_t buflen);
   void do_pause(void);
   unsigned char get(void);
   void bookmark(int val);

@@ -439,16 +439,16 @@ bool MP4ReadRtpHint(
 	MP4FileHandle hFile,
 	MP4TrackId hintTrackId,
 	MP4SampleId hintSampleId,
-	u_int16_t* pNumPackets DEFAULT(NULL),
-	bool* pIsBFrame DEFAULT(NULL));
+	u_int16_t* pNumPackets DEFAULT(NULL));
 
 u_int16_t MP4GetRtpHintNumberOfPackets(
 	MP4FileHandle hFile,
 	MP4TrackId hintTrackId);
 
-int8_t MP4GetRtpHintBFrame(
+int8_t MP4GetRtpPacketBFrame(
 	MP4FileHandle hFile,
-	MP4TrackId hintTrackId);
+	MP4TrackId hintTrackId,
+	u_int16_t packetIndex);
 
 int32_t MP4GetRtpPacketTransmitOffset(
 	MP4FileHandle hFile,
@@ -464,6 +464,15 @@ bool MP4ReadRtpPacket(
 	u_int32_t ssrc DEFAULT(0),
 	bool includeHeader DEFAULT(true),
 	bool includePayload DEFAULT(true));
+
+MP4Timestamp MP4GetRtpTimestampStart(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId);
+
+bool MP4SetRtpTimestampStart(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	MP4Timestamp rtpStart);
 
 bool MP4AddRtpHint(
 	MP4FileHandle hFile,

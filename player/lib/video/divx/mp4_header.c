@@ -157,16 +157,12 @@ int getvolhdr()
 			}
 			
 			// next_start_code();
-
-			if (showbits(32) == USER_DATA_START_CODE) {
 #if 0
+			if (showbits(32) == USER_DATA_START_CODE) {
 				exit(104);
-#else
-				return (0);
-#endif
-				
 			}
-    } 
+#endif
+		} 
 
 		return 1;
 	} else {

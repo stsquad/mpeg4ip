@@ -156,7 +156,7 @@ Void CInBitStream::attach (CInByteStreamBase *inStream, Int iBitPosition)
     assert(iBitPosition>=0);
     m_iBitPosition=iBitPosition;
     m_pInStream=inStream;
-    m_iBuffer=0x00ff&m_pInStream->peek();
+    //    m_iBuffer=0x00ff&m_pInStream->peek();
 }
 
 Void CInBitStream::flush (Int nExtraBits)

@@ -28,6 +28,7 @@
 /*
  * C interfaces for faac callbacks
  */
+#if 0
 static unsigned int c_read_byte (void *ud)
 {
   CInByteStreamBase *byte_stream;
@@ -43,11 +44,23 @@ static void c_bookmark (void *ud, int state)
   byte_stream = (CInByteStreamBase *)ud;
   byte_stream->bookmark(state);
 }
+#endif
+
+static void c_get_more_bytes (void *ud, 
+			      unsigned char **buffer, 
+			      uint32_t *buflen, 
+			      uint32_t used)
+{
+  COurInByteStream *bs = (COurInByteStream *)ud;
+
+  bs->get_more_bytes(buffer, buflen, used, 0);
+}
+
 /*
  * Create CAACodec class
  */
 CAACodec::CAACodec (CAudioSync *a, 
-		    CInByteStreamBase *pbytestrm,
+		    COurInByteStream *pbytestrm,
 		    format_list_t *media_fmt,
 		    audio_info_t *audio,
 		    const unsigned char *userdata,
@@ -104,7 +117,7 @@ CAACodec::CAACodec (CAudioSync *a,
   m_msec_per_frame *= M_LLU;
   m_msec_per_frame /= m_freq;
 
-  faad_init_bytestream(&m_info->ld, c_read_byte, c_bookmark, m_bytestream);
+  //  faad_init_bytestream(&m_info->ld, c_read_byte, c_bookmark, m_bytestream);
 
   aa_message(LOG_INFO, "Setting freq to %d", m_freq);
 #if DUMP_OUTPUT_TO_FILE
@@ -146,7 +159,10 @@ void CAACodec::do_pause (void)
 /*
  * Decode task call for FAAC
  */
-int CAACodec::decode (uint64_t rtpts, int from_rtp)
+int CAACodec::decode (uint64_t rtpts, 
+		      int from_rtp,
+		      unsigned char *buffer, 
+		      uint32_t buflen)
 {
   int bits = -1;
   //  struct timezone tz;
@@ -183,9 +199,12 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
       unsigned long freq, chans;
 
       faacDecInit(m_info,
-		  NULL,
+		  buffer,
+		  buflen,
 		  &freq,
-		  &chans);
+		  &chans, 
+		  c_get_more_bytes,
+		  m_bytestream);
       m_freq = freq;
       m_chans = chans;
       m_faad_inited = 1;
@@ -208,9 +227,11 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
 
     unsigned long bytes_consummed;
     bits = faacDecDecode(m_info,
-			 NULL,
+			 buffer, 
+			 buflen,
 			 &bytes_consummed,
 			 (short *)buff);
+    m_bytestream->used_bytes_for_frame(bytes_consummed);
     switch (bits) {
     case FAAD_OK_CHUPDATE:
       if (m_audio_inited != 0) {
@@ -283,11 +304,13 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
   return (bits);
 }
 
-int CAACodec::skip_frame (uint64_t rtpts)
+int CAACodec::skip_frame (uint64_t rtpts,
+			  unsigned char *buffer, 
+			  uint32_t buflen)
 {
   // will want to do a bit more - especially if we can get the
   // header.
-  return (decode(rtpts, 0));
+  return (decode(rtpts, 0, buffer, buflen));
 }
 
 /* end file aa.cpp */

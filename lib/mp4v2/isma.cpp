@@ -90,8 +90,8 @@ void MP4File::MakeIsmaCompliant()
 	SetTrackESConfiguration(sceneTrackId, 
 		bifsv2Config, sizeof(bifsv2Config));
 
-	u_int8_t* pBytes;
-	u_int64_t numBytes;
+	u_int8_t* pBytes = NULL;
+	u_int64_t numBytes = 0;
 
 	// write OD Update Command
 	CreateIsmaODUpdateCommand(

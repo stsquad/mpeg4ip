@@ -59,7 +59,7 @@ void player_error_message (const char *fmt, ...)
 #if _WIN32 && _DEBUG
         char msg[512];
 
-		if (initialized) init_local_mutex();
+		if (initialized == 0) init_local_mutex();
 		lock_mutex();
         va_start(ap, fmt);
 	_vsnprintf(msg, 512, fmt, ap);
@@ -91,7 +91,7 @@ void player_debug_message (const char *fmt, ...)
 #if _WIN32 && _DEBUG
        char msg[512];
 
-	   if (initialized) init_local_mutex();
+	   if (initialized== 0) init_local_mutex();
 		lock_mutex();
         va_start(ap, fmt);
 	_vsnprintf(msg, 512, fmt, ap);
@@ -123,7 +123,7 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
 #if _WIN32 && _DEBUG
        char msg[512];
 
-	   if (initialized) init_local_mutex();
+	   if (initialized == 0) init_local_mutex();
 		lock_mutex();
         va_start(ap, fmt);
 	_vsnprintf(msg, 512, fmt, ap);
@@ -157,7 +157,7 @@ void player_library_message (int loglevel,
 #if _WIN32 && _DEBUG
   char msg[512];
 
-  if (initialized) init_local_mutex();
+  if (initialized == 0) init_local_mutex();
   lock_mutex();
   sprintf(msg, "%s:", lib);
   OutputDebugString(msg);

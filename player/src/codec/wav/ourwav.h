@@ -31,14 +31,14 @@
 class CWavCodec : public CAudioCodecBase {
  public:
   CWavCodec(CAudioSync *a,
-	    CInByteStreamBase *pbytestrm,
+	    COurInByteStream *pbytestrm,
 	    format_list_t *media_desc,
 	    audio_info_t *audio,
 	    const unsigned char *userdata = NULL,
 	    uint32_t userdata_size = 0);
   ~CWavCodec();
-  int decode(uint64_t rtptime, int fromrtp);
-  int skip_frame(uint64_t rtptime);
+  int decode(uint64_t ts, int fromrtp, unsigned char *buffer, uint32_t buflen);
+  int skip_frame(uint64_t ts, unsigned char *buffer, uint32_t buflen);
   void do_pause(void);
  private:
   SDL_AudioSpec *m_sdl_config;

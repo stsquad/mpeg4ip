@@ -31,6 +31,7 @@
 //#define OUTPUT_TO_FILE 1
 
 #define THROW_MP4_END_OF_DATA ((int) 1)
+#define THROW_MP4_END_OF_FRAME ((int) 2)
 /*
  * CMp4ByteStreamBase provides base class access to quicktime files.
  * Most functions are shared between audio and video.
@@ -48,9 +49,14 @@ class CMp4ByteStream : public COurInByteStream
   unsigned char peek(void);
   void bookmark(int bSet);
   void reset(void);
-  uint64_t start_next_frame(void);
+  uint64_t start_next_frame(unsigned char **buffer = NULL,
+			    uint32_t *buflen = NULL);
+  void used_bytes_for_frame(uint32_t bytes);
+  void get_more_bytes(unsigned char **buffer, uint32_t *buflen, uint32_t used,
+		      int nothrow);
   int can_skip_frame(void) { return 1; };
-  int skip_next_frame(uint64_t *ts, int *hasSyncFrame);
+  int skip_next_frame(uint64_t *ts, int *hasSyncFrame, unsigned char **buffer,
+		      uint32_t *buflen);
   ssize_t read(unsigned char *buffer, size_t bytes);
   ssize_t read (char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));

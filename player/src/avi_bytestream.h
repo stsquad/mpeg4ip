@@ -29,6 +29,7 @@
 #include "avi_file.h"
 
 #define THROW_AVI_BUFFER_OVERFLOW ((int)1)
+#define THROW_AVI_END_OF_FRAME ((int) 2)
 /*
  * CQTByteStreamBase provides base class access to quicktime files.
  * Most functions are shared between audio and video.
@@ -44,7 +45,13 @@ class CAviByteStreamBase : public COurInByteStream
   unsigned char peek(void);
   void bookmark(int bSet);
   virtual void reset(void) = 0;
-  virtual uint64_t start_next_frame (void) = 0;
+  virtual uint64_t start_next_frame (unsigned char **buf,
+				     uint32_t *buflen) = 0;
+  virtual void used_bytes_for_frame(uint32_t bytes) = 0;
+  virtual void get_more_bytes (unsigned char **buffer,
+			       uint32_t *buflen,
+			       uint32_t used,
+			       int get) = 0;
   ssize_t read(unsigned char *buffer, size_t bytes);
   ssize_t read (char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
@@ -53,10 +60,11 @@ class CAviByteStreamBase : public COurInByteStream
   int throw_error_minor(int error);
   void check_for_end_of_frame(void);
  protected:
-  virtual void read_frame(void) = 0;
+  virtual void read_frame(uint32_t frame_to_read) = 0;
   CAviFile *m_parent;
   int m_eof;
   uint32_t m_frame_on;
+  uint32_t m_frame_in_buffer;
   uint32_t m_frames_max;
   uint32_t m_frame_rate;
   uint32_t m_max_frame_size;
@@ -82,10 +90,16 @@ class CAviVideoByteStream : public CAviByteStreamBase
   CAviVideoByteStream(CAviFile *parent) : 
     CAviByteStreamBase(parent)
     {
-    read_frame();
+    read_frame(0);
     };
   void reset(void);
-  uint64_t start_next_frame(void);
+  uint64_t start_next_frame(unsigned char **buf,
+			    uint32_t *buflen);
+  void used_bytes_for_frame(uint32_t bytes);
+  void get_more_bytes (unsigned char **buffer,
+		       uint32_t *buflen,
+		       uint32_t used,
+		       int get);
   void set_start_time (uint64_t start);
   double get_max_playtime (void) {
     double ret = m_frames_max;
@@ -97,7 +111,7 @@ class CAviVideoByteStream : public CAviByteStreamBase
     m_frame_rate = (uint32_t)frate;
   };
  protected:
-  void read_frame(void);
+  void read_frame(uint32_t frame_to_read);
  private:
   void video_set_timebase(long frame);
 };
@@ -114,10 +128,15 @@ class CAviAudioByteStream : public CAviByteStreamBase
     CAviByteStreamBase(parent)
     {
       m_add_len_to_stream = add_len_to_frame;
-      read_frame();
+      read_frame(0);
     };
   void reset(void);
-  uint64_t start_next_frame(void);
+  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
+  void used_bytes_for_frame(uint32_t bytes);
+  void get_more_bytes (unsigned char **buffer,
+		       uint32_t *buflen,
+		       uint32_t used,
+		       int get);
   void set_start_time(uint64_t start);
   double get_max_playtime (void) {
     double ret = m_frames_max * m_samples_per_frame;
@@ -130,7 +149,7 @@ class CAviAudioByteStream : public CAviByteStreamBase
     m_samples_per_frame = duration;
   };
  protected:
-  void read_frame(void);
+  void read_frame(uint32_t frame_to_read);
   uint32_t read_a_frame(unsigned char **ppbuff);
  private:
   void audio_set_timebase(long frame);

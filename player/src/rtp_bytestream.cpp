@@ -44,10 +44,10 @@ int add_rtp_packet_to_queue (rtp_packet *pak,
   int inserted = TRUE;
   int16_t diff;
 #ifdef DEBUG_RTP_PAKS
-  rtp_message(LOG_DEBUG, "CBThread %u - m %u pt %u seq %x ts %x len %d", 
+  rtp_message(LOG_DEBUG, "CBThread %u - m %u pt %u seq %d ts %x len %d", 
 	      SDL_ThreadID(),
-	      pak->m, pak->pt, pak->seq, pak->ts, 
-	      pak->rtp_data_len);
+	      pak->rtp_pak_m, pak->rtp_pak_pt, pak->rtp_pak_seq, 
+	      pak->rtp_pak_ts, pak->rtp_data_len);
 #endif
   
   if (*head == NULL) {
@@ -133,13 +133,20 @@ int add_rtp_packet_to_queue (rtp_packet *pak,
 
   if (inserted == FALSE) {
     rtp_message(LOG_ERR, "Couldn't insert pak");
+    rtp_message(LOG_DEBUG, "pak seq %u", pak->rtp_pak_seq);
+    if (*head != NULL) {
+      rtp_message(LOG_DEBUG, "head seq %u, tail seq %u", 
+		  (*head)->rtp_pak_seq,
+		  (*tail)->rtp_pak_seq);
+    }
     xfree(pak);
     return (0);
   }
   return (1);
 }
 
-CRtpByteStreamBase::CRtpByteStreamBase(unsigned int rtp_proto,
+CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
+				       unsigned int rtp_proto,
 				       int ondemand,
 				       uint64_t tps,
 				       rtp_packet **head, 
@@ -150,7 +157,7 @@ CRtpByteStreamBase::CRtpByteStreamBase(unsigned int rtp_proto,
 				       uint32_t ntp_frac,
 				       uint32_t ntp_sec,
 				       uint32_t rtp_ts) :
-  COurInByteStream()
+  COurInByteStream(name)
 {
   m_head = *head;
   *head = NULL;
@@ -198,7 +205,7 @@ CRtpByteStreamBase::~CRtpByteStreamBase (void)
 void CRtpByteStreamBase::init (void)
 {
   m_pak = NULL;
-  m_offset_in_pak = 0;
+  m_offset_in_pak = m_skip_on_advance_bytes;
   m_bookmark_set = 0;
 }
 
@@ -294,6 +301,7 @@ unsigned char CRtpByteStreamBase::peek (void)
 {
   return (m_pak ? m_pak->rtp_data[m_offset_in_pak] : 0);
 }
+
 ssize_t CRtpByteStreamBase::read (unsigned char *buffer, size_t bytes_to_read)
 {
   size_t inbuffer;
@@ -347,73 +355,7 @@ void CRtpByteStreamBase::bookmark (int bSet)
   }
 }
 
-uint64_t CRtpByteStreamBase::start_next_frame (void)
-{
-  uint64_t timetick;
-  // We're going to have to handle wrap better...
-  if (m_stream_ondemand) {
-    m_ts = m_pak->rtp_pak_ts;
-    int neg = 0;
-    
-    if (m_ts >= m_rtp_rtptime) {
-      timetick = m_ts;
-      timetick -= m_rtp_rtptime;
-    } else {
-      timetick = m_rtp_rtptime - m_ts;
-      neg = 1;
-    }
-    timetick *= 1000;
-    timetick /= m_rtptime_tickpersec;
-    if (neg == 1) {
-      if (timetick > m_play_start_time) return (0);
-      return (m_play_start_time - timetick);
-    }
-    timetick += m_play_start_time;
-#if 0
-    rtp_message(LOG_DEBUG, "time "LLU" offset %d %02x %02x %02x %02x", 
-		timetick, 
-		m_offset_in_pak,
-		m_pak->rtp_data[m_offset_in_pak],
-		m_pak->rtp_data[m_offset_in_pak+1],
-		m_pak->rtp_data[m_offset_in_pak+2],
-		m_pak->rtp_data[m_offset_in_pak+3]);
-#endif
-  } else {
-    if (((m_ts & 0x80000000) == 0x80000000) &&
-	((m_pak->rtp_pak_ts & 0x80000000) == 0)) {
-      m_wrap_offset += (I_LLU << 32);
-    }
-    m_ts = m_pak->rtp_pak_ts;
-    timetick = m_ts + m_wrap_offset;
-    timetick *= 1000;
-    timetick /= m_rtptime_tickpersec;
-    timetick += m_wallclock_offset;
-#if 0
-    rtp_message(LOG_DEBUG, "time %x "LLU" "LLU" "LLU" "LLU "offset %d",
-		m_ts, m_wrap_offset, m_rtptime_tickpersec, m_wallclock_offset,
-		timetick, m_offset_in_pak);
-#endif
-  }
-
-  return (timetick);
-}
-
   
-int CRtpByteStreamBase::have_no_data (void)
-{
-  if (m_pak == NULL) {
-    m_pak = m_head;
-  }
-  rtp_packet *temp;
-  temp = m_pak;
-  if (temp == NULL) return TRUE;
-
-  do {
-    if (temp->rtp_pak_m == 1) return FALSE;
-    temp = temp->rtp_next;
-  } while (temp != NULL && temp != m_pak);
-  return TRUE;
-}
 
 /*
  * calculate_wallclock_offset_from_rtcp
@@ -640,7 +582,143 @@ int CRtpByteStreamBase::throw_error_minor (int error)
   return 0;
 }
 
-int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame)
+CRtpByteStream::CRtpByteStream(const char *name,
+			       unsigned int rtp_proto,
+			       int ondemand,
+			       uint64_t tickpersec,
+			       rtp_packet **head, 
+			       rtp_packet **tail,
+			       int rtpinfo_received,
+			       uint32_t rtp_rtptime,
+			       int rtcp_received,
+			       uint32_t ntp_frac,
+			       uint32_t ntp_sec,
+			       uint32_t rtp_ts) :
+  CRtpByteStreamBase(name, rtp_proto, ondemand, tickpersec, head, tail,
+		     rtpinfo_received, rtp_rtptime, rtcp_received,
+		     ntp_frac, ntp_sec, rtp_ts)
+{
+  m_buffer = (unsigned char *)malloc(4096);
+  m_buffer_len_max = 4096;
+  m_bytes_used = m_buffer_len = 0;
+}
+
+CRtpByteStream::~CRtpByteStream (void)
+{
+  free(m_buffer);
+  m_buffer = NULL;
+}
+
+uint64_t CRtpByteStream::start_next_frame (unsigned char **buffer, 
+					   uint32_t *buflen)
+{
+  uint16_t seq = 0;
+  uint32_t ts = 0;
+  uint64_t timetick;
+  int first = 0;
+  int finished = 0;
+  rtp_packet *rpak;
+
+  if (m_bytes_used < m_buffer_len) {
+    // Still bytes in the buffer...
+    *buffer = m_buffer + m_bytes_used;
+    *buflen = m_buffer_len - m_bytes_used;
+    ts = m_ts;
+#ifdef DEBUG_RTP_PAKS
+    rtp_message(LOG_DEBUG, "%s Still left - %d bytes", m_name, *buflen);
+#endif
+    if (m_buffer_len - m_bytes_used == 3249)
+      player_debug_message("This");
+  } else {
+    m_buffer_len = 0;
+    while (finished == 0) {
+      rpak = m_head;
+      remove_packet_rtp_queue(rpak, 0);
+      
+      if (first == 0) {
+	seq = rpak->rtp_pak_seq + 1;
+	ts = rpak->rtp_pak_ts;
+	first = 1;
+      } else {
+	if ((seq != rpak->rtp_pak_seq) ||
+	    (ts != rpak->rtp_pak_ts)) {
+	  if (seq != rpak->rtp_pak_seq) {
+	    rtp_message(LOG_INFO, "Missing rtp sequence - should be %u is %u", 
+			seq, rpak->rtp_pak_seq);
+	  } else {
+	    rtp_message(LOG_INFO, "Timestamp error - seq %u should be %x is %x", 
+			seq, ts, rpak->rtp_pak_ts);
+	  }
+	  m_buffer_len = 0;
+	  ts = rpak->rtp_pak_ts;
+	}
+	seq = rpak->rtp_pak_seq + 1;
+      }
+      if ((m_buffer_len + rpak->rtp_data_len) > m_buffer_len_max) {
+	// realloc
+	m_buffer_len_max = m_buffer_len + rpak->rtp_data_len + 1024;
+	m_buffer = (unsigned char *)realloc(m_buffer, m_buffer_len_max);
+      }
+      memcpy(m_buffer + m_buffer_len, 
+	     rpak->rtp_data,
+	     rpak->rtp_data_len);
+      m_buffer_len += rpak->rtp_data_len;
+      if (rpak->rtp_pak_m == 1) {
+	finished = 1;
+      }
+      xfree(rpak);
+    }
+    m_bytes_used = m_skip_on_advance_bytes;
+    *buffer = m_buffer + m_bytes_used;
+    *buflen = m_buffer_len - m_bytes_used;
+#ifdef DEBUG_RTP_PAKS
+    rtp_message(LOG_DEBUG, "%s buffer len %d", m_name, m_buffer_len);
+#endif
+  }
+
+
+  
+  // We're going to have to handle wrap better...
+  if (m_stream_ondemand) {
+    int neg = 0;
+    m_ts = ts;
+    if (m_ts >= m_rtp_rtptime) {
+      timetick = m_ts;
+      timetick -= m_rtp_rtptime;
+    } else {
+      timetick = m_rtp_rtptime - m_ts;
+      neg = 1;
+    }
+    timetick *= 1000;
+    timetick /= m_rtptime_tickpersec;
+    if (neg == 1) {
+      if (timetick > m_play_start_time) return (0);
+      return (m_play_start_time - timetick);
+    }
+    timetick += m_play_start_time;
+  } else {
+    if (((m_ts & 0x80000000) == 0x80000000) &&
+	((ts & 0x80000000) == 0)) {
+      m_wrap_offset += (I_LLU << 32);
+    }
+    m_ts = ts;
+    timetick = m_ts + m_wrap_offset;
+    timetick *= 1000;
+    timetick /= m_rtptime_tickpersec;
+    timetick += m_wallclock_offset;
+#if 0
+    rtp_message(LOG_DEBUG, "time %x "LLU" "LLU" "LLU" "LLU "offset %d",
+		m_ts, m_wrap_offset, m_rtptime_tickpersec, m_wallclock_offset,
+		timetick, m_offset_in_pak);
+#endif
+  }
+
+  return (timetick);
+}
+
+int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
+				     unsigned char **buffer, 
+				     uint32_t *buflen)
 {
   uint64_t ts;
   *hasSyncFrame = -1;  // we don't know if we have a sync frame
@@ -653,7 +731,61 @@ int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame)
   if (m_head == NULL) return 0;
   init();
   m_pak = m_head;
-  ts = start_next_frame();
+  m_buffer_len = m_bytes_used = 0;
+  ts = start_next_frame(buffer, buflen);
   *pts = ts;
   return (1);
+}
+
+void CRtpByteStream::used_bytes_for_frame (uint32_t bytes)
+{
+  m_bytes_used += bytes;
+#ifdef DEBUG_RTP_PAKS
+  rtp_message(LOG_DEBUG, "%s Used %d bytes", m_name, bytes);
+#endif
+}
+
+int CRtpByteStream::have_no_data (void)
+{
+  rtp_packet *temp, *first;
+  first = temp = m_head;
+  if (temp == NULL) return TRUE;
+  do {
+    if (temp->rtp_pak_m == 1) return FALSE;
+    temp = temp->rtp_next;
+  } while (temp != NULL && temp != first);
+  return TRUE;
+}
+
+void CRtpByteStream::get_more_bytes (unsigned char **buffer, 
+				     uint32_t *buflen, 
+				     uint32_t used,
+				     int get)
+{
+#ifdef DEBUG_RTP_PAKS
+  rtp_message(LOG_DEBUG, "%s Get more bytes", m_name);
+#endif
+  if (get != 0) {
+    m_bytes_used = m_buffer_len;
+    throw THROW_RTP_DECODE_ACROSS_TS;
+  }
+  uint32_t diff;
+  diff = m_buffer_len - used;
+  m_total += used;
+  if (diff > 0) {
+    memmove(m_buffer, 
+	    m_buffer + used,
+	    diff);
+  }
+  memset(m_buffer + diff, 4, 0);
+  m_bytes_used = m_buffer_len = diff;
+  *buffer = m_buffer;
+  *buflen = m_buffer_len;
+}
+
+void CRtpByteStream::flush_rtp_packets (void)
+{
+  CRtpByteStreamBase::flush_rtp_packets();
+
+  m_bytes_used = m_buffer_len = 0;
 }

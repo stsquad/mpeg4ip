@@ -2,7 +2,8 @@ noinst_LTLIBRARIES = libmp3.la
 libmp3_la_LDFLAGS = -static
 libmp3_la_SOURCES = \
 	mp3.cpp \
-	mp3_file.cpp
+	mp3_file.cpp \
+	mp3_rtp_bytestream.cpp
 
 INCLUDES = -I.. -I../..  -I../../../lib -I../../../lib/audio -I$(top_srcdir)/lib/SDL/include -I../../../../common/video/mpeg4 -I../../../../include -I../../../../lib
 

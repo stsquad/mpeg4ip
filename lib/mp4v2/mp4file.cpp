@@ -39,9 +39,9 @@ MP4File::MP4File(u_int32_t verbosity)
 	m_pTimeScaleProperty = NULL;
 	m_pDurationProperty = NULL;
 
-	m_writeBuffer = NULL;
-	m_writeBufferSize = 0;
-	m_writeBufferMaxSize = 0;
+	m_memoryBuffer = NULL;
+	m_memoryBufferSize = 0;
+	m_memoryBufferPosition = 0;
 
 	m_numReadBits = 0;
 	m_bufReadBits = 0;
@@ -56,7 +56,7 @@ MP4File::~MP4File()
 	for (u_int32_t i = 0; i < m_pTracks.Size(); i++) {
 		delete m_pTracks[i];
 	}
-	MP4Free(m_writeBuffer);	// just in case
+	MP4Free(m_memoryBuffer);	// just in case
 }
 
 void MP4File::Read(const char* fileName)
@@ -87,7 +87,7 @@ void MP4File::Create(const char* fileName, bool use64bits)
 	CacheProperties();
 
 	// create mdat, and insert it after ftyp, and before moov
-	InsertAtom(m_pRootAtom, "mdat", 1);
+	InsertChildAtom(m_pRootAtom, "mdat", 1);
 
 	// start writing
 	m_pRootAtom->BeginWrite();
@@ -109,7 +109,7 @@ void MP4File::Modify(const char* fileName)
 
 	if (pMoovAtom == NULL) {
 		// there isn't one, odd but we can still proceed
-		pMoovAtom = AddAtom(m_pRootAtom, "moov");
+		pMoovAtom = AddChildAtom(m_pRootAtom, "moov");
 	} else {
 		numAtoms = m_pRootAtom->GetNumberOfChildAtoms();
 
@@ -179,7 +179,7 @@ void MP4File::Modify(const char* fileName)
 	numAtoms = m_pRootAtom->GetNumberOfChildAtoms();
 
 	// insert another mdat prior to moov atom (the last atom)
-	MP4Atom* pMdatAtom = InsertAtom(m_pRootAtom, "mdat", numAtoms - 1);
+	MP4Atom* pMdatAtom = InsertChildAtom(m_pRootAtom, "mdat", numAtoms - 1);
 
 	// start writing new mdat
 	pMdatAtom->BeginWrite();
@@ -504,24 +504,32 @@ MP4Atom* MP4File::FindAtom(const char* name)
 	return pAtom;
 }
 
-MP4Atom* MP4File::AddAtom(const char* parentName, const char* childName)
+MP4Atom* MP4File::AddChildAtom(
+	const char* parentName, 
+	const char* childName)
 {
-	return AddAtom(FindAtom(parentName), childName);
+	return AddChildAtom(FindAtom(parentName), childName);
 }
 
-MP4Atom* MP4File::AddAtom(MP4Atom* pParentAtom, const char* childName)
+MP4Atom* MP4File::AddChildAtom(
+	MP4Atom* pParentAtom, 
+	const char* childName)
 {
-	return InsertAtom(pParentAtom, childName, 
+	return InsertChildAtom(pParentAtom, childName, 
 		pParentAtom->GetNumberOfChildAtoms());
 }
 
-MP4Atom* MP4File::InsertAtom(const char* parentName, const char* childName, 
+MP4Atom* MP4File::InsertChildAtom(
+	const char* parentName, 
+	const char* childName, 
 	u_int32_t index)
 {
-	return InsertAtom(FindAtom(parentName), childName, index); 
+	return InsertChildAtom(FindAtom(parentName), childName, index); 
 }
 
-MP4Atom* MP4File::InsertAtom(MP4Atom* pParentAtom, const char* childName, 
+MP4Atom* MP4File::InsertChildAtom(
+	MP4Atom* pParentAtom, 
+	const char* childName, 
 	u_int32_t index)
 {
 	MP4Atom* pChildAtom = MP4Atom::CreateAtom(childName);
@@ -530,6 +538,44 @@ MP4Atom* MP4File::InsertAtom(MP4Atom* pParentAtom, const char* childName,
 	pParentAtom->InsertChildAtom(pChildAtom, index);
 
 	pChildAtom->Generate();
+
+	return pChildAtom;
+}
+
+MP4Atom* MP4File::AddDescendantAtoms(
+	const char* ancestorName, 
+	const char* descendantNames)
+{
+	return AddDescendantAtoms(FindAtom(ancestorName), descendantNames);
+}
+
+MP4Atom* MP4File::AddDescendantAtoms(
+	MP4Atom* pAncestorAtom, const char* descendantNames)
+{
+	ASSERT(pAncestorAtom);
+
+	MP4Atom* pParentAtom = pAncestorAtom;
+	MP4Atom* pChildAtom = NULL;
+
+	while (true) {
+		char* childName = MP4NameFirst(descendantNames);
+
+		if (childName == NULL) {
+			break;
+		}
+
+		descendantNames = MP4NameAfterFirst(descendantNames);
+
+		pChildAtom = pParentAtom->FindChildAtom(childName);
+
+		if (pChildAtom == NULL) {
+			pChildAtom = AddChildAtom(pParentAtom, childName);
+		}
+
+		pParentAtom = pChildAtom;
+
+		MP4Free(childName);
+	}
 
 	return pChildAtom;
 }
@@ -694,7 +740,7 @@ MP4TrackId MP4File::AddTrack(const char* type, u_int32_t timeScale)
 	ProtectWriteOperation("AddTrack");
 
 	// create and add new trak atom
-	MP4Atom* pTrakAtom = AddAtom("moov", "trak");
+	MP4Atom* pTrakAtom = AddChildAtom("moov", "trak");
 
 	// allocate a new track id
 	MP4TrackId trackId = AllocTrackId();
@@ -879,7 +925,7 @@ void MP4File::AddDataReference(MP4TrackId trackId, const char* url)
 	ASSERT(pCountProperty);
 	pCountProperty->IncrementValue();
 
-	MP4Atom* pUrlAtom = AddAtom(pDrefAtom, "url ");
+	MP4Atom* pUrlAtom = AddChildAtom(pDrefAtom, "url ");
 
 	if (url && url[0] != '\0') {
 		pUrlAtom->SetFlags(pUrlAtom->GetFlags() & 0xFFFFFE);
@@ -898,11 +944,11 @@ MP4TrackId MP4File::AddSystemsTrack(const char* type)
 {
 	const char* normType = MP4Track::NormalizeTrackType(type); 
 
-	MP4TrackId trackId = AddTrack(type, 1000);
+	MP4TrackId trackId = AddTrack(type, MP4_MSECS_TIME_SCALE);
 
-	InsertAtom(MakeTrackName(trackId, "mdia.minf"), "nmhd", 0);
+	InsertChildAtom(MakeTrackName(trackId, "mdia.minf"), "nmhd", 0);
 
-	AddAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4s");
+	AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4s");
 
 	// stsd is a unique beast in that it has a count of the number 
 	// of child atoms that needs to be incremented after we add the mp4s atom
@@ -939,11 +985,8 @@ MP4TrackId MP4File::AddODTrack()
 
 	AddTrackToIod(m_odTrackId);
 
-	MP4Atom* pTrefAtom = 
-		AddAtom(MakeTrackName(m_odTrackId, NULL), "tref");
+	AddDescendantAtoms(MakeTrackName(m_odTrackId, NULL), "tref.mpod");
 
-	AddAtom(pTrefAtom, "mpod");
-	
 	return m_odTrackId;
 }
 
@@ -966,9 +1009,9 @@ MP4TrackId MP4File::AddAudioTrack(u_int32_t timeScale,
 
 	SetTrackFloatProperty(trackId, "tkhd.volume", 1.0);
 
-	InsertAtom(MakeTrackName(trackId, "mdia.minf"), "smhd", 0);
+	InsertChildAtom(MakeTrackName(trackId, "mdia.minf"), "smhd", 0);
 
-	AddAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4a");
+	AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4a");
 
 	// stsd is a unique beast in that it has a count of the number 
 	// of child atoms that needs to be incremented after we add the mp4a atom
@@ -1009,9 +1052,9 @@ MP4TrackId MP4File::AddVideoTrack(
 	SetTrackFloatProperty(trackId, "tkhd.width", width);
 	SetTrackFloatProperty(trackId, "tkhd.height", height);
 
-	InsertAtom(MakeTrackName(trackId, "mdia.minf"), "vmhd", 0);
+	InsertChildAtom(MakeTrackName(trackId, "mdia.minf"), "vmhd", 0);
 
-	AddAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4v");
+	AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4v");
 
 	// stsd is a unique beast in that it has a count of the number 
 	// of child atoms that needs to be incremented after we add the mp4v atom
@@ -1054,9 +1097,9 @@ MP4TrackId MP4File::AddHintTrack(MP4TrackId refTrackId)
 	MP4TrackId trackId = 
 		AddTrack(MP4_HINT_TRACK_TYPE, GetTrackTimeScale(refTrackId));
 
-	InsertAtom(MakeTrackName(trackId, "mdia.minf"), "hmhd", 0);
+	InsertChildAtom(MakeTrackName(trackId, "mdia.minf"), "hmhd", 0);
 
-	AddAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "rtp ");
+	AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "rtp ");
 
 	// stsd is a unique beast in that it has a count of the number 
 	// of child atoms that needs to be incremented after we add the rtp atom
@@ -1070,22 +1113,13 @@ MP4TrackId MP4File::AddHintTrack(MP4TrackId refTrackId)
 		"mdia.minf.stbl.stsd.rtp .tims.timeScale", 
 		GetTrackTimeScale(trackId));
 
-	MP4Atom* pTrefAtom = 
-		AddAtom(MakeTrackName(trackId, NULL), "tref");
-
-	AddAtom(pTrefAtom, "hint");
+	AddDescendantAtoms(MakeTrackName(trackId, NULL), "tref.hint");
 
 	AddTrackReference(MakeTrackName(trackId, "tref.hint"), refTrackId);
 
-	MP4Atom* pUdtaAtom =
-		AddAtom(MakeTrackName(trackId, NULL), "udta");
+	AddDescendantAtoms(MakeTrackName(trackId, NULL), "udta.hnti.sdp ");
 
-	MP4Atom* pHntiAtom =
-		AddAtom(pUdtaAtom, "hnti");
-
-	AddAtom(pHntiAtom, "sdp ");
-
-	AddAtom(pUdtaAtom, "hinf");
+	AddDescendantAtoms(MakeTrackName(trackId, NULL), "udta.hinf");
 
 	return trackId;
 }
@@ -1434,18 +1468,8 @@ const char* MP4File::GetSessionSdp()
 
 void MP4File::SetSessionSdp(const char* sdpString)
 {
-	// since this property is deep in a series of optional atoms
-	// we need to create any missing atoms
-	if (!FindAtom("moov.udta")) {
-		AddAtom("moov", "udta");
-		AddAtom("moov.udta", "hnti");
-		AddAtom("moov.udta.hnti", "rtp ");
-	} else if (!FindAtom("moov.udta.hnti")) {
-		AddAtom("moov.udta", "hnti");
-		AddAtom("moov.udta.hnti", "rtp ");
-	} else if (!FindAtom("moov.udta.hnti.rtp ")) {
-		AddAtom("moov.udta.hnti", "rtp ");
-	}
+	AddDescendantAtoms("moov", "udta.hnti.rtp ");
+
 	SetStringProperty("moov.udta.hnti.rtp .sdpText", sdpString);
 }
 
@@ -1575,16 +1599,9 @@ void MP4File::SetHintTrackSdp(MP4TrackId hintTrackId, const char* sdpString)
 			"MP4SetHintTrackSdp");
 	}
 
-	if (!FindAtom(MakeTrackName(hintTrackId, "udta"))) {
-		AddAtom(MakeTrackName(hintTrackId, NULL), "udta");
-		AddAtom(MakeTrackName(hintTrackId, "udta"), "hnti");
-		AddAtom(MakeTrackName(hintTrackId, "udta.hnti"), "sdp ");
-	} else if (!FindAtom(MakeTrackName(hintTrackId, "udta.hnti"))) {
-		AddAtom(MakeTrackName(hintTrackId, "udta"), "hnti");
-		AddAtom(MakeTrackName(hintTrackId, "udta.hnti"), "sdp ");
-	} else if (!FindAtom(MakeTrackName(hintTrackId, "udta.hnti.sdp "))) {
-		AddAtom(MakeTrackName(hintTrackId, "udta.hnti"), "sdp ");
-	}
+	AddDescendantAtoms(
+		MakeTrackName(hintTrackId, NULL), "udta.hnti.sdp ");
+
 	SetTrackStringProperty(hintTrackId, "udta.hnti.sdp .sdpText", sdpString);
 }
 
@@ -1611,9 +1628,9 @@ void MP4File::AppendHintTrackSdp(MP4TrackId hintTrackId,
 
 void MP4File::GetHintTrackRtpPayload(
 	MP4TrackId hintTrackId,
-	char** ppPayloadName = NULL,
-	u_int8_t* pPayloadNumber = NULL,
-	u_int16_t* pMaxPayloadSize = NULL)
+	char** ppPayloadName,
+	u_int8_t* pPayloadNumber,
+	u_int16_t* pMaxPayloadSize)
 {
 	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
 
@@ -1710,8 +1727,7 @@ MP4TrackId MP4File::GetHintTrackReferenceTrackId(
 void MP4File::ReadRtpHint(
 	MP4TrackId hintTrackId,
 	MP4SampleId hintSampleId,
-	u_int16_t* pNumPackets,
-	bool* pIsBFrame)
+	u_int16_t* pNumPackets)
 {
 	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
 
@@ -1719,7 +1735,7 @@ void MP4File::ReadRtpHint(
 		throw new MP4Error("track is not a hint track", "MP4ReadRtpHint");
 	}
 	((MP4RtpHintTrack*)pTrack)->
-		ReadHint(hintSampleId, pNumPackets, pIsBFrame);
+		ReadHint(hintSampleId, pNumPackets);
 }
 
 u_int16_t MP4File::GetRtpHintNumberOfPackets(
@@ -1734,8 +1750,9 @@ u_int16_t MP4File::GetRtpHintNumberOfPackets(
 	return ((MP4RtpHintTrack*)pTrack)->GetHintNumberOfPackets();
 }
 
-int8_t MP4File::GetRtpHintBFrame(
-	MP4TrackId hintTrackId)
+int8_t MP4File::GetRtpPacketBFrame(
+	MP4TrackId hintTrackId,
+	u_int16_t packetIndex)
 {
 	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
 
@@ -1743,7 +1760,7 @@ int8_t MP4File::GetRtpHintBFrame(
 		throw new MP4Error("track is not a hint track", 
 			"MP4GetRtpHintBFrame");
 	}
-	return ((MP4RtpHintTrack*)pTrack)->GetHintBFrame();
+	return ((MP4RtpHintTrack*)pTrack)->GetPacketBFrame(packetIndex);
 }
 
 int32_t MP4File::GetRtpPacketTransmitOffset(
@@ -1776,6 +1793,31 @@ void MP4File::ReadRtpPacket(
 	((MP4RtpHintTrack*)pTrack)->ReadPacket(
 		packetIndex, ppBytes, pNumBytes,
 		ssrc, includeHeader, includePayload);
+}
+
+MP4Timestamp MP4File::GetRtpTimestampStart(
+	MP4TrackId hintTrackId)
+{
+	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
+
+	if (strcmp(pTrack->GetType(), MP4_HINT_TRACK_TYPE)) {
+		throw new MP4Error("track is not a hint track", 
+			"MP4GetRtpTimestampStart");
+	}
+	return ((MP4RtpHintTrack*)pTrack)->GetRtpTimestampStart();
+}
+
+void MP4File::SetRtpTimestampStart(
+	MP4TrackId hintTrackId,
+	MP4Timestamp rtpStart)
+{
+	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
+
+	if (strcmp(pTrack->GetType(), MP4_HINT_TRACK_TYPE)) {
+		throw new MP4Error("track is not a hint track", 
+			"MP4SetRtpTimestampStart");
+	}
+	((MP4RtpHintTrack*)pTrack)->SetRtpTimestampStart(rtpStart);
 }
 
 void MP4File::AddRtpHint(MP4TrackId hintTrackId, 

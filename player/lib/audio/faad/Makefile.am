@@ -1,6 +1,7 @@
 lib_LTLIBRARIES = libfaad.la
 libfaad_la_LDFLAGS = -static
 libfaad_la_SOURCES = \
+	bits.c \
 	block.c \
 	config.c \
 	decdata.c \
@@ -12,7 +13,6 @@ libfaad_la_SOURCES = \
 	hufftables.c \
 	intensity.c \
 	monopred.c \
-	mpeg4ip_bits.c \
 	nok_lt_prediction.c \
 	pns.c \
 	stereo.c \
@@ -35,7 +35,7 @@ libfaad_la_INCLUDES = \
 	tns.h \
 	transfo.h\
 	util.h
-
+INCLUDES = -I$(top_srcdir)/include
 AM_CFLAGS = -O2 -Werror -Wall -fexceptions 
 
 

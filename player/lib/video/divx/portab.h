@@ -35,12 +35,12 @@
 
 /* basic types
 */
-#define int8_t char
-#define uint8_t unsigned char
-#define int16_t short
-#define uint16_t unsigned short
-#define int32_t int
-#define uint32_t unsigned int 
+#define int8_t _int8
+#define uint8_t unsigned _int8
+#define int16_t _int16
+#define uint16_t unsigned _int16
+#define int32_t _int32
+#define uint32_t unsigned _int32 
 #define int64_t __int64
 #define uint64_t unsigned __int64
 

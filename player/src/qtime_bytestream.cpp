@@ -22,7 +22,7 @@
  * qtime_bytestream.cpp - convert quicktime file to a bytestream
  */
 //#define DEBUG_QTIME_AUDIO_FRAME 1
-
+//#define DEBUG_QTIME_VIDEO_FRAME 1
 #include "systems.h"
 #include "qtime_bytestream.h"
 #include "player_util.h"
@@ -151,6 +151,8 @@ const char *CQTByteStreamBase::get_throw_error (int error)
 {
   if (error == THROW_QTIME_END_OF_DATA)
     return "Qtime - end of data";
+  else if (error == THROW_QTIME_END_OF_FRAME)
+    return "Qtime - end of frame";
   player_debug_message("quicktime - unknown throw error %d", error);
   return "Unknown error";
 }
@@ -158,6 +160,41 @@ const char *CQTByteStreamBase::get_throw_error (int error)
 int CQTByteStreamBase::throw_error_minor (int error)
 {
   return 0;
+}
+
+void CQTByteStreamBase::get_more_bytes (unsigned char **buffer,
+					uint32_t *buflen, 
+					uint32_t used,
+					int get)
+{
+  if ( get != 0)
+    throw THROW_QTIME_END_OF_FRAME;
+  // otherwise, just throw a couple of bytes of NULL there...
+  uint32_t
+  next_frame = m_frame_in_buffer + 1;
+  if (next_frame >= m_frames_max) {
+    throw THROW_QTIME_END_OF_DATA;
+  }
+  uint32_t diff;
+
+  if (used >= m_this_frame_size) throw THROW_QTIME_END_OF_FRAME;
+  diff = m_this_frame_size - used;
+  if (diff > 0) {
+    memmove(m_buffer_on,
+	    m_buffer_on + used, 
+	    diff);
+  }
+  memset(m_buffer_on + diff, 4, 0);
+  m_byte_on = m_this_frame_size = diff;
+  *buffer = m_buffer_on;
+  *buflen = 4 + diff;
+}
+
+void CQTByteStreamBase::used_bytes_for_frame (uint32_t bytes_used)
+{
+  m_byte_on += bytes_used;
+  m_total += bytes_used;
+  check_for_end_of_frame();
 }
 
 /**************************************************************************
@@ -181,7 +218,8 @@ void CQTVideoByteStream::reset (void)
   video_set_timebase(0);
 }
 
-uint64_t CQTVideoByteStream::start_next_frame (void)
+uint64_t CQTVideoByteStream::start_next_frame (unsigned char **buffer, 
+					       uint32_t *buflen)
 {
   uint64_t ret;
   long start;
@@ -225,15 +263,19 @@ uint64_t CQTVideoByteStream::start_next_frame (void)
    ret /= m_frame_rate;
  }
   read_frame(m_frame_on);
+  *buffer = m_buffer_on;
+  *buflen = m_this_frame_size;
 
   m_frame_on++;
   return (ret);
 }
 
-int CQTVideoByteStream::skip_next_frame (uint64_t *ptr, int *hasSync)
+int CQTVideoByteStream::skip_next_frame (uint64_t *ptr, int *hasSync,
+					 unsigned char **buffer, 
+					 uint32_t *buflen)
 {
   *hasSync = 0;
-  *ptr = start_next_frame();
+  *ptr = start_next_frame(buffer, buflen);
   return 1;
 }
 /*
@@ -282,11 +324,11 @@ void CQTVideoByteStream::read_frame (uint32_t frame_to_read)
 					 frame_to_read,
 					 m_track);
   if (next_frame_size > m_max_frame_size) {
-    m_max_frame_size = next_frame_size;
+    m_max_frame_size = next_frame_size + 4;
     m_buffer = (unsigned char *)realloc(m_buffer, 
-					next_frame_size * sizeof(char));
+					(next_frame_size + 4) * sizeof(char));
     m_bookmark_buffer = (unsigned char *)realloc(m_bookmark_buffer, 
-						 next_frame_size * sizeof(char));
+						 (next_frame_size + 4) * sizeof(char));
   }
   m_this_frame_size = next_frame_size;
   quicktime_set_video_position(m_parent->get_file(), frame_to_read, m_track);
@@ -416,7 +458,8 @@ void CQTAudioByteStream::reset (void)
   audio_set_timebase(0);
 }
 
-uint64_t CQTAudioByteStream::start_next_frame (void)
+uint64_t CQTAudioByteStream::start_next_frame (unsigned char **buffer, 
+					       uint32_t *buflen)
 {
   uint64_t ret;
   if (m_frame_on >= m_frames_max) {
@@ -438,6 +481,8 @@ uint64_t CQTAudioByteStream::start_next_frame (void)
 		       ret, m_byte_on, m_this_frame_size);
 #endif
   read_frame(m_frame_on);
+  *buffer = m_buffer_on;
+  *buflen = m_this_frame_size;
   m_frame_on++;
   return (ret);
 }

@@ -76,7 +76,10 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
   void bookmark(int Bset);
   void reset(void);
   int have_no_data(void);
-  uint64_t start_next_frame(void);
+  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
+  void used_bytes_for_frame(uint32_t byte);
+  void get_more_bytes(unsigned char **buffer, uint32_t *buflen,
+		      uint32_t used, int nothrow);
   ssize_t read(unsigned char *buffer, size_t bytes);
   ssize_t read(char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
@@ -125,6 +128,9 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
   char *go_to_offset(void);
   isma_frag_data_t *go_to_frag(void);
   void read_frag(unsigned char *buffer, size_t bytes_to_read);
+  unsigned char *m_frag_reass_buffer;
+  uint32_t m_frag_reass_size;
+  uint32_t m_frag_reass_size_max;
 };
 
 #endif

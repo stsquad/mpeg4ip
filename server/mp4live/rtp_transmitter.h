@@ -93,10 +93,8 @@ public:
 	static u_int16_t GetRandomPortBlock(void) {
 		SeedRandom();
 
-		// Get random block of 4 port numbers between 6970 and 6999
-		// This is the IETF recommended range for firewall transversal
-		// Avoiding overlap, there are 7 choices, 70, 74, 78, 82, 86, 90, 94
-		return (u_int16_t)(6970 + (((random() >> 29) % 7) << 2));
+		// Get random block of 4 port numbers above 20000
+		return (u_int16_t)(20000 + ((random() >> 18) << 2));
 
 	}
 

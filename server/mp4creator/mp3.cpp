@@ -214,7 +214,7 @@ u_int16_t Mp3GetAduOffset(u_int8_t* pFrame, u_int32_t frameSize)
 	return (pFrame[4 + crcSize] << 1) | (pFrame[5 + crcSize] >> 7);
 }
 
-u_int16_t Mp3GetSideInfoSize(u_int32_t hdr)
+u_int8_t Mp3GetSideInfoSize(u_int32_t hdr)
 {
 	u_int8_t layer = (hdr >> 17) & 0x3; 
 

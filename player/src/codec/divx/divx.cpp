@@ -31,6 +31,7 @@
 #include "divxif.h"
 
 
+#if 0
 static unsigned int c_get (void *ud)
 {
   unsigned int ret;
@@ -44,9 +45,24 @@ static void c_bookmark (void *ud, int val)
   CDivxCodec *d = (CDivxCodec *)ud;
   d->bookmark(val);
 }
+#endif
+
+static void c_get_more (void *ud, 
+			unsigned char **buffer, 
+			unsigned int *buflen,
+			unsigned int used,
+			int get)
+{
+  uint32_t ret;
+
+  COurInByteStream *bs = (COurInByteStream *)ud;
+
+  bs->get_more_bytes(buffer, &ret, used, get);
+  *buflen = ret;
+}
 
 CDivxCodec::CDivxCodec(CVideoSync *v, 
-		       CInByteStreamBase *pbytestrm, 
+		       COurInByteStream *pbytestrm, 
 		       format_list_t *media_fmt,
 		       video_info_t *vinfo,
 		       const unsigned char *userdata,
@@ -55,7 +71,7 @@ CDivxCodec::CDivxCodec(CVideoSync *v,
 {
   m_bytestream = pbytestrm;
   m_last_time = 0;
-  newdec_init(c_get, c_bookmark, this);
+  newdec_init(c_get_more, m_bytestream);
   m_decodeState = DIVX_STATE_VO_SEARCH;
   if (media_fmt != NULL && media_fmt->fmt_param != NULL) {
     // See if we can decode a passed in vovod header
@@ -126,7 +142,6 @@ int CDivxCodec::parse_vovod (const char *vovod,
 {
   unsigned char buffer[255];
   const char *bufptr;
-  COurInByteStreamMem *membytestream;
   int ret;
 
   if (ascii == 1) {
@@ -163,41 +178,29 @@ int CDivxCodec::parse_vovod (const char *vovod,
     bufptr = vovod;
   }
   
-  membytestream = new COurInByteStreamMem(bufptr, len);
-  // Temporary set of our bytestream
-  CInByteStreamBase *orig_bytestream;
-  orig_bytestream = m_bytestream;
-  m_bytestream = membytestream;
-
   // Get the VO/VOL header.  If we fail, set the bytestream back
-  do {
-    ret = 0;
-    try {
-      ret = getvolhdr();
-      if (ret != 0) {
-	divx_message(LOG_DEBUG, "Found VOL in header");
-	m_video_sync->config(mp4_hdr.width,
-			     mp4_hdr.height,
-			     mp4_hdr.time_increment_resolution);
-	post_volprocessing();
-      }
-
-    } catch (int err) {
-      divx_message(LOG_INFO, "Caught exception in VO mem header search %s", 
-		   membytestream->get_throw_error(err));
+  ret = 0;
+  try {
+    ret = newdec_read_volvop((unsigned char *)bufptr, len);
+    if (ret != 0) {
+      divx_message(LOG_DEBUG, "Found VOL in header");
+      m_video_sync->config(mp4_hdr.width,
+			   mp4_hdr.height,
+			   mp4_hdr.time_increment_resolution);
+      post_volprocessing();
     }
-  } while (ret == 0 && membytestream->eof() == 0);
+    
+  } catch (int err) {
+    //    divx_message(LOG_INFO, "Caught exception in VO mem header search %s", 
+    //	 membytestream->get_throw_error(err));
+  }
 
   if (ret == 0) {
-    m_bytestream = orig_bytestream;
-    delete membytestream;
     return (0);
   }
 
   // We've found the VO VOL header - that's good.
   // Reset the byte stream back to what it was, delete our temp stream
-  m_bytestream = orig_bytestream;
-  delete membytestream;
   //player_debug_message("Decoded vovod header correctly");
   return ret;
 }
@@ -207,7 +210,10 @@ void CDivxCodec::do_pause (void)
   m_decodeState = DIVX_STATE_WAIT_I;
 }
 
-int CDivxCodec::decode (uint64_t ts, int from_rtp)
+int CDivxCodec::decode (uint64_t ts, 
+			int from_rtp,
+			unsigned char *buffer, 
+			uint32_t buflen)
 {
   int ret;
   int do_wait_i = 0;
@@ -217,7 +223,7 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
   switch (m_decodeState) {
   case DIVX_STATE_VO_SEARCH:
     try {
-      ret = getvolhdr();
+      ret = newdec_read_volvop(buffer, buflen);
       if (ret != 0) {
 	m_video_sync->config(mp4_hdr.width,
 			     mp4_hdr.height,
@@ -247,10 +253,11 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
   }
 
   try {
-    ret = newdec_frame(y, v, u, do_wait_i); // will eventually need to pass wait_i, etc
+    ret = newdec_frame(y, v, u, do_wait_i, buffer, buflen);
 
-    if (ret == 0) {
+    if (ret < 0) {
       //player_debug_message("ret from newdec_frame %d "LLU, ret, ts);
+      m_bytestream->used_bytes_for_frame(0 - ret);
       if (m_last_time != ts)
 	m_decodeState = DIVX_STATE_WAIT_I;
       return (-1);
@@ -258,6 +265,7 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
     //player_debug_message("frame type %d", mp4_hdr.prediction_type);
     m_decodeState = DIVX_STATE_NORMAL;
     m_last_time = ts;
+    m_bytestream->used_bytes_for_frame(ret);
   } catch (int err) {
       if (m_bytestream->throw_error_minor(err) != 0) {
 	//player_debug_message("decode across ts");
@@ -300,9 +308,11 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
   return (-1);
 }
 
-int CDivxCodec::skip_frame (uint64_t ts)
+int CDivxCodec::skip_frame (uint64_t ts, 
+			    unsigned char *buffer, 
+			    uint32_t buflen)
 {
-  return (decode(ts, 0));
+  return (decode(ts, 0, buffer, buflen));
 }
 
 unsigned char CDivxCodec::get (void)

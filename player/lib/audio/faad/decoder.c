@@ -1,6 +1,8 @@
 #ifdef WIN32
 #include <windows.h>
 #endif
+
+
 #include "all.h"
 #include "block.h"
 #include "nok_lt_prediction.h"
@@ -116,16 +118,22 @@ int FAADAPI faacDecSetConfiguration(faacDecHandle hDecoder,
 	return 1;
 }
 
-int FAADAPI faacDecInit(faacDecHandle hDecoder, unsigned char *buffer,
-						unsigned long *samplerate, unsigned long *channels)
+
+int FAADAPI faacDecInit(faacDecHandle hDecoder,
+			unsigned char *buffer,
+			uint32_t buflen,
+			unsigned long *samplerate,
+			unsigned long *channels,
+			get_more_bytes_t get_more,
+			void *ud)
 {
 	int i, bits = 0;
 	char chk_header[4];
 
-	faad_initbits(&hDecoder->ld, buffer);
-	faad_bookmark(&hDecoder->ld, 1);
+	hDecoder->ld.get_more_bytes = get_more;
+	hDecoder->ld.ud = ud;
 	for (i = 0; i < 4; i++) {
-		chk_header[i] = faad_getbits(&hDecoder->ld, 8);
+		chk_header[i] = buffer[i];
 	}
 
 	/* Check if an ADIF header is present */
@@ -154,8 +162,7 @@ int FAADAPI faacDecInit(faacDecHandle hDecoder, unsigned char *buffer,
 	/* get adif header */
 	if (hDecoder->adif_header_present) {
 		hDecoder->pceChannels = 2;
-		faad_bookmark(&hDecoder->ld, 0);
-		faad_bookmark(&hDecoder->ld, 1);
+		faad_initbits(&hDecoder->ld, buffer, buflen);
 		get_adif_header(hDecoder);
 		/* only MPEG2 ADIF header uses byte_alignment */
 		/* but the PCE already byte aligns the data */
@@ -165,9 +172,7 @@ int FAADAPI faacDecInit(faacDecHandle hDecoder, unsigned char *buffer,
 		*/
 		bits = faad_get_processed_bits(&hDecoder->ld);
 	} else if (hDecoder->adts_header_present) {
-		faad_initbits(&hDecoder->ld, buffer);
-		faad_bookmark(&hDecoder->ld, 0);
-		faad_bookmark(&hDecoder->ld, 1);
+		faad_initbits(&hDecoder->ld, buffer, buflen);
 		get_adts_header(hDecoder);
 		/* only MPEG2 ADTS header uses byte_alignment */
 		/* but it already is a multiple of 8 bits */
@@ -208,7 +213,6 @@ int FAADAPI faacDecInit(faacDecHandle hDecoder, unsigned char *buffer,
 	hDecoder->winmap[2] = hDecoder->win_seq_info[EIGHT_SHORT_WINDOW];
 	hDecoder->winmap[3] = hDecoder->win_seq_info[ONLY_LONG_WINDOW];
 
-	faad_bookmark(&hDecoder->ld, 0);
 
 	return bit2byte(bits);
 }
@@ -257,9 +261,10 @@ int FAADAPI faacDecGetProgConfig(faacDecHandle hDecoder,
 }
 
 int FAADAPI faacDecDecode(faacDecHandle hDecoder,
-						  unsigned char *buffer,
-						  unsigned long *bytesconsumed,
-						  short *sample_buffer)
+			  unsigned char *buffer,
+			  uint32_t buflen,
+			  unsigned long *bytesconsumed,
+			  short *sample_buffer)
 {
 	unsigned char d_bytes[MAX_DBYTES];
 	int i, j, ch, wn, ele_id;
@@ -272,7 +277,7 @@ int FAADAPI faacDecDecode(faacDecHandle hDecoder,
 	int retCode = FAAD_OK;
 
 
-	faad_initbits(&hDecoder->ld, buffer);
+	faad_initbits(&hDecoder->ld, buffer, buflen);
 
 	if (hDecoder->adts_header_present)
 	{
@@ -505,6 +510,7 @@ error:
 		return FAAD_FATAL_ERROR;
 	}
 #else
+	*bytesconsumed = bit2byte(faad_get_processed_bits(&hDecoder->ld));
 	return FAAD_ERROR;
 #endif
 }

@@ -11,7 +11,8 @@ class CInByteStreamFile : public CInByteStreamBase
   streampos m_bookmark_strmpos;
   int m_bookmark_eofstate;
  public:
-  CInByteStreamFile(istream &inStream) { m_pInStream = &inStream; };
+  CInByteStreamFile(istream &inStream):
+  CInByteStreamBase(NULL, NULL) { m_pInStream = &inStream; };
   ~CInByteStreamFile() {};
   int eof(void) { return (m_pInStream->eof()); };
   unsigned char get(void) { return (m_pInStream->get());};

@@ -41,7 +41,8 @@
 class CRtpByteStreamBase : public COurInByteStream
 {
  public:
-  CRtpByteStreamBase(unsigned int rtp_proto,
+  CRtpByteStreamBase(const char *name,
+		     unsigned int rtp_proto,
 		     int ondemand,
 		     uint64_t tickpersec,
 		     rtp_packet **head, 
@@ -63,8 +64,6 @@ class CRtpByteStreamBase : public COurInByteStream
     init();
     m_buffering = 0;
   };
-  int have_no_data(void);
-  uint64_t start_next_frame(void);
   void set_skip_on_advance (uint32_t bytes_to_skip) {
     m_skip_on_advance_bytes = bytes_to_skip;
   };
@@ -125,7 +124,8 @@ class CRtpByteStreamBase : public COurInByteStream
 class CRtpByteStream : public CRtpByteStreamBase
 {
  public:
-  CRtpByteStream(unsigned int rtp_proto,
+  CRtpByteStream(const char *name,
+		 unsigned int rtp_proto,
 		 int ondemand,
 		 uint64_t tickpersec,
 		 rtp_packet **head, 
@@ -135,13 +135,21 @@ class CRtpByteStream : public CRtpByteStreamBase
 		 int rtcp_received,
 		 uint32_t ntp_frac,
 		 uint32_t ntp_sec,
-		 uint32_t rtp_ts) :
-    CRtpByteStreamBase(rtp_proto, ondemand, tickpersec, head, tail,
-		       rtpinfo_received, rtp_rtptime, rtcp_received,
-			 ntp_frac, ntp_sec, rtp_ts)
-    {};
+		 uint32_t rtp_ts);
+  ~CRtpByteStream();
+  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
   int can_skip_frame (void) { return 1; } ;
-  int skip_next_frame(uint64_t *ts, int *havesync);
+  int skip_next_frame(uint64_t *ts, int *havesync, unsigned char **buffer,
+		      uint32_t *buflen);
+  void get_more_bytes(unsigned char **buffer, uint32_t *buflen, uint32_t used, int no_throw);
+  void used_bytes_for_frame(uint32_t bytes);
+  int have_no_data(void);
+  void flush_rtp_packets(void);
+ private:
+  unsigned char *m_buffer;
+  uint32_t m_buffer_len;
+  uint32_t m_buffer_len_max;
+  uint32_t m_bytes_used;
 };
 
 int add_rtp_packet_to_queue(rtp_packet *pak,

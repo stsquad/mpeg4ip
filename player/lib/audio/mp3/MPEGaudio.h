@@ -182,14 +182,18 @@ public:
 }
 #endif
 
-typedef unsigned char (*c_byte_get_t)(void *);
-typedef uint32_t (*c_byte_read_t)(unsigned char *, uint32_t, void *);
+typedef void (*c_get_more_t)(void *, unsigned char **, uint32_t *, uint32_t);
  
 class MPEGaudio {
  public:
-  MPEGaudio(c_byte_get_t c_byte_get, c_byte_read_t c_byte_read, void *ud);
+  MPEGaudio(c_get_more_t c_get_more, void *ud);
   ~MPEGaudio();
-  bool decodeFrame(unsigned char *buffer, bool no_head);
+  int findheader(unsigned char *frombuffer,
+		 uint32_t frombuffer_len,
+		 uint32_t *framesize = NULL);
+  int decodeFrame(unsigned char *tobuffer,
+		  unsigned char *frombuffer,
+		  uint32_t frombuffer_len);
 protected:
     bool sdl_audio;
 #if 0
@@ -215,8 +219,7 @@ protected:
   /* Constant tables for layer */
   /*****************************/
 private:
-    c_byte_get_t m_byte_get;
-    c_byte_read_t m_byte_read;
+    c_get_more_t m_get_more;
     void *m_userdata;
   static const int bitrate[2][3][15],frequencies[2][3];
   static const REAL scalefactorstable[64];
@@ -258,7 +261,7 @@ private:
   int tableindex,channelbitrate;
   int stereobound,subbandnumber,inputstereo,outputstereo;
   REAL scalefactor;
-  int framesize;
+  uint32_t framesize;
 
   /*******************/
   /* Mpegtoraw class */
@@ -276,10 +279,12 @@ public:
   /* Loading MPEG-Audio stream */
   /*****************************/
 private:
-  unsigned char _buffer[4096];
+  unsigned char *_buffer;
+  uint32_t _buflen;
+  uint32_t _orig_buflen;
   unsigned int _buffer_pos;
   int  bitindex;
-  bool fillbuffer(int size);
+  bool fillbuffer(uint32_t size);
   void sync(void);
   bool issync(void);
   int getbyte(void);
@@ -311,14 +316,8 @@ private:
   /*************************************/
   /* Decoding functions for each layer */
   /*************************************/
-#if 0
 private:
   bool loadheader(void);
-#else
- public:
-  bool loadheader(void);
- private:
-#endif
 
   //
   // Subbandsynthesis

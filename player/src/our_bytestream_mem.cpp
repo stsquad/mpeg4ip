@@ -48,15 +48,22 @@ int COurInByteStreamMem::eof (void)
   return (m_offset >= m_len);
 }
 
-uint64_t COurInByteStreamMem::start_next_frame (void) 
+uint64_t COurInByteStreamMem::start_next_frame (unsigned char **buffer, 
+						uint32_t *buflen) 
 {
   uint64_t ret;
   ret = (m_frames * 1000) / m_frame_per_sec;
   m_frames++;
   ret += m_play_start_time;
+  *buffer = (unsigned char *)(m_memptr + m_offset);
+  *buflen = m_len - m_offset;
   return (ret);
 }
 
+void COurInByteStreamMem::used_bytes_for_frame (uint32_t bytes)
+{
+  m_offset += bytes;
+}
 
 unsigned char COurInByteStreamMem::get (void) 
 {

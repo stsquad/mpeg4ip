@@ -177,6 +177,8 @@ bool MP4NameFirstMatches(const char* s1, const char* s2);
 
 bool MP4NameFirstIndex(const char* s, u_int32_t* pIndex);
 
+char* MP4NameFirst(const char *s);
+
 const char* MP4NameAfterFirst(const char *s);
 
 char* MP4ToBase16(const u_int8_t* pData, u_int32_t dataSize);

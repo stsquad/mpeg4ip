@@ -1088,8 +1088,10 @@ void CPlayerMedia::rtp_start (void)
 
 void CPlayerMedia::rtp_end(void)
 {
-  rtp_send_bye(m_rtp_session);
-  rtp_done(m_rtp_session);
+  if (m_rtp_session != NULL) {
+    rtp_send_bye(m_rtp_session);
+    rtp_done(m_rtp_session);
+  }
   m_rtp_session = NULL;
 }
 

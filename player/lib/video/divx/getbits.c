@@ -66,16 +66,9 @@
 **/
 
 #include <stdlib.h>
-
 #include "mp4_decoder.h"
 #include "global.h"
-#ifdef WIN32
-#include <io.h>
-#endif
 
-#ifdef LINUX
-#define SE_CODE 31
-#endif
 
 /* to mask the n least significant bits of an integer */
 
@@ -97,18 +90,30 @@ unsigned int decore_length;
 
 /* initialize buffer, call once before first getbits or showbits */
 
-void initbits ()
+void initbits (get_more_t get, void *ud)
 {
   ld->incnt = 0;
   ld->bitcnt = 0;
   ld->rdptr = ld->rdbfr + 2048;
-
+  ld->get = 0;
+  ld->get_more = get;
+  ld->ud = ud;
 #ifdef _DECORE
   ld->rdptr = decore_stream;
 #endif
 }
 
-#ifndef _DECORE
+void init_frame_bits (unsigned char *buffer,
+		      unsigned int buflen)
+{
+  ld->rdptr = buffer;
+  ld->buflen = buflen;
+  ld->endptr = buffer + buflen;
+  ld->incnt = 0;
+  ld->bitcnt = 0;
+}
+
+#if 0
 
 void fillbfr ()
 {
@@ -171,30 +176,28 @@ void flushbits (int n)
     fillbfr ();
 }
 
-#else // _DECORE
+#endif
 
 #define _SWAP(a) ((a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3])
 
 unsigned int showbits (int n)
 {
-	unsigned char *v = ld->rdptr;
+	unsigned char *v;
 	int rbit = 32 - ld->bitcnt;
 	unsigned int b;
-	
+	if (ld->rdptr + ((ld->bitcnt + n) / 8) >= ld->endptr) {
+	  // get more here...
+	  (ld->get_more)(ld->ud, &ld->rdptr,
+			 &ld->buflen, ld->incnt, ld->get);
+	  ld->endptr = ld->rdptr + ld->buflen;
+	  ld->incnt = 0;
+	}
+	v = ld->rdptr;
 	b = _SWAP(v);
 	return ((b & msk[rbit]) >> (rbit-n));
 }
 
-void flushbits (int n)
-{
-	ld->bitcnt += n;
-	if (ld->bitcnt >= 8) {
-		ld->rdptr += ld->bitcnt / 8;
-		ld->bitcnt = ld->bitcnt % 8;
-	}
-}
 
-#endif // !_DECORE
 
 /* return next bit (could be made faster than getbits(1)) */
 
@@ -205,11 +208,13 @@ unsigned int getbits1 ()
 
 /* return next n bits (right adjusted) */
 
-unsigned int getbits (int n)
+unsigned int divx_getbits (unsigned int n)
 {
   unsigned int l;
 
+  ld->get = 1;
   l = showbits (n);
+  ld->get = 0;
   flushbits (n);
 
   return l;
@@ -236,13 +241,14 @@ int __inline nextbits_bytealigned(int nbit)
 	}
 	else
 	{
-		// bytealign
-		while (! bytealigned(skipcnt)) {
-			skipcnt += 1;
-		}
+	  while (! bytealigned(skipcnt)) {
+	    skipcnt += 1;
+	  }
 	}
 
 	code = showbits(nbit + skipcnt);
-	return ((code << skipcnt) >> skipcnt);
+ 
+        return ((code << skipcnt) >> skipcnt);
 }
+
 

@@ -28,7 +28,7 @@
 #include "our_bytestream_file.h"
 #include "aa.h"
 #include "aa_file.h"
-
+#if 0
 static unsigned int c_get (void *ud)
 {
   CInByteStreamBase *byte_stream;
@@ -44,6 +44,7 @@ static void c_bookmark (void *ud, int state)
   byte_stream = (CInByteStreamBase *)ud;
   byte_stream->bookmark(state);
 }
+#endif
 
 int create_media_for_aac_file (CPlayerSession *psptr, 
 			       const char *name,
@@ -72,10 +73,14 @@ int create_media_for_aac_file (CPlayerSession *psptr,
     return (-1);
   }
   
-  faad_init_bytestream(&fInfo->ld, c_get, c_bookmark, fbyte);
+  //faad_init_bytestream(&fInfo->ld, c_get, c_bookmark, fbyte);
   unsigned long freq, chans;
+  unsigned char *buffer;
+  uint32_t len;
   freq = 0;
-  faacDecInit(fInfo, NULL, &freq, &chans);
+  fbyte->config_for_file(44100 / 1024); // dummy value for now
+  fbyte->start_next_frame(&buffer, &len);
+  faacDecInit(fInfo, buffer, len, &freq, &chans, NULL, NULL);
   // may want to actually decode the first frame...
   if (freq == 0) {
     *errmsg = "Couldn't determine AAC frame rate";
@@ -87,7 +92,13 @@ int create_media_for_aac_file (CPlayerSession *psptr,
   }
 #endif
   faacDecClose(fInfo);
+  delete fbyte;
 
+  fbyte = new COurInByteStreamFile(name);
+  if (fbyte == NULL) {
+    *errmsg = "Couldn't create file stream";
+    return (-1);
+  }
   fbyte->config_for_file(freq / 1024);
   *errmsg = "Can't create thread";
   int ret =  mptr->create_from_file(psptr, fbyte, FALSE);

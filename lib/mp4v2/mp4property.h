@@ -373,6 +373,12 @@ public:
 		*pValueSize = m_valueSizes[index];
 	}
 
+	void CopyValue(u_int8_t* pValue, u_int32_t index = 0) {
+		// N.B. caller takes responsbility for valid pointer
+		// and sufficient memory at the destination
+		memcpy(pValue, m_values[index], m_valueSizes[index]);
+	}
+
 	void SetValue(const u_int8_t* pValue, u_int32_t valueSize, 
 		u_int32_t index = 0);
 

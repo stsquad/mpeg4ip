@@ -23,10 +23,12 @@ mp4creator_SOURCES = \
 	mp4v.h \
 	mp4v.cpp \
 	avi.cpp \
+	hinters.h \
+	hinters.cpp \
 	rfc2250.cpp \
 	rfc3119.cpp \
 	rfcisma.cpp \
-	rfc3016.cpp
+	rfc3016.cpp 
 
 mp4creator_LDADD = \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \

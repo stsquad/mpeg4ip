@@ -172,18 +172,14 @@ void MP4Descriptor::Write(MP4File* pFile)
 void MP4Descriptor::WriteToMemory(MP4File* pFile,
 	u_int8_t** ppBytes, u_int64_t* pNumBytes)
 {
-	u_int8_t* writeBuffer;
-
-	// use write buffer to save descriptor in memory
+	// use memory buffer to save descriptor in memory
 	// instead of going directly to disk
-	pFile->EnableWriteBuffer();
+
+	pFile->EnableMemoryBuffer();
+
 	Write(pFile);
 
-	pFile->GetWriteBuffer(&writeBuffer, pNumBytes);
-	*ppBytes = (u_int8_t*)MP4Malloc(*pNumBytes);
-	memcpy(*ppBytes, writeBuffer, *pNumBytes);
-
-	pFile->DisableWriteBuffer();
+	pFile->DisableMemoryBuffer(ppBytes, pNumBytes);
 }
 
 void MP4Descriptor::Dump(FILE* pFile, u_int8_t indent, bool dumpImplicits)

@@ -56,15 +56,17 @@
 **/
 
 // getbits.c 
-typedef unsigned int (*get_t)(void *);
-typedef void (*bookmark_t)(void *, int );
-void initbits (get_t get, bookmark_t bookmark, void *userdata);
+typedef void (*get_more_t)(void *, unsigned char **, unsigned int *, unsigned int, int);
+void initbits(get_more_t get, void *);
+void init_frame_bits(unsigned char *buffer,
+		      unsigned int buflen);
+
 void fillbfr (void);
 unsigned int showbits (int n);
 unsigned int getbits1 (void);
-void flushbits (int n);
 unsigned int divx_getbits (unsigned int n);
 #define getbits divx_getbits
+
 
 // idct.c 
 void idct (short *block);
@@ -154,12 +156,17 @@ EXTERN mp4_header mp4_hdr;
 EXTERN struct _base
 {
   // bit input
+  get_more_t get_more;
+  void *ud;
   int infile;
   unsigned char rdbfr[2051];
   unsigned char *rdptr;
+  unsigned char *endptr;
+  unsigned int buflen;
   unsigned char inbfr[16];
   int incnt;
   int bitcnt;
+  int get;
   // block data
   short block[6][64];
 } base, *ld;
@@ -184,4 +191,13 @@ EXTERN unsigned char	*edged_ref[3],
 											*frame_ref[3],
 											*frame_for[3],
 											*display_frame[3];
+static __inline void flushbits (unsigned int n)
+{
+	ld->bitcnt += n;
+	if (ld->bitcnt >= 8) {
+		ld->rdptr += ld->bitcnt / 8;
+		ld->incnt += ld->bitcnt / 8;
+		ld->bitcnt = ld->bitcnt % 8;
+	}
+}
 #endif

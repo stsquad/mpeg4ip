@@ -22,34 +22,29 @@
 #include "player_session.h"
 #include "player_media.h"
 #include "rtp_bytestream.h"
+#define DEBUG_SYNC 1
 
-static unsigned char c_byte_get (void *ud)
+static void c_get_more (void *ud, unsigned char **buffer, 
+			uint32_t *buflen, uint32_t used)
 {
-  CInByteStreamBase *bs = (CInByteStreamBase *)ud;
-  return bs->get();
-}
-
-static uint32_t c_byte_read (unsigned char *buffer, uint32_t readbytes, void *ud)
-{
-  CInByteStreamBase *bs = (CInByteStreamBase *)ud;
-  return bs->read(buffer, readbytes);
+  COurInByteStream *bs = (COurInByteStream *)ud;
+  bs->get_more_bytes(buffer, buflen, used, 1);
 }
 /*
  * Create CMP3Codec class
  */
 CMP3Codec::CMP3Codec (CAudioSync *a, 
-		      CInByteStreamBase *pbytestrm,
+		      COurInByteStream *pbytestrm,
 		      format_list_t *media_fmt,
 		      audio_info_t *audio,
 		      const unsigned char *userdata,
 		      uint32_t userdata_size) : 
   CAudioCodecBase(a, pbytestrm, media_fmt, audio, userdata, userdata_size)
 {
-  m_bytestream = pbytestrm;
 #ifdef OUTPUT_TO_FILE
   m_output_file = fopen("smpeg.raw", "w");
 #endif
-  m_mp3_info = new MPEGaudio(c_byte_get, c_byte_read, m_bytestream);
+  m_mp3_info = new MPEGaudio(c_get_more, m_bytestream);
 
   m_resync_with_header = 1;
   m_record_sync_time = 1;
@@ -91,7 +86,10 @@ void CMP3Codec::do_pause (void)
 /*
  * Decode task call for MP3
  */
-int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
+int CMP3Codec::decode (uint64_t ts, 
+		       int from_rtp, 
+		       unsigned char *buffer, 
+		       uint32_t buflen)
 {
   int bits = -1;
   //  struct timezone tz;
@@ -100,25 +98,23 @@ int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
 
 
   try {
-    int have_head = 0;
 
     if (m_audio_inited == 0) {
       // handle initialization here...
       // Make sure that we read the header to make sure that
       // the frequency/number of channels goes through...
-      if (from_rtp) {
-	CRtpByteStreamBase *rtp = (CRtpByteStreamBase *)m_bytestream;
-	rtp->set_skip_on_advance(4);
-	rtp->get();
-	rtp->get();
-	rtp->get();
-	rtp->get();  // get the 4 bytes...
-      }
-
-      bits = m_mp3_info->loadheader();
-      if (bits == false) {
+      bits = m_mp3_info->findheader(buffer, buflen);
+      if (bits < 0) {
+	m_bytestream->used_bytes_for_frame(buflen - 2);
+	mp3_message(LOG_DEBUG, "Couldn't load mp3 header");
 	return (-1);
       }
+      
+      if (bits != 0) {
+	m_bytestream->used_bytes_for_frame(bits);
+      }
+      buffer += bits;
+      buflen -= bits;
 
       m_chans = m_mp3_info->isstereo() ? 2 : 1;
       m_freq = m_mp3_info->getfrequency();
@@ -139,9 +135,8 @@ int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
       mp3_message(LOG_DEBUG, "chans %d freq %d samples %d", 
 		  m_chans, m_freq, samplesperframe);
       m_audio_sync->set_config(m_freq, m_chans, AUDIO_S16SYS, samplesperframe);
-      have_head = 1;
       m_audio_inited = 1;
-      m_last_rtp_ts = rtpts - 1; // so we meet the critera below
+      m_last_rtp_ts = ts - 1; // so we meet the critera below
     }
       
 
@@ -155,14 +150,14 @@ int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
       //player_debug_message("Can't get buffer in aa");
       return (-1);
     }
-    bits = m_mp3_info->decodeFrame(buff, have_head);
-    
-    if (bits) {
-      if (m_last_rtp_ts == rtpts) {
+    bits = m_mp3_info->decodeFrame(buff, buffer, buflen);
+    m_bytestream->used_bytes_for_frame(bits);
+    if (bits > 4) {
+      if (m_last_rtp_ts == ts) {
 	m_current_time += ((m_samplesperframe * 1000) / m_freq);
       } else {
-	m_last_rtp_ts = rtpts;
-	m_current_time = rtpts;
+	m_last_rtp_ts = ts;
+	m_current_time = ts;
       }
 #ifdef OUTPUT_TO_FILE
       fwrite(buff, m_chans * m_samplesperframe * sizeof(ushort), 1, m_output_file);
@@ -188,7 +183,7 @@ int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
   } catch (int err) {
 #ifdef DEBUG_SYNC
     mp3_message(LOG_ERR, "Got exception %s at %llu", 
-		m_bytestrea->get_throw_error(err), 
+		m_bytestream->get_throw_error(err), 
 		m_current_time);
 #endif
     m_resync_with_header = 1;
@@ -197,15 +192,22 @@ int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
   return (bits);
 }
 
-int CMP3Codec::skip_frame (uint64_t ts)
+int CMP3Codec::skip_frame (uint64_t ts, unsigned char *buffer, uint32_t buflen)
 {
-  m_mp3_info->loadheader();
-  if (m_last_rtp_ts == ts) {
-    m_current_time += ((m_samplesperframe * 1000) / m_freq);
-  } else {
-    m_last_rtp_ts = ts;
-    m_current_time = ts;
+  uint32_t bytes;
+  uint32_t framesize;
+  bytes = m_mp3_info->findheader(buffer, buflen, &framesize);
+  if (bytes < 0) {
+    m_bytestream->used_bytes_for_frame(buflen - 2);
+    mp3_message(LOG_DEBUG, "Couldn't load mp3 header");
+    return (-1);
   }
+      
+  if (bytes != 0) {
+    m_bytestream->used_bytes_for_frame(bytes);
+  }
+
+  m_bytestream->used_bytes_for_frame(framesize);
   return (0);
 }
 /* end file mp3.cpp */

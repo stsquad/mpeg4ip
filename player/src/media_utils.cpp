@@ -35,6 +35,7 @@
 #include "codec/divx/divx_file.h"
 #include "codec/mp3/mp3.h"
 #include "codec/mp3/mp3_file.h"
+#include "codec/mp3/mp3_rtp_bytestream.h"
 #include "codec/wav/ourwav.h"
 #include "codec/wav/wav_file.h"
 #include "avi_file.h"
@@ -42,7 +43,6 @@
 #include "qtime_file.h"
 #include "our_config_file.h"
 #include "rtp_bytestream.h"
-#include "codec/aa/aac_rtp_bytestream.h"
 #include "codec/aa/isma_rtp_bytestream.h"
 #include "ip_port.h"
 /*
@@ -81,8 +81,6 @@ static struct codec_list_t {
   {NULL, -1},
 },
   audio_codecs[] = {
-    {"MP-AAC", AUDIO_AAC},
-    {"MPA-AAC", AUDIO_AAC},
     {"mp4a", AUDIO_AAC },
     {"aac ", AUDIO_AAC },
     {"mpeg-simple-a0", AUDIO_AAC },
@@ -489,7 +487,7 @@ int parse_name_for_session (CPlayerSession *psptr,
  */
 CCodecBase *start_audio_codec (const char *codec_name,
 			       CAudioSync *audio_sync,
-			       CInByteStreamBase *pbytestream,
+			       COurInByteStream *pbytestream,
 			       format_list_t *media_fmt,
 			       audio_info_t *aud,
 			       const unsigned char *userdata,
@@ -553,7 +551,7 @@ int which_mpeg4_codec (format_list_t *fptr,
  */
 CCodecBase *start_video_codec (const char *codec_name,
 			       CVideoSync *video_sync,
-			       CInByteStreamBase *pbytestream,
+			       COurInByteStream *pbytestream,
 			       format_list_t *media_fmt,
 			       video_info_t *vid,
 			       const unsigned char *userdata,
@@ -628,29 +626,47 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
     switch (codec) {
     case AUDIO_AAC:
     case AUDIO_MPEG4_GENERIC:
-      rtp_byte_stream = 
-	create_aac_rtp_bytestream(fmt, 
-				  rtp_proto,
-				  ondemand,
-				  tps,
-				  head,
-				  tail,
-				  rtpinfo_received,
-				  rtp_rtptime,
-				  rtcp_received,
-				  ntp_frac,
-				  ntp_sec,
-				  rtp_ts);
+      fmtp_parse_t *fmtp;
+
+      fmtp = parse_fmtp_for_mpeg4(fmt->fmt_param);
+      if (fmtp->size_length == 0) {
+	// No headers in RTP packet -create normal bytestream
+	player_debug_message("Size of AAC RTP header is 0 - normal bytestream");
+	break;
+      }
+      rtp_byte_stream = new CIsmaAudioRtpByteStream(fmt,
+						    fmtp,
+						    rtp_proto,
+						    ondemand,
+						    tps,
+						    head,
+						    tail,
+						    rtpinfo_received,
+						    rtp_rtptime,
+						    rtcp_received,
+						    ntp_frac,
+						    ntp_sec,
+						    rtp_ts);
       if (rtp_byte_stream != NULL) {
 	return (rtp_byte_stream);
       }
       // Otherwise, create default...
       break;
+    case AUDIO_MP3:
+      rtp_byte_stream = 
+	new CMP3RtpByteStream(rtp_proto, ondemand, tps, head, tail, 
+			      rtpinfo_received, rtp_rtptime, 
+			      rtcp_received, ntp_frac, ntp_sec, rtp_ts);
+      if (rtp_byte_stream != NULL) {
+	return (rtp_byte_stream);
+      }
+      break;
     default:
       break;
     }
   }
-  rtp_byte_stream = new CRtpByteStream(rtp_proto,
+  rtp_byte_stream = new CRtpByteStream(fmt->media->media,
+				       rtp_proto,
 				       ondemand,
 				       tps,
 				       head,

@@ -21,7 +21,7 @@
 
 #include "our_bytestream_file.h"
 #include "player_util.h"
-
+//#define FILE_DEBUG
 COurInByteStreamFile::COurInByteStreamFile (const char *filename) :
   COurInByteStream()
 {
@@ -97,19 +97,30 @@ void COurInByteStreamFile::set_start_time (uint64_t start)
     }
     // seek to last known position
     fseek(m_file, pos_to_set, SEEK_SET); 
+    m_buffer_position = pos_to_set;
     read_frame();
     // Read forward from there until we hit the time we want.
+    player_debug_message("Skipping ahead - start position %ld", 
+			 pos_to_set);
     m_frames = frames;
     m_play_start_time = start_time;
     while (m_play_start_time < start) {
-      m_codec->skip_frame(start_time);
-      m_play_start_time = (m_frames * 1000) / m_frame_per_sec;
+#ifdef FILE_DEBUG
+      player_debug_message("skip frame %llu time %llu", m_frames, 
+			   m_play_start_time);
+#endif
+      m_codec->skip_frame(m_play_start_time,
+			  m_buffer_on + m_index, 
+			  m_buffer_size - m_index);
       m_frames++;
+      m_play_start_time = (m_frames * 1000) / m_frame_per_sec;
     }
+    player_debug_message("Done skipping");
   }
 }
 
-uint64_t COurInByteStreamFile::start_next_frame (void) 
+uint64_t COurInByteStreamFile::start_next_frame (unsigned char **buffer, 
+						 uint32_t *buflen) 
 {
   uint64_t ret;
   ret = (m_frames * 1000) / m_frame_per_sec;
@@ -133,6 +144,12 @@ uint64_t COurInByteStreamFile::start_next_frame (void)
       newptr->file_position = m_buffer_position + m_index;
       newptr->frames = m_frames;
       newptr->next = NULL;
+#ifdef FILE_DEBUG
+      player_debug_message("Position %ld for ts %llu %llu", 
+			   newptr->file_position,
+			   ret,
+			   m_frames);
+#endif
       if (m_file_pos_tail == NULL) {
 	// add at head
 	m_file_pos_tail = m_file_pos_head = newptr;
@@ -155,10 +172,59 @@ uint64_t COurInByteStreamFile::start_next_frame (void)
     }
   }
   m_frames++;
+  *buffer = m_buffer_on + m_index;
+  *buflen = m_buffer_size - m_index;
+#ifdef FILE_DEBUG
+  player_debug_message("Start frame %lld %d %d", m_total, m_index, *buflen);
+#endif
   return (ret);
 }
 
-void COurInByteStreamFile::read_frame (void)
+void COurInByteStreamFile::used_bytes_for_frame (uint32_t bytes)
+{
+  m_index += bytes;
+  m_total += bytes;
+#ifdef FILE_DEBUG
+  player_debug_message("used %d bytes - new index %d", bytes, m_index);
+#endif
+  if (m_index >= m_buffer_size) {
+    read_frame();
+  }
+}
+
+void COurInByteStreamFile::get_more_bytes (unsigned char **buffer,
+					   uint32_t *buflen,
+					   uint32_t used,
+					   int get)
+{
+  uint32_t diff;
+  m_index += used;
+  m_total += used;
+
+  diff = m_buffer_size - m_index; // contains # of bytes to save
+#ifdef FILE_DEBUG
+  player_debug_message("get_more - used %d index %d diff %d", 
+		       used, m_index, diff);
+#endif
+  if (diff > 0) {
+    memmove(m_buffer_on,
+	    m_buffer_on + m_index,
+	    diff);
+    m_index = diff;
+    read_frame(1);
+    if (m_buffer_size <= diff) 
+      throw THROW_PAST_EOF;
+  } else {
+    read_frame();
+    if (m_buffer_size == 0) {
+      throw THROW_PAST_EOF;
+    }
+  }
+  *buffer = m_buffer_on;
+  *buflen = m_buffer_size;
+}
+
+void COurInByteStreamFile::read_frame (int from_index)
 {
   if (m_bookmark) {
     if (m_bookmark_loaded) {
@@ -189,8 +255,27 @@ void COurInByteStreamFile::read_frame (void)
     m_index = 0;
     return;
   }
-  m_buffer_position = ftell(m_file);
-  m_buffer_size = fread(m_orig_buffer, 1, m_buffer_size_max, m_file);
+  if (from_index == 0) {
+    m_buffer_size = fread(m_orig_buffer, 1, m_buffer_size_max, m_file);
+#ifdef FILE_DEBUG
+    player_debug_message("read frame - position %ld bufsize %d", 
+			 m_buffer_position, m_buffer_size);
+#endif
+  } else {
+    m_buffer_position = ftell(m_file) - m_index;
+    m_buffer_size = fread(m_orig_buffer + m_index,
+			  1, 
+			  m_buffer_size_max - m_index,
+			  m_file);
+#ifdef FILE_DEBUG
+    player_debug_message("read frame - position %ld index %d bufsize %d", 
+			 m_buffer_position,
+			 m_index,
+			 m_buffer_size);
+#endif
+    if (m_buffer_size != 0) 
+      m_buffer_size += m_index;
+  }
   m_buffer_on = m_orig_buffer;
   m_index = 0;
 }

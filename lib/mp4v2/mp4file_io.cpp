@@ -33,7 +33,7 @@
 
 u_int64_t MP4File::GetPosition(FILE* pFile)
 {
-	if (m_writeBuffer == NULL) {
+	if (m_memoryBuffer == NULL) {
 		if (pFile == NULL) {
 			ASSERT(m_pFile);
 			pFile = m_pFile;
@@ -45,13 +45,13 @@ u_int64_t MP4File::GetPosition(FILE* pFile)
 		}
 		return FPOS_TO_UINT64(fpos);
 	} else {
-		return m_writeBufferSize;
+		return m_memoryBufferPosition;
 	}
 }
 
 void MP4File::SetPosition(u_int64_t pos, FILE* pFile)
 {
-	if (m_writeBuffer == NULL) {
+	if (m_memoryBuffer == NULL) {
 		if (pFile == NULL) {
 			ASSERT(m_pFile);
 			pFile = m_pFile;
@@ -63,7 +63,10 @@ void MP4File::SetPosition(u_int64_t pos, FILE* pFile)
 			throw new MP4Error(errno, "MP4SetPosition");
 		}
 	} else {
-		m_writeBufferSize = pos;
+		if (pos >= m_memoryBufferSize) {
+			throw new MP4Error("position out of range", "MP4SetPosition");
+		}
+		m_memoryBufferPosition = pos;
 	}
 }
 
@@ -91,18 +94,26 @@ u_int32_t MP4File::ReadBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
 	}
 	ASSERT(pFile);
 
-	u_int32_t rc;
-	rc = fread(pBytes, 1, numBytes, pFile);
-	if (rc != numBytes) {
-		if (feof(pFile)) {
-			throw new MP4Error(
-				"not enough bytes, reached end-of-file",
-				"MP4ReadBytes");
-		} else {
-			throw new MP4Error(errno, "MP4ReadBytes");
+	if (m_memoryBuffer == NULL) {
+		if (fread(pBytes, 1, numBytes, pFile) != numBytes) {
+			if (feof(pFile)) {
+				throw new MP4Error(
+					"not enough bytes, reached end-of-file",
+					"MP4ReadBytes");
+			} else {
+				throw new MP4Error(errno, "MP4ReadBytes");
+			}
 		}
+	} else {
+		if (m_memoryBufferPosition + numBytes > m_memoryBufferSize) {
+			throw new MP4Error(
+				"not enough bytes, reached end-of-memory",
+				"MP4ReadBytes");
+		}
+		memcpy(pBytes, &m_memoryBuffer[m_memoryBufferPosition], numBytes);
+		m_memoryBufferPosition += numBytes;
 	}
-	return rc;
+	return numBytes;
 }
 
 u_int32_t MP4File::PeekBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
@@ -113,23 +124,38 @@ u_int32_t MP4File::PeekBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
 	return numBytes;
 }
 
-void MP4File::EnableWriteBuffer() {
-	ASSERT(m_writeBuffer == NULL);
-	m_writeBufferSize = 0;
-	m_writeBufferMaxSize = 1024;
-	m_writeBuffer = (u_int8_t*)MP4Malloc(m_writeBufferMaxSize);
+void MP4File::EnableMemoryBuffer(u_int8_t* pBytes, u_int64_t numBytes) 
+{
+	ASSERT(m_memoryBuffer == NULL);
+
+	if (pBytes) {
+		m_memoryBuffer = pBytes;
+		m_memoryBufferSize = numBytes;
+	} else {
+		if (numBytes) {	
+			m_memoryBufferSize = numBytes;
+		} else {
+			m_memoryBufferSize = 1024;
+		}
+		m_memoryBuffer = (u_int8_t*)MP4Malloc(m_memoryBufferSize);
+	}
+	m_memoryBufferPosition = 0;
 }
 
-void MP4File::GetWriteBuffer(u_int8_t** ppBytes, u_int64_t* pNumBytes) {
-	*ppBytes = m_writeBuffer;
-	*pNumBytes = m_writeBufferSize;
-}
+void MP4File::DisableMemoryBuffer(u_int8_t** ppBytes, u_int64_t* pNumBytes) 
+{
+	ASSERT(m_memoryBuffer != NULL);
 
-void MP4File::DisableWriteBuffer() {
-	MP4Free(m_writeBuffer);
-	m_writeBuffer = NULL;
-	m_writeBufferSize = 0;
-	m_writeBufferMaxSize = 0;
+	if (ppBytes) {
+		*ppBytes = m_memoryBuffer;
+	}
+	if (pNumBytes) {
+		*pNumBytes = m_memoryBufferPosition;
+	}
+
+	m_memoryBuffer = NULL;
+	m_memoryBufferSize = 0;
+	m_memoryBufferPosition = 0;
 }
 
 void MP4File::WriteBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
@@ -146,19 +172,19 @@ void MP4File::WriteBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
 		pFile = m_pFile;
 	}
 
-	if (m_writeBuffer == NULL) {
+	if (m_memoryBuffer == NULL) {
 		u_int32_t rc = fwrite(pBytes, 1, numBytes, pFile);
 		if (rc != numBytes) {
 			throw new MP4Error(errno, "MP4WriteBytes");
 		}
 	} else {
-		if (numBytes + m_writeBufferSize > m_writeBufferMaxSize) {
-			m_writeBufferMaxSize = 2 * (numBytes + m_writeBufferSize);
-			m_writeBuffer = (u_int8_t*)
-				MP4Realloc(m_writeBuffer, m_writeBufferMaxSize);
+		if (m_memoryBufferPosition + numBytes > m_memoryBufferSize) {
+			m_memoryBufferSize = 2 * (m_memoryBufferSize + numBytes);
+			m_memoryBuffer = (u_int8_t*)
+				MP4Realloc(m_memoryBuffer, m_memoryBufferSize);
 		}
-		memcpy(&m_writeBuffer[m_writeBufferSize], pBytes, numBytes);
-		m_writeBufferSize += numBytes;
+		memcpy(&m_memoryBuffer[m_memoryBufferPosition], pBytes, numBytes);
+		m_memoryBufferPosition += numBytes;
 	}
 }
 

@@ -312,31 +312,33 @@ void MP4SLConfigDescriptor::Generate()
 	// by default all tracks in an mp4 file 
 	// use predefined SLConfig descriptor == 2
 	((MP4Integer8Property*)m_pProperties[0])->SetValue(2);
+
+	// which implies UseTimestampsFlag = 1
+	((MP4BitfieldProperty*)m_pProperties[6])->SetValue(1);
+
+	// reserved = 3
+	((MP4BitfieldProperty*)m_pProperties[18])->SetValue(3);
 }
 
 void MP4SLConfigDescriptor::Read(MP4File* pFile)
 {
 	ReadHeader(pFile);
 
-	/* read the first property, 'predefined' */
+	// read the first property, 'predefined'
 	ReadProperties(pFile, 0, 1);
 
-	/* if predefined == 0 */
+	// if predefined == 0
 	if (((MP4Integer8Property*)m_pProperties[0])->GetValue() == 0) {
 
 		/* read the next 18 properties */
 		ReadProperties(pFile, 1, 18);
-
-		/* which allows us to reconfigure ourselves */
-		Mutate();
-
-		/* and read the remaining properties */
-		ReadProperties(pFile, 19);
-
-	} else {
-		// everything else is implicit
-		Mutate();
 	}
+
+	// now mutate 
+	Mutate();
+
+	// and read the remaining properties
+	ReadProperties(pFile, 19);
 }
 
 void MP4SLConfigDescriptor::Mutate()
@@ -344,12 +346,27 @@ void MP4SLConfigDescriptor::Mutate()
 	u_int32_t i;
 	u_int8_t predefined = 
 		((MP4Integer8Property*)m_pProperties[0])->GetValue();
+
 	if (predefined) {
-		// everything else is implicit
+		// properties 1-18 are implicit
 		for (i = 1; i < m_pProperties.Size(); i++) {
 			m_pProperties[i]->SetImplicit(true);
 		}
-		return;
+
+		if (predefined == 1) {
+			// UseTimestampsFlag = 0
+			((MP4BitfieldProperty*)m_pProperties[6])->SetValue(0);
+
+			// TimestampResolution = 1000
+			((MP4Integer32Property*)m_pProperties[9])->SetValue(1000);
+
+			// TimeStampLength = 32
+			((MP4Integer8Property*)m_pProperties[11])->SetValue(32);
+
+		} else if (predefined == 2) {
+			// UseTimestampsFlag = 1
+			((MP4BitfieldProperty*)m_pProperties[6])->SetValue(1);
+		}
 	}
 
 	bool durationFlag = 
@@ -363,10 +380,10 @@ void MP4SLConfigDescriptor::Mutate()
 		((MP4BitfieldProperty*)m_pProperties[6])->GetValue();
 
 	for (i = 22; i <= 23; i++) {
-		m_pProperties[i]->SetImplicit(!useTimeStampsFlag);
+		m_pProperties[i]->SetImplicit(useTimeStampsFlag);
 
 		u_int8_t timeStampLength = MIN(64,
-			((MP4Integer8Property*)m_pProperties[10])->GetValue());
+			((MP4Integer8Property*)m_pProperties[11])->GetValue());
 
 		((MP4BitfieldProperty*)m_pProperties[i])->SetNumBits(timeStampLength);
 		

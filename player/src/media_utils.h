@@ -37,7 +37,7 @@ int lookup_video_codec_by_name(const char *name);
 
 CCodecBase *start_audio_codec(const char *codec_name,
 			      CAudioSync *audio_sync,
-			      CInByteStreamBase *pbytestream,
+			      COurInByteStream *pbytestream,
 			      format_list_t *media_fmt,
 			      audio_info_t *aud,
 			      const unsigned char *userdata,
@@ -45,7 +45,7 @@ CCodecBase *start_audio_codec(const char *codec_name,
 
 CCodecBase *start_video_codec(const char *codec_name,
 			      CVideoSync *video_sync,
-			      CInByteStreamBase *pbytestream,
+			      COurInByteStream *pbytestream,
 			      format_list_t *media_fmt,
 			      video_info_t *vid,
 			      const unsigned char *userdata,

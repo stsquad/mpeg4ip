@@ -42,7 +42,7 @@ RSC=rc.exe
 # ADD BASE RSC /l 0x809 /d "NDEBUG"
 # ADD RSC /l 0x809 /d "NDEBUG"
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /GB /MD /W3 /GX /O2 /Ob1 /D "_MBCS" /D "_LIB" /D "WIN32" /D "NDEBUG" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /D "_MBCS" /D "_LIB" /D "WIN32" /D "NDEBUG" /YX /FD /c
 # SUBTRACT CPP /Fr
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
@@ -84,6 +84,10 @@ LIB32=link.exe -lib
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+# Begin Source File
+
+SOURCE=.\bits.c
+# End Source File
 # Begin Source File
 
 SOURCE=.\block.c
@@ -140,10 +144,6 @@ SOURCE=.\monopred.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\mpeg4ip_bits.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\nok_lt_prediction.c
 # End Source File
 # Begin Source File
@@ -197,10 +197,6 @@ SOURCE=.\kbd_win.h
 # Begin Source File
 
 SOURCE=.\monopred.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\mpeg4ip_bits.h
 # End Source File
 # Begin Source File
 

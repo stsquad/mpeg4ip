@@ -467,7 +467,6 @@ static int getDCsizeChr(void)
 		flushbits(3);
 		return 3;
 	} 
-
 	return (3 - getbits(2));
 }
 

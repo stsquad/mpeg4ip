@@ -1,15 +1,11 @@
 
 API and INTERNALS documentation
 
----
-
-Write mp4broadcaster & RTP packet reader
-
-file URL support for data read
-
 Extended format support
 
 ---
+
+Means to dump all possible atoms/properties with types
 
 Wrap printf's for verbosity - see example is player/lib/http/http_util.c
 

@@ -265,6 +265,10 @@ SOURCE=.\tools\entropy\bitstrm.hpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\tools\entropy\bytestrm.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\tools\entropy\bytestrm.hpp
 # End Source File
 # Begin Source File

@@ -34,7 +34,7 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
 				MP4TrackId track,
 				const char *type,
 				int has_video)
-  : COurInByteStream()
+  : COurInByteStream(type)
 {
 #ifdef OUTPUT_TO_FILE
   char buffer[80];
@@ -49,7 +49,7 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
   m_eof = 0;
   MP4FileHandle fh = parent->get_file();
   m_frames_max = MP4GetTrackNumberOfSamples(fh, m_track);
-  m_max_frame_size = MP4GetTrackMaxSampleSize(fh, m_track);
+  m_max_frame_size = MP4GetTrackMaxSampleSize(fh, m_track) + 4;
   m_buffer = (u_int8_t *) malloc(m_max_frame_size * sizeof(u_int8_t));
   m_bookmark_buffer = (u_int8_t *)malloc(m_max_frame_size * sizeof(char));
   m_buffer_on = m_buffer;
@@ -180,6 +180,9 @@ const char *CMp4ByteStream::get_throw_error (int error)
 {
   if (error == THROW_MP4_END_OF_DATA)
     return "MP4 - end of data";
+  else if (error == THROW_MP4_END_OF_FRAME) 
+    return "MP4 - end of frame";
+
   mp4f_message(LOG_INFO, "MP4 - unknown throw error %d", error);
   return "Unknown error";
 }
@@ -204,7 +207,8 @@ void CMp4ByteStream::reset (void)
   set_timebase(1);
 }
 
-uint64_t CMp4ByteStream::start_next_frame (void)
+uint64_t CMp4ByteStream::start_next_frame (unsigned char **buffer, 
+					   uint32_t *buflen)
 {
 
   if (m_frame_on >= m_frames_max) {
@@ -214,16 +218,59 @@ uint64_t CMp4ByteStream::start_next_frame (void)
   read_frame(m_frame_on);
 
   m_frame_on++;
+  if (buffer != NULL) {
+    *buffer = m_buffer_on + m_byte_on;
+    *buflen = m_this_frame_size;
+  }
   return (m_frame_on_ts);
 }
 
-int CMp4ByteStream::skip_next_frame (uint64_t *pts, int *pSync)
+void CMp4ByteStream::used_bytes_for_frame (uint32_t bytes_used)
+{
+  m_byte_on += bytes_used;
+  m_total += bytes_used;
+  check_for_end_of_frame();
+}
+
+int CMp4ByteStream::skip_next_frame (uint64_t *pts, 
+				     int *pSync,
+				     unsigned char **buffer, 
+				     uint32_t *buflen)
 {
   uint64_t ts;
-  ts = start_next_frame();
+  ts = start_next_frame(buffer, buflen);
   *pts = ts;
   *pSync = m_frame_on_has_sync;
   return (1);
+}
+
+void CMp4ByteStream::get_more_bytes (unsigned char **buffer, 
+				     uint32_t *buflen, 
+				     uint32_t used,
+				     int get)
+{
+  if (get != 0)
+    throw THROW_MP4_END_OF_FRAME;
+  // otherwise, just throw a couple of bytes of NULL there...
+  uint32_t next_frame;
+  next_frame = m_frame_in_buffer + 1;
+  if (next_frame >= m_frames_max) {
+    throw THROW_MP4_END_OF_DATA;
+  }
+  uint32_t diff;
+  if (m_this_frame_size <= used) throw THROW_MP4_END_OF_FRAME;
+  diff = m_this_frame_size - used;
+  m_total += used;
+  if (diff > 0) {
+    memmove(m_buffer_on,
+	    m_buffer_on + used, 
+	    diff);
+  }
+  memset(m_buffer_on + diff, 8, 0);
+  m_byte_on = 0;
+  m_this_frame_size = diff;
+  *buffer = m_buffer_on;
+  *buflen = 8 + diff;
 }
 /*
  * read_frame for video - this will try to read the next frame - it
@@ -310,14 +357,15 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
     m_parent->unlock_file_mutex();
     return;
   }
+  *(uint32_t *)(m_buffer_on + m_this_frame_size) = 0; // add some 0's
 #ifdef OUTPUT_TO_FILE
   fwrite(m_buffer_on, m_this_frame_size, 1, m_output_file);
 #endif
 #ifdef DEBUG_MP4_FRAME
     mp4f_message(LOG_DEBUG, "reading into buffer %u %u", 
 		 frame_to_read, m_this_frame_size);
-    mp4f_message(LOG_DEBUG, "Sample time "LLU, sampleTime);
-    mp4f_message(LOG_DEBUG, "values %x %x %x %x", m_buffer_on[0], 
+    mp4f_message(LOG_DEBUG, "%s Sample time "LLU, m_name, sampleTime);
+    mp4f_message(LOG_DEBUG, "%s values %x %x %x %x", m_name, m_buffer_on[0], 
 		 m_buffer_on[1], m_buffer_on[2], m_buffer_on[3]);
 #endif
 

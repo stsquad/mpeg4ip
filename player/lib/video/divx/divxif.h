@@ -6,21 +6,23 @@ extern "C" {
   
 #include "global.h"
 
-void newdec_init(get_t get, bookmark_t book, void *userdata);
+  void newdec_init(get_more_t get, void *userdata);
 
-int newdec_read_volvop (void);
+int newdec_read_volvop (unsigned char *buffer, unsigned int buflen);
 
 void post_volprocessing(void);
 
 int newdec_frame(unsigned char *y,
 		 unsigned char *u,
 		 unsigned char *v,
-		 int wait_for_i);
+		 int wait_for_i,
+		 unsigned char *buffer,
+		 unsigned int buflen);
 
-int dec_init(const char *infilename, int hor_size, int ver_size,
-	     get_t get, bookmark_t book, void *ud);
+  int dec_init(const char *infilename, int hor_size, int ver_size);
 
 int dec_release(void);
+  int newget_bytes_used(void);
 #ifdef __cplusplus
 }
 #endif

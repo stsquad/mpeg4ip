@@ -27,7 +27,7 @@ u_int16_t Mp3GetHdrSamplingRate(u_int32_t hdr);
 u_int16_t Mp3GetHdrSamplingWindow(u_int32_t hdr);
 u_int16_t Mp3GetFrameSize(u_int32_t hdr);
 u_int16_t Mp3GetAduOffset(u_int8_t* pFrame, u_int32_t frameSize);
-u_int16_t Mp3GetSideInfoSize(u_int32_t hdr);
+u_int8_t Mp3GetSideInfoSize(u_int32_t hdr);
 u_int8_t Mp3ToMp4AudioType(u_int8_t mpegVersion);
 
 #endif /* __MP3_INCLUDED__ */

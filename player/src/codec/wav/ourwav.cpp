@@ -25,7 +25,7 @@
  * Create CAACodec class
  */
 CWavCodec::CWavCodec (CAudioSync *a, 
-		      CInByteStreamBase *pbytestrm,
+		      COurInByteStream *pbytestrm,
 		      format_list_t *media_fmt,
 		      audio_info_t *audio,
 		      const unsigned char *userdata,
@@ -60,7 +60,10 @@ void CWavCodec::do_pause (void)
 /*
  * Decode task call for FAAC
  */
-int CWavCodec::decode (uint64_t rtpts, int from_rtp)
+int CWavCodec::decode (uint64_t ts, 
+		       int from_rtp,
+		       unsigned char *buffer, 
+		       uint32_t buflen)
 {
   unsigned char *buff;
 	
@@ -76,27 +79,23 @@ int CWavCodec::decode (uint64_t rtpts, int from_rtp)
   bytes_to_copy = m_sdl_config->samples * 
     m_sdl_config->channels * 
     m_bytes_per_sample;
-  int past_end = 0;
-  try {
-    uint32_t ret;
-    ret = m_bytestream->read(buff, bytes_to_copy);
-    if (ret < bytes_to_copy) {
-      memset(&buff[ret], 0, bytes_to_copy - ret);
-    }
-  } catch (int err) {
-    //player_debug_message("Hit at end %d %d", ix, bytes_to_copy);
-    past_end = 1;
-  } catch (...) {
-    return (-1);
+  
+  uint32_t bytes;
+    
+  bytes = MIN(bytes_to_copy, buflen);
+  memcpy(buff, buffer, bytes);
+  if (bytes < bytes_to_copy) {
+    memset(&buff[bytes], 0, bytes_to_copy - bytes);
   }
+  m_bytestream->used_bytes_for_frame(bytes);
 
-  m_audio_sync->filled_audio_buffer(rtpts, 0);
+  m_audio_sync->filled_audio_buffer(ts, 0);
   return (0);
 }
 
-int CWavCodec::skip_frame (uint64_t ts)
+int CWavCodec::skip_frame (uint64_t ts, unsigned char *buffer, uint32_t buflen)
 {
-  return (decode(ts, 0));
+  return (decode(ts, 0, buffer, buflen));
 }
 /* end file ourwav.cpp */
 

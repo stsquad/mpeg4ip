@@ -1413,13 +1413,12 @@ extern "C" bool MP4ReadRtpHint(
 	MP4FileHandle hFile,
 	MP4TrackId hintTrackId,
 	MP4SampleId hintSampleId,
-	u_int16_t* pNumPackets,
-	bool* pIsBFrame)
+	u_int16_t* pNumPackets)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
 			((MP4File*)hFile)->ReadRtpHint(
-				hintTrackId, hintSampleId, pNumPackets, pIsBFrame);
+				hintTrackId, hintSampleId, pNumPackets);
 			return true;
 		}
 		catch (MP4Error* e) {
@@ -1446,13 +1445,15 @@ extern "C" u_int16_t MP4GetRtpHintNumberOfPackets(
 	return 0;
 }
 
-extern "C" int8_t MP4GetRtpHintBFrame(
+extern "C" int8_t MP4GetRtpPacketBFrame(
 	MP4FileHandle hFile,
-	MP4TrackId hintTrackId)
+	MP4TrackId hintTrackId,
+	u_int16_t packetIndex)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
-			return ((MP4File*)hFile)->GetRtpHintBFrame(hintTrackId);
+			return ((MP4File*)hFile)->
+				GetRtpPacketBFrame(hintTrackId, packetIndex);
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);
@@ -1496,6 +1497,41 @@ extern "C" bool MP4ReadRtpPacket(
 				hintTrackId, packetIndex, 
 				ppBytes, pNumBytes, 
 				ssrc, includeHeader, includePayload);
+			return true;
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return false;
+}
+
+extern "C" MP4Timestamp MP4GetRtpTimestampStart(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetRtpTimestampStart(hintTrackId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return MP4_INVALID_TIMESTAMP;
+}
+
+extern "C" bool MP4SetRtpTimestampStart(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	MP4Timestamp rtpStart)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->SetRtpTimestampStart(
+				hintTrackId, rtpStart);
 			return true;
 		}
 		catch (MP4Error* e) {

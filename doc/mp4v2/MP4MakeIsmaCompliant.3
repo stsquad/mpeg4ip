@@ -8,15 +8,19 @@
 .LP 
 bool \fBMP4MakeIsmaCompliant\fR(
 .br 
-        MP4FileHandle \fIhFile\fP
+	const char* \fIfileName\fP, 
+.br 
+	u_int32_t \fIverbosity\fP = 0
 .br 
 )
 .SH "ARGUMENTS"
 .LP 
 .TP 
-\fIhFile\fP
-Specifies the mp4 file to which the operation applies. 
-
+\fIfileName\fP
+Specifies the path name of the file to be modified.
+.TP 
+\fIverbosity\fP
+Specifies a bitmask of diagnostic details the library should print to stdout during its functioning. See MP4SetVerbosity() for values.
 .SH "RETURN VALUES"
 .LP 
 Upon success, true (1). Upon an error, false (0).

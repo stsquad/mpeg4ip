@@ -53,10 +53,10 @@ int get_adts_header(faacDecHandle hDecoder)
 	if (sync != 4096 - 1)
 		return -1;
 #else
-	sync = showbits(&hDecoder->ld, 12);
+	sync = faad_showbits(&hDecoder->ld, 12);
 	if (sync != 4096 - 1) {
 	  printf("sync - got %x\n", sync);
-	  flushbits(&hDecoder->ld, 8);
+	  faad_flushbits(&hDecoder->ld, 8);
 	  return -1;
 	}
 	faad_flushbits(&hDecoder->ld, 12);

@@ -29,13 +29,15 @@
 #define __OUR_BYTESTREAM_H__ 1
 #include <assert.h>
 #include "systems.h"
-#include <tools/entropy/bytestrm.hpp>
 #include "codec/codec.h"
 
-class COurInByteStream : public CInByteStreamBase
+class COurInByteStream
 {
  public:
-  COurInByteStream() : CInByteStreamBase() {};
+  COurInByteStream() {};
+  COurInByteStream(const char *name) {
+    m_name = name;
+  };
   virtual ~COurInByteStream() {};
   virtual int eof(void) = 0;
   virtual unsigned char get(void) = 0;
@@ -43,9 +45,14 @@ class COurInByteStream : public CInByteStreamBase
   virtual void bookmark(int bSet) = 0;
   virtual void reset(void) = 0;
   virtual int have_no_data (void) {return 0; };
-  virtual uint64_t start_next_frame (void) = 0;
+  virtual uint64_t start_next_frame (unsigned char **buffer, uint32_t *buflen) = 0;
+  virtual void used_bytes_for_frame(uint32_t bytes) { };
+  virtual void get_more_bytes (unsigned char **buffer,
+			       uint32_t *buflen,
+			       uint32_t used,
+			       int get) = 0;
   virtual int can_skip_frame (void) { return 0; };
-  virtual int skip_next_frame (uint64_t *ts, int *hasSyncFrame) { assert(FALSE);return 0; };
+  virtual int skip_next_frame (uint64_t *ts, int *hasSyncFrame, unsigned char **buffer, uint32_t *buflen) { assert(FALSE);return 0; };
   virtual double get_max_playtime (void) = 0;
   virtual void set_start_time(uint64_t start) { m_play_start_time = start; };
   virtual ssize_t read(unsigned char *buffer, size_t bytes) = 0;
@@ -58,5 +65,8 @@ class COurInByteStream : public CInByteStreamBase
  protected:
   uint64_t m_play_start_time;
   CCodecBase *m_codec;
+  const char *m_name;
 };
+
 #endif
+

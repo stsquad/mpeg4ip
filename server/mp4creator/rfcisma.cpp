@@ -25,12 +25,21 @@
  */
 
 #include <mp4creator.h>
+#include <hinters.h>
 
-static void WriteHint(
-	MP4FileHandle mp4File, MP4TrackId mediaTrackId, MP4TrackId hintTrackId,
-	u_int8_t samplesThisHint, MP4SampleId* pSampleIds, 
+void RfcIsmaConcatenator(
+	MP4FileHandle mp4File, 
+	MP4TrackId mediaTrackId, 
+	MP4TrackId hintTrackId,
+	u_int8_t samplesThisHint, 
+	MP4SampleId* pSampleIds, 
 	MP4Duration hintDuration)
 {
+	// handle degenerate case
+	if (samplesThisHint == 0) {
+		return;
+	}
+
 	// construct the new hint
 	MP4AddRtpHint(mp4File, hintTrackId);
 	MP4AddRtpPacket(mp4File, hintTrackId, true);
@@ -78,9 +87,13 @@ static void WriteHint(
 	MP4WriteRtpHint(mp4File, hintTrackId, hintDuration);
 }
 
-static void WriteJumboHint(
-	MP4FileHandle mp4File, MP4TrackId hintTrackId,
-	MP4SampleId sampleId, u_int32_t sampleSize, MP4Duration sampleDuration)
+void RfcIsmaFragmenter(
+	MP4FileHandle mp4File, 
+	MP4TrackId mediaTrackId, 
+	MP4TrackId hintTrackId,
+	MP4SampleId sampleId, 
+	u_int32_t sampleSize, 
+	MP4Duration sampleDuration)
 {
 	MP4AddRtpHint(mp4File, hintTrackId);
 
@@ -116,112 +129,6 @@ static void WriteJumboHint(
 	} while (sampleOffset < sampleSize);
 
 	MP4WriteRtpHint(mp4File, hintTrackId, sampleDuration);
-}
-
-static void ConsecutiveHinter( 
-	MP4FileHandle mp4File, MP4TrackId mediaTrackId, MP4TrackId hintTrackId,
-	MP4Duration sampleDuration, u_int8_t maxSamplesPerPacket)
-{
-	u_int32_t numSamples = 
-		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
-
-	u_int16_t bytesThisHint = 2;
-	u_int16_t samplesThisHint = 0;
-	MP4SampleId* pSampleIds = 
-		new MP4SampleId[maxSamplesPerPacket];
-
-	for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
-		u_int32_t sampleSize = 
-			MP4GetSampleSize(mp4File, mediaTrackId, sampleId);
-
-		// sample won't fit in this packet
-		// or we've reached the limit on samples per packet
-		if (sampleSize + 2 > MaxPayloadSize - bytesThisHint ||
-		  samplesThisHint == maxSamplesPerPacket) {
-
-			WriteHint(mp4File, mediaTrackId, hintTrackId,
-				samplesThisHint, pSampleIds,
-				samplesThisHint * sampleDuration);
-
-			// start a new hint 
-			samplesThisHint = 0;
-			bytesThisHint = 2;
-
-			// fall thru
-		}
-
-		// sample is less than remaining payload size
-		if (sampleSize + 2 <= MaxPayloadSize - bytesThisHint) {
-			// add it to this hint
-			bytesThisHint += (sampleSize + 2);
-			pSampleIds[samplesThisHint++] = sampleId;
-
-		} else { 
-			// jumbo frame, need to fragment it
-			WriteJumboHint(mp4File, hintTrackId,
-				sampleId, sampleSize, sampleDuration);
-
-			// start a new hint 
-			samplesThisHint = 0;
-			bytesThisHint = 2;
-		}
-	}
-
-	delete [] pSampleIds;
-}
-
-static void InterleaveHinter( 
-	MP4FileHandle mp4File, MP4TrackId mediaTrackId, MP4TrackId hintTrackId,
-	MP4Duration sampleDuration, u_int8_t stride, u_int8_t bundle)
-{
-	u_int32_t numSamples = 
-		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
-
-	MP4SampleId* pSampleIds = new MP4SampleId[bundle];
-
-	for (u_int32_t i = 1; i <= numSamples; i += stride * bundle) {
-		for (u_int32_t j = 0; j < stride; j++) {
-			u_int32_t k;
-			for (k = 0; k < bundle; k++) {
-
-				MP4SampleId sampleId = i + j + (k * stride);
-
-				// out of samples for this bundle
-				if (sampleId > numSamples) {
-					break;
-				}
-
-				// add sample to this hint
-				pSampleIds[k] = sampleId;
-			}
-
-			if (k == 0) {
-				break;
-			}
-
-			// compute hint duration
-			// note this is used to control the RTP timestamps 
-			// that are emitted for the packet,
-			// it isn't the actual duration of the samples in the packet
-			MP4Duration hintDuration;
-			if (j + 1 == stride) {
-				// at the end of the track
-				if (i + (stride * bundle) > numSamples) {
-					hintDuration = ((numSamples - i) - j) * sampleDuration;
-				} else {
-					hintDuration = ((stride * bundle) - j) * sampleDuration;
-				}
-			} else {
-				hintDuration = sampleDuration;
-			}
-
-			// write hint
-			WriteHint(mp4File, mediaTrackId, hintTrackId,
-				k, pSampleIds, hintDuration);
-		}
-	}
-
-	delete [] pSampleIds;
 }
 
 void RfcIsmaHinter(
@@ -290,14 +197,27 @@ void RfcIsmaHinter(
 	if (interleave) {
 		u_int32_t samplesPerGroup = maxLatency / sampleDuration;
 
-		InterleaveHinter(mp4File, mediaTrackId, hintTrackId,
+		AudioInterleaveHinter(
+			mp4File, 
+			mediaTrackId, 
+			hintTrackId,
 			sampleDuration, 
 			samplesPerGroup / samplesPerPacket,		// stride
-			samplesPerPacket);						// bundle
+			samplesPerPacket,						// bundle
+			RfcIsmaConcatenator);
+
 	} else {
-		ConsecutiveHinter(mp4File, mediaTrackId, hintTrackId,
+		AudioConsecutiveHinter(
+			mp4File, 
+			mediaTrackId, 
+			hintTrackId,
 			sampleDuration, 
-			maxLatency / sampleDuration);			// maxSamplesPerPacket
+			2,										// perPacketHeaderSize
+			2,										// perSampleHeaderSize
+			maxLatency / sampleDuration,			// maxSamplesPerPacket
+			MP4GetSampleSize,
+			RfcIsmaConcatenator,
+			RfcIsmaFragmenter);
 	}
 }
 

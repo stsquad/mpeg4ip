@@ -36,6 +36,7 @@
 
 static int session_paused;
 static int screen_size = 2;
+static int fullscreen = 0;
 
 int process_sdl_key_events (CPlayerSession *psptr,
 		 				   sdl_event_msg_t *msg)
@@ -118,18 +119,25 @@ int process_sdl_key_events (CPlayerSession *psptr,
     }
     break;
   case SDLK_PAGEUP:
-    if (screen_size < 4) {
+    if (screen_size < 4 && fullscreen == 0) {
       screen_size *= 2;
       psptr->set_screen_size(screen_size);
     }
     break;
   case SDLK_PAGEDOWN:
-    if (screen_size > 1) {
+    if (screen_size > 1 && fullscreen == 0) {
       screen_size /= 2;
       psptr->set_screen_size(screen_size);
     }
     break;
-    
+  case SDLK_RETURN:
+    if ((msg->sym & (KMOD_LALT | KMOD_RALT)) != 0) {
+		fullscreen = 1;
+	}
+	break;
+  case SDLK_ESCAPE:
+	  fullscreen = 0;
+	  break;
   default:
     break;
   }

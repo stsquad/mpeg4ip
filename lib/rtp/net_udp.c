@@ -155,10 +155,13 @@ socket_error(const char *msg, ...)
 	va_end(ap);
 	printf("ERROR: %s, (%d - %s)\n", msg, e, ws_errs[i].errname);
 #else
+	uint32_t retlen;
 	va_start(ap, msg);
-	vsnprintf(buffer, blen, msg, ap);
+	retlen = vsnprintf(buffer, blen, msg, ap);
 	va_end(ap);
-	perror(buffer);
+	blen -= retlen;
+	snprintf(buffer + retlen, blen, ":%s", strerror(errno));
+	rtp_message(LOG_ALERT, buffer);
 #endif
 }
 
@@ -307,7 +310,7 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 	s_in.sin_addr.s_addr = INADDR_ANY;
 	s_in.sin_port        = htons(rx_port);
 	if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
-		socket_error("bind");
+		socket_error("bind: port %d", rx_port);
 		return NULL;
 	}
 	if (IN_MULTICAST(ntohl(s->addr4.s_addr))) {

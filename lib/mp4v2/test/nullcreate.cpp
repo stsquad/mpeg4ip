@@ -63,12 +63,12 @@ main(int argc, char** argv)
 	MP4TrackId audioHintTrackId = 
 		MP4AddHintTrack(mp4File, audioTrackId);
 
-	MP4MakeIsmaCompliant(mp4File);
-
 	printf("Added tracks\n");
 	MP4Dump(mp4File);
 
 	MP4Close(mp4File);
+
+	MP4MakeIsmaCompliant(argv[1], verbosity);
 
 	exit(0);
 }

@@ -40,7 +40,7 @@ CPP=cl.exe
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_DECORE" /D "MPEG4IP" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_DECORE" /D "MPEG4IP" /D "POSTPROCESS" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -87,6 +87,10 @@ SOURCE=.\basic_prediction.h
 # Begin Source File
 
 SOURCE=.\divxif.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\getbits.c
 # End Source File
 # Begin Source File
 
@@ -155,10 +159,6 @@ SOURCE=.\mp4_vld.c
 # Begin Source File
 
 SOURCE=.\mp4_vld.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\newgetbits.c
 # End Source File
 # Begin Source File
 

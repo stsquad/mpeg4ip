@@ -104,6 +104,27 @@ bool MP4NameFirstIndex(const char* s, u_int32_t* pIndex)
 	return false;
 }
 
+char* MP4NameFirst(const char *s)
+{
+	if (s == NULL) {
+		return NULL;
+	}
+
+	const char* end = s;
+
+	while (*end != '\0' && *end != '.') {
+		end++;
+	}
+
+	char* first = (char*)MP4Calloc((end - s) + 1);
+
+	if (first) {
+		strncpy(first, s, end - s);
+	}
+
+	return first;
+}
+
 const char* MP4NameAfterFirst(const char *s)
 {
 	if (s == NULL) {

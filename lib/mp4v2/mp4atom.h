@@ -89,7 +89,7 @@ public:
 	};
 	void SetType(const char* type) {
 		if (type) {
-			WARNING(strlen(type) != 4);
+			ASSERT(strlen(type) == 4);
 			memcpy(m_type, type, 4);
 			m_type[4] = '\0';
 		} else {
@@ -157,6 +157,8 @@ public:
 
 	MP4Atom* FindAtom(const char* name);
 
+	MP4Atom* FindChildAtom(const char* name);
+
 	bool FindProperty(const char* name, 
 		MP4Property** ppProperty, u_int32_t* pIndex = NULL);
 
@@ -187,8 +189,6 @@ protected:
 	MP4AtomInfo* FindAtomInfo(const char* name);
 
 	bool IsMe(const char* name);
-
-	MP4Atom* FindChildAtom(const char* name);
 
 	bool FindContainedProperty(const char* name, 
 		MP4Property** ppProperty, u_int32_t* pIndex);

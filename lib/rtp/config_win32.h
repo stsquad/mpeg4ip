@@ -3,8 +3,8 @@
  *
  *  Windows specific definitions and includes.
  *  
- *  $Revision: 1.4 $
- *  $Date: 2001/11/15 18:43:47 $
+ *  $Revision: 1.5 $
+ *  $Date: 2001/12/11 18:12:04 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -180,8 +180,6 @@ extern "C" {
 
 int uname(struct utsname *);
 int getopt(int, char * const *, const char *);
-int srandom(int);
-int random(void);
 int gethostid(void);
 int getuid(void);
 int getgid(void);

@@ -1,11 +1,14 @@
-Version 0.9.?
-
+12/??/01 Version 0.9.2
     Added VC 6.0 projects for windows
     Upgraded to SDL version 1.2.3
     Added shortcut keys for mp4player video window
     Enhanced player debug reporting
     Added RTP debugging messages in player format.
     Disable player sending RTCP when b=RR:0 is set in SDP
+	Added man pages for mp4v2 library API
+	Added hint track reading utlities to mp4v2 library
+	Fixed bugs in SDP version of IOD
+    Enhanced player decode performance for all but ISO codec.
 
 11/7/01 Version 0.9.1
 	Command line encoding tools now build and run on Windows

@@ -264,14 +264,14 @@ public: /* equivalent to MP4 library API */
 	void ReadRtpHint(
 		MP4TrackId hintTrackId,
 		MP4SampleId hintSampleId,
-		u_int16_t* pNumPackets = NULL,
-		bool* pIsBFrame = NULL);
+		u_int16_t* pNumPackets = NULL);
 
 	u_int16_t GetRtpHintNumberOfPackets(
 		MP4TrackId hintTrackId);
 
-	int8_t GetRtpHintBFrame(
-		MP4TrackId hintTrackId);
+	int8_t GetRtpPacketBFrame(
+		MP4TrackId hintTrackId,
+		u_int16_t packetIndex);
 
 	int32_t GetRtpPacketTransmitOffset(
 		MP4TrackId hintTrackId,
@@ -285,6 +285,13 @@ public: /* equivalent to MP4 library API */
 		u_int32_t ssrc = 0,
 		bool includeHeader = true,
 		bool includePayload = true);
+
+	MP4Timestamp GetRtpTimestampStart(
+		MP4TrackId hintTrackId);
+
+	void SetRtpTimestampStart(
+		MP4TrackId hintTrackId,
+		MP4Timestamp rtpStart);
 
 	void AddRtpHint(
 		MP4TrackId hintTrackId,
@@ -347,14 +354,6 @@ public: /* equivalent to MP4 library API */
 	u_int32_t PeekBytes(
 		u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile = NULL);
 
-	char GetMode() {
-		return m_mode;
-	}
-
-	void EnableWriteBuffer();
-	void GetWriteBuffer(u_int8_t** ppBytes, u_int64_t* pNumBytes);
-	void DisableWriteBuffer();
-
 	void WriteBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile = NULL);
 	void WriteUInt(u_int64_t value, u_int8_t size);
 	void WriteUInt8(u_int8_t value);
@@ -373,9 +372,46 @@ public: /* equivalent to MP4 library API */
 	void FlushWriteBits();
 	void WriteMpegLength(u_int32_t value, bool compact = false);
 
+	void EnableMemoryBuffer(
+		u_int8_t* pBytes = NULL, u_int64_t numBytes = 0);
+	void DisableMemoryBuffer(
+		u_int8_t** ppBytes = NULL, u_int64_t* pNumBytes = NULL);
+
+	char GetMode() {
+		return m_mode;
+	}
+
 	MP4Track* GetTrack(MP4TrackId trackId);
 
 	MP4Duration UpdateDuration(MP4Duration duration);
+
+	MP4Atom* FindAtom(const char* name);
+
+	MP4Atom* AddChildAtom(
+		const char* parentName, 
+		const char* childName);
+
+	MP4Atom* AddChildAtom(
+		MP4Atom* pParentAtom, 
+		const char* childName);
+
+	MP4Atom* InsertChildAtom(
+		const char* parentName, 
+		const char* childName, 
+		u_int32_t index);
+
+	MP4Atom* InsertChildAtom(
+		MP4Atom* pParentAtom, 
+		const char* childName, 
+		u_int32_t index);
+
+	MP4Atom* AddDescendantAtoms(
+		const char* ancestorName, 
+		const char* childName);
+
+	MP4Atom* AddDescendantAtoms(
+		MP4Atom* pAncestorAtom,
+		const char* childName);
 
 protected:
 	void Open(const char* fmode);
@@ -387,16 +423,6 @@ protected:
 	void RewriteMdat(FILE* pReadFile, FILE* pWriteFile);
 
 	void ProtectWriteOperation(char* where);
-
-	MP4Atom* FindAtom(const char* name);
-
-	MP4Atom* AddAtom(const char* parentName, const char* childName);
-	MP4Atom* AddAtom(MP4Atom* pParentAtom, const char* childName);
-
-	MP4Atom* InsertAtom(const char* parentName, const char* childName, 
-		u_int32_t index);
-	MP4Atom* InsertAtom(MP4Atom* pParentAtom, const char* childName, 
-		u_int32_t index);
 
 	void FindIntegerProperty(const char* name, 
 		MP4Property** ppProperty, u_int32_t* pIndex = NULL);
@@ -467,10 +493,10 @@ protected:
 	MP4Integer32Property*	m_pTimeScaleProperty;
 	MP4IntegerProperty*		m_pDurationProperty;
 
-	// write buffering
-	u_int8_t*	m_writeBuffer;
-	u_int64_t	m_writeBufferSize;
-	u_int64_t	m_writeBufferMaxSize;
+	// read/write in memory
+	u_int8_t*	m_memoryBuffer;
+	u_int64_t	m_memoryBufferPosition;
+	u_int64_t	m_memoryBufferSize;
 
 	// bit read/write buffering
 	u_int8_t	m_numReadBits;

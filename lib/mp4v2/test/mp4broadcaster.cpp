@@ -38,7 +38,10 @@ static u_int64_t GetUsecTime();
 
 // globals
 char* ProgName;
-u_int16_t UdpBasePort = 6970;
+u_int16_t UdpBasePort = 20000;
+u_int32_t MulticastTtl = 2;	// increase value if necessary
+
+const u_int32_t SecsBetween1900And1970 = 2208988800U;
 
 
 // the main show
@@ -57,7 +60,9 @@ int main(int argc, char** argv)
 	}
 
 	char* mp4FileName = argv[1];
-	u_int32_t verbosity = MP4_DETAILS_ERROR;
+	u_int32_t verbosity = 
+		MP4_DETAILS_ERROR | MP4_DETAILS_READ 
+		| MP4_DETAILS_SAMPLE | MP4_DETAILS_HINT;
 
 	// open the mp4 file
 	MP4FileHandle mp4File = MP4Read(mp4FileName, verbosity);
@@ -80,8 +85,9 @@ int main(int argc, char** argv)
 	// assemble and write out sdp file
 	AssembleSdp(mp4File, sdpFileName, destIpAddress);
 
-	// create a UDP socket for each track that will be streamed
-	int* udpSockets = new int[numHintTracks]; 
+	// create two UDP sockets for each track that will be streamed
+	// one for the RTP media, one for the RTCP control
+	int* udpSockets = new int[numHintTracks * 2]; 
 
 	if (!InitSockets(numHintTracks, udpSockets, destIpAddress)) {
 		fprintf(stderr, "%s: Couldn't create UDP sockets\n",
@@ -89,11 +95,48 @@ int main(int argc, char** argv)
 		exit(3);
 	}
 
+	// initialize RTCP packet
+	u_int32_t ssrc = random();
+	char rtcpCName[256]; 
+	char* username = getlogin();
+	char hostname[256];
+	gethostname(hostname, sizeof(hostname));
+	snprintf(rtcpCName, sizeof(rtcpCName), "%s@%s", username, hostname);
+
+	u_int8_t rtcpPacket[512];
+	u_int16_t rtcpPacketLength = 38;
+
+	// RTCP SR
+	rtcpPacket[0] = 0x80;
+	rtcpPacket[1] = 0xC8;
+	rtcpPacket[2] = 0x00;
+	rtcpPacket[3] = 0x06;
+	*(u_int32_t*)&rtcpPacket[4] = htonl(ssrc);
+
+	// RTCP SDES CNAME
+	rtcpPacket[28] = 0x80;
+	rtcpPacket[29] = 0xCA;
+	*(u_int32_t*)&rtcpPacket[32] = htonl(ssrc);
+
+	rtcpPacket[36] = 0x01;
+	rtcpPacket[37] = strlen(rtcpCName);
+	strcpy((char*)&rtcpPacket[38], rtcpCName);
+	rtcpPacketLength += strlen(rtcpCName) + 1;
+
+	// pad with zero's to 32 bit boundary
+	while (rtcpPacketLength % 4 != 0) {
+		rtcpPacket[rtcpPacketLength++] = 0; 
+	}
+
+	*(u_int16_t*)&rtcpPacket[30] = ntohs((rtcpPacketLength - 32) / 4);
+
 	// initialize per track variables that we will use in main loop
 	MP4TrackId* hintTrackIds = new MP4TrackId[numHintTracks]; 
 	MP4SampleId* nextHintIds = new MP4SampleId[numHintTracks]; 
 	MP4SampleId* maxHintIds = new MP4SampleId[numHintTracks]; 
 	u_int64_t* nextHintTimes = new MP4Timestamp[numHintTracks];
+	u_int32_t* packetsSent = new u_int32_t[numHintTracks];
+	u_int32_t* bytesSent = new u_int32_t[numHintTracks];
 
 	u_int32_t i;
 
@@ -102,15 +145,15 @@ int main(int argc, char** argv)
 		nextHintIds[i] = 1;
 		maxHintIds[i] = MP4GetTrackNumberOfSamples(mp4File, hintTrackIds[i]);
 		nextHintTimes[i] = (u_int64_t)-1;
+		packetsSent[i] = 0;
+		bytesSent[i] = 0;
 	}
 
 	// remember the starting time
 	u_int64_t start = GetUsecTime();
-	u_int32_t ssrc = random();
+	u_int64_t lastSR = 0;
 
 	// main loop to stream data
-	// note: a real application would also need to periodically
-	// send RTCP SR (sender reports) to the udp port + 1
 	while (true) {
 		u_int32_t nextTrackIndex = (u_int32_t)-1;
 		u_int64_t nextTime = (u_int64_t)-1;
@@ -157,6 +200,46 @@ int main(int argc, char** argv)
 			usleep(waitTime);
 		}
 
+		now = GetUsecTime();
+
+		// emit RTCP Sender Reports every 5 seconds for all media streams
+		// not quite what a real app would do, but close enough for testing
+		if (now - lastSR >= 5000000) {
+			for (i = 0; i < numHintTracks; i++) {
+				now = GetUsecTime();
+
+				u_int32_t ntpSecs =
+					(now / MP4_USECS_TIME_SCALE) + SecsBetween1900And1970;
+				*(u_int32_t*)&rtcpPacket[8] = 
+					htonl(ntpSecs);
+
+				u_int32_t usecs = now % MP4_USECS_TIME_SCALE;
+				u_int32_t ntpUSecs =
+					(usecs << 12) + (usecs << 8) - ((usecs * 3650) >> 6); 
+				*(u_int32_t*)&rtcpPacket[12] = 
+					htonl(ntpUSecs);
+
+				MP4Timestamp rtpStart =
+					MP4GetRtpTimestampStart(mp4File, hintTrackIds[i]);
+
+				MP4Timestamp rtpOffset =
+					MP4ConvertToTrackTimestamp(mp4File, hintTrackIds[i],
+						now - start, MP4_USECS_TIME_SCALE);
+
+				*(u_int32_t*)&rtcpPacket[16] =
+					 htonl(rtpStart + rtpOffset); 
+
+				*(u_int32_t*)&rtcpPacket[20] =
+					htonl(packetsSent[i]);
+				*(u_int32_t*)&rtcpPacket[24] =
+					htonl(bytesSent[i]);
+
+				send(udpSockets[i * 2 + 1], rtcpPacket, rtcpPacketLength, 0);
+			}
+
+			lastSR = now;
+		}
+
 		// send all the packets for this hint
 		// since this is just a test program 
 		// we don't attempt to smooth out the transmission of the packets
@@ -168,6 +251,10 @@ int main(int argc, char** argv)
 			hintTrackIds[nextTrackIndex], 
 			nextHintIds[nextTrackIndex],
 			&numPackets);
+
+		// move along in this hint track
+		nextHintIds[nextTrackIndex]++;
+		nextHintTimes[nextTrackIndex] = (u_int64_t)-1; 
 
 		u_int16_t packetIndex;
 
@@ -190,11 +277,15 @@ int main(int argc, char** argv)
 			}
 
 			// send it out via UDP
-			send(udpSockets[nextTrackIndex], pPacket, packetSize, 0);
+			send(udpSockets[nextTrackIndex * 2], pPacket, packetSize, 0);
 
 			// free packet buffer
 			free(pPacket);
+
+			bytesSent[nextTrackIndex] += packetSize - 12;
 		}
+
+		packetsSent[nextTrackIndex] += numPackets;
 	}
 
 	// main loop finished
@@ -212,6 +303,8 @@ int main(int argc, char** argv)
 	delete [] nextHintIds;
 	delete [] maxHintIds;
 	delete [] nextHintTimes;
+	delete [] packetsSent;
+	delete [] bytesSent;
 
 	exit(0);
 }
@@ -237,9 +330,10 @@ static bool AssembleSdp(
 		"o=- 1 1 IN IP4 127.0.0.1\015\012"
 		"s=mp4broadcaster\015\012"
 		"e=NONE\015\012"
-		"c=IN IP4 %s/1"
+		"c=IN IP4 %s/%u\015\012"
 		"b=RR:0\015\012",
-		destIpAddress);
+		destIpAddress,
+		MulticastTtl);
 
 	// add session level info from mp4 file
 	fprintf(sdpFile, "%s", 
@@ -267,7 +361,7 @@ static bool AssembleSdp(
 		if (portZero == NULL) {
 			continue;	// mal-formed sdp
 		}
-		fprintf(sdpFile, "%*s%u%s",
+		fprintf(sdpFile, "%.*s%u%s",
 			portZero - mediaSdp,
 			mediaSdp,
 			UdpBasePort + (i * 2),
@@ -280,20 +374,32 @@ static bool AssembleSdp(
 }
 
 static bool InitSockets(
-	u_int32_t numSockets, 
+	u_int32_t numSocketPairs, 
 	int* pSockets, 
 	const char* destIpAddress)
 {
 	u_int32_t i;
 
 
-	for (i = 0; i < numSockets; i++) {
+	for (i = 0; i < numSocketPairs * 2; i++) {
+		// create the socket
 		pSockets[i] = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
 		if (pSockets[i] < 0) {
 			return false;
 		}
 
+		// allow local listeners to multicast
+		int reuse = 1;
+		setsockopt(pSockets[i], SOL_SOCKET, SO_REUSEADDR,
+			&reuse, sizeof(reuse));
+#ifdef SO_REUSEPORT
+		// not all implementations have this option
+		setsockopt(pSockets[i], SOL_SOCKET, SO_REUSEPORT,
+			&reuse, sizeof(reuse));
+#endif
+
+		// get a local source address
 		struct sockaddr_in sin;
 		sin.sin_family = AF_INET;
 		sin.sin_port = 0;
@@ -303,14 +409,17 @@ static bool InitSockets(
 			return false;
 		}
 
-		sin.sin_port = UdpBasePort + (i * 2);
+		// bind to the destination address
+		sin.sin_port = htons(UdpBasePort + i);
 		inet_aton(destIpAddress, &sin.sin_addr);
 
 		if (connect(pSockets[i], (struct sockaddr*)&sin, sizeof(sin)) < 0) {
 			return false;
 		}
 
-		// Note real application would set multicast ttl here
+		// set the multicast time to live
+		setsockopt(pSockets[i], IPPROTO_IP, IP_MULTICAST_TTL,
+			&MulticastTtl, sizeof(MulticastTtl));
 	}
 
 	return true;
@@ -323,3 +432,4 @@ static u_int64_t GetUsecTime()
 	gettimeofday(&tv, NULL);
 	return (tv.tv_sec * 1000000) + tv.tv_usec;
 }
+

@@ -28,7 +28,13 @@
 #include "mp3.h"
 #include "mp3_file.h"
 #include "player_util.h"
-
+static void c_get_more (void *ud, unsigned char **buffer, 
+			uint32_t *buflen, uint32_t used)
+{
+  COurInByteStream *bs = (COurInByteStream *)ud;
+  bs->get_more_bytes(buffer, buflen, used, 0);
+}
+#if 0
 static unsigned char c_read_byte (void *userdata)
 {
   COurInByteStreamFile *fd = (COurInByteStreamFile *)userdata;
@@ -40,7 +46,7 @@ static uint32_t c_read_bytes (unsigned char *b, uint32_t bytes, void *userdata)
   COurInByteStreamFile *fd = (COurInByteStreamFile *)userdata;
   return (fd->read(b, bytes));
 }
-
+#endif
 
 // from mplib-0.6
 #define GLL 148
@@ -135,7 +141,7 @@ int create_media_for_mp3_file (CPlayerSession *psptr,
 {
   CPlayerMedia *mptr;
   COurInByteStreamFile *fbyte;
-  int freq = 0, samplesperframe;
+  int freq = 0, samplesperframe = 0;
   int ret;
 
   psptr->session_set_seekable(1);
@@ -147,47 +153,58 @@ int create_media_for_mp3_file (CPlayerSession *psptr,
 
   fbyte = new COurInByteStreamFile(name);
 
-  MPEGaudio *mp3 = new MPEGaudio(c_read_byte, c_read_bytes, fbyte);
-  try {
-    while (mp3->loadheader() == FALSE);
-  } catch (int err) {
-    *errmsg = "Couldn't read MP3 header";
-    delete mp3;
-    delete mptr;
-    return (-1);
-  }
+  MPEGaudio *mp3 = new MPEGaudio(c_get_more, fbyte);
 
-  freq = mp3->getfrequency();
-  samplesperframe = 32;
-  if (mp3->getlayer() == 3) {
-    samplesperframe *= 18;
-    if (mp3->getversion() == 0) {
-      samplesperframe *= 2;
-    }
-  } else {
-    samplesperframe *= SCALEBLOCK;
-    if (mp3->getlayer() == 2) {
-      samplesperframe *= 3;
-    }
-  }
-  // Get the number of frames in the file.
-  int framecount = 1;
-  int havelast = 0;
-  while (havelast == 0) {
+  int first = 0;
+  int framecount = 0;
+  int error = 0;
+  fbyte->config_for_file(30);
+  while (!fbyte->eof() && error == 0) {
     try {
-      if (mp3->loadheader() != FALSE) {
-	framecount++;
+      uint32_t bytes;
+      uint32_t buflen;
+      uint32_t framesize;
+      unsigned char *buffer;
+      fbyte->start_next_frame(&buffer, &buflen);
+      bytes = mp3->findheader(buffer, buflen, &framesize);
+      if (bytes < 0) {
+	fbyte->used_bytes_for_frame(buflen);
       } else {
-	havelast = 1;
+	fbyte->used_bytes_for_frame(framesize);
+	if (first == 0) {
+	  first = 1;
+	  freq = mp3->getfrequency();
+	  samplesperframe = 32;
+	  if (mp3->getlayer() == 3) {
+	    samplesperframe *= 18;
+	    if (mp3->getversion() == 0) {
+	      samplesperframe *= 2;
+	    }
+	  } else {
+	    samplesperframe *= SCALEBLOCK;
+	    if (mp3->getlayer() == 2) {
+	      samplesperframe *= 3;
+	    }
+	  }
+	}
+	framecount++;
       }
     } catch (int err) {
-      havelast = 1;
+      error = 1;
     } catch (...) {
-      havelast = 1;
+      error = 1;
     }
   }
-  delete mp3;
 
+  delete mp3;
+  delete fbyte;
+  if (first == 0) {
+    delete mptr;
+    *errmsg = "Couldn't find valid mp3 frame";
+    return -1;
+  }
+
+  fbyte = new COurInByteStreamFile(name);
   mp3_message(LOG_INFO, "freq %d samples %d fps %d", freq, samplesperframe, 
 	      freq / samplesperframe);
   double maxtime;

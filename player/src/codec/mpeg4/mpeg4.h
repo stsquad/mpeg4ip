@@ -32,19 +32,20 @@
 #define DECODE_STATE_NORMAL 1
 #define DECODE_STATE_WAIT_I 2
 
+class CInByteStreamBase;
 class CVideoObjectDecoder;
 
 class CMpeg4Codec: public CVideoCodecBase {
  public:
   CMpeg4Codec(CVideoSync *v, 
-	      CInByteStreamBase *pbytestrm, 
+	      COurInByteStream *pbytestrm, 
 	      format_list_t *media_fmt,
 	      video_info_t *vinfo,
 	      const unsigned char *userdata = NULL,
 	      uint32_t ud_size = 0);
   ~CMpeg4Codec();
-  int decode(uint64_t ts, int fromrtp);
-  int skip_frame(uint64_t ts);
+  int decode(uint64_t ts, int fromrtp, unsigned char *buffer, uint32_t buflen);
+  int skip_frame(uint64_t ts, unsigned char *buffer, uint32_t buflen);
   void do_pause(void);
  private:
   int parse_vovod(const char *config, int ascii, uint32_t len);
@@ -63,6 +64,7 @@ class CMpeg4Codec: public CVideoCodecBase {
   uint32_t m_num_wait_i;
   uint32_t m_num_wait_i_frames;
   uint32_t m_total_frames;
+  CInByteStreamBase *m_mem_bytestream;
 };
   
 #endif

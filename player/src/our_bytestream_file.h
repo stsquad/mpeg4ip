@@ -48,7 +48,9 @@ class COurInByteStreamFile : public COurInByteStream
   void bookmark(int bSet); 
   void reset(void);
   int have_no_data(void) { return m_buffer_size == 0; };
-  uint64_t start_next_frame(void);
+  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
+  void used_bytes_for_frame(uint32_t bytes);
+  void get_more_bytes(unsigned char **buffer, uint32_t *buflen, uint32_t used, int nothrow);
   double get_max_playtime (void) { return m_max_play_time; };
   void set_start_time(uint64_t start);
   ssize_t read(unsigned char *buffer, size_t bytes);
@@ -62,7 +64,7 @@ class COurInByteStreamFile : public COurInByteStream
     m_max_play_time = max_time;
   };
  private:
-  void read_frame (void);
+  void read_frame (int from_index = 0);
   const char *m_filename;
   uint64_t m_frames;
   uint64_t m_frame_per_sec;

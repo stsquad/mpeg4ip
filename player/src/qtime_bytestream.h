@@ -29,6 +29,7 @@
 #include "qtime_file.h"
 
 #define THROW_QTIME_END_OF_DATA ((int) 1)
+#define THROW_QTIME_END_OF_FRAME ((int) 1)
 /*
  * CQTByteStreamBase provides base class access to quicktime files.
  * Most functions are shared between audio and video.
@@ -45,7 +46,10 @@ class CQTByteStreamBase : public COurInByteStream
   unsigned char peek(void);
   void bookmark(int bSet);
   virtual void reset(void) = 0;
-  virtual uint64_t start_next_frame (void) = 0;
+  virtual uint64_t start_next_frame (unsigned char **buffer = NULL,
+				     uint32_t *buflen = NULL) = 0;
+  void used_bytes_for_frame(uint32_t bytes);
+  void get_more_bytes(unsigned char **buffer, uint32_t *buflen, uint32_t used, int nothrow);
   ssize_t read(unsigned char *buffer, size_t bytes);
   ssize_t read (char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
@@ -90,9 +94,11 @@ class CQTVideoByteStream : public CQTByteStreamBase
     read_frame(0);
     };
   void reset(void);
-  uint64_t start_next_frame(void);
+  uint64_t start_next_frame(unsigned char **buffer,
+			    uint32_t *buflen);
   int can_skip_frame(void) { return 1; };
-  int skip_next_frame (uint64_t *ts, int *hasSync);
+  int skip_next_frame (uint64_t *ts, int *hasSync, unsigned char **buffer,
+		       uint32_t *buflen);
   void set_start_time(uint64_t start);
   double get_max_playtime(void);
   void config(long num_frames, float frate, int time_scale);
@@ -118,7 +124,8 @@ class CQTAudioByteStream : public CQTByteStreamBase
       read_frame(0);
     };
   void reset(void);
-  uint64_t start_next_frame(void);
+  uint64_t start_next_frame(unsigned char **buffer = NULL,
+			    uint32_t *buflen = NULL);
   void set_start_time(uint64_t start);
   double get_max_playtime (void) {
     double ret = m_frames_max * m_samples_per_frame;

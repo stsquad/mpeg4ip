@@ -29,6 +29,10 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 	m_lastStsdIndex = 0;
 	m_lastSampleFile = NULL;
 
+	m_cachedReadSampleId = MP4_INVALID_SAMPLE_ID;
+	m_pCachedReadSample = NULL;
+	m_cachedReadSampleSize = 0;
+
 	m_writeSampleId = 1;
 	m_fixedSampleDuration = 0;
 	m_pChunkBuffer = NULL;
@@ -188,7 +192,8 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 
 MP4Track::~MP4Track()
 {
-	delete m_pChunkBuffer;	// just in case
+	MP4Free(m_pCachedReadSample);
+	MP4Free(m_pChunkBuffer);
 }
 
 const char* MP4Track::GetType()
@@ -201,10 +206,14 @@ void MP4Track::SetType(const char* type)
 	m_pTypeProperty->SetValue(NormalizeTrackType(type));
 }
 
-void MP4Track::ReadSample(MP4SampleId sampleId,
-	u_int8_t** ppBytes, u_int32_t* pNumBytes, 
-	MP4Timestamp* pStartTime, MP4Duration* pDuration,
-	MP4Duration* pRenderingOffset, bool* pIsSyncSample)
+void MP4Track::ReadSample(
+	MP4SampleId sampleId,
+	u_int8_t** ppBytes, 
+	u_int32_t* pNumBytes, 
+	MP4Timestamp* pStartTime, 
+	MP4Duration* pDuration,
+	MP4Duration* pRenderingOffset, 
+	bool* pIsSyncSample)
 {
 	if (sampleId == MP4_INVALID_SAMPLE_ID) {
 		throw new MP4Error("sample id can't be zero", 
@@ -227,7 +236,7 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 	u_int64_t fileOffset = GetSampleFileOffset(sampleId);
 
 	u_int32_t sampleSize = GetSampleSize(sampleId);
-	if (*pNumBytes != 0 && *pNumBytes < sampleSize) {
+	if (*ppBytes != NULL && *pNumBytes < sampleSize) {
 		throw new MP4Error("sample buffer is too small",
 			 "MP4Track::ReadSample");
 	}
@@ -289,8 +298,44 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 	}
 }
 
-void MP4Track::WriteSample(u_int8_t* pBytes, u_int32_t numBytes,
-	MP4Duration duration, MP4Duration renderingOffset, 
+void MP4Track::ReadSampleFragment(
+	MP4SampleId sampleId,
+	u_int32_t sampleOffset,
+	u_int16_t sampleLength,
+	u_int8_t* pDest)
+{
+	if (sampleId == MP4_INVALID_SAMPLE_ID) {
+		throw new MP4Error("invalid sample id", 
+			"MP4Track::ReadSampleFragment");
+	}
+
+	if (sampleId != m_cachedReadSampleId) {
+		MP4Free(m_pCachedReadSample);
+		m_pCachedReadSample = NULL;
+		m_cachedReadSampleSize = 0;
+		m_cachedReadSampleId = MP4_INVALID_SAMPLE_ID;
+
+		ReadSample(
+			sampleId,
+			&m_pCachedReadSample,
+			&m_cachedReadSampleSize);
+
+		m_cachedReadSampleId = sampleId;
+	}
+
+	if (sampleOffset + sampleLength > m_cachedReadSampleSize) {
+		throw new MP4Error("offset and/or length are too large", 
+			"MP4Track::ReadSampleFragment");
+	}
+
+	memcpy(pDest, &m_pCachedReadSample[sampleOffset], sampleLength);
+}
+
+void MP4Track::WriteSample(
+	u_int8_t* pBytes, 
+	u_int32_t numBytes,
+	MP4Duration duration, 
+	MP4Duration renderingOffset, 
 	bool isSyncSample)
 {
 	VERBOSE_WRITE_SAMPLE(m_pFile->GetVerbosity(),

@@ -25,6 +25,7 @@
 #include "player_session.h"
 #include "video.h"
 #include "player_util.h"
+#include <SDL_error.h>
 #include <SDL_syswm.h>
 //#define VIDEO_SYNC_PLAY 2
 //#define VIDEO_SYNC_FILL 1
@@ -327,7 +328,7 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
       m_consec_skipped = 0;
     if (SDL_LockYUVOverlay(m_image)) {
       video_message(LOG_ERR, "Failed to lock image");
-    }
+    } else {
     // Must always copy the buffer to memory.  This creates 2 copies of this
     // data (probably a total of 6 - libsock -> rtp -> decoder -> our ring ->
     // sdl -> hardware)
@@ -406,6 +407,7 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
       video_message(LOG_ERR, "Return from display is %d", rval);
     }
     SDL_UnlockYUVOverlay(m_image);
+	}
   } 
 #ifdef CHECK_SYNC_TIME
 else {
@@ -630,8 +632,17 @@ void CVideoSync::do_video_resize (void)
     mask |= SDL_FULLSCREEN;
   }
     
+  video_message(LOG_DEBUG, "Setting video mode %d %d %x", 
+		w, h, mask);
   m_screen = SDL_SetVideoMode(w, h, m_video_bpp, 
 			      mask);
+  if (m_screen == NULL) {
+	  m_screen = SDL_SetVideoMode(w, h, m_video_bpp, mask);
+	  if (m_screen == NULL) {
+	  video_message(LOG_CRIT, "sdl error message is %s", SDL_GetError());
+	abort();
+	  }
+  }
   m_dstrect.x = 0;
   m_dstrect.y = 0;
   m_dstrect.w = m_screen->w;
@@ -644,10 +655,9 @@ void CVideoSync::do_video_resize (void)
 				 m_height << 1,
 				 SDL_YV12_OVERLAY, 
 				 m_screen);
-  } else {
-#else 
-    {
+  } else 
 #endif
+    {
     m_image = SDL_CreateYUVOverlay(m_width, 
 				 m_height,
 				 SDL_YV12_OVERLAY, 

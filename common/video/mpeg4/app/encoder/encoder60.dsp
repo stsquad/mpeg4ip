@@ -111,6 +111,10 @@ SOURCE=..\..\sys\block.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\tools\entropy\bytestrm.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\sys\cae.cpp
 # End Source File
 # Begin Source File

@@ -175,7 +175,10 @@ int CPlayerMedia::decode_thread (void)
       uint64_t ourtime;
       // Tell bytestream we're starting the next frame - they'll give us
       // the time.
-      ourtime = m_byte_stream->start_next_frame();
+      unsigned char *frame_buffer;
+      uint32_t frame_len;
+      ourtime = m_byte_stream->start_next_frame(&frame_buffer, 
+						&frame_len);
       /*
        * If we're decoding video, see if we're playing - if so, check
        * if we've fallen significantly behind the audio
@@ -197,7 +200,8 @@ int CPlayerMedia::decode_thread (void)
 	    count = 0;
 	    // Skip up to the current time + 200 msec
 	    do {
-	      ret = m_byte_stream->skip_next_frame(&ourtime, &hassync);
+	      ret = m_byte_stream->skip_next_frame(&ourtime, &hassync,
+						   &frame_buffer, &frame_len);
 	      decode_skipped_frames++;
 	    } while (ret != 0 &&
 		     !m_byte_stream->eof() && 
@@ -211,7 +215,8 @@ int CPlayerMedia::decode_thread (void)
 	     * 15 frames
 	     */
 	    do {
-	      ret = m_byte_stream->skip_next_frame(&ourtime, &hassync);
+	      ret = m_byte_stream->skip_next_frame(&ourtime, &hassync,
+						   &frame_buffer, &frame_len);
 	      if (hassync < 0) {
 		uint64_t diff = ourtime - current_time;
 		if (diff > (2 * C_LLU)) {
@@ -240,7 +245,7 @@ int CPlayerMedia::decode_thread (void)
       clock_t start, end;
       start = clock();
 #endif
-      ret = codec->decode(ourtime, m_streaming != 0);
+      ret = codec->decode(ourtime, m_streaming != 0, frame_buffer, frame_len);
 #ifdef TIME_DECODE
       end = clock();
       if (ret > 0) {

@@ -29,7 +29,7 @@
 #include "divx_file.h"
 #include <divxif.h>
 #include "player_util.h"
-
+#if 0
 static unsigned int c_get (void *ud)
 {
   unsigned int ret;
@@ -44,7 +44,20 @@ static void c_bookmark (void *ud, int val)
   COurInByteStreamFile *fs = (COurInByteStreamFile *)ud;
   fs->bookmark(val);
 }
+#endif
+static void c_get_more (void *ud, 
+			unsigned char **buffer, 
+			unsigned int *buflen,
+			unsigned int used, 
+			int nothrow)
+{
+  uint32_t ret;
 
+  COurInByteStream *bs = (COurInByteStream *)ud;
+
+  bs->get_more_bytes(buffer, &ret, used, nothrow);
+  *buflen = ret;
+}
 int create_media_for_divx_file (CPlayerSession *psptr, 
 				const char *name,
 				const char **errmsg)
@@ -57,11 +70,15 @@ int create_media_for_divx_file (CPlayerSession *psptr,
   uint32_t frame_cnt;
 
   fbyte = new COurInByteStreamFile(name);
-  newdec_init(c_get, c_bookmark, fbyte);
+  fbyte->config_for_file(30); // play with it a bit
+  newdec_init(c_get_more, fbyte); 
   frame_cnt = 0;
   do {
     try {
-      ret = getvolhdr();
+      unsigned char *buffer;
+      uint32_t buflen;
+      fbyte->start_next_frame(&buffer, &buflen);
+      ret = newdec_read_volvop(buffer, buflen);
       if (ret == 1) {
 	divx_message(LOG_DEBUG, "Found vol in divx file");
       }

@@ -27,26 +27,13 @@ Copyright(c)1996.
 #ifndef	_all_h_
 #define _all_h_
 
-#include <stdio.h>
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
-typedef unsigned __int32 u_int32_t;
-#endif
-#include <stdlib.h>
-#include <sys/types.h>
+#include "systems.h"
 #include <math.h>
-#include <string.h>
-
 #include "interface.h"
 #include "tns.h"
 #include "nok_ltp_common.h"
 #include "monopred.h"
 #include "bits.h"
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 #ifndef _POSIX_SOURCE
 #define                 _POSIX_SOURCE   /* stops repeat typdef of ulong */
@@ -400,17 +387,21 @@ int FAADAPI faacDecSetConfiguration(faacDecHandle hDecoder,
 									faacDecConfigurationPtr config);
 
 int FAADAPI faacDecInit(faacDecHandle hDecoder,
-						unsigned char *buffer,
-						unsigned long *samplerate,
-						unsigned long *channels);
+			unsigned char *buffer,
+			uint32_t buflen,
+			unsigned long *samplerate,
+			unsigned long *channels,
+			get_more_bytes_t get_more,
+			void *ud);
 
 int FAADAPI faacDecGetProgConfig(faacDecHandle hDecoder,
 								 faacProgConfig *progConfig);
 
 int FAADAPI faacDecDecode(faacDecHandle hDecoder,
-						  unsigned char *buffer,
-						  unsigned long *bytesconsumed,
-						  short *sample_buffer);
+			  unsigned char *buffer,
+			  uint32_t buflen,
+			  unsigned long *bytesconsumed,
+			  short *sample_buffer);
 
 void FAADAPI faacDecClose(faacDecHandle hDecoder);
 

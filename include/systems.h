@@ -74,7 +74,8 @@ typedef int ssize_t;
 #define O_RDWR _O_RDWR
 #define O_CREAT _O_CREAT
 #define O_RDONLY _O_RDONLY
-
+#define srandom srand
+#define random rand
 
 #define IOSBINARY ios::binary
 
@@ -118,6 +119,10 @@ int gettimeofday(struct timeval *t, void *);
 
 #define FOPEN_READ_BINARY "rb"
 #define FOPEN_WRITE_BINARY "wb"
+
+#ifndef MIN
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
 #else /* UNIX */
 
 #include <stdio.h>

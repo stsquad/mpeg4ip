@@ -41,7 +41,6 @@ CPP=cl.exe
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MD /W3 /GX /I "../../common/video/mpeg4 ./codec ./codec/mpeg4 ../lib ../lib/audio ../lib/SDL/include ../../common/mp4 ../../include" /I "../../common/mp4" /I "../../common/lib" /I "../../lib/mp4" /I "." /I "../../lib/mp4v2" /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../../lib/SDL/include" /I "../../include" /I "../lib/video/divx" /I "../../lib" /I "../../lib/avi" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /YX /FD /c
-# SUBTRACT CPP /O<none>
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -294,14 +293,6 @@ SOURCE=.\codec\aa\aa_file.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\codec\aa\aac_rtp_bytestream.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\aa\aac_rtp_bytestream.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\codec\aa\isma_rtp_bytestream.cpp
 # End Source File
 # Begin Source File
@@ -409,6 +400,14 @@ SOURCE=.\codec\mp3\mp3_file.cpp
 # Begin Source File
 
 SOURCE=.\codec\mp3\mp3_file.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec\mp3\mp3_rtp_bytestream.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec\mp3\mp3_rtp_bytestream.h
 # End Source File
 # End Group
 # End Target

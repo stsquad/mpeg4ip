@@ -47,6 +47,10 @@ public:
 
 	void SetType(const char* type);
 
+	MP4File* GetFile() {
+		return m_pFile;
+	}
+
 	MP4Atom* GetTrakAtom() {
 		return m_pTrakAtom;
 	}
@@ -96,6 +100,13 @@ public:
 					MP4Duration renderingOffset);
 
 	static const char* NormalizeTrackType(const char* type);
+
+	// special operation for use during hint track packet assembly
+	void ReadSampleFragment(
+		MP4SampleId sampleId,
+		u_int32_t sampleOffset,
+		u_int16_t sampleLength,
+		u_int8_t* pDest);
 
 	// special operations for use during optimization
 
@@ -148,6 +159,11 @@ protected:
 
 	u_int32_t	m_lastStsdIndex;
 	FILE*	 	m_lastSampleFile;
+
+	// for efficient construction of hint track packets
+	MP4SampleId	m_cachedReadSampleId;
+	u_int8_t* 	m_pCachedReadSample;
+	u_int32_t	m_cachedReadSampleSize;
 
 	// for writing
 	MP4SampleId m_writeSampleId;

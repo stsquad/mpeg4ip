@@ -52,7 +52,7 @@ CIsmaAudioRtpByteStream::CIsmaAudioRtpByteStream (format_list_t *media_fmt,
 						  uint32_t ntp_frac,
 						  uint32_t ntp_sec,
 						  uint32_t rtp_ts) :
-  CRtpByteStreamBase(rtp_proto, ondemand, tps, head, tail, 
+  CRtpByteStreamBase("ismaaac", rtp_proto, ondemand, tps, head, tail, 
 		     rtpinfo_received, rtp_rtptime, rtcp_received,
 		     ntp_frac, ntp_sec, rtp_ts)
 {
@@ -99,6 +99,8 @@ CIsmaAudioRtpByteStream::CIsmaAudioRtpByteStream (format_list_t *media_fmt,
 
   m_min_header_bits += m_fmtp.auxiliary_data_size_length;
   m_min_first_header_bits += m_fmtp.auxiliary_data_size_length;
+  m_frag_reass_buffer = NULL;
+  m_frag_reass_size_max = 0;
 }
 
 CIsmaAudioRtpByteStream::~CIsmaAudioRtpByteStream (void)
@@ -108,6 +110,10 @@ CIsmaAudioRtpByteStream::~CIsmaAudioRtpByteStream (void)
 #endif
   isma_frame_data_t *p;
   
+  if (m_frag_reass_buffer != NULL) {
+    free(m_frag_reass_buffer);
+    m_frag_reass_buffer = NULL;
+  }
   while (m_frame_data_free != NULL) {
     p = m_frame_data_free;
     m_frame_data_free = p->frame_data_next;
@@ -617,7 +623,8 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
   remove_packet_rtp_queue(pak, 0);
 }
 
-uint64_t CIsmaAudioRtpByteStream::start_next_frame (void)
+uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer, 
+						    uint32_t *buflen)
 {
   uint64_t timetick;
 
@@ -711,22 +718,30 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (void)
     m_is_fragment =  m_frame_data_head->is_fragment;
     if (m_is_fragment == 1) {	  
       m_frag_data = m_frame_data_head->frag_data;
-      if (m_frag_data != NULL) {
-	m_frame_ptr = m_frag_data->frag_ptr;
-	m_frame_len = m_frame_data_head->frame_len;
-      } else {
-	// we should never get here!
-	m_frame_ptr = NULL;
-	m_frame_len = 0;
-	m_is_fragment = 0;
-	m_frag_data = NULL;
-	init();
-	throw THROW_ISMA_INCONSISTENT;
+
+      m_frag_reass_size = 0;
+      isma_frag_data_t *ptr;
+      ptr = m_frag_data;
+      while (ptr != NULL) {
+	if (m_frag_reass_size + ptr->frag_len > m_frag_reass_size_max) {
+	  m_frag_reass_size_max += max(4096, ptr->frag_len);
+	  m_frag_reass_buffer = (unsigned char *)realloc(m_frag_reass_buffer, 
+							 m_frag_reass_size_max);
+	}
+	memmove(m_frag_reass_buffer + m_frag_reass_size, 
+		ptr->frag_ptr,
+		ptr->frag_len);
+	m_frag_reass_size += ptr->frag_len;
+	ptr = ptr->frag_data_next;
       }
+      *buffer = m_frag_reass_buffer;
+      *buflen = m_frag_reass_size;
     } else { 
       m_frag_data = NULL;
       m_frame_ptr = m_frame_data_head->frame_ptr;
       m_frame_len = m_frame_data_head->frame_len;
+      *buffer = (unsigned char *)m_frame_ptr;
+      *buflen = m_frame_len;
     }
   } else {
     m_frame_ptr = NULL;
@@ -760,6 +775,17 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (void)
   return (timetick);
 }
 
+void CIsmaAudioRtpByteStream::used_bytes_for_frame (uint32_t bytes)
+{
+}
+
+void CIsmaAudioRtpByteStream::get_more_bytes (unsigned char **buffer, 
+					      uint32_t *buflen,
+					      uint32_t used,
+					      int nothrow)
+{
+  throw THROW_ISMA_RTP_DECODE_PAST_EOF;
+}
 
 void CIsmaAudioRtpByteStream::flush_rtp_packets (void)
 {

@@ -36,19 +36,18 @@ class COurMp3Loader;
 class CMP3Codec : public CAudioCodecBase {
  public:
   CMP3Codec(CAudioSync *a,
-	    CInByteStreamBase *pbytestrm,
+	    COurInByteStream *pbytestrm,
 	    format_list_t *media_desc,
 	    audio_info_t *audio,
 	    const unsigned char *userdata = NULL,
 	    uint32_t userdata_size = 0);
   ~CMP3Codec();
-  int decode(uint64_t rtptime, int fromrtp);
-  int skip_frame(uint64_t rtptime);
+  int decode(uint64_t ts, int fromrtp, unsigned char *buffer, uint32_t buflen);
+  int skip_frame(uint64_t ts, unsigned char *buffer, uint32_t buflen);
   void do_pause(void);
   //  int read_byte(FILE_STREAM *fs, int *err);
   //void reset(void);
   //int peek(void *data, int len);
-  CInByteStreamBase *m_bytestream;
  private:
   MPEGaudio *m_mp3_info;
   int m_resync_with_header;
