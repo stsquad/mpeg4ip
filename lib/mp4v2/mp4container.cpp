@@ -193,6 +193,15 @@ void MP4Container::SetBytesProperty(const char* name,
 	((MP4BytesProperty*)pProperty)->SetValue(pValue, valueSize, index);
 }
 
+void MP4Container::Read(MP4File* pFile)
+{
+	u_int32_t numProperties = m_pProperties.Size();
+
+	for (u_int32_t i = 0; i < numProperties; i++) {
+		m_pProperties[i]->Read(pFile);
+	}
+}
+
 void MP4Container::Write(MP4File* pFile)
 {
 	u_int32_t numProperties = m_pProperties.Size();

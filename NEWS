@@ -5,6 +5,7 @@ Version 0.9.?
     Added shortcut keys for mp4player video window
     Enhanced player debug reporting
     Added RTP debugging messages in player format.
+    Disable player sending RTCP when b=RR:0 is set in SDP
 
 11/7/01 Version 0.9.1
 	Command line encoding tools now build and run on Windows

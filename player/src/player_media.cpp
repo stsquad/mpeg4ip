@@ -593,6 +593,20 @@ static char *convert_number (char *transport, uint32_t &value)
   return (transport);
 }
 
+static char *convert_hex (char *transport, uint32_t &value)
+{
+  value = 0;
+  while (isxdigit(*transport)) {
+    value *= 16;
+    if (isdigit(*transport))
+      value += *transport - '0';
+    else
+      value += tolower(*transport) - 'a' + 10;
+    transport++;
+  }
+  return (transport);
+}
+
 static char *transport_parse_client_port (char *transport, CPlayerMedia *m)
 {
   uint32_t port;
@@ -711,7 +725,7 @@ static char *transport_parse_ssrc (char *transport, CPlayerMedia *m)
   }
   transport++;
   ADV_SPACE(transport);
-  transport = convert_number(transport, ssrc);
+  transport = convert_hex(transport, ssrc);
   ADV_SPACE(transport);
   if (*transport != '\0') {
     if (*transport != ';') {
@@ -1122,13 +1136,19 @@ int CPlayerMedia::recv_thread (void)
     abort();
   }
 #endif
+  double bw;
 
+  if (find_rtcp_bandwidth_from_media(m_media_info, &bw) < 0) {
+    bw = 5000.0;
+  } else {
+    media_message(LOG_DEBUG, "Using bw from sdp %g", bw);
+  }
   m_rtp_session = rtp_init(m_source_addr == NULL ? 
 			   cptr->conn_addr : m_source_addr,
 			   m_our_port,
 			   m_server_port,
 			   cptr->ttl, // need ttl here
-			   5000.0, // rtcp bandwidth ?
+			   bw, // rtcp bandwidth ?
 			   c_recv_callback,
 			   (uint8_t *)this);
   if (m_rtp_session != NULL) {

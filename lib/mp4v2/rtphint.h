@@ -22,8 +22,6 @@
 #ifndef __RTPHINT_INCLUDED__
 #define __RTPHINT_INCLUDED__
 
-// LATER Read functionality
-
 class MP4RtpData : public MP4Container {
 public:
 	MP4RtpData();
@@ -85,11 +83,17 @@ public:
 
 	void Set(u_int8_t payloadNumber, u_int32_t packetId, bool setMbit);
 
-	void SetBframe(bool isBframe);
+	int32_t GetTransmitOffset();
+
+	void SetTransmitOffset(int32_t transmitOffset);
+
+	void SetBFrame(bool isBFrame);
 
 	void SetTimestampOffset(u_int32_t timestampOffset);
 
 	void AddData(MP4RtpData* pData);
+
+	void Read(MP4File* pFile);
 
 	void Write(MP4File* pFile);
 
@@ -109,9 +113,26 @@ public:
 
 	~MP4RtpHint();
 
-	void Set(bool isBframe, u_int32_t timestampOffset);
+	u_int16_t GetNumberOfPackets() {
+		return m_rtpPackets.Size();
+	}
+
+	bool IsBFrame() {
+		return m_isBFrame;
+	}
+	void SetIsBFrame(bool isBFrame) {
+		m_isBFrame = isBFrame;
+	}
+
+	void SetTimestampOffset(u_int32_t timestampOffset) {
+		m_timestampOffset = timestampOffset;
+	}
 
 	MP4RtpPacket* AddPacket();
+
+	MP4RtpPacket* GetPacket(u_int16_t index) {
+		return m_rtpPackets[index];
+	}
 
 	MP4RtpPacket* GetCurrentPacket() {
 		if (m_rtpPackets.Size() == 0) {
@@ -120,12 +141,14 @@ public:
 		return m_rtpPackets[m_rtpPackets.Size() - 1];
 	}
 
+	void Read(MP4File* pFile);
+
 	void Write(MP4File* pFile);
 
 	void Dump(FILE* pFile, u_int8_t indent, bool dumpImplicits);
 
 protected:
-	bool 				m_isBframe;
+	bool 				m_isBFrame;
 	u_int32_t 			m_timestampOffset;
 	MP4RtpPacketArray	m_rtpPackets;
 };
@@ -140,14 +163,42 @@ public:
 
 	void InitStats();
 
+	MP4Track* GetRefTrack() {
+		return m_pRefTrack;
+	}
+
+	void GetPayload(
+		char** ppPayloadName = NULL,
+		u_int8_t* pPayloadNumber = NULL,
+		u_int16_t* pMaxPayloadSize = NULL);
+
 	void SetPayload(
 		const char* payloadName,
 		u_int8_t payloadNumber,
 		u_int16_t maxPayloadSize);
 
-	void AddHint(bool isBframe, u_int32_t timestampOffset);
+	void ReadHint(
+		MP4SampleId hintSampleId,
+		u_int16_t* pNumPackets = NULL,
+		bool* pIsBFrame = NULL);
 
-	void AddPacket(bool setMbit);
+	u_int16_t GetHintNumberOfPackets();
+
+	bool GetHintBFrame();
+
+	u_int16_t GetPacketTransmitOffset(u_int16_t packetIndex);
+
+	void ReadPacket(
+		u_int16_t packetIndex,
+		u_int8_t** ppBytes, 
+		u_int32_t* pNumBytes,
+		u_int32_t ssrc,
+		bool includeHeader = true,
+		bool includePayload = true);
+
+	void AddHint(bool isBFrame, u_int32_t timestampOffset);
+
+	void AddPacket(bool setMbit, int32_t transmitOffset = 0);
 
 	void AddImmediateData(const u_int8_t* pBytes, u_int32_t numBytes);
 
@@ -167,10 +218,13 @@ protected:
 	u_int8_t	m_payloadNumber;
 	u_int32_t	m_maxPayloadSize;
 
-	MP4SampleId	m_hintId;
-	MP4RtpHint*	m_pHint;
+	// reading
+	MP4RtpHint*	m_pReadHint;
 
-	u_int32_t	m_packetId;
+	// writing
+	MP4RtpHint*	m_pWriteHint;
+	MP4SampleId	m_writeHintId;
+	u_int32_t	m_writePacketId;
 
 	// statistics
 	// in trak.udta.hinf

@@ -27,6 +27,9 @@
 #include <sdp/sdp.h>
 #include "player_sdp.h"
 #include "player_util.h"
+
+#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
+
 /*
  * do_relative_url_to_absolute - does the actual work to convert a
  * relative url to an absolute url.
@@ -162,7 +165,63 @@ range_desc_t *get_range_from_sdp (session_desc_t *sptr)
   return (NULL);
 }
 
-#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
+static bandwidth_t *find_bandwidth_from_bw_list (bandwidth_t *bptr,
+						 bandwidth_modifier_t bw_type,
+						 const char *user_type)
+{
+  int user_type_len = 0;
+
+  if (bw_type == BANDWIDTH_MODIFIER_USER) {
+    user_type_len = strlen(user_type);
+  }
+  while (bptr != NULL) {
+    if (bptr->modifier == bw_type) {
+      if (bptr->modifier != BANDWIDTH_MODIFIER_USER)
+	return (bptr);
+      if (strncasecmp(user_type, bptr->user_band, user_type_len) == 0)
+	return (bptr);
+    }
+    bptr = bptr->next;
+  }
+  return (NULL);
+}
+
+bandwidth_t *find_bandwidth_from_media (media_desc_t *media,
+					bandwidth_modifier_t bw_type,
+					const char *user_type)
+{
+  bandwidth_t *bptr;
+  session_desc_t *sptr;
+
+  if (media == NULL) return NULL;
+
+  bptr = find_bandwidth_from_bw_list(media->media_bandwidth,
+				     bw_type,
+				     user_type);
+  if (bptr != NULL)
+    return bptr;
+
+  sptr = media->parent;
+  if (sptr == NULL)
+    return (NULL);
+  return (find_bandwidth_from_bw_list(sptr->session_bandwidth,
+				      bw_type,
+				      user_type));
+}
+
+int find_rtcp_bandwidth_from_media (media_desc_t *media,
+				    double *bw)
+{
+  bandwidth_t *bptr;
+  
+  *bw = 0.0;
+  bptr = find_bandwidth_from_media(media, BANDWIDTH_MODIFIER_USER, "rr");
+  if (bptr == NULL) {
+    return -1;
+  }
+  *bw = (double)bptr->bandwidth;
+  return 0;
+}
 
 #define TTYPE(a,b) {a, sizeof(a), b}
 

@@ -1253,6 +1253,11 @@ MP4Duration MP4File::GetSampleRenderingOffset(
 		GetSampleRenderingOffset(sampleId);
 }
 
+bool MP4File::GetSampleSync(MP4TrackId trackId, MP4SampleId sampleId)
+{
+	return m_pTracks[FindTrackIndex(trackId)]->IsSyncSample(sampleId);
+}
+
 void MP4File::ReadSample(MP4TrackId trackId, MP4SampleId sampleId,
 		u_int8_t** ppBytes, u_int32_t* pNumBytes, 
 		MP4Timestamp* pStartTime, MP4Duration* pDuration,
@@ -1604,6 +1609,23 @@ void MP4File::AppendHintTrackSdp(MP4TrackId hintTrackId,
 	MP4Free(newSdpString);
 }
 
+void MP4File::GetHintTrackRtpPayload(
+	MP4TrackId hintTrackId,
+	char** ppPayloadName = NULL,
+	u_int8_t* pPayloadNumber = NULL,
+	u_int16_t* pMaxPayloadSize = NULL)
+{
+	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
+
+	if (strcmp(pTrack->GetType(), MP4_HINT_TRACK_TYPE)) {
+		throw new MP4Error("track is not a hint track", 
+			"MP4GetHintTrackRtpPayload");
+	}
+
+	((MP4RtpHintTrack*)pTrack)->GetPayload(
+		ppPayloadName, pPayloadNumber, pMaxPayloadSize);
+}
+
 void MP4File::SetHintTrackRtpPayload(MP4TrackId hintTrackId,
 	const char* payloadName, u_int8_t* pPayloadNumber, u_int16_t maxPayloadSize)
 {
@@ -1667,6 +1689,95 @@ u_int8_t MP4File::AllocRtpPayloadNumber()
 	return payload;
 }
 
+MP4TrackId MP4File::GetHintTrackReferenceTrackId(
+	MP4TrackId hintTrackId)
+{
+	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
+
+	if (strcmp(pTrack->GetType(), MP4_HINT_TRACK_TYPE)) {
+		throw new MP4Error("track is not a hint track", 
+			"MP4GetHintTrackReferenceTrackId");
+	}
+
+	MP4Track* pRefTrack = ((MP4RtpHintTrack*)pTrack)->GetRefTrack();
+
+	if (pRefTrack == NULL) {
+		return MP4_INVALID_TRACK_ID;
+	}
+	return pRefTrack->GetId();
+}
+
+void MP4File::ReadRtpHint(
+	MP4TrackId hintTrackId,
+	MP4SampleId hintSampleId,
+	u_int16_t* pNumPackets,
+	bool* pIsBFrame)
+{
+	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
+
+	if (strcmp(pTrack->GetType(), MP4_HINT_TRACK_TYPE)) {
+		throw new MP4Error("track is not a hint track", "MP4ReadRtpHint");
+	}
+	((MP4RtpHintTrack*)pTrack)->
+		ReadHint(hintSampleId, pNumPackets, pIsBFrame);
+}
+
+u_int16_t MP4File::GetRtpHintNumberOfPackets(
+	MP4TrackId hintTrackId)
+{
+	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
+
+	if (strcmp(pTrack->GetType(), MP4_HINT_TRACK_TYPE)) {
+		throw new MP4Error("track is not a hint track", 
+			"MP4GetRtpHintNumberOfPackets");
+	}
+	return ((MP4RtpHintTrack*)pTrack)->GetHintNumberOfPackets();
+}
+
+int8_t MP4File::GetRtpHintBFrame(
+	MP4TrackId hintTrackId)
+{
+	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
+
+	if (strcmp(pTrack->GetType(), MP4_HINT_TRACK_TYPE)) {
+		throw new MP4Error("track is not a hint track", 
+			"MP4GetRtpHintBFrame");
+	}
+	return ((MP4RtpHintTrack*)pTrack)->GetHintBFrame();
+}
+
+int32_t MP4File::GetRtpPacketTransmitOffset(
+	MP4TrackId hintTrackId,
+	u_int16_t packetIndex)
+{
+	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
+
+	if (strcmp(pTrack->GetType(), MP4_HINT_TRACK_TYPE)) {
+		throw new MP4Error("track is not a hint track", 
+			"MP4GetRtpPacketTransmitOffset");
+	}
+	return ((MP4RtpHintTrack*)pTrack)->GetPacketTransmitOffset(packetIndex);
+}
+
+void MP4File::ReadRtpPacket(
+	MP4TrackId hintTrackId,
+	u_int16_t packetIndex,
+	u_int8_t** ppBytes, 
+	u_int32_t* pNumBytes,
+	u_int32_t ssrc,
+	bool includeHeader,
+	bool includePayload)
+{
+	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
+
+	if (strcmp(pTrack->GetType(), MP4_HINT_TRACK_TYPE)) {
+		throw new MP4Error("track is not a hint track", "MP4ReadPacket");
+	}
+	((MP4RtpHintTrack*)pTrack)->ReadPacket(
+		packetIndex, ppBytes, pNumBytes,
+		ssrc, includeHeader, includePayload);
+}
+
 void MP4File::AddRtpHint(MP4TrackId hintTrackId, 
 	bool isBframe, u_int32_t timestampOffset)
 {
@@ -1680,7 +1791,8 @@ void MP4File::AddRtpHint(MP4TrackId hintTrackId,
 	((MP4RtpHintTrack*)pTrack)->AddHint(isBframe, timestampOffset);
 }
 
-void MP4File::AddRtpPacket(MP4TrackId hintTrackId, bool setMbit)
+void MP4File::AddRtpPacket(
+	MP4TrackId hintTrackId, bool setMbit, int32_t transmitOffset)
 {
 	ProtectWriteOperation("MP4AddRtpPacket");
 
@@ -1689,7 +1801,7 @@ void MP4File::AddRtpPacket(MP4TrackId hintTrackId, bool setMbit)
 	if (strcmp(pTrack->GetType(), MP4_HINT_TRACK_TYPE)) {
 		throw new MP4Error("track is not a hint track", "MP4AddRtpPacket");
 	}
-	((MP4RtpHintTrack*)pTrack)->AddPacket(setMbit);
+	((MP4RtpHintTrack*)pTrack)->AddPacket(setMbit, transmitOffset);
 }
 
 void MP4File::AddRtpImmediateData(MP4TrackId hintTrackId, 

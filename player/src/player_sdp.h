@@ -60,8 +60,12 @@ range_desc_t *get_range_from_sdp(session_desc_t *sptr);
     int profile;
   } fmtp_parse_t;
   
-  fmtp_parse_t *parse_fmtp_for_mpeg4 (char *bptr);
-  void free_fmtp_parse (fmtp_parse_t *ptr);
+  fmtp_parse_t *parse_fmtp_for_mpeg4(char *bptr);
+  void free_fmtp_parse(fmtp_parse_t *ptr);
+  bandwidth_t *find_bandwidth_from_media(media_desc_t *media,
+					 bandwidth_modifier_t bw_type,
+					 const char *user_type);
+  int find_rtcp_bandwidth_from_media(media_desc_t *media, double *bw);
 
 #ifdef __cplusplus
 }

@@ -31,7 +31,7 @@ public:
 
 	void AddProperty(MP4Property* pProperty);
 
-	// LATER Read functionality
+	virtual void Read(MP4File* pFile);
 
 	virtual void Write(MP4File* pFile);
 

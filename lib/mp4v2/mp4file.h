@@ -149,6 +149,9 @@ public: /* equivalent to MP4 library API */
 	MP4Duration GetSampleRenderingOffset(
 		MP4TrackId trackId, MP4SampleId sampleId);
 
+	bool GetSampleSync(
+		MP4TrackId trackId, MP4SampleId sampleId);
+
 	void ReadSample(
 		// input parameters
 		MP4TrackId trackId, 
@@ -241,11 +244,45 @@ public: /* equivalent to MP4 library API */
 
 	// specialized operations
 
+	void GetHintTrackRtpPayload(
+		MP4TrackId hintTrackId,
+		char** ppPayloadName = NULL,
+		u_int8_t* pPayloadNumber = NULL,
+		u_int16_t* pMaxPayloadSize = NULL);
+
 	void SetHintTrackRtpPayload(
 		MP4TrackId hintTrackId,
 		const char* payloadName,
 		u_int8_t* pPayloadNumber,
 		u_int16_t maxPayloadSize);
+
+	MP4TrackId GetHintTrackReferenceTrackId(
+		MP4TrackId hintTrackId);
+
+	void ReadRtpHint(
+		MP4TrackId hintTrackId,
+		MP4SampleId hintSampleId,
+		u_int16_t* pNumPackets = NULL,
+		bool* pIsBFrame = NULL);
+
+	u_int16_t GetRtpHintNumberOfPackets(
+		MP4TrackId hintTrackId);
+
+	int8_t GetRtpHintBFrame(
+		MP4TrackId hintTrackId);
+
+	int32_t GetRtpPacketTransmitOffset(
+		MP4TrackId hintTrackId,
+		u_int16_t packetIndex);
+
+	void ReadRtpPacket(
+		MP4TrackId hintTrackId,
+		u_int16_t packetIndex,
+		u_int8_t** ppBytes, 
+		u_int32_t* pNumBytes,
+		u_int32_t ssrc = 0,
+		bool includeHeader = true,
+		bool includePayload = true);
 
 	void AddRtpHint(
 		MP4TrackId hintTrackId,
@@ -254,7 +291,8 @@ public: /* equivalent to MP4 library API */
 
 	void AddRtpPacket(
 		MP4TrackId hintTrackId, 
-		bool setMbit);
+		bool setMbit,
+		int32_t transmitOffset);
 
 	void AddRtpImmediateData(
 		MP4TrackId hintTrackId,

@@ -30,6 +30,11 @@
 //#define VIDEO_SYNC_FILL 1
 //#define SHORT_VIDEO 1
 #ifdef _WIN32
+// new hwsurface method doesn't work on windows.
+#define OLD_SURFACE 1
+#endif
+
+#ifdef _WIN32
 DEFINE_MESSAGE_MACRO(video_message, "videosync")
 #else
 #define video_message(loglevel, fmt...) message(loglevel, "videosync", fmt)
@@ -150,6 +155,7 @@ int CVideoSync::initialize_video (const char *name, int x, int y)
 	break;
       }
 
+      SDL_ShowCursor(SDL_DISABLE);
       SDL_SysWMinfo info;
       SDL_VERSION(&info.version);
       int ret;
@@ -158,7 +164,11 @@ int CVideoSync::initialize_video (const char *name, int x, int y)
       // to this routine. (ie: m_width *2, m_height * 2).
       int w = m_width * m_video_scale / 2;
       int h = m_height * m_video_scale / 2;
+#ifdef OLD_SURFACE
       int mask = SDL_SWSURFACE | SDL_ASYNCBLIT | SDL_RESIZABLE;
+#else
+      int mask = SDL_HWSURFACE | SDL_RESIZABLE;
+#endif
       if (m_fullscreen != 0) {
 	mask |= SDL_FULLSCREEN;
       }
@@ -185,12 +195,16 @@ int CVideoSync::initialize_video (const char *name, int x, int y)
       player_debug_message("Created mscreen %p hxw %d %d", m_screen, m_height,
 			   m_width);
 #endif
+#ifdef OLD_SURFACE
 	if (m_video_scale == 4) {
       m_image = SDL_CreateYUVOverlay(m_width << 1, 
 				     m_height << 1,
 				     SDL_YV12_OVERLAY, 
 				     m_screen);
 	} else {
+#else
+	  {
+#endif
       m_image = SDL_CreateYUVOverlay(m_width, 
 				     m_height,
 				     SDL_YV12_OVERLAY, 
@@ -235,6 +249,8 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
 				   int &have_eof)
 {
   uint64_t play_this_at;
+  unsigned int ix;
+  Uint8 *to, *from;
   m_current_time = current_time;
 
   /*
@@ -313,39 +329,75 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
     // Must always copy the buffer to memory.  This creates 2 copies of this
     // data (probably a total of 6 - libsock -> rtp -> decoder -> our ring ->
     // sdl -> hardware)
-
-	if (m_video_scale == 4) {
+#ifdef OLD_SURFACE
+    if (m_video_scale == 4) {
       // when scaling to 200%, don't use SDL stretch blit
       // use a smoothing (averaging) blit instead
 #ifdef USE_MMX
       FrameDoublerMmx(m_y_buffer[m_play_index], m_image->pixels[0], 
-		m_width, m_height);
+		      m_width, m_height);
       FrameDoublerMmx(m_v_buffer[m_play_index], m_image->pixels[1], 
-		m_width >> 1, m_height >> 1);
+		      m_width >> 1, m_height >> 1);
       FrameDoublerMmx(m_u_buffer[m_play_index], m_image->pixels[2], 
-		m_width >> 1, m_height >> 1);
+		      m_width >> 1, m_height >> 1);
 #else
       FrameDoubler(m_y_buffer[m_play_index], m_image->pixels[0], 
-		m_width, m_height);
+		   m_width, m_height);
       FrameDoubler(m_v_buffer[m_play_index], m_image->pixels[1], 
-		m_width >> 1, m_height >> 1);
+		   m_width >> 1, m_height >> 1);
       FrameDoubler(m_u_buffer[m_play_index], m_image->pixels[2], 
-		m_width >> 1, m_height >> 1);
+		   m_width >> 1, m_height >> 1);
 #endif
+    } else 
+#endif
+      {
+	// let SDL blit, either 1:1 for 100% or decimating by 2:1 for 50%
+	uint32_t bufsize = m_width * m_height * sizeof(Uint8);
+	unsigned int width = m_width;
+
+	if (width != m_image->pitches[0]) {
+	  to = m_image->pixels[0];
+	  from = m_y_buffer[m_play_index];
+	  for (ix = 0; ix < m_height; ix++) {
+	    memcpy(to, from, width);
+	    to += m_image->pitches[0];
+	    from += width;
+	  }
 	} else {
-      // let SDL blit, either 1:1 for 100% or decimating by 2:1 for 50%
-      uint32_t bufsize = m_width * m_height * sizeof(Uint8);
-      memcpy(m_image->pixels[0], 
-	    m_y_buffer[m_play_index], 
-	    bufsize);
-      bufsize /= 4;
-      memcpy(m_image->pixels[1],
-	    m_v_buffer[m_play_index],
-	    bufsize);
-      memcpy(m_image->pixels[2],
-	    m_u_buffer[m_play_index],
-	    bufsize);
+	  memcpy(m_image->pixels[0], 
+		 m_y_buffer[m_play_index], 
+		 bufsize);
 	}
+	bufsize /= 4;
+	width /= 2;
+	if (width != m_image->pitches[1]) {
+	    to = m_image->pixels[1];
+	    from = m_v_buffer[m_play_index];
+	  for (ix = 0; ix < m_height; ix++) {
+	    memcpy(to, from, width);
+	    to += m_image->pitches[1];
+	    from += width;
+	  }
+	} else {
+	  memcpy(m_image->pixels[1], 
+		 m_v_buffer[m_play_index], 
+		 bufsize);
+	}
+	if (width != m_image->pitches[2]) {
+	    to = m_image->pixels[2];
+	    from = m_u_buffer[m_play_index];
+	  for (ix = 0; ix < m_height; ix++) {
+	    memcpy(to, from, width);
+	    to += m_image->pitches[2];
+	    from += width;
+	  }
+	} else {
+	  memcpy(m_image->pixels[2], 
+		 m_u_buffer[m_play_index], 
+		 bufsize);
+	}
+
+      }
 
     int rval = SDL_DisplayYUVOverlay(m_image, &m_dstrect);
     if (rval != 0) {
@@ -565,7 +617,12 @@ void CVideoSync::do_video_resize (void)
 {
   int w = m_width * m_video_scale / 2;
   int h = m_height * m_video_scale / 2;
+#ifdef OLD_SURFACE
   int mask = SDL_SWSURFACE | SDL_ASYNCBLIT | SDL_RESIZABLE;
+#else
+  int mask = SDL_HWSURFACE | SDL_RESIZABLE;
+#endif
+
   if (m_fullscreen != 0) {
     mask |= SDL_FULLSCREEN;
   }
@@ -578,12 +635,16 @@ void CVideoSync::do_video_resize (void)
   m_dstrect.h = m_screen->h;
 
   SDL_FreeYUVOverlay(m_image);
+#ifdef OLD_SURFACE
   if (m_video_scale == 4) {
     m_image = SDL_CreateYUVOverlay(m_width << 1, 
 				 m_height << 1,
 				 SDL_YV12_OVERLAY, 
 				 m_screen);
   } else {
+#else 
+    {
+#endif
     m_image = SDL_CreateYUVOverlay(m_width, 
 				 m_height,
 				 SDL_YV12_OVERLAY, 

@@ -22,7 +22,7 @@ bool \fBMP4SetTrackTimeScale\fR(
 Specifies the mp4 file to which the operation applies.
 .TP 
 \fItrackId\fP
-Specifies the track for which time scale is desired.
+Specifies the track to which the operation applies.
 .TP 
 \fItimeScale\fP
 Specifies the desired time scale for the track.
@@ -31,7 +31,7 @@ Specifies the desired time scale for the track.
 Upon success, true (1). Upon an error, false (0).
 .SH "DESCRIPTION"
 .LP 
-\fBMP4SetTrackTimeScale\fR set the time scale of the specified track in the mp4 file. The time scale determines the number of clock ticks per second for this track.
+\fBMP4SetTrackTimeScale\fR sets the time scale of the specified track in the mp4 file. The time scale determines the number of clock ticks per second for this track.
 .LP 
 Typically this value is set once when the track is created. However this call can be used to modify the value if that is desired. Since track sample durations are expressed in units of the track time scale, any change to the time scale value will effect the real time duration of the samples. 
 .SH "SEE ALSO"

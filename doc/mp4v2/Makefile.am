@@ -23,10 +23,17 @@ man_MANS = \
 	MP4GetDuration.3 \
 	MP4GetNumberOfTracks.3 \
 	MP4GetSampleDuration.3 \
+	MP4GetSampleIdFromTime.3 \
+	MP4GetSampleRenderingOffset.3 \
 	MP4GetSampleSize.3 \
+	MP4GetSampleSync.3 \
+	MP4GetSampleTime.3 \
+	MP4GetTimeScale.3 \
 	MP4GetTrackAudioType.3 \
 	MP4GetTrackDuration.3 \
 	MP4GetTrackESConfiguration.3 \
+	MP4GetTrackFixedSampleDuration.3 \
+	MP4GetTrackMaxSampleSize.3 \
 	MP4GetTrackNumberOfSamples.3 \
 	MP4GetTrackTimeScale.3 \
 	MP4GetTrackType.3 \
@@ -37,6 +44,9 @@ man_MANS = \
 	MP4Optimize.3 \
 	MP4Read.3 \
 	MP4ReadSample.3 \
+	MP4SetSampleRenderingOffset.3 \
+	MP4SetTimeScale.3 \
+	MP4SetTrackESConfiguration.3 \
 	MP4SetTrackTimeScale.3 \
 	MP4SetVerbosity.3 \
 	MP4WriteSample.3 

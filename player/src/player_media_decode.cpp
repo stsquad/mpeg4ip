@@ -87,7 +87,6 @@ int CPlayerMedia::decode_thread (void)
 #endif
   int thread_stop = 0, decoding = 0;
   uint64_t decode_skipped_frames = 0;
-
   while (thread_stop == 0) {
     // waiting here for decoding or thread stop
     ret = SDL_SemWait(m_decode_thread_sem);

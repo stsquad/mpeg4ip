@@ -1136,6 +1136,25 @@ extern "C" bool MP4SetSampleRenderingOffset(
 	return false;
 }
 
+extern "C" int8_t MP4GetSampleSync(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4SampleId sampleId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetSampleSync(
+				trackId, sampleId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return -1;
+}
+
+
 extern "C" u_int64_t MP4ConvertFromMovieDuration(
 	MP4FileHandle hFile,
 	MP4Duration duration,
@@ -1228,6 +1247,27 @@ extern "C" MP4Duration MP4ConvertToTrackDuration(
 		}
 	}
 	return MP4_INVALID_DURATION;
+}
+
+extern "C" bool MP4GetHintTrackRtpPayload(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	char** ppPayloadName,
+	u_int8_t* pPayloadNumber,
+	u_int16_t* pMaxPayloadSize)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->GetHintTrackRtpPayload(
+				hintTrackId, ppPayloadName, pPayloadNumber, pMaxPayloadSize);
+			return true;
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return false;
 }
 
 extern "C" bool MP4SetHintTrackRtpPayload(
@@ -1352,6 +1392,120 @@ extern "C" bool MP4AppendHintTrackSdp(
 	return false;
 }
 
+extern "C" MP4TrackId MP4GetHintTrackReferenceTrackId(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->
+				GetHintTrackReferenceTrackId(hintTrackId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return MP4_INVALID_TRACK_ID;
+}
+
+extern "C" bool MP4ReadRtpHint(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	MP4SampleId hintSampleId,
+	u_int16_t* pNumPackets,
+	bool* pIsBFrame)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->ReadRtpHint(
+				hintTrackId, hintSampleId, pNumPackets, pIsBFrame);
+			return true;
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return false;
+}
+
+extern "C" u_int16_t MP4GetRtpHintNumberOfPackets(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetRtpHintNumberOfPackets(hintTrackId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return 0;
+}
+
+extern "C" int8_t MP4GetRtpHintBFrame(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetRtpHintBFrame(hintTrackId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return -1;
+}
+
+extern "C" int32_t MP4GetRtpPacketTransmitOffset(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	u_int16_t packetIndex)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->
+				GetRtpPacketTransmitOffset(hintTrackId, packetIndex);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return 0;
+}
+
+extern "C" bool MP4ReadRtpPacket(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	u_int16_t packetIndex,
+	u_int8_t** ppBytes, 
+	u_int32_t* pNumBytes,
+	u_int32_t ssrc,
+	bool includeHeader,
+	bool includePayload)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->ReadRtpPacket(
+				hintTrackId, packetIndex, 
+				ppBytes, pNumBytes, 
+				ssrc, includeHeader, includePayload);
+			return true;
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return false;
+}
+
 extern "C" bool MP4AddRtpHint(
 	MP4FileHandle hFile,
 	MP4TrackId hintTrackId)
@@ -1382,11 +1536,13 @@ extern "C" bool MP4AddRtpVideoHint(
 extern "C" bool MP4AddRtpPacket(
 	MP4FileHandle hFile,
 	MP4TrackId hintTrackId,
-	bool setMbit)
+	bool setMbit,
+	int32_t transmitOffset)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
-			((MP4File*)hFile)->AddRtpPacket(hintTrackId, setMbit);
+			((MP4File*)hFile)->AddRtpPacket(
+				hintTrackId, setMbit, transmitOffset);
 			return true;
 		}
 		catch (MP4Error* e) {

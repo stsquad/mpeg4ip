@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.6 $ 
- * $Date: 2001/11/13 23:58:16 $
+ * $Revision: 1.7 $ 
+ * $Date: 2001/11/27 18:14:23 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -2686,7 +2686,9 @@ static void send_rtcp(struct rtp *session,
 		}
  		(session->encrypt_func)(session, buffer, ptr - buffer, initVec); 
 	}
-	(session->rtcp_send)(session, buffer, ptr - buffer);
+	if (session->rtcp_bw != 0.0) {
+	  (session->rtcp_send)(session, buffer, ptr - buffer);
+	}
 
         /* Loop the data back to ourselves so local participant can */
         /* query own stats when using unicast or multicast with no  */
