@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_lowvideo.h,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
+ "@(#) $Id: SDL_lowvideo.h,v 1.3 2001/11/13 00:39:01 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_lowvideo_h
@@ -86,5 +86,9 @@ extern int mouse_relative;
 
 /* This is really from SDL_dx5audio.c */
 extern void DX5_SoundFocus(HWND window);
+
+/* DJM: This is really from SDL_sysevents.c, we need it in
+   GDL_CreateWindow as well */
+LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 #endif /* SDL_lowvideo_h */

@@ -26,11 +26,9 @@
 #ifdef ADD_DIVX_ENCODER
 #include <encore.h>		/* divx */
 #endif /* ADD_DIVX_ENCODER */
-#include <avcodec.h>	/* ffmpeg */
+#include "video_source.h"
 #include <dsputil.h>	/* ffmpeg */
 #include <mpegvideo.h>	/* ffmpeg */
-
-#include "video_source.h"
 #include "rgb2yuv.h"
 
 int CVideoSource::ThreadMain(void) 
@@ -117,7 +115,7 @@ void CVideoSource::DoStopCapture(void)
 		} else { 
 #endif /* ADD_DIVX_ENCODER */
 			// ffmpeg
-			divx_encoder.close(&m_avctx);
+			avcodec_close(&m_avctx);
 			free(m_avctx.priv_data);
 #ifdef ADD_DIVX_ENCODER
 		}
@@ -522,28 +520,31 @@ bool CVideoSource::InitEncoder()
 		divxParams.enable_8x8_mv = 0;
 
 		if (encore(m_divxHandle, ENC_OPT_INIT, &divxParams, NULL) != ENC_OK) {
-			error_message("Counldn't initialize Divx encoder");
+			error_message("Couldn't initialize Divx encoder");
 			return false;
 		}
 				
 	} else { 
 #endif /* ADD_DIVX_ENCODER */
 
-		// use ffmpeg "divx" aka mpeg4 encoder
-		m_avctx.frame_number = 0;
+		avcodec_init();
+
+		// use ffmpeg mpeg4 encoder
+		memset(&m_avctx, 0, sizeof(m_avctx));
 		m_avctx.width = m_pConfig->m_videoWidth;
 		m_avctx.height = m_pConfig->m_videoHeight;
-		m_avctx.rate = 
+		m_avctx.frame_rate = 
 			m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
 		m_avctx.bit_rate = 
 			m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
-		m_avctx.gop_size = m_avctx.rate * 2;
+		m_avctx.gop_size = m_avctx.frame_rate * 2;
 		m_avctx.want_key_frame = 0;
 		m_avctx.flags = 0;
-		m_avctx.codec = &divx_encoder;
-		m_avctx.priv_data = malloc(m_avctx.codec->priv_data_size);
-		memset(m_avctx.priv_data, 0, m_avctx.codec->priv_data_size);
-		divx_encoder.init(&m_avctx);
+
+		if (avcodec_open(&m_avctx, &mpeg4_encoder) != 0) {
+			error_message("Couldn't initialize ffmpeg encoder");
+			return false;
+		}
 
 #ifdef ADD_DIVX_ENCODER 
 	}
@@ -681,17 +682,20 @@ void CVideoSource::ProcessVideo(void)
 #endif /* ADD_DIVX_ENCODER */
 
 				// ffmpeg
-				u_int8_t* yuvPlanes[3];
-				yuvPlanes[0] = yImage;
-				yuvPlanes[1] = uImage;
-				yuvPlanes[2] = vImage;
+				AVPicture avPict;
+				avPict.data[0] = yImage;	
+				avPict.data[1] = uImage;	
+				avPict.data[2] = vImage;	
+				avPict.linesize[0] = 
+					m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH), 
+				avPict.linesize[1] = avPict.linesize[2] =
+					avPict.linesize[0] >> 1;
 
 				m_avctx.want_key_frame = m_wantKeyFrame;
 
-				vopBufLength = divx_encoder.encode(&m_avctx, 
-					vopBuf, m_maxVopSize, yuvPlanes);
+				vopBufLength = avcodec_encode_video(&m_avctx, 
+					vopBuf, m_maxVopSize, &avPict);
 
-				m_avctx.frame_number++;
 #ifdef ADD_DIVX_ENCODER
 			}
 #endif /* ADD_DIVX_ENCODER */

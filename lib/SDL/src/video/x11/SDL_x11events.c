@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11events.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11events.c,v 1.3 2001/11/13 00:39:01 wmaycisco Exp $";
 #endif
 
 /* Handle the event stream, converting X11 events into SDL events */
@@ -407,11 +407,7 @@ printf("ConfigureNotify! (resize: %dx%d)\n", xevent.xconfigure.width, xevent.xco
 printf("Expose (count = %d)\n", xevent.xexpose.count);
 #endif
 		if ( SDL_VideoSurface && (xevent.xexpose.count == 0) ) {
-			if ( SDL_VideoSurface->flags & SDL_OPENGL ) {
-				SDL_PrivateExpose();
-			} else {
-				X11_RefreshDisplay(this);
-			}
+			X11_RefreshDisplay(this);
 		}
 	    }
 	    break;

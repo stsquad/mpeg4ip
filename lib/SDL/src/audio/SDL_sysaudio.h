@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysaudio.h,v 1.2 2001/08/23 00:09:13 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysaudio.h,v 1.3 2001/11/13 00:38:55 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_sysaudio_h
@@ -110,9 +110,11 @@ extern AudioBootStrap DMA_bootstrap;
 #ifdef ALSA_SUPPORT
 extern AudioBootStrap ALSA_bootstrap;
 #endif
-#if (defined(unix) && !defined(__CYGWIN32__)) && \
-    !defined(OSS_SUPPORT) && !defined(ALSA_SUPPORT)
-extern AudioBootStrap AUDIO_bootstrap;
+#ifdef SUNAUDIO_SUPPORT
+extern AudioBootStrap SUNAUDIO_bootstrap;
+#endif
+#ifdef DMEDIA_SUPPORT
+extern AudioBootStrap DMEDIA_bootstrap;
 #endif
 #ifdef ARTSC_SUPPORT
 extern AudioBootStrap ARTSC_bootstrap;

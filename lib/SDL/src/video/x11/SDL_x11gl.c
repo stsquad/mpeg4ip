@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11gl.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11gl.c,v 1.3 2001/11/13 00:39:02 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>	/* For getenv() prototype */
@@ -360,15 +360,23 @@ int X11_GL_LoadLibrary(_THIS, const char* path)
 	X11_GL_UnloadLibrary(this);
 
 	/* Load new function pointers */
-	this->gl_data->glXGetProcAddress = dlsym(handle, "glXGetProcAddressARB");
-	this->gl_data->glXChooseVisual = dlsym(handle, "glXChooseVisual");
-	this->gl_data->glXCreateContext = dlsym(handle, "glXCreateContext");
-	this->gl_data->glXDestroyContext = dlsym(handle, "glXDestroyContext");
-	this->gl_data->glXMakeCurrent = dlsym(handle, "glXMakeCurrent");
-	this->gl_data->glXSwapBuffers = dlsym(handle, "glXSwapBuffers");
-	this->gl_data->glXGetConfig = dlsym(handle, "glXGetConfig");
+	this->gl_data->glXGetProcAddress =
+		(void *(*)(const GLubyte *)) dlsym(handle, "glXGetProcAddressARB");
+	this->gl_data->glXChooseVisual =
+		(XVisualInfo *(*)(Display *, int, int *)) dlsym(handle, "glXChooseVisual");
+	this->gl_data->glXCreateContext =
+		(GLXContext (*)(Display *, XVisualInfo *, GLXContext, int)) dlsym(handle, "glXCreateContext");
+	this->gl_data->glXDestroyContext =
+		(void (*)(Display *, GLXContext)) dlsym(handle, "glXDestroyContext");
+	this->gl_data->glXMakeCurrent =
+		(int (*)(Display *, GLXDrawable, GLXContext)) dlsym(handle, "glXMakeCurrent");
+	this->gl_data->glXSwapBuffers =
+		(void (*)(Display *, GLXDrawable)) dlsym(handle, "glXSwapBuffers");
+	this->gl_data->glXGetConfig =
+		(int (*)(Display *, XVisualInfo *, int, int *)) dlsym(handle, "glXGetConfig");
 	/* We don't compare below for this in case we're not using Mesa. */
-	this->gl_data->glXReleaseBuffersMESA = dlsym( handle, "glXReleaseBuffersMESA" );
+	this->gl_data->glXReleaseBuffersMESA =
+		(void (*)(Display *, GLXDrawable)) dlsym( handle, "glXReleaseBuffersMESA" );
 
 	if ( (this->gl_data->glXChooseVisual == NULL) || 
 	     (this->gl_data->glXCreateContext == NULL) ||
@@ -414,7 +422,7 @@ fprintf(stderr, "glXGetProcAddress returned %p and dlsym returned %p for %s\n", 
 #endif
 	retval = dlsym(handle, proc);
 	if (!retval && strlen(proc) <= 1022) {
-		procname[0] = "_";
+		procname[0] = '_';
 		strcpy(procname + 1, proc);
 		retval = dlsym(handle, procname);
 	}

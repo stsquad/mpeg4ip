@@ -18,27 +18,59 @@ process:
 
 (You may need to create the subdirs of /usr/local manually.)
 
-For some reason, libtool doesn't run ranlib properly, so do this
-manually:
+To use the library once it's built, you essential have two possibilities:
+use the traditional autoconf/automake/make method, or use Apple's Project Builder.
 
-	ranlib /usr/local/lib/libSDL.a
+==============================================================================
+Using the Simple DirectMedia Layer with a traditional Makefile
+==============================================================================
 
-To use the library once it's built, you need to use the "Carbon
-framework", which is the port of the old Mac Toolbox to OS X.
-To do this, use the -F and -framework arguments for compiling
-and linking, respectively:
+An existing autoconf/automake build system for your SDL app has good chances
+to work almost unchanged on OS X. However, to produce a "real" MacOS X binary
+that you can distribute to users, you need to put the generated binary into a
+so called "bundle", which basically is a fancy folder with a name like
+"MyCoolGame.app".
 
-	cc -c myprog.c -I/usr/local/include/SDL -F/System/Library/Frameworks/Carbon.framework
-	cc myprog.o -L/usr/local/lib -lSDL -framework Carbon
+To get this build automatically, add something like the following rule to
+your Makefile.am:
 
-sdl-config knows about the linking path and -framework, so it's
-recommended to use it to fill in your Makefile variables.
+bundle_contents = APP_NAME.app/Contents
+APP_NAME_bundle: EXE_NAME
+	mkdir -p $(bundle_contents)/MacOS
+	mkdir -p $(bundle_contents)/Resources
+	echo "APPL????" > $(bundle_contents)/PkgInfo
+	$(INSTALL_PROGRAM) $< $(bundle_contents)/MacOS/
+
+You should replace EXE_NAME with the name of the executable. APP_NAME is what
+will be visible to the user in the Finder. Usually it will be the same
+as EXE_NAME but capitalized. E.g. if EXE_NAME is "testgame" then APP_NAME 
+usually is "TestGame". You might also want to use @PACKAGE@ to use the package
+name as specified in your configure.in file.
+
+If your project builds more than one application, you will have to do a bit
+more.  For each of your target applications, you need a seperate rule.
+
+If you want the created bundles to be installed, you may want to add this
+rule to your Makefile.am:
+
+install-exec-hook: APP_NAME_bundle
+	rm -rf $(DESTDIR)$(prefix)/Applications/APP_NAME.app
+	mkdir -p $(DESTDIR)$(prefix)/Applications/
+	cp -r $< /$(DESTDIR)$(prefix)Applications/
+
+This rule takes the Bundle created by the rule from step 3 and installs them
+into $(DESTDIR)$(prefix)/Applications/.
+
+Again, if you want to install multiple applications, you will have to augment
+the make rule accordingly.
+
 
 ==============================================================================
 Using the Simple DirectMedia Layer with Project Builder
 ==============================================================================
 
-These instructions are for using Apple's Project Builder IDE to build SDL applications.
+These instructions are for using Apple's Project Builder IDE to build SDL
+applications.
 
 - First steps
 
@@ -89,7 +121,7 @@ following locations:
     * Remove "MainMenu.nib" from your project
     * Add "$(HOME)/Library/Frameworks/SDL.framework/Headers" to include path
     * Add "$(HOME)/Library/Frameworks" to the frameworks search path
-    * Add "-framework SDL" to the "OTHER_LDFLAGS" variable
+    * Add "-framework SDL -framework Foundation -framework AppKit" to "OTHER_LDFLAGS"
     * Set the "Main Nib File" under "Application Settings" to "SDLMain.nib"
     * Add your files
     * Clean and build
@@ -105,7 +137,7 @@ following locations:
 - Implementation Notes
     Some things that may be of interest about how it all works...
     * Working directory
-        As defined in the SDLMain.m file, the working directory of your SDL app
+        As defined in the SDL_main.m file, the working directory of your SDL app
         is by default set to its parent. You may wish to change this to better
         suit your needs.
     * You have a Cocoa App!
@@ -115,10 +147,6 @@ following locations:
         You are free to modify your Cocoa app with generally no consequence 
         to SDL. You cannot, however, easily change the SDL window itself.
         Functionality may be added in the future to help this.
-    * My development setup:
-        I am using version 1.0.1 (v63.0) of Project Builder on MacOS X 10.0.3,
-        from the Developer Tools CD for May 2001.
-        As of May 31 2001, Apple hasn't released this version of the tools to the public, 
-        but I expect that things will still work on older versions.
-        
+	
+
 Known bugs are listed in the file "BUGS"

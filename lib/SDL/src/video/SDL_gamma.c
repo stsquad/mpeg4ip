@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_gamma.c,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_gamma.c,v 1.2 2001/11/13 00:39:00 wmaycisco Exp $";
 #endif
 
 /* Gamma correction support */
@@ -33,6 +33,7 @@ static char rcsid =
 #include <math.h>
 #endif
 #include <stdlib.h>
+#include <string.h>
 
 #include "SDL_error.h"
 #include "SDL_sysvideo.h"

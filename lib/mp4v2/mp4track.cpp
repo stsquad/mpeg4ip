@@ -219,9 +219,8 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 
 	FILE* pFile = GetSampleFile(sampleId);
 
-	// currently we only handle self-contained files
-	if (pFile != NULL) {
-		throw new MP4Error("sample is not in this file",
+	if (pFile == (FILE*)-1) {
+		throw new MP4Error("sample is located in an inaccessible file",
 			"MP4Track::ReadSample");
 	}
 
@@ -237,8 +236,6 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 	VERBOSE_READ_SAMPLE(m_pFile->GetVerbosity(),
 		printf("ReadSample: track %u id %u offset 0x"LLX" size %u (0x%x)\n",
 			m_trackId, sampleId, fileOffset, *pNumBytes, *pNumBytes));
-
-	// LATER good check would be to see if sample is in an mdat atom
 
 	bool bufferMalloc = false;
 	if (*ppBytes == NULL) {
@@ -635,8 +632,22 @@ FILE* MP4Track::GetSampleFile(MP4SampleId sampleId)
 		VERBOSE_READ_SAMPLE(m_pFile->GetVerbosity(),
 			printf("dref url = %s\n", url));
 
-		// LATER attempt to open url 
 		pFile = (FILE*)-1;
+
+		// attempt to open url if it's a file url 
+		// currently this is the only thing we understand
+		if (!strncmp(url, "file:", 5)) {
+			const char* fileName = url + 5;
+			if (!strncmp(fileName, "//", 2)) {
+				fileName = strchr(fileName + 2, '/');
+			}
+			if (fileName) {
+				pFile = fopen(fileName, "rb");
+				if (!pFile) {
+					pFile = (FILE*)-1;
+				}
+			}
+		} 
 	}
 
 	if (m_lastSampleFile) {

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_byteorder.h,v 1.2 2001/08/23 00:09:12 wmaycisco Exp $";
+ "@(#) $Id: SDL_byteorder.h,v 1.3 2001/11/13 00:38:55 wmaycisco Exp $";
 #endif
 
 /* Macros for determining the byte-order of this platform */
@@ -43,6 +43,7 @@ static char rcsid =
     (defined(__alpha__) || defined(__alpha)) || \
      defined(__arm__) || \
     (defined(__mips__) && defined(__MIPSEL__)) || \
+     defined(__SYMBIAN32__) || \
      defined(__LITTLE_ENDIAN__)
 #define SDL_BYTEORDER	SDL_LIL_ENDIAN
 #else

@@ -4,12 +4,21 @@
 # This is necessary because some platforms have special program
 # entry points, which require special application initialization.
 
-ARCH_SUBDIRS = beos linux macos win32
+ARCH_SUBDIRS = $(srcdir)/beos \
+               $(srcdir)/epoc \
+               $(srcdir)/linux \
+               $(srcdir)/macos \
+               $(srcdir)/macosx \
+               $(srcdir)/win32
 
 # Build a separate library containing the main() entry point.
 lib_LIBRARIES = libSDLmain.a
 
+if TARGET_MACOSX
+MAINLIB_ARCH_SRCS = SDLMain.m SDLMain.h
+else
 MAINLIB_ARCH_SRCS = SDL_main.c
+endif
 
 libSDLmain_a_SOURCES = $(MAINLIB_ARCH_SRCS)
 

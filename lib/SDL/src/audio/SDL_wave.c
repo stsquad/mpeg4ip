@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_wave.c,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_wave.c,v 1.2 2001/11/13 00:38:55 wmaycisco Exp $";
 #endif
 
 #ifndef DISABLE_FILE
@@ -434,7 +434,13 @@ SDL_AudioSpec * SDL_LoadWAV_RW (SDL_RWops *src, int freesrc,
 	/* Check the magic header */
 	RIFFchunk	= SDL_ReadLE32(src);
 	wavelen		= SDL_ReadLE32(src);
-	WAVEmagic	= SDL_ReadLE32(src);
+	if ( wavelen == WAVE ) { /* The RIFFchunk has already been read */
+		WAVEmagic = wavelen;
+		wavelen   = RIFFchunk;
+		RIFFchunk = RIFF;
+	} else {
+		WAVEmagic = SDL_ReadLE32(src);
+	}
 	if ( (RIFFchunk != RIFF) || (WAVEmagic != WAVE) ) {
 		SDL_SetError("Unrecognized file type (not WAVE)");
 		was_error = 1;

@@ -24,7 +24,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_irixaudio.c,v 1.1 2001/08/01 00:33:55 wmaycisco Exp $";
+ "@(#) $Id: SDL_irixaudio.c,v 1.2 2001/11/13 00:38:55 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer (For IRIX 6.5 and higher) */
@@ -91,7 +91,7 @@ static SDL_AudioDevice *Audio_CreateDevice(int devindex)
 	return this;
 }
 
-AudioBootStrap AUDIO_bootstrap = {
+AudioBootStrap DMEDIA_bootstrap = {
 	"AL", "IRIX DMedia audio",
 	Audio_Available, Audio_CreateDevice
 };

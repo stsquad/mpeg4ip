@@ -42,7 +42,8 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../../include" /I "../lib/SDL/include" /I "../../include" /I "../lib" /I "../../lib" /I "../../lib/SDL/include" /I "../../common/video/mpeg4" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D _WIN32_WINNT=0x0400 /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /I "../../../include" /I "../lib/SDL/include" /I "../../include" /I "../lib" /I "../../lib" /I "../../lib/SDL/include" /I "../../common/video/mpeg4" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D _WIN32_WINNT=0x0400 /YX /FD /c
+# SUBTRACT CPP /O<none>
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o NUL /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o NUL /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"

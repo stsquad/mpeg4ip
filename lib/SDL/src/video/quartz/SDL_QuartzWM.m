@@ -35,46 +35,52 @@ static WMcursor*    QZ_CreateWMCursor   (_THIS, Uint8 *data, Uint8 *mask,
                                           int w, int h, int hot_x, int hot_y) { 
 	WMcursor *cursor;
 	int row, bytes;
+		
+	/* Allocate the cursor memory */
 	cursor = (WMcursor *)malloc(sizeof(WMcursor));
 	if ( cursor == NULL ) {
 		SDL_OutOfMemory();
 		return(NULL);
 	}
 	memset(cursor, 0, sizeof(*cursor));
-		
-	bytes = (w/8);
-	if ( bytes > 2 ) {
-		bytes = 2;
-	}
-	for ( row=0; row<h && (row < 16); ++row ) {
+    
+    if (w > 16)
+        w = 16;
+    
+    if (h > 16)
+        h = 16;
+    
+	bytes = (w+7)/8;
+
+	for ( row=0; row<h; ++row ) {
 		memcpy(&cursor->curs.data[row], data, bytes);
-		data += w/8;
+		data += bytes;
 	}
-	for ( row=0; row<h && (row < 16); ++row ) {
+	for ( row=0; row<h; ++row ) {
 		memcpy(&cursor->curs.mask[row], mask, bytes);
-		mask += w/8;
+		mask += bytes;
 	}
 	cursor->curs.hotSpot.h = hot_x;
 	cursor->curs.hotSpot.v = hot_y;
 	
-        return(cursor);
+    return(cursor);
 }
 
+static int QZ_cursor_visible = 1;
+    
 static int QZ_ShowWMCursor (_THIS, WMcursor *cursor) { 
 
-    static int visible = 1;
-    
     if ( cursor == NULL) {
-        if ( visible ) {
+        if ( QZ_cursor_visible ) {
             HideCursor ();
-            visible = 0;
+            QZ_cursor_visible = 0;
         }
     }
     else {
         SetCursor(&cursor->curs);
-        if ( ! visible ) {
+        if ( ! QZ_cursor_visible ) {
             ShowCursor ();
-            visible = 1;
+            QZ_cursor_visible = 1;
         }
     }
 
@@ -96,7 +102,7 @@ static void  QZ_PrivateWarpCursor (_THIS, int fullscreen, int h, int x, int y) {
         /* Convert to absolute screen coordinates */
         NSPoint base, screen;
         base = NSMakePoint (p.x, p.y);
-        screen = [ window convertBaseToScreen:base ];
+        screen = [ qz_window convertBaseToScreen:base ];
         p.x = screen.x;
         p.y = device_height - screen.y;
         CGDisplayMoveCursorToPoint (display_id, p);
@@ -122,16 +128,16 @@ static void QZ_CheckMouseMode   (_THIS) { }
 
 static void QZ_SetCaption    (_THIS, const char *title, const char *icon) {
 
-    if ( window != nil ) {
+    if ( qz_window != nil ) {
         NSString *string;
         if ( title != NULL ) {
             string = [ [ NSString alloc ] initWithCString:title ];
-            [ window setTitle:string ];
+            [ qz_window setTitle:string ];
             [ string release ];
         }
         if ( icon != NULL ) {
             string = [ [ NSString alloc ] initWithCString:icon ];
-            [ window setMiniwindowTitle:string ];
+            [ qz_window setMiniwindowTitle:string ];
             [ string release ];
         }
     }
@@ -144,19 +150,19 @@ static void QZ_SetIcon       (_THIS, SDL_Surface *icon, Uint8 *mask) {
 static int  QZ_IconifyWindow (_THIS) { 
 
     /* Bug! minimize erases the framebuffer */
-    if ( ! [ window isMiniaturized ] ) {
-        [ window miniaturize:nil ];
+    if ( ! [ qz_window isMiniaturized ] ) {
+        [ qz_window miniaturize:nil ];
         return 1;
     }
     else {
-        SDL_SetError ("window already iconified");
+        SDL_SetError ("qz_window already iconified");
         return 0;
     }
 }
 
 /*
 static int  QZ_GetWMInfo  (_THIS, SDL_SysWMinfo *info) { 
-    info->nsWindowPtr = window;
+    info->nsWindowPtr = qz_window;
     return 0; 
 }*/
 

@@ -45,6 +45,8 @@ INCLUDES=\
 	-I$(top_srcdir)/server/audio/lame \
 	-I$(top_srcdir)/server/video/divx \
 	-I$(top_srcdir)/server/video/ffmpeg \
+	-I$(top_srcdir)/server/video/ffmpeg \
+	-I$(top_srcdir)/server/video/ffmpeg \
 	-I$(top_srcdir)/player/lib
 
 AM_CFLAGS= -DMPEG4IP -D_REENTRANT -Wall -Wcast-align -Wstrict-prototypes -Wmissing-prototypes

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dibvideo.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
+ "@(#) $Id: SDL_dibvideo.c,v 1.3 2001/11/13 00:39:01 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -286,7 +286,9 @@ int DIB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 	if ( DIB_CreateWindow(this) < 0 ) {
 		return(-1);
 	}
+#ifndef DISABLE_AUDIO
 	DX5_SoundFocus(SDL_Window);
+#endif
 
 	/* Determine the screen depth */
 	vformat->BitsPerPixel = DIB_SussScreenDepth();
@@ -574,7 +576,10 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 		if (IsZoomed(SDL_Window)) style |= WS_MAXIMIZE;
 #endif
 	}
-	SetWindowLong(SDL_Window, GWL_STYLE, style);
+
+   /* DJM: Don't piss of anyone who has setup his own window */
+   if (!SDL_windowid)
+	   SetWindowLong(SDL_Window, GWL_STYLE, style);
 
 	/* Delete the old bitmap if necessary */
 	if ( screen_bmp != NULL ) {

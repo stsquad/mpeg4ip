@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11gamma.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11gamma.c,v 1.3 2001/11/13 00:39:02 wmaycisco Exp $";
 #endif
 
 #include "SDL.h"
@@ -109,7 +109,6 @@ static int X11_GetGammaNoLock(_THIS, float *red, float *green, float *blue)
         return -1;
     }
 #endif
-    SDL_SetError("Gamma correction not supported");
     return -1;
 }
 int X11_GetVidModeGamma(_THIS, float *red, float *green, float *blue)

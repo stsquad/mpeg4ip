@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_nullvideo.c,v 1.1 2001/08/23 00:09:17 wmaycisco Exp $";
+ "@(#) $Id: SDL_nullvideo.c,v 1.2 2001/11/13 00:39:00 wmaycisco Exp $";
 #endif
 
 /* Dummy SDL video driver implementation; this is just enough to make an
@@ -42,6 +42,7 @@ static char rcsid =
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "SDL.h"
 #include "SDL_error.h"
@@ -67,7 +68,6 @@ static void DUMMY_VideoQuit(_THIS);
 /* Hardware surface functions */
 static int DUMMY_AllocHWSurface(_THIS, SDL_Surface *surface);
 static int DUMMY_LockHWSurface(_THIS, SDL_Surface *surface);
-static int DUMMY_FlipHWSurface(_THIS, SDL_Surface *surface);
 static void DUMMY_UnlockHWSurface(_THIS, SDL_Surface *surface);
 static void DUMMY_FreeHWSurface(_THIS, SDL_Surface *surface);
 
@@ -221,11 +221,6 @@ static int DUMMY_LockHWSurface(_THIS, SDL_Surface *surface)
 static void DUMMY_UnlockHWSurface(_THIS, SDL_Surface *surface)
 {
 	return;
-}
-
-static int DUMMY_FlipHWSurface(_THIS, SDL_Surface *surface)
-{
-	return(0);
 }
 
 static void DUMMY_UpdateRects(_THIS, int numrects, SDL_Rect *rects)

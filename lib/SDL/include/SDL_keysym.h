@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_keysym.h,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_keysym.h,v 1.2 2001/11/13 00:38:55 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_keysym_h
@@ -284,6 +284,7 @@ typedef enum {
 	SDLK_MENU		= 319,
 	SDLK_POWER		= 320,		/* Power Macintosh power key */
 	SDLK_EURO		= 321,		/* Some european keyboards */
+	SDLK_UNDO		= 322,		/* Atari keyboard has Undo */
 
 	/* Add any other keys here */
 

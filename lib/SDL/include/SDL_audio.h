@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audio.h,v 1.2 2001/08/23 00:09:12 wmaycisco Exp $";
+ "@(#) $Id: SDL_audio.h,v 1.3 2001/11/13 00:38:55 wmaycisco Exp $";
 #endif
 
 /* Access to the raw audio mixing buffer for the SDL library */
@@ -50,7 +50,7 @@ typedef struct {
 	Uint16 format;		/* Audio data format */
 	Uint8  channels;	/* Number of channels: 1 mono, 2 stereo */
 	Uint8  silence;		/* Audio buffer silence value (calculated) */
-	Uint16 samples;		/* Audio buffer size in samples */
+	Uint16 samples;		/* Audio buffer size in samples (power of 2) */
 	Uint16 padding;		/* Necessary for some compile environments */
 	Uint32 size;		/* Audio buffer size in bytes (calculated) */
 	/* This function is called when the audio device needs more data.
@@ -259,6 +259,7 @@ extern DECLSPEC int SDL_HasAudioDelayMsec(void);
  * Determine the audio buffer delay in milliseconds
  */
 extern DECLSPEC int SDL_AudioDelayMsec(void);
+
 
 
 /* Ends C function definitions when using C++ */

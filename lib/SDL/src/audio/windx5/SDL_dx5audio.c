@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5audio.c,v 1.2 2001/08/23 00:09:14 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5audio.c,v 1.3 2001/11/13 00:38:55 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -53,6 +53,7 @@ static void DX5_PlayAudio(_THIS);
 static Uint8 *DX5_GetAudioBuf(_THIS);
 static void DX5_WaitDone(_THIS);
 static void DX5_CloseAudio(_THIS);
+static int DX5_AudioDelayMsec(_THIS);
 
 /* Audio driver bootstrap functions */
 
@@ -175,6 +176,7 @@ static SDL_AudioDevice *Audio_CreateDevice(int devindex)
 	this->GetAudioBuf = DX5_GetAudioBuf;
 	this->WaitDone = DX5_WaitDone;
 	this->CloseAudio = DX5_CloseAudio;
+	this->AudioDelayMsec = DX5_AudioDelayMsec;
 
 	this->free = Audio_DeleteDevice;
 
@@ -441,6 +443,7 @@ static int CreatePrimary(LPDIRECTSOUND sndObj, HWND focus,
 	memset(&format, 0, sizeof(format));
 	format.dwSize = sizeof(format);
 	format.dwFlags=(DSBCAPS_PRIMARYBUFFER|DSBCAPS_GETCURRENTPOSITION2);
+	format.dwFlags |= DSBCAPS_STICKYFOCUS;
 #ifdef USE_POSITION_NOTIFY
 	format.dwFlags |= DSBCAPS_CTRLPOSITIONNOTIFY;
 #endif
@@ -525,6 +528,8 @@ static int CreateSecondary(LPDIRECTSOUND sndObj, HWND focus,
 #endif
 	if ( ! focus ) {
 		format.dwFlags |= DSBCAPS_GLOBALFOCUS;
+	} else {
+		format.dwFlags |= DSBCAPS_STICKYFOCUS;
 	}
 	format.dwBufferBytes = numchunks*chunksize;
 	if ( (format.dwBufferBytes < DSBSIZE_MIN) ||
@@ -693,3 +698,29 @@ static int DX5_OpenAudio(_THIS, SDL_AudioSpec *spec)
 	return(0);
 }
 
+static int DX5_AudioDelayMsec (_THIS)
+{
+	DWORD cursor, write;
+	HRESULT result;
+	int odelay;
+	/* char buffer[80]; */
+
+	result = IDirectSoundBuffer_GetCurrentPosition(mixbuf, &cursor, &write);
+	/*sprintf(buffer, "cur %d write %d\n", cursor, write);
+	OutputDebugString(buffer); */
+	if (result == DS_OK) {
+	/*
+	 * delay in msec is bytes  * 1000 / (bytes per sample * channels * freq)
+	 */
+		odelay = (write - cursor);
+		odelay *= 1000;
+		odelay /= this->spec.channels;
+		if (!(this->spec.format == AUDIO_U8 || 
+			this->spec.format == AUDIO_S8)) {
+			odelay /= 2; // 2 bytes per sample
+		}
+		odelay /= this->spec.freq;
+		return odelay;
+	} 
+	return -1;
+}

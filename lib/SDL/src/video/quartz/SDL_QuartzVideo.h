@@ -44,10 +44,6 @@
         - Launch times are slow, maybe prebinding will help
         - Direct framebuffer access has some artifacts, maybe a driver issue
         - Cursor in 8 bit modes is screwy
-        - Modifier + mouse-down maps alternate mouse button, but if modifier is released
-           before mouse button, corresponding mouse-up event is not generated.
-        - Clicking in content activates app, but doesn't generate the activate event,
-          and subsequent switches generate no activate/deactivate events! (OS Bug I hope)
 */
 
 #include <ApplicationServices/ApplicationServices.h>
@@ -83,8 +79,9 @@ typedef struct SDL_PrivateVideoData {
     CFArrayRef         mode_list;
     CGDirectPaletteRef palette;
     NSOpenGLContext    *gl_context;
-    int                width, height, bpp;
+    Uint32             width, height, bpp;
     Uint32             flags;
+    SDL_bool           video_is_set; /* tell if the video mode was set */
     
     /* Window-only fields */
     NSWindow        *window;
@@ -105,7 +102,8 @@ typedef struct SDL_PrivateVideoData {
 #define device_height (this->hidden->height)
 #define device_bpp (this->hidden->bpp)
 #define mode_flags (this->hidden->flags)
-#define window (this->hidden->window)
+#define video_set (this->hidden->video_is_set)
+#define qz_window (this->hidden->window)
 #define windowView (this->hidden->view)
 
 /* Interface for hardware fill not (yet) in the public API */

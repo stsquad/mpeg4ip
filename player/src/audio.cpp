@@ -551,7 +551,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
       if (this_time > index_time + ALLOWED_LATENCY || 
 	  this_time < index_time - ALLOWED_LATENCY) {
 #if DEBUG_SYNC
-	player_debug_message("potential change - index time %llu time %llu", 
+	player_debug_message("potential change - index time "LLU" time "LLU, 
 			     index_time, this_time);
 #endif
 	m_consec_wrong_latency++;

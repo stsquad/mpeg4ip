@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11video.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11video.c,v 1.3 2001/11/13 00:39:02 wmaycisco Exp $";
 #endif
 
 /* X11 based SDL video driver implementation.
@@ -501,7 +501,6 @@ static void X11_DestroyWindow(_THIS, SDL_Surface *screen)
 		if ( SDL_XPixels ) {
 			int numcolors;
 			unsigned long pixel;
-
 			numcolors = SDL_Visual->map_entries;
 			for ( pixel=0; pixel<numcolors; ++pixel ) {
 				while ( SDL_XPixels[pixel] > 0 ) {
@@ -850,9 +849,9 @@ static int X11_CreateWindow(_THIS, SDL_Surface *screen,
 	if ( ! SDL_windowid ) {
 		XMapWindow(SDL_Display, SDL_Window);
 		XMapWindow(SDL_Display, WMwindow);
+		X11_WaitMapped(this, WMwindow);
 		if ( flags & SDL_FULLSCREEN ) {
 			screen->flags |= SDL_FULLSCREEN;
-			X11_WaitMapped(this, WMwindow);
 			X11_EnterFullScreen(this);
 		} else {
 			screen->flags &= ~SDL_FULLSCREEN;
@@ -1050,10 +1049,10 @@ static void allocate_nearest(_THIS, SDL_Color *colors,
 		c = all + best;
 		if(XAllocColor(GFX_Display, SDL_XColorMap, c)) {
 			/* got it */
-			colors[best].r = c->red >> 8;
-			colors[best].g = c->green >> 8;
-			colors[best].b = c->blue >> 8;
-			++SDL_XPixels[best];
+			colors[c->pixel].r = c->red >> 8;
+			colors[c->pixel].g = c->green >> 8;
+			colors[c->pixel].b = c->blue >> 8;
+			++SDL_XPixels[c->pixel];
 		} else {
 			/* 
 			 * The colour couldn't be allocated, probably being
@@ -1205,12 +1204,12 @@ void X11_VideoQuit(_THIS)
 		}
 		if ( SDL_iconcolors ) {
 			unsigned long pixel;
-			int numcolors =
-				((this->screen->format)->palette)->ncolors;
-			for ( pixel=0; pixel<numcolors; ++pixel ) {
-				while ( SDL_iconcolors[pixel] > 0 ) {
-					XFreeColors(SDL_Display,
-						SDL_DisplayColormap,&pixel,1,0);
+			Colormap dcmap = DefaultColormap(SDL_Display,
+							 SDL_Screen);
+			for(pixel = 0; pixel < 256; ++pixel) {
+				while(SDL_iconcolors[pixel] > 0) {
+					XFreeColors(GFX_Display,
+						    dcmap, &pixel, 1, 0);
 					--SDL_iconcolors[pixel];
 				}
 			}

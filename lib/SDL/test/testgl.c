@@ -6,17 +6,21 @@
 #include "SDL.h"
 
 #ifdef HAVE_OPENGL
-#ifdef WIN32
-#include <windows.h>
-#endif
-#if defined(__APPLE__) && defined(__MACH__)
-#include <OpenGL/gl.h>
-#else
-#include <GL/gl.h>
-#endif
 
+#include "SDL_opengl.h"
+
+/* Undefine this if you want a flat cube instead of a rainbow cube */
 #define SHADED_CUBE
 
+/* Define this to be the name of the logo image to use with -logo */
+#define LOGO_FILE	"icon.bmp"
+
+/* The SDL_OPENGLBLIT interface is deprecated.
+   The code is still available for benchmark purposes though.
+*/
+static SDL_bool USE_DEPRECATED_OPENGLBLIT = SDL_FALSE;
+
+/**********************************************************************/
 
 void HotKey_ToggleFullScreen(void)
 {
@@ -102,86 +106,285 @@ int HandleEvent(SDL_Event *event)
 	return(done);
 }
 
-void DrawSDLLogo(void)
+void SDL_GL_Enter2DMode()
 {
-	static SDL_Surface *image = NULL;
+	SDL_Surface *screen = SDL_GetVideoSurface();
+
+	/* Note, there may be other things you need to change,
+	   depending on how you have your OpenGL state set up.
+	*/
+	glPushAttrib(GL_ENABLE_BIT);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_TEXTURE_2D);
+
+	glViewport(0, 0, screen->w, screen->h);
+
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+
+	glOrtho(0.0, (GLdouble)screen->w, (GLdouble)screen->h, 0.0, 0.0, 1.0);
+
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+}
+
+void SDL_GL_Leave2DMode()
+{
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+
+	glPopAttrib();
+}
+
+/* Quick utility function for texture creation */
+static int power_of_two(int input)
+{
+	int value = 1;
+
+	while ( value < input ) {
+		value <<= 1;
+	}
+	return value;
+}
+
+GLuint SDL_GL_LoadTexture(SDL_Surface *surface, GLfloat *texcoord)
+{
+	GLuint texture;
+	int w, h;
+	SDL_Surface *image;
+	SDL_Rect area;
+	Uint32 saved_flags;
+	Uint8  saved_alpha;
+
+	/* Use the surface width and height expanded to powers of 2 */
+	w = power_of_two(surface->w);
+	h = power_of_two(surface->h);
+	texcoord[0] = 0.0f;			/* Min X */
+	texcoord[1] = 0.0f;			/* Min Y */
+	texcoord[2] = (GLfloat)surface->w / w;	/* Max X */
+	texcoord[3] = (GLfloat)surface->h / h;	/* Max Y */
+
+	image = SDL_CreateRGBSurface(
+			SDL_SWSURFACE,
+			w, h,
+			32,
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN /* OpenGL RGBA masks */
+			0x000000FF, 
+			0x0000FF00, 
+			0x00FF0000, 
+			0xFF000000
+#else
+			0xFF000000,
+			0x00FF0000, 
+			0x0000FF00, 
+			0x000000FF
+#endif
+		       );
+	if ( image == NULL ) {
+		return 0;
+	}
+
+	/* Save the alpha blending attributes */
+	saved_flags = surface->flags&(SDL_SRCALPHA|SDL_RLEACCELOK);
+	saved_alpha = surface->format->alpha;
+	if ( (saved_flags & SDL_SRCALPHA) == SDL_SRCALPHA ) {
+		SDL_SetAlpha(surface, 0, 0);
+	}
+
+	/* Copy the surface into the GL texture image */
+	area.x = 0;
+	area.y = 0;
+	area.w = surface->w;
+	area.h = surface->h;
+	SDL_BlitSurface(surface, &area, image, &area);
+
+	/* Restore the alpha blending attributes */
+	if ( (saved_flags & SDL_SRCALPHA) == SDL_SRCALPHA ) {
+		SDL_SetAlpha(surface, saved_flags, saved_alpha);
+	}
+
+	/* Create an OpenGL texture for the image */
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D,
+		     0,
+		     GL_RGBA,
+		     w, h,
+		     0,
+		     GL_RGBA,
+		     GL_UNSIGNED_BYTE,
+		     image->pixels);
+	SDL_FreeSurface(image); /* No longer needed */
+
+	return texture;
+}
+
+void DrawLogoTexture(void)
+{
+	static GLuint texture;
+	static GLfloat texMinX, texMinY;
+	static GLfloat texMaxX, texMaxY;
 	static int x = 0;
 	static int y = 0;
+	static int w, h;
+	static int delta_x = 1;
+	static int delta_y = 1;
+	static Uint32 last_moved = 0;
+
+	SDL_Surface *screen = SDL_GetVideoSurface();
+
+	if ( ! texture ) {
+		SDL_Surface *image;
+		GLfloat texcoord[4];
+
+		/* Load the image (could use SDL_image library here) */
+		image = SDL_LoadBMP(LOGO_FILE);
+		if ( image == NULL ) {
+			return;
+		}
+		w = image->w;
+		h = image->h;
+
+		/* Convert the image into an OpenGL texture */
+		texture = SDL_GL_LoadTexture(image, texcoord);
+
+		/* Make texture coordinates easy to understand */
+		texMinX = texcoord[0];
+		texMinY = texcoord[1];
+		texMaxX = texcoord[2];
+		texMaxY = texcoord[3];
+
+		/* We don't need the original image anymore */
+		SDL_FreeSurface(image);
+
+		/* Make sure that the texture conversion is okay */
+		if ( ! texture ) {
+			return;
+		}
+	}
+
+	/* Move the image around */
+	x += delta_x;
+	if ( x < 0 ) {
+		x = 0;
+		delta_x = -delta_x;
+	} else
+	if ( (x+w) > screen->w ) {
+		x = screen->w-w;
+		delta_x = -delta_x;
+	}
+	y += delta_y;
+	if ( y < 0 ) {
+		y = 0;
+		delta_y = -delta_y;
+	} else
+	if ( (y+h) > screen->h ) {
+		y = screen->h-h;
+		delta_y = -delta_y;
+	}
+
+	/* Show the image on the screen */
+	SDL_GL_Enter2DMode();
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glBegin(GL_TRIANGLE_STRIP);
+	glTexCoord2f(texMinX, texMinY); glVertex2i(x,   y  );
+	glTexCoord2f(texMaxX, texMinY); glVertex2i(x+w, y  );
+	glTexCoord2f(texMinX, texMaxY); glVertex2i(x,   y+h);
+	glTexCoord2f(texMaxX, texMaxY); glVertex2i(x+w, y+h);
+	glEnd();
+	SDL_GL_Leave2DMode();
+}
+
+/* This code is deprecated, but available for speed comparisons */
+void DrawLogoBlit(void)
+{
+	static SDL_Surface *image = NULL;
+	static GLuint texture;
+	static GLfloat texMinX, texMinY;
+	static GLfloat texMaxX, texMaxY;
+	static int x = 0;
+	static int y = 0;
+	static int w, h;
 	static int delta_x = 1;
 	static int delta_y = 1;
 	static Uint32 last_moved = 0;
 
 	SDL_Rect dst;
-	SDL_Surface *screen;
+	SDL_Surface *screen = SDL_GetVideoSurface();
 
 	if ( image == NULL ) {
 		SDL_Surface *temp;
 
-		temp = SDL_LoadBMP("icon.bmp");
+		/* Load the image (could use SDL_image library here) */
+		temp = SDL_LoadBMP(LOGO_FILE);
 		if ( temp == NULL ) {
 			return;
 		}
+		w = temp->w;
+		h = temp->h;
+
+		/* Convert the image into the screen format */
 		image = SDL_CreateRGBSurface(
 				SDL_SWSURFACE,
-				temp->w, temp->h,
-				32,
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-				0x000000FF, 
-				0x0000FF00, 
-				0x00FF0000, 
- 			       0xFF000000
-#else
- 			       0xFF000000,
- 			       0x00FF0000, 
- 			       0x0000FF00, 
- 			       0x000000FF
-#endif
- 			       );
-		if ( image != NULL ) {
+				w, h,
+				screen->format->BitsPerPixel,
+				screen->format->Rmask,
+				screen->format->Gmask,
+				screen->format->Bmask,
+				screen->format->Amask);
+		if ( image ) {
 			SDL_BlitSurface(temp, NULL, image, NULL);
 		}
 		SDL_FreeSurface(temp);
-		if ( image == NULL ) {
+
+		/* Make sure that the texture conversion is okay */
+		if ( ! image ) {
 			return;
 		}
 	}
 
-	screen = SDL_GetVideoSurface();
-
-	/* Show the image on the screen */
-	dst.x = x;
-	dst.y = y;
-	dst.w = image->w;
-	dst.h = image->h;
-
-	/* Move it around
+	/* Move the image around
            Note that we do not clear the old position.  This is because we
            perform a glClear() which clears the framebuffer and then only
            update the new area.
            Note that you can also achieve interesting effects by modifying
            the screen surface alpha channel.  It's set to 255 by default..
          */
-	if ( (SDL_GetTicks() - last_moved) > 100 ) {
-		x += delta_x;
-		if ( x < 0 ) {
-			x = 0;
-			delta_x = -delta_x;
-		} else
-		if ( (x+image->w) > screen->w ) {
-			x = screen->w-image->w;
-			delta_x = -delta_x;
-		}
-		y += delta_y;
-		if ( y < 0 ) {
-			y = 0;
-			delta_y = -delta_y;
-		} else
-		if ( (y+image->h) > screen->h ) {
-			y = screen->h-image->h;
-			delta_y = -delta_y;
-		}
-		SDL_BlitSurface(image, NULL, screen, &dst);
+	x += delta_x;
+	if ( x < 0 ) {
+		x = 0;
+		delta_x = -delta_x;
+	} else
+	if ( (x+w) > screen->w ) {
+		x = screen->w-w;
+		delta_x = -delta_x;
 	}
+	y += delta_y;
+	if ( y < 0 ) {
+		y = 0;
+		delta_y = -delta_y;
+	} else
+	if ( (y+h) > screen->h ) {
+		y = screen->h-h;
+		delta_y = -delta_y;
+	}
+	dst.x = x;
+	dst.y = y;
+	dst.w = w;
+	dst.h = h;
+	SDL_BlitSurface(image, NULL, screen, &dst);
+
+	/* Show the image on the screen */
 	SDL_UpdateRects(screen, 1, &dst);
 }
 
@@ -229,7 +432,7 @@ int RunGLTest( int argc, char* argv[],
 	}
 
 	/* Set the flags we want to use for setting the video mode */
-	if ( logo ) {
+	if ( logo && USE_DEPRECATED_OPENGLBLIT ) {
 		video_flags = SDL_OPENGLBLIT;
 	} else {
 		video_flags = SDL_OPENGL;
@@ -425,7 +628,11 @@ int RunGLTest( int argc, char* argv[],
 
 		/* Draw 2D logo onto the 3D display */
 		if ( logo ) {
-			DrawSDLLogo();
+			if ( USE_DEPRECATED_OPENGLBLIT ) {
+				DrawLogoBlit();
+			} else {
+				DrawLogoTexture();
+			}
 		}
 
 		SDL_GL_SwapBuffers( );
@@ -485,6 +692,11 @@ int main(int argc, char *argv[])
 		}
 		if ( strcmp(argv[i], "-logo") == 0 ) {
 			logo = 1;
+			USE_DEPRECATED_OPENGLBLIT = SDL_FALSE;
+		}
+		if ( strcmp(argv[i], "-logoblit") == 0 ) {
+			logo = 1;
+			USE_DEPRECATED_OPENGLBLIT = SDL_TRUE;
 		}
 		if ( strcmp(argv[i], "-slow") == 0 ) {
 			slowly = 1;

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syscdrom.c,v 1.1 2001/08/01 00:33:56 wmaycisco Exp $";
+ "@(#) $Id: SDL_syscdrom.c,v 1.2 2001/11/13 00:38:57 wmaycisco Exp $";
 #endif
 
 /* Functions for system-level CD-ROM audio control */
@@ -215,18 +215,19 @@ static int SDL_SYS_CDGetTOC(SDL_CD *cdrom)
 			}
 		}
 		if ( i == cdrom->numtracks ) {
-			flags &= ~MCI_TRACK;
+			mci_status.dwTrack = cdrom->track[i - 1].id;
 			mci_status.dwItem = MCI_STATUS_LENGTH;
 			if ( SDL_SYS_CDioctl(cdrom->id, MCI_STATUS, flags,
 							&mci_status) == 0 ) {
-				cdrom->track[i].offset = MSF_TO_FRAMES(
+				cdrom->track[i - 1].length = MSF_TO_FRAMES(
 					MCI_MSF_MINUTE(mci_status.dwReturn),
 					MCI_MSF_SECOND(mci_status.dwReturn),
-					MCI_MSF_FRAME(mci_status.dwReturn));
+					MCI_MSF_FRAME(mci_status.dwReturn)) + 1; /* +1 to fix */
+											/* MCI last track length bug */
+				/* compute lead-out offset */
+				cdrom->track[i].offset = cdrom->track[i - 1].offset +
+					cdrom->track[i - 1].length;
 				cdrom->track[i].length = 0;
-				cdrom->track[i-1].length =
-						cdrom->track[i].offset-
-						cdrom->track[i-1].offset;
 				okay = 1;
 			}
 		}
@@ -263,7 +264,15 @@ static CDstatus SDL_SYS_CDStatus(SDL_CD *cdrom, int *position)
 #endif /* BROKEN_MCI_PAUSE */
 				break;
 			case MCI_MODE_PLAY:
+#ifdef BROKEN_MCI_PAUSE
+				if ( SDL_paused[cdrom->id] ) {
+					status = CD_PAUSED;
+				} else {
+					status = CD_PLAYING;
+				}
+#else
 				status = CD_PLAYING;
+#endif /* BROKEN_MCI_PAUSE */
 				break;
 			case MCI_MODE_PAUSE:
 				status = CD_PAUSED;

@@ -14,15 +14,13 @@ SUFFIXES = .asm
 # The hermes library target
 noinst_LTLIBRARIES = libhermes.la
 
-EXTRA_libhermes_la_SOURCES = $(PORTABLE_SRCS)
-libhermes_la_LIBADD = \
-	mmx_main.lo \
-	mmxp2_32.lo \
-	x86_main.lo \
-	x86p_16.lo \
-	x86p_32.lo 
-
-libhermes_la_SOURCES = 
+libhermes_la_SOURCES = $(PORTABLE_SRCS)
+am_libhermes_la_OBJECTS =	\
+	mmx_main.lo		\
+	mmxp2_32.lo		\
+	x86_main.lo		\
+	x86p_16.lo		\
+	x86p_32.lo
 
 # The hermes library sources
 PORTABLE_SRCS = 		\

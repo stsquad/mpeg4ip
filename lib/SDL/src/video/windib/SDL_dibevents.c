@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dibevents.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
+ "@(#) $Id: SDL_dibevents.c,v 1.3 2001/11/13 00:39:01 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -53,6 +53,10 @@ static SDL_keysym *TranslateKey(UINT vkey, UINT scancode, SDL_keysym *keysym, in
 /* Masks for processing the windows KEYDOWN and KEYUP messages */
 #define REPEATED_KEYMASK	(1<<30)
 #define EXTENDED_KEYMASK	(1<<24)
+
+/* DJM: If the user setup the window for us, we want to save his window proc,
+   and give him a chance to handle some messages. */
+static WNDPROC userWindowProc = NULL;
 
 /* The main Win32 event handler */
 LONG
@@ -90,14 +94,14 @@ LONG
 #ifdef NO_GETKEYBOARDSTATE
 			/* this is the workaround for the missing ToAscii() and ToUnicode() in CE (not necessary at KEYUP!) */
 			if ( SDL_TranslateUNICODE ) {
-				MSG msg;
+				MSG m;
 
-				msg.hwnd = hwnd;
-				msg.message = msg;
-				msg.wParam = wParam;
-				msg.lParam = lParam;
-				msg.time = 0;
-				if ( TranslateMessage(&m) && PeekMessage(&msg, hwnd, 0, WM_USER, PM_NOREMOVE) && (m.message == WM_CHAR) ) {
+				m.hwnd = hwnd;
+				m.message = msg;
+				m.wParam = wParam;
+				m.lParam = lParam;
+				m.time = 0;
+				if ( TranslateMessage(&m) && PeekMessage(&m, hwnd, 0, WM_USER, PM_NOREMOVE) && (m.message == WM_CHAR) ) {
 					GetMessage(&m, hwnd, 0, WM_USER);
 			    		wParam = m.wParam;
 				} else {
@@ -150,6 +154,13 @@ LONG
 				wmmsg.wParam = wParam;
 				wmmsg.lParam = lParam;
 				posted = SDL_PrivateSysWMEvent(&wmmsg);
+
+			/* DJM: If the user isn't watching for private
+				messages in her SDL event loop, then pass it
+				along to any win32 specific window proc.
+			 */
+			} else if (userWindowProc) {
+				return userWindowProc(hwnd, msg, wParam, lParam);
 			}
 		}
 		break;
@@ -339,6 +350,14 @@ int DIB_CreateWindow(_THIS)
 	SDL_RegisterApp("SDL_app", CS_BYTEALIGNCLIENT, 0);
 	if ( SDL_windowid ) {
 		SDL_Window = (HWND)strtol(SDL_windowid, NULL, 0);
+
+      /* DJM: we want all event's for the user specified
+         window to be handled by SDL.
+       */
+      if (SDL_Window) {
+         userWindowProc = (WNDPROC)GetWindowLong(SDL_Window, GWL_WNDPROC);
+         SetWindowLong(SDL_Window, GWL_WNDPROC, (LONG)WinMessage);
+      }
 	} else {
 		SDL_Window = CreateWindow(SDL_Appname, SDL_Appname,
                         (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX),

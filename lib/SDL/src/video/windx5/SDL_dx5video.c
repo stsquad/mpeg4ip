@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5video.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5video.c,v 1.3 2001/11/13 00:39:01 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -876,7 +876,9 @@ int DX5_VideoInit(_THIS, SDL_PixelFormat *vformat)
 	if ( DX5_CreateWindow(this) < 0 ) {
 		return(-1);
 	}
+#ifndef DISABLE_AUDIO
 	DX5_SoundFocus(SDL_Window);
+#endif
 
 	/* Create the DirectDraw object */
 	result = DDrawCreate(NULL, &ddraw, NULL);

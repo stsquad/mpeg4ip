@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_video.c,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
+ "@(#) $Id: SDL_video.c,v 1.3 2001/11/13 00:39:00 wmaycisco Exp $";
 #endif
 
 /* The high-level video driver subsystem */
@@ -56,6 +56,9 @@ static VideoBootStrap *bootstrap[] = {
 #endif
 #ifdef ENABLE_FBCON
 	&FBCON_bootstrap,
+#endif
+#ifdef ENABLE_DIRECTFB
+	&DirectFB_bootstrap,
 #endif
 #ifdef ENABLE_PS2GS
 	&PS2GS_bootstrap,
@@ -93,14 +96,18 @@ static VideoBootStrap *bootstrap[] = {
 #ifdef ENABLE_CYBERGRAPHICS
 	&CGX_bootstrap,
 #endif
-#ifdef ENABLE_DUMMYVIDEO
-	&DUMMY_bootstrap,
-#endif
 #ifdef ENABLE_PHOTON
 	&ph_bootstrap,
 #endif
+#ifdef ENABLE_EPOC
+	&EPOC_bootstrap,
+#endif
+#ifdef ENABLE_DUMMYVIDEO
+	&DUMMY_bootstrap,
+#endif
 	NULL
 };
+
 SDL_VideoDevice *current_video = NULL;
 
 /* Various local functions */
@@ -608,6 +615,11 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 	mode = video->SetVideoMode(this, prev_mode,video_w,video_h,video_bpp,flags);
 	if ( mode ) { /* Prevent resize events from mode change */
 	    SDL_PrivateResize(mode->w, mode->h);
+
+	    /* Sam - If we asked for OpenGL mode, and didn't get it, fail */
+	    if ( is_opengl && !(mode->flags & SDL_OPENGL) ) {
+		mode = NULL;
+	    }
         }
 	/*
 	 * rcg11292000
@@ -1475,7 +1487,9 @@ void SDL_GL_Lock()
 		SDL_VideoDevice *this = current_video;
 
 		this->glPushAttrib( GL_ALL_ATTRIB_BITS );	/* TODO: narrow range of what is saved */
+#ifdef GL_CLIENT_PIXEL_STORE_BIT
 		this->glPushClientAttrib( GL_CLIENT_PIXEL_STORE_BIT );
+#endif
 
 		this->glEnable(GL_TEXTURE_2D);
 		this->glEnable(GL_BLEND);

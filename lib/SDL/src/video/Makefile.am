@@ -5,10 +5,10 @@ noinst_LTLIBRARIES = libvideo.la
 
 # Define which subdirectories need to be built
 SUBDIRS = @VIDEO_SUBDIRS@
-DIST_SUBDIRS = dummy x11 dga nanox fbcon vgl svga ggi aalib \
+DIST_SUBDIRS = dummy x11 dga nanox fbcon directfb vgl svga ggi aalib \
                wincommon windib windx5 \
                maccommon macdsp macrom quartz \
-               bwindow ps2gs photon cybergfx
+               bwindow ps2gs photon cybergfx epoc
 
 DRIVERS = @VIDEO_DRIVERS@
 
@@ -21,7 +21,6 @@ COMMON_SRCS =			\
 	SDL_blit_0.c		\
 	SDL_blit_1.c		\
 	SDL_blit_A.c		\
-	SDL_blit_A.h		\
 	SDL_blit_N.c		\
 	SDL_bmp.c		\
 	SDL_cursor.c		\

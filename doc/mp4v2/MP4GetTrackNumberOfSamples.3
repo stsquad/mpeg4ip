@@ -1,0 +1,34 @@
+.TH "MP4" "3" "Version 0.9" "Cisco Systems Inc." "MP4 File Format Library"
+.SH "NAME"
+.LP 
+\fBMP4GetTrackDuration\fR \- Get the duration of a track
+.SH "SYNTAX"
+.LP 
+#include <mp4.h>
+.LP 
+MP4Duration \fBMP4GetTrackDuration\fR(
+.br 
+	MP4FileHandle \fIhFile\fP,
+.br 
+	MP4TrackId \fItrackId\fP
+.br 
+)
+.SH "ARGUMENTS"
+.LP 
+.TP 
+\fIhFile\fP
+Specifies the mp4 file to which the operation applies.
+.TP 
+\fItrackId\fP
+Specifies the track for which the duration is desired.
+.SH "RETURN VALUES"
+.LP 
+Upon success, the duration of the track in the units of the track time scale. Upon error, MP4_INVALID_DURATION is returned.
+.SH "DESCRIPTION"
+.LP 
+\fBMP4GetTrackDuraton\fR returns the duration of the specified track in the mp4 file in the time scale units of the track. The duration of a track is simply the total of the durations of all the track samples.
+.LP 
+MP4ConvertFromTrackDuration() can be used to convert this value to another time scale.
+.SH "SEE ALSO"
+.LP 
+MP4(3)

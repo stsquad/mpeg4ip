@@ -162,7 +162,7 @@ protected:
 
 	u_int32_t			m_divxHandle;
 
-	AVEncodeContext		m_avctx;
+	AVCodecContext		m_avctx;
 
 	SDL_Surface*		m_sdlScreen;
 	SDL_Rect			m_sdlScreenRect;

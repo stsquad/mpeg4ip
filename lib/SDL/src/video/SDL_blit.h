@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_blit.h,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
+ "@(#) $Id: SDL_blit.h,v 1.3 2001/11/13 00:39:00 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_blit_h
@@ -70,9 +70,6 @@ typedef struct SDL_BlitMap {
         unsigned int format_version;
 } SDL_BlitMap;
 
-
-/* Definitions for special global blit functions */
-#include "SDL_blit_A.h"
 
 /* Functions found in SDL_blit.c */
 extern int SDL_CalculateBlit(SDL_Surface *surface);

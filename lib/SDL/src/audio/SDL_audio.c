@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audio.c,v 1.2 2001/08/23 00:09:13 wmaycisco Exp $";
+ "@(#) $Id: SDL_audio.c,v 1.3 2001/11/13 00:38:55 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -50,9 +50,11 @@ static AudioBootStrap *bootstrap[] = {
 #ifdef ALSA_SUPPORT
 	&ALSA_bootstrap,
 #endif
-#if (defined(unix) && !defined(__CYGWIN32__)) && \
-    !defined(OSS_SUPPORT) && !defined(ALSA_SUPPORT)
-	&AUDIO_bootstrap,
+#ifdef SUNAUDIO_SUPPORT
+	&SUNAUDIO_bootstrap,
+#endif
+#ifdef DMEDIA_SUPPORT
+	&DMEDIA_bootstrap,
 #endif
 #ifdef ARTSC_SUPPORT
 	&ARTSC_bootstrap,
@@ -532,7 +534,7 @@ int SDL_HasAudioDelayMsec (void)
 
 int SDL_AudioDelayMsec (void)
 {
-   SDL_AudioDevice *audio = current_audio;
+  SDL_AudioDevice *audio = current_audio;
   if (audio && audio->AudioDelayMsec != NULL) {
     return (audio->AudioDelayMsec(audio));
   } else {

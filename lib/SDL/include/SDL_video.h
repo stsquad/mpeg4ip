@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_video.h,v 1.2 2001/08/23 00:09:12 wmaycisco Exp $";
+ "@(#) $Id: SDL_video.h,v 1.3 2001/11/13 00:38:55 wmaycisco Exp $";
 #endif
 
 /* Header file for access to the SDL raw framebuffer window */
@@ -593,7 +593,7 @@ extern DECLSPEC int SDL_SetAlpha(SDL_Surface *surface, Uint32 flag, Uint8 alpha)
  * Note that blits are automatically clipped to the edges of the source
  * and destination surfaces.
  */
-extern DECLSPEC SDL_bool SDL_SetClipRect(SDL_Surface *surface, SDL_Rect *rect);
+extern DECLSPEC SDL_bool SDL_SetClipRect(SDL_Surface *surface, const SDL_Rect *rect);
 
 /*
  * Gets the clipping rectangle for the destination surface in a blit.

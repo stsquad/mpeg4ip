@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysvideo.h,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysvideo.h,v 1.3 2001/11/13 00:39:00 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_sysvideo_h
@@ -337,6 +337,9 @@ extern VideoBootStrap NX_bootstrap;
 #ifdef ENABLE_FBCON
 extern VideoBootStrap FBCON_bootstrap;
 #endif
+#ifdef ENABLE_DIRECTFB
+extern VideoBootStrap DirectFB_bootstrap;
+#endif
 #ifdef ENABLE_PS2GS
 extern VideoBootStrap PS2GS_bootstrap;
 #endif
@@ -361,12 +364,6 @@ extern VideoBootStrap DIRECTX_bootstrap;
 #ifdef ENABLE_BWINDOW
 extern VideoBootStrap BWINDOW_bootstrap;
 #endif
-#ifdef ENABLE_DUMMYVIDEO
-extern VideoBootStrap DUMMY_bootstrap;
-#endif
-#ifdef ENABLE_PHOTON
-extern VideoBootStrap ph_bootstrap;
-#endif
 /* MacOS X gets the proper defines from configure */
 #if defined(macintosh) && !defined(MACOSX)
 #define ENABLE_TOOLBOX
@@ -385,6 +382,15 @@ extern VideoBootStrap QZ_bootstrap;
 #endif
 #ifdef ENABLE_CYBERGRAPHICS
 extern VideoBootStrap CGX_bootstrap;
+#endif
+#ifdef ENABLE_PHOTON
+extern VideoBootStrap ph_bootstrap;
+#endif
+#ifdef ENABLE_EPOC
+extern VideoBootStrap EPOC_bootstrap;
+#endif
+#ifdef ENABLE_DUMMYVIDEO
+extern VideoBootStrap DUMMY_bootstrap;
 #endif
 /* This is the current video device */
 extern SDL_VideoDevice *current_video;

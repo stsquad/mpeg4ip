@@ -1,3 +1,8 @@
+Version 0.9.?
+
+    Added VC 6.0 projects for windows
+    Upgraded to SDL version 1.2.3
+
 11/7/01 Version 0.9.1
 	Command line encoding tools now build and run on Windows
 	Added a script, mp4v1regenerate, that can convert most old mp4 files 

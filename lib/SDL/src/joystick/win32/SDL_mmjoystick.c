@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_mmjoystick.c,v 1.2 2001/08/23 00:09:15 wmaycisco Exp $";
+ "@(#) $Id: SDL_mmjoystick.c,v 1.3 2001/11/13 00:38:57 wmaycisco Exp $";
 #endif
 
 /* Win32 MultiMedia Joystick driver, contributed by Andrei de A. Formiga */
@@ -85,14 +85,22 @@ int SDL_SYS_JoystickInit(void)
 
 	numdevs = 0;
 	maxdevs = joyGetNumDevs();
+
 	if ( maxdevs > MAX_JOYSTICKS ) {
 		maxdevs = MAX_JOYSTICKS;
 	}
+
 
 	SYS_JoystickID[0] = JOYSTICKID1;
 	SYS_JoystickID[1] = JOYSTICKID2;
 
 	for ( i = 0; (i < maxdevs); ++i ) {
+		
+		/* added 8/31/2001 By Vitaliy Mikitchenko */
+		joyinfo.dwSize = sizeof(joyinfo);
+		joyinfo.dwFlags = JOY_RETURNALL;
+		/* end addition */
+
 		result = joyGetPosEx(SYS_JoystickID[i], &joyinfo);
 		if ( result == JOYERR_NOERROR ) {
 			result = joyGetDevCaps(SYS_JoystickID[i], &joycaps, sizeof(joycaps));

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysjoystick.c,v 1.1 2001/08/01 00:33:57 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysjoystick.c,v 1.2 2001/11/13 00:38:57 wmaycisco Exp $";
 #endif
 
 /* This is the system specific header for the SDL joystick API */
@@ -61,9 +61,10 @@ static const char *special_joysticks[] = {
 	"'Microsoft SideWinder Dual Strike USB version 1.0' 2 1 0",
 	"'WingMan Interceptor' 3 3 0",
 	/* WingMan Extreme Analog - not recognized by default
-	"'Analog 3-axis 4-button joystick' 2 1",
+	"'Analog 3-axis 4-button joystick' 2 1 0",
 	*/
 	"'WingMan Extreme Digital 3D' 4 1 0",
+	"'Analog 2-axis 4-button 1-hat FCS joystick' 2 1 0",
 	NULL
 };
 #else
@@ -143,9 +144,8 @@ int SDL_SYS_JoystickInit(void)
 		"/dev/js%d",
 #ifdef USE_INPUT_EVENTS
 		"/dev/input/event%d"
-#else
-		"/dev/input/js%d"
 #endif
+		"/dev/input/js%d"
 	};
 	int numjoysticks;
 	int i, j, done;
@@ -222,6 +222,15 @@ int SDL_SYS_JoystickInit(void)
 				done = 1;
 			}
 		}
+        /* This is a special case...
+           If we're looking at the /dev/input event devices, and we found
+           at least one, then we don't want to look at the input joystick
+           devices, since they're built on top of devices that we've already
+           seen, so we're done.
+         */
+        if ( i > 0 && j > 0 ) {
+            done = 1;
+        }
 	}
 	return(numjoysticks);
 }

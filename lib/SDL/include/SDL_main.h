@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_main.h,v 1.2 2001/08/23 00:09:12 wmaycisco Exp $";
+ "@(#) $Id: SDL_main.h,v 1.3 2001/11/13 00:38:55 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_main_h
@@ -31,7 +31,7 @@ static char rcsid =
 /* Redefine main() on Win32 and MacOS so that it is called by winmain.c */
 
 #if defined(WIN32) || (defined(__MWERKS__) && !defined(__BEOS__)) || \
-    defined(macintosh) || defined(__APPLE__)
+    defined(macintosh) || defined(__APPLE__) || defined(__SYMBIAN32__)
 
 #ifdef __cplusplus
 #define C_LINKAGE	"C"
@@ -64,6 +64,8 @@ extern "C" {
 #endif
 
 /* This should be called from your WinMain() function, if any */
+extern DECLSPEC void SDL_SetModuleHandle(void *hInst);
+/* This can also be called, but is no longer necessary */
 extern DECLSPEC int SDL_RegisterApp(char *name, Uint32 style, void *hInst);
 
 #ifdef __cplusplus

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_svgavideo.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
+ "@(#) $Id: SDL_svgavideo.c,v 1.3 2001/11/13 00:39:01 wmaycisco Exp $";
 #endif
 
 /* SVGAlib based SDL video driver implementation.
@@ -86,6 +86,7 @@ static int SVGA_Available(void)
 
 	/* See if we are connected to a virtual terminal */
 	console = STDIN_FILENO;
+#if 0 /* This is no longer needed, SVGAlib can switch consoles for us */
 	if ( console >= 0 ) {
 		struct stat sb;
 		struct vt_mode dummy;
@@ -95,6 +96,7 @@ static int SVGA_Available(void)
 			console = -1;
 		}
 	}
+#endif /* 0 */
 
 	/* See if SVGAlib 2.0 is available */
 	svgalib2 = open("/dev/svga", O_RDONLY);
@@ -145,7 +147,7 @@ static SDL_VideoDevice *SVGA_CreateDevice(int devindex)
 	device->SetHWAlpha = NULL;
 	device->LockHWSurface = SVGA_LockHWSurface;
 	device->UnlockHWSurface = SVGA_UnlockHWSurface;
-	device->FlipHWSurface = NULL;
+	device->FlipHWSurface = SVGA_FlipHWSurface;
 	device->FreeHWSurface = SVGA_FreeHWSurface;
 	device->SetCaption = NULL;
 	device->SetIcon = NULL;
@@ -223,13 +225,10 @@ static void SVGA_UpdateVideoInfo(_THIS)
 	this->info.wm_available = 0;
 	this->info.hw_available = 1;
 	modeinfo = vga_getmodeinfo(vga_getcurrentmode());
-	this->info.video_mem = (modeinfo->maxpixels/1024);
-	if ( modeinfo->bytesperpixel > 0 ) {
-		this->info.video_mem *= modeinfo->bytesperpixel;
-	}
+	this->info.video_mem = modeinfo->memory;
 	/* FIXME: Add hardware accelerated blit information */
-#if 0
-printf("Hardware accelerated blit: %savailable\n", modeinfo->haveblit ? "" : "not ");
+#ifdef SVGALIB_DEBUG
+	printf("Hardware accelerated blit: %savailable\n", modeinfo->haveblit ? "" : "not ");
 #endif
 }
 
@@ -347,6 +346,7 @@ SDL_Surface *SVGA_SetVideoMode(_THIS, SDL_Surface *current,
 	int mode;
 	int vgamode;
 	vga_modeinfo *modeinfo;
+	int screenpage_len;
 
 	/* Try to set the requested linear video mode */
 	bpp = (bpp+7)/8-1;
@@ -393,6 +393,34 @@ SDL_Surface *SVGA_SetVideoMode(_THIS, SDL_Surface *current,
 	current->pitch = modeinfo->linewidth;
 	current->pixels = vga_getgraphmem();
 
+	/* set double-buffering */
+	if ( flags & SDL_DOUBLEBUF )
+	{
+	    /* length of one screen page in bytes */
+	    screenpage_len=current->h*modeinfo->linewidth;
+
+	    /* if start address should be aligned */
+	    if ( modeinfo->linewidth_unit )
+	    {
+		if ( screenpage_len % modeinfo->linewidth_unit )    
+		{
+		    screenpage_len += modeinfo->linewidth_unit - ( screenpage_len % modeinfo->linewidth_unit );
+		}
+	    }
+
+	    /* if we heve enough videomemory =  ak je dost videopamete  */
+	    if ( modeinfo->memory > ( screenpage_len * 2 / 1024 ) )
+	    {
+		current->flags |= SDL_DOUBLEBUF;
+		flip_page = 0;
+		flip_offset[0] = 0;
+		flip_offset[1] = screenpage_len;
+		flip_address[0] = vga_getgraphmem();
+		flip_address[1] = flip_address[0]+screenpage_len;
+		SVGA_FlipHWSurface(this,current);
+	    }
+	} 
+
 	/* Set the blit function */
 	this->UpdateRects = SVGA_DirectUpdate;
 
@@ -416,9 +444,7 @@ static void SVGA_FreeHWSurface(_THIS, SDL_Surface *surface)
 /* We need to wait for vertical retrace on page flipped displays */
 static int SVGA_LockHWSurface(_THIS, SDL_Surface *surface)
 {
-	if ( (surface->flags & SDL_DOUBLEBUF) == SDL_DOUBLEBUF ) {
-		vga_waitretrace();
-	}
+	/* The waiting is done in SVGA_FlipHWSurface() */
 	return(0);
 }
 static void SVGA_UnlockHWSurface(_THIS, SDL_Surface *surface)
@@ -426,9 +452,12 @@ static void SVGA_UnlockHWSurface(_THIS, SDL_Surface *surface)
 	return;
 }
 
-/* FIXME: How is this done with SVGAlib? */
 static int SVGA_FlipHWSurface(_THIS, SDL_Surface *surface)
 {
+	vga_setdisplaystart(flip_offset[flip_page]);
+	flip_page=!flip_page;
+	surface->pixels=flip_address[flip_page];
+	vga_waitretrace();
 	return(0);
 }
 
@@ -487,3 +516,4 @@ void SVGA_VideoQuit(_THIS)
 		this->screen->pixels = NULL;
 	}
 }
+

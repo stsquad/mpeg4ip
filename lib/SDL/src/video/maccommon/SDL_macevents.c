@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_macevents.c,v 1.2 2001/08/23 00:09:17 wmaycisco Exp $";
+ "@(#) $Id: SDL_macevents.c,v 1.3 2001/11/13 00:39:00 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -72,7 +72,7 @@ static int Mac_HandleActivate(int activate)
 		SDL_SetCursor(NULL);
 
 		/* put our mask back case it changed during context switch */
-		SetEventMask(everyEvent - autoKeyMask);
+		SetEventMask(everyEvent & ~autoKeyMask);
 	} else {
 #if TARGET_API_MAC_CARBON
 		{ Cursor cursor;
@@ -107,6 +107,7 @@ static void myGlobalToLocal(_THIS, Point *pt)
 /* The main MacOS event handler */
 static int Mac_HandleEvents(_THIS, int wait4it)
 {
+	static int mouse_button = 1;
 	int i;
 	EventRecord event;
 
@@ -148,7 +149,7 @@ static int Mac_HandleEvents(_THIS, int wait4it)
 	/* for some reason, event.where isn't set ? */
 	GetGlobalMouse ( &event.where );
 #endif
-    
+
 	/* Check for mouse motion */
 	if ( (event.where.h != last_where.h) ||
 	     (event.where.v != last_where.v) ) {
@@ -282,16 +283,14 @@ static int Mac_HandleEvents(_THIS, int wait4it)
 			myGlobalToLocal(this, &event.where);
 			/* Treat command-click as right mouse button */
 			if ( event.modifiers & optionKey ) {
-			    SDL_PrivateMouseButton(SDL_PRESSED,
-					2,event.where.h,event.where.v);
-			}
-			else if ( event.modifiers & cmdKey ) {
-			    SDL_PrivateMouseButton(SDL_PRESSED,
-					3,event.where.h,event.where.v);
+				mouse_button = 2;
+			} else if ( event.modifiers & cmdKey ) {
+				mouse_button = 3;
 			} else {
-			    SDL_PrivateMouseButton(SDL_PRESSED,
-					1,event.where.h,event.where.v);
+				mouse_button = 1;
 			}
+			SDL_PrivateMouseButton(SDL_PRESSED,
+				mouse_button, event.where.h, event.where.v);
 			break;
 		  case inGrow: {
 			int newSize;
@@ -336,7 +335,7 @@ static int Mac_HandleEvents(_THIS, int wait4it)
 			if ( TrackBox (win, event.where, area )) {
 				if ( IsWindowCollapsable(win) ) {
 					CollapseWindow (win, !IsWindowCollapsed(win));
-					// There should be something done like in inGrow case, but...
+					/* There should be something done like in inGrow case, but... */
 				}
 			}
 			break;
@@ -355,18 +354,14 @@ static int Mac_HandleEvents(_THIS, int wait4it)
 	  break;
 	  case mouseUp: {
 		myGlobalToLocal(this, &event.where);
-		/* Treat command-click as right mouse button */
-		if ( event.modifiers & cmdKey ) {
-		    SDL_PrivateMouseButton(SDL_RELEASED,
-				3, event.where.h, event.where.v);
-		}
-		else if ( event.modifiers & optionKey ) {
-		    SDL_PrivateMouseButton(SDL_RELEASED,
-				2,event.where.h,event.where.v);
-		} else {
-		    SDL_PrivateMouseButton(SDL_RELEASED,
-				1, event.where.h, event.where.v);
-		}
+		/* Release the mouse button we simulated in the last press.
+		   The drawback of this methos is we cannot press more than
+		   one button. However, this doesn't matter, since there is
+		   only a single logical mouse button, even if you have a
+		   multi-button mouse, this doesn't matter at all.
+		 */
+		SDL_PrivateMouseButton(SDL_RELEASED,
+			mouse_button, event.where.h, event.where.v);
 	  }
 	  break;
 #if 0 /* Handled above the switch statement */
@@ -454,7 +449,11 @@ void Mac_PumpEvents(_THIS)
 
 void Mac_InitOSKeymap(_THIS)
 {
+	const void *KCHRPtr;
+	UInt32 state;
+	UInt32 value;
 	int i;
+	int world = SDLK_WORLD_0;
 
 	/* Map the MAC keysyms */
 	for ( i=0; i<SDL_TABLESIZE(MAC_keymap); ++i )
@@ -581,6 +580,64 @@ void Mac_InitOSKeymap(_THIS)
 	MAC_keymap[MK_IBOOK_UP] = SDLK_UP;
 	MAC_keymap[MK_IBOOK_LEFT] = SDLK_LEFT;
 #endif /* MacOS X */
+
+	/* Up there we setup a static scancode->keysym map. However, it will not
+	 * work very well on international keyboard. Hence we now query MacOS
+	 * for its own keymap to adjust our own mapping table. However, this is
+	 * bascially only useful for ascii char keys. This is also the reason
+	 * why we keep the static table, too.
+	 */
+	
+	/* Get a pointer to the systems cached KCHR */
+	KCHRPtr = (void *)GetScriptManagerVariable(smKCHRCache);
+	if (KCHRPtr)
+	{
+		/* Loop over all 127 possible scan codes */
+		for (i = 0; i < 0x7F; i++)
+		{
+			/* We pretend a clean start to begin with (i.e. no dead keys active */
+			state = 0;
+			
+			/* Now translate the key code to a key value */
+			value = KeyTranslate(KCHRPtr, i, &state) & 0xff;
+			
+			/* If the state become 0, it was a dead key. We need to translate again,
+			passing in the new state, to get the actual key value */
+			if (state != 0)
+				value = KeyTranslate(KCHRPtr, i, &state) & 0xff;
+			
+			/* Now we should have an ascii value, or 0. Try to figure out to which SDL symbol it maps */
+			if (value >= 128)	 /* Some non-ASCII char, map it to SDLK_WORLD_* */
+				MAC_keymap[i] = world++;
+			else if (value >= 32)	 /* non-control ASCII char */
+				MAC_keymap[i] = value;
+		}
+	}
+	
+	/* The keypad codes are re-setup here, because the loop above cannot
+	 * distinguish between a key on the keypad and a regular key. We maybe
+	 * could get around this problem in another fashion: NSEvent's flags
+	 * include a "NSNumericPadKeyMask" bit; we could check that and modify
+	 * the symbol we return on the fly. However, this flag seems to exhibit
+	 * some weird behaviour related to the num lock key
+	 */
+	MAC_keymap[MK_KP0] = SDLK_KP0;
+	MAC_keymap[MK_KP1] = SDLK_KP1;
+	MAC_keymap[MK_KP2] = SDLK_KP2;
+	MAC_keymap[MK_KP3] = SDLK_KP3;
+	MAC_keymap[MK_KP4] = SDLK_KP4;
+	MAC_keymap[MK_KP5] = SDLK_KP5;
+	MAC_keymap[MK_KP6] = SDLK_KP6;
+	MAC_keymap[MK_KP7] = SDLK_KP7;
+	MAC_keymap[MK_KP8] = SDLK_KP8;
+	MAC_keymap[MK_KP9] = SDLK_KP9;
+	MAC_keymap[MK_KP_MINUS] = SDLK_KP_MINUS;
+	MAC_keymap[MK_KP_PLUS] = SDLK_KP_PLUS;
+	MAC_keymap[MK_KP_PERIOD] = SDLK_KP_PERIOD;
+	MAC_keymap[MK_KP_EQUALS] = SDLK_KP_EQUALS;
+	MAC_keymap[MK_KP_DIVIDE] = SDLK_KP_DIVIDE;
+	MAC_keymap[MK_KP_MULTIPLY] = SDLK_KP_MULTIPLY;
+	MAC_keymap[MK_KP_ENTER] = SDLK_KP_ENTER;
 }
 
 static SDL_keysym *TranslateKey(int scancode, int modifiers,
@@ -622,7 +679,7 @@ void Mac_InitEvents(_THIS)
 	FlushEvents(everyEvent, 0);
 	
 	/* Allow every event but keyrepeat */
-	SetEventMask(everyEvent - autoKeyMask);
+	SetEventMask(everyEvent & ~autoKeyMask);
 }
 
 void Mac_QuitEvents(_THIS)

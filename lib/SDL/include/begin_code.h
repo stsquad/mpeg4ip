@@ -48,6 +48,12 @@
 # endif
 #endif
 
+/* Removed DECLSPEC on Symbian OS because SDL cannot be a DLL in EPOC */
+#ifdef __SYMBIAN32__ 
+#undef DECLSPEC
+#define DECLSPEC
+#endif /* __SYMBIAN32__ */
+
 /* Force structure packing at 4 byte alignment.
    This is necessary if the header is included in code which has structure
    packing set to an alternate value, say for loading structures from disk.
@@ -61,6 +67,9 @@
 #pragma nopackwarning
 #endif
 #pragma pack(push,4)
+#elif (defined(__MWERKS__) && defined(macintosh))
+#pragma options align=mac68k4byte
+#pragma enumsalwaysint on
 #endif /* Compiler needs structure packing set */
 
 /* Set up compiler-specific options for inlining functions */
