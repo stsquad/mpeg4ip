@@ -141,7 +141,6 @@ mp4live_LDADD = \
 	./h261/libmp4live_h261.la \
 	-lpthread \
 	@SDL_LIBS@ \
-	-lSDLmain \
 	$(GUILIBS)
 
 EXTRA_DIST = README.html INTERNALS.html $(ed1) Building_mpeg4ip_with_V4L2_support.html

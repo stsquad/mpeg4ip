@@ -152,7 +152,7 @@ mp4player_LDADD = \
 	libmp4syncsdl.la \
 	libmp4syncbase.la \
 	libmp4playerutils.la \
-	@SDL_LIBS@ -lSDLmain \
+	@SDL_LIBS@  \
 	$(top_builddir)/lib/SDLAudio/src/libmpeg4ipSDL.la 
 
 

@@ -27,10 +27,11 @@ char *convert_url (const char *to_convert)
 {
   static const char *spaces = " \t";
   char *ret, *p;
+  size_t count;
 
   if (to_convert == NULL) return NULL;
 
-  size_t count = strspn(to_convert, spaces);
+  count = strspn(to_convert, spaces);
   count *= 3; // replace each space with %20
   count += strspn(to_convert, "%") * 2;
 

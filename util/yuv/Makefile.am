@@ -16,7 +16,6 @@ AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
 LDADD = \
 	@SDL_LIBS@ \
-	-lSDLmain \
         -lm
 
 EXTRA_DIST=yuvdump60.dsp
