@@ -31,6 +31,10 @@ CXvid10VideoEncoder::CXvid10VideoEncoder()
 #ifdef WRITE_RAW
 	m_outfile = fopen("raw.m4v", FOPEN_WRITE_BINARY);
 #endif
+	m_video_quality = 6;
+	m_use_gmc = false;
+	m_use_qpel = true;
+	m_use_lumimask_plugin = false;
 }
 
 bool CXvid10VideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
@@ -38,6 +42,13 @@ bool CXvid10VideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	m_pConfig = pConfig;
 
 	xvid_gbl_init_t xvid_gbl_init;
+
+	m_video_quality = pConfig->GetIntegerValue(CONFIG_XVID10_VIDEO_QUALITY);
+	if (m_video_quality > 6) m_video_quality = 6;
+	m_use_gmc = pConfig->GetBoolValue(CONFIG_XVID10_USE_GMC);
+	m_use_qpel = pConfig->GetBoolValue(CONFIG_XVID10_USE_QPEL);
+	m_use_lumimask_plugin = 
+	  pConfig->GetBoolValue(CONFIG_XVID10_USE_LUMIMASK);
 
 	memset(&xvid_gbl_init, 0, sizeof(xvid_gbl_init));
 	xvid_gbl_init.version = XVID_VERSION;
@@ -57,17 +68,23 @@ bool CXvid10VideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	// reconstructed image pointer.
 	//
 	// We might also consider using a 2 pass system, as well.
-	xvid_enc_plugin_t plugins;
+	xvid_enc_plugin_t plugins[2];
 	xvid_plugin_single_t single;
 	memset(&single, 0, sizeof(single));
 	single.version = XVID_VERSION;
 	single.bitrate = 
 	  m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
 
-	plugins.func = xvid_plugin_single;
-	plugins.param = &single;
-	enc_create.plugins = &plugins;
-	enc_create.num_plugins = 1;
+	plugins[0].func = xvid_plugin_single;
+	plugins[0].param = &single;
+	if (m_use_lumimask_plugin) {
+	  plugins[1].func = xvid_plugin_lumimasking;
+	  plugins[1].param = NULL;
+	  enc_create.num_plugins = 2;
+	} else {
+	  enc_create.num_plugins = 1;
+	}
+	enc_create.plugins = plugins;
 	
 	if (m_pConfig->GetIntegerValue(CONFIG_VIDEO_TIMEBITS) == 0) {
 	  enc_create.fincr = 1;
@@ -106,6 +123,33 @@ bool CXvid10VideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	return true;
 }
 
+static struct {
+  int vop;
+  int motion;
+} xvid10_quality[] = {
+  { 0, 0, },
+  { 0, XVID_ME_ADVANCEDDIAMOND16, },
+  { XVID_VOP_HALFPEL, (XVID_ME_ADVANCEDDIAMOND16 | XVID_ME_HALFPELREFINE16),},
+  { (XVID_VOP_HALFPEL | XVID_VOP_INTER4V),
+    (XVID_ME_ADVANCEDDIAMOND16 | XVID_ME_HALFPELREFINE16 |
+     XVID_ME_ADVANCEDDIAMOND8 | XVID_ME_HALFPELREFINE8), },
+  { (XVID_VOP_HALFPEL | XVID_VOP_INTER4V),
+    (XVID_ME_ADVANCEDDIAMOND16 | XVID_ME_HALFPELREFINE16 |
+     XVID_ME_ADVANCEDDIAMOND8 | XVID_ME_HALFPELREFINE8 |
+     XVID_ME_CHROMA_PVOP | XVID_ME_CHROMA_BVOP), },
+  { (XVID_VOP_HALFPEL | XVID_VOP_INTER4V |
+     XVID_VOP_TRELLISQUANT),
+    (XVID_ME_ADVANCEDDIAMOND16 | XVID_ME_HALFPELREFINE16 |
+     XVID_ME_ADVANCEDDIAMOND8 | XVID_ME_HALFPELREFINE8 |
+     XVID_ME_CHROMA_PVOP | XVID_ME_CHROMA_BVOP), },
+  {(XVID_VOP_HALFPEL | XVID_VOP_INTER4V |
+    XVID_VOP_TRELLISQUANT | XVID_VOP_HQACPRED),
+   (XVID_ME_ADVANCEDDIAMOND16 | XVID_ME_HALFPELREFINE16 | XVID_ME_EXTSEARCH16 |
+    XVID_ME_ADVANCEDDIAMOND8 | XVID_ME_HALFPELREFINE8 | XVID_ME_EXTSEARCH8 |
+    XVID_ME_CHROMA_PVOP | XVID_ME_CHROMA_BVOP),},
+};
+
+
 bool CXvid10VideoEncoder::EncodeImage(
 	u_int8_t* pY, 
 	u_int8_t* pU, 
@@ -127,7 +171,22 @@ bool CXvid10VideoEncoder::EncodeImage(
 	memset(&xvidFrame, 0, sizeof(xvidFrame));
 	memset(&m_xvidResult, 0, sizeof(m_xvidResult));
 
+
 	xvidFrame.version = XVID_VERSION;
+	xvidFrame.vop_flags = xvid10_quality[m_video_quality].vop;
+	xvidFrame.motion = xvid10_quality[m_video_quality].motion;
+	if (m_use_gmc) {
+	  xvidFrame.vol_flags |= XVID_VOL_GMC;
+	  xvidFrame.motion |= XVID_ME_GME_REFINE;
+	}
+	if (m_use_qpel) {
+	  xvidFrame.vol_flags |= XVID_VOL_QUARTERPEL;
+	  xvidFrame.motion |= XVID_ME_QUARTERPELREFINE16;
+	  if (xvidFrame.vop_flags & XVID_VOP_INTER4V) {
+	    xvidFrame.motion |= XVID_ME_QUARTERPELREFINE8;
+	  }
+	}
+	  
 	xvidFrame.bitstream = m_vopBuffer;
 	xvidFrame.length = m_pConfig->m_videoMaxVopSize;
 	xvidFrame.input.csp = XVID_CSP_PLANAR;

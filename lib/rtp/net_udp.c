@@ -47,6 +47,9 @@
 #include "inet_ntop.h"
 #include "vsnprintf.h"
 #include "net_udp.h"
+#ifndef _WIN32
+#include "mpeg4ip_config.h"
+#endif
 
 #ifdef NEED_ADDRINFO_H
 #include "addrinfo.h"
@@ -79,6 +82,7 @@ struct	in6_addr	in6addr_any = {IN6ADDR_ANY_INIT};
 #define	IP_MULTICAST_LOOP      11 /*set/get IP multicast loopback */
 #define	IP_ADD_MEMBERSHIP      12 /* add an IP group membership */
 #define	IP_DROP_MEMBERSHIP     13/* drop an IP group membership */
+#define IP_ADD_SOURCE_MEMBERSHIP 39
 
 #define IN6_IS_ADDR_UNSPECIFIED(a) (((a)->s6_addr32[0] == 0) && \
 									((a)->s6_addr32[1] == 0) && \
@@ -93,6 +97,9 @@ struct ip_mreq {
 #ifndef INADDR_NONE
 #define INADDR_NONE 0xffffffff
 #endif
+
+static char G_Multicast_Src[256];
+static int G_IGMP_V3=0;
 
 struct socket_udp_ {
 	int	 	 mode;	/* IPv4 or IPv6 */
@@ -348,17 +355,40 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 	}
 	if (IN_MULTICAST(ntohl(s->addr4.s_addr))) {
 		char            loop = 1;
+#ifndef HAVE_IGMP_V3
 		struct ip_mreq  imr;
-		
 		imr.imr_multiaddr.s_addr = s->addr4.s_addr;
 		imr.imr_interface.s_addr = s->iface4_addr.s_addr;
-		
+
 		if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) != 0) {
 			socket_error("setsockopt IP_ADD_MEMBERSHIP");
 			close(s->fd);
 			free(s);
 			return NULL;
 		}
+#else 
+		rtp_message(LOG_DEBUG,"IGMPV3 src:%s\n", G_Multicast_Src);
+             /* Join Multicast group with source filter */
+             struct ip_mreq_source imr;
+	     imr.imr_multiaddr.s_addr = s->addr4.s_addr;
+	     imr.imr_interface.s_addr = s->iface4_addr.s_addr;
+             if (inet_aton(G_Multicast_Src, &imr.imr_sourceaddr) == 0) {
+                rtp_message(LOG_ERR, "inet_aton failed for %s\n",
+                        G_Multicast_Src);
+                return NULL;
+              }
+
+             if( setsockopt( s->fd, IPPROTO_IP, IP_ADD_SOURCE_MEMBERSHIP,
+                         (char*)&imr,
+                         sizeof(struct ip_mreq_source) ) == -1 )
+             {
+		socket_error("setsockopt IP_ADD_SOURCE_MEMBERSHIP");
+		close(s->fd);
+		free(s);
+		return NULL;
+             }
+#endif
+        
 #ifndef WIN32
 		if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop)) != 0) {
 			socket_error("setsockopt IP_MULTICAST_LOOP");
@@ -389,6 +419,7 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 static void udp_exit4(socket_udp *s)
 {
 	if (IN_MULTICAST(ntohl(s->addr4.s_addr))) {
+#ifndef HAVE_IGMP_V3
 		struct ip_mreq  imr;
 		imr.imr_multiaddr.s_addr = s->addr4.s_addr;
 		if (s->iface4_addr.s_addr != 0) {
@@ -400,6 +431,29 @@ static void udp_exit4(socket_udp *s)
 			socket_error("setsockopt IP_DROP_MEMBERSHIP");
 			abort();
 		}
+#else
+             rtp_message(LOG_DEBUG,"IGMPV3 leaving src:%s\n", G_Multicast_Src);
+             /* Join Multicast group with source filter */
+             struct ip_mreq_source imr;
+	     imr.imr_multiaddr.s_addr = s->addr4.s_addr;
+	     if (s->iface4_addr.s_addr != 0) {
+		  imr.imr_interface.s_addr = s->iface4_addr.s_addr;
+	     } else {
+		  imr.imr_interface.s_addr = INADDR_ANY;
+	     }
+             if (inet_aton(G_Multicast_Src, &imr.imr_sourceaddr) == 0) {
+                rtp_message(LOG_ERR, "inet_aton failed for %s\n",
+                        G_Multicast_Src);
+                abort;
+              }
+             if( setsockopt( s->fd, IPPROTO_IP, IP_DROP_SOURCE_MEMBERSHIP,
+                         (char*)&imr,
+                         sizeof(struct ip_mreq_source) ) == -1 )
+             {
+		socket_error("setsockopt IP_DROP_SOURCE_MEMBERSHIP");
+		abort();
+             }
+#endif
 		rtp_message(LOG_INFO,  "Dropped membership of multicast group");
 	}
 	close(s->fd);
@@ -969,4 +1023,13 @@ void rtp_set_receive_buffer_default_size (int bufsize)
 {
   have_recv_buf_size = 1;
   recv_buf_size_value = bufsize;
+}
+
+void udp_set_multicast_src(const char* src)
+{
+     //TODO - In future use a list and add more that one src
+     if(src != 	NULL) {
+         strncpy(G_Multicast_Src, src, sizeof(G_Multicast_Src));
+         G_IGMP_V3 = 1;
+     }
 }

@@ -18,10 +18,16 @@
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
  */
+#define DECLARE_CONFIG_VARIABLES
 #include "a52dec.h"
 #include <mp4v2/mp4.h>
 
 #define LOGIT a52dec->m_vft->log_msg
+
+DECLARE_CONFIG(CONFIG_USE_AC3_HW);
+static SConfigVariable MyConfigVariables[] = {
+  CONFIG_BOOL(CONFIG_USE_AC3_HW, "UseAc3HwDecode", false),
+};
 
 // We now support float data passed to the audio driver
 // if there is a problem, define FLOAT_TO_16, and we'll do the
@@ -279,12 +285,20 @@ static int a52dec_decode (codec_data_t *ptr,
       }
     }
     a52dec->m_freq = sample_rate;
-    // we could probably deal with more channels here
-    a52dec->m_vft->audio_configure(a52dec->m_ifptr,
-				   sample_rate, 
-				   a52dec->m_chans, 
-				   FLOAT_FORMAT,
-				   256 * 6);
+    if (a52dec->m_vft->pConfig->GetBoolValue(CONFIG_USE_AC3_HW)) {
+      a52dec->m_vft->audio_configure(a52dec->m_ifptr, 
+				     sample_rate, 
+				     2, // always just say 2 here
+				     AUDIO_FMT_HW_AC3,
+				     256 * 6);
+    } else {
+      // we could probably deal with more channels here
+      a52dec->m_vft->audio_configure(a52dec->m_ifptr,
+				     sample_rate, 
+				     a52dec->m_chans, 
+				     FLOAT_FORMAT,
+				     256 * 6);
+    }
     a52dec->m_initialized = 1;
     a52dec->m_last_ts = ts;
   } else {
@@ -297,6 +311,14 @@ static int a52dec_decode (codec_data_t *ptr,
       a52dec->m_frames_at_ts = 0;
       a52dec->m_last_ts = ts;
     }
+  }
+  if (a52dec->m_vft->pConfig->GetBoolValue(CONFIG_USE_AC3_HW)) {
+    a52dec->m_vft->audio_load_buffer(a52dec->m_ifptr,
+				     buffer, 
+				     buflen,
+				     ts,
+				     0);
+    return buflen;
   }
   uint8_t *outbuf;
   // get an output buffer
@@ -415,8 +437,9 @@ AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("a52dec",
 				 ac3_file_used_for_frame,
 				 ac3_raw_file_seek_to,
 				 ac3_file_eof,
-				 NULL, 
-				 0);
+				 MyConfigVariables, 
+				 sizeof(MyConfigVariables) / 
+				 sizeof(*MyConfigVariables));
 /* end file a52dec.cpp */
 
 

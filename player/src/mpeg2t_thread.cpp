@@ -117,7 +117,7 @@ static uint32_t mpeg2t_decode_buffer (mpeg2t_client_t *info,
 		msec *= es_pid->sample_per_frame;
 		msec /= es_pid->sample_freq;
 	      }
-#if 1
+#if 0
 	      mpeg2t_message(LOG_DEBUG, "%s buffer %d", 
 			     sptr->m_is_video ? "video" : "audio", msec);
 #endif
@@ -184,6 +184,10 @@ static int mpeg2t_thread_start_cmd (mpeg2t_client_t *info)
   }
 #else
   ret = 0;
+#endif
+#ifdef HAVE_IGMP_V3
+    const char *mcast_src = config.get_config_string(CONFIG_MULTICAST_SRC);
+    udp_set_multicast_src(mcast_src);
 #endif
   if (info->useRTP == FALSE) {
     if (config.get_config_string(CONFIG_MULTICAST_RX_IF) != NULL) {
@@ -901,8 +905,7 @@ void mpeg2t_check_streams (video_query_t **pvq,
   passes++;
   if (audio_count != audio_info_count ||
       video_info_count != video_count) {
-    player_error_message("Check streams delay");
-    SDL_Delay(1 * 100);
+    SDL_Delay(1 * 1000);
   }
   } while (audio_info_count != audio_count && video_info_count != video_info_count);
   video_query_t *vq;

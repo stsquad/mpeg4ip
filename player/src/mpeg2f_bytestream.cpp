@@ -292,6 +292,8 @@ int CMpeg2fAudioByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
   uint64_t pts_in_msec;
   // all ts for audio are stored in msec, not in timescale
 #ifdef DEBUG_MPEG2T_PSTS
+  player_debug_message("audio frame len %d have  dts %d ts "U64, 
+		       fptr->frame_len, fptr->have_dts, fptr->dts);
   player_debug_message("audio frame len %d have psts %d ts "U64" %d %d", 
 		       fptr->frame_len, fptr->have_ps_ts, fptr->ps_ts,
 		       m_es_pid->sample_per_frame, 
@@ -299,7 +301,7 @@ int CMpeg2fAudioByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
 #endif
   if (fptr->have_ps_ts != 0 || fptr->have_dts != 0) {
     m_timestamp_loaded = 1;
-    pts_in_msec = fptr->have_ps_ts ? fptr->ps_ts : fptr->dts;
+    pts_in_msec = fptr->have_dts ? fptr->dts : fptr->ps_ts;
     pts_in_msec *= TO_U64(1000);
     pts_in_msec /= TO_U64(90000);
     m_last_timestamp = pts_in_msec;

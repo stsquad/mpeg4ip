@@ -158,6 +158,11 @@ static void ALSA_PlayAudio(_THIS)
 	int           sample_len;
 	signed short *sample_buf;
 
+ 	// okay, Veer.  this->spec.format may have AUDIO_FORMAT_HW_AC3,
+ 	// the length of the AC3 frame should be in this->mixbuffer_length
+ 	if (this->spec.format == AUDIO_FORMAT_HW_AC3) {
+ 	  sample_len = this->mixbuffer_length;
+ 	} else
 	sample_len = this->spec.samples;
 	sample_buf = (signed short *)mixbuf;
 	while ( sample_len > 0 ) {

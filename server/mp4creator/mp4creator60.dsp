@@ -92,7 +92,15 @@ SOURCE=.\aac.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\amr.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\avi.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\h263.cpp
 # End Source File
 # Begin Source File
 

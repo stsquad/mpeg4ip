@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_mixer.c,v 1.1 2004/02/25 01:18:49 wmaycisco Exp $";
+ "@(#) $Id: SDL_mixer.c,v 1.2 2004/05/05 23:36:23 wmaycisco Exp $";
 #endif
 
 /* This provides the default mixing callback for the SDL audio routines */
@@ -115,7 +115,10 @@ void Our_SDL_MixAudio (Uint8 *dst, const Uint8 *src, Uint32 len, int volume)
 		format = AUDIO_S16;
 	}
 	switch (format) {
-
+	case AUDIO_FORMAT_HW_AC3:
+	  memcpy(dst, src, len);
+	  current_audio->mixbuffer_length = len;
+	  break;
 		case AUDIO_U8: {
 #if defined(__M68000__) && defined(__GNUC__)
 			SDL_MixAudio_m68k_U8((char*)dst,(char*)src,(unsigned long)len,(long)volume,(char *)mix8);

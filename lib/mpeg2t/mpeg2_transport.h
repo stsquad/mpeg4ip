@@ -97,6 +97,7 @@ typedef struct mpeg2t_es_t {
   uint8_t stream_type;
   uint32_t es_info_len;
   uint8_t *es_data;
+  uint16_t prog_num;
   uint8_t stream_id;
   mpeg2t_frame_t *work;
   uint32_t work_max_size;

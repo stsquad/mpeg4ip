@@ -62,6 +62,7 @@ typedef enum audio_format_t {
   AUDIO_FMT_U16,
   AUDIO_FMT_S16,
   AUDIO_FMT_FLOAT,
+  AUDIO_FMT_HW_AC3,
 } audio_format_t;
 
 typedef void (*audio_configure_f)(void *ifptr,

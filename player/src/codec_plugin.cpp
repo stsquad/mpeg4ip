@@ -156,6 +156,14 @@ static bool open_library (plugin_list_t *p, const char *fname)
 				NSLINKMODULE_OPTION_PRIVATE |
 				NSLINKMODULE_OPTION_RETURN_ON_ERROR);
     // see if this works for xvid
+    if (p->dl_handle == NULL) {
+      int err;
+      const char *fname, *errt;
+      NSLinkEditErrors c;
+      NSLinkEditError(&c, &err, &fname, &errt);
+      player_error_message("link error %d %s %s",
+			   err, fname, errt);
+    }
     NSDestroyObjectFileImage(p->file_handle);
     p->file_handle = NULL;
 #else

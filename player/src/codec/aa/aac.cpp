@@ -117,10 +117,8 @@ static codec_data_t *aac_codec_create (const char *compressor,
 void aac_close (codec_data_t *ptr)
 {
   if (ptr == NULL) {
-    printf("\nin aac close\n");
     return;
   }
-  printf("\nclosed aac close\n");
   aac_codec_t *aac = (aac_codec_t *)ptr;
   faacDecClose(aac->m_info);
   aac->m_info = NULL;

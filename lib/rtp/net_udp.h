@@ -61,6 +61,8 @@ void        udp_fd_zero(void);
 void        udp_fd_set(socket_udp *s);
 int         udp_fd_isset(socket_udp *s);
 
+void  udp_set_multicast_src(const char* src);
+
 #if defined(__cplusplus)
 }
 #endif

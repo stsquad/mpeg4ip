@@ -19,5 +19,6 @@ urltrack_SOURCES = urltrack.cpp
 urltrack_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la
 
 mp4clip_SOURCES = mp4clip.cpp
-mp4clip_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la
+mp4clip_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la
 

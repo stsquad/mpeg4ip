@@ -690,6 +690,7 @@ static void on_start_button (GtkWidget *widget, gpointer *data)
 	}
 }
 
+#ifdef HAVE_GTK_2_0
 static void on_duration_changed(GtkWidget* widget, gpointer* data)
 {
   gtk_spin_button_update(GTK_SPIN_BUTTON(duration_spinner));
@@ -698,6 +699,7 @@ static void on_duration_changed(GtkWidget* widget, gpointer* data)
 		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(duration_spinner)));
 	MyConfig->UpdateRecord();
 }
+#endif
 
 static void on_duration_units_menu_activate(GtkWidget *widget, gpointer data)
 {

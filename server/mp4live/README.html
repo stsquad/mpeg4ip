@@ -551,7 +551,6 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>audioChannels</td><td>int</td><td>2</td><td>Number of Encoded Audio Channels (1 or 2)</td></tr>
 <tr align=center><td>audioSampleRate</td><td>int</td><td>44100</td><td>Audio Frequency Sample Rate</td></tr>
 <tr align=center><td>audioBitRate</td><td>int</td><td>128</td><td>Encoded Audio Bit Rate (in 1000 Hz)</td></tr>
-<tr align=center><td>audioBitRate</td><td>int</td><td>128</td><td>Encoded Audio Bit Rate (in 1000 Hz) (unused)</td></tr>
 <tr align=center><td>audioBitRateBps</td><td>int</td><td>128000</td><td>Encoded Audio Bit Rate</td></tr>
 <tr align=center><td>audioEncoding</td><td>string</td><td>MP3</td><td>Audio Encoding to use</tr>
 <tr align=center><td>audioEncoder</td><td>string</td><td>LAME</td><td>Audio Encoder to use</tr>
@@ -587,11 +586,20 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>videoH261Quality</td><td>int</td><td>10</td><td>Starting H.261 Video Quality</tr>
 <tr align=center><td>videoH261QualityAdjFrames</td><td>int</td><td>8</td><td>Number of frames to adjust H.261 Quality over</tr>
 <tr align=center><td>videoCaptureBuffersCount</td><td>int</td><td>16</td><td>Number of capture buffers to request<br>(V4L2 only)</tr>
-<tr align=center><td>videoFilter</td><td>string</td><td>none</td><td>Video filter to use (none, decimate, deinterlace)</td></tr>
+<tr align=center><td>videoFilter</td><td>string</td><td>none</td><td>Video filter to use (none, "deinterlace - blend", "deinterlace - decimate")</td></tr>
+<tr><th colspan=5 align=center><b>XVID 1.0 Video Options</b></tr>
+<tr align=center><td>xvid10VideoQuality</td><td>int</td><td>6</td><td>Video Quality (0 to 6 values)</td>
+<tr align=center><td>xvid10UseGMC</td><td>bool</td><td>false</td><td>Use GMC (do not use if using Quicktime Clients</td>
+<tr align=center><td>xvid10UseQpel</td><td>bool</td><td>false</td><td>Use Quarter Pel (do not use if using Quicktime Clients</td>
+<tr align=center><td>xvid10UseLumimask</td><td>bool</td><td>false</td><td>Use XVID lumimask filter plugin</td>
 <tr><th colspan=5 align=center><b>Recording Options</b></tr>
 <tr align=center><td>recordEnable</td><td>bool</td><td>true</td><td>True to record</tr>
 <tr align=center><td>recordRawAudio</td><td>bool</td><td>false</td><td>True to record raw audio <br>(PCM at encode frequency)</tr>
+<tr align=center><td>rawAudioFile</td><td>String</td><td>capture.pcm</td><td>File to store raw PCM</tr>
+<tr align=center><td>rawAudioUseFifo</td><td>bool</td><td>0</td><td>Output to pipe (see Sharing Capture Cards)</tr>
 <tr align=center><td>recordRawVideo</td><td>bool</td><td>false</td><td>True to record raw video <br>(YUV at height/width)</tr>
+<tr align=center><td>rawVideoFile</td><td>String</td><td>capture.yuv</td><td>File to store raw PCM</tr>
+<tr align=center><td>rawVideoUseFifo</td><td>bool</td><td>0</td><td>Output to pipe (see Sharing Capture Cards)</tr>
 <tr align=center><td>recordEncodedAudio</td><td>bool</td><td>true</td><td>True to record encoded audio</tr>
 <tr align=center><td>recordEncodedVideo</td><td>bool</td><td>true</td><td>True to record encoded video</tr>
 <tr align=center><td>recordMp4File</td><td>string</td><td>capture.mp4</td><td>Filename to create</tr>

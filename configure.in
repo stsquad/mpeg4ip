@@ -8,7 +8,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.0.18)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.0.19)
 
 dnl Checks for programs. 
 
@@ -153,21 +153,16 @@ AC_DEFUN(MY_CHECK_TYPEDEF_FROM_INCLUDE,
    fi
 ])
 
-MY_CHECK_TYPEDEF_FROM_INCLUDE([in_port_t temp], 
+AC_CHECK_TYPES([in_port_t, socklen_t], , , 
 	[#include <sys/types.h>
-	 #include <netinet/in.h>], 
-	 [AC_DEFINE(HAVE_IN_PORT_T, [1], [in_port_t definition])])
-MY_CHECK_TYPEDEF_FROM_INCLUDE([socklen_t temp], 
-	[#include <sys/types.h>
-	 #include <sys/socket.h>], 
-	 [AC_DEFINE(HAVE_SOCKLEN_T, [1], [have_socklen_t definition])])
-MY_CHECK_TYPEDEF_FROM_INCLUDE([fpos_t foo; foo.__pos = 0;],
-	[#include <stdio.h>],
-	[AC_DEFINE(HAVE_FPOS_T_POS, [1], [have_fpos_t_pos definition])])
+	 #include <sys/socket.h>
+	 #include <netinet/in.h>])
+AC_CHECK_TYPES([struct ip_mreq_source],
+	       AC_DEFINE(HAVE_IGMP_V3, [1], [IGMPv3 definition]),
+,
+	[#include <netinet/in.h>])
 
-MY_CHECK_TYPEDEF_FROM_INCLUDE([struct addrinfo foo;],
-	[#include <netdb.h>],
-	[AC_DEFINE(HAVE_ST_ADDRINFO, [1], [have addrinfo definition])])
+AC_CHECK_MEMBERS(fpos_t.__pos,,, [#include <stdio.h>])
 
 dnl borrowed from ac-archive.sourceforge.net
 dnl @author  Guido Draheim <guidod@gmx.de>

@@ -219,7 +219,7 @@ int gettimeofday(struct timeval *t, void *);
 #define TO_U64(a) (a##LLU)
 #endif
 
-#ifdef HAVE_FPOS_T_POS
+#ifdef HAVE_FPOS_T___POS
 #define FPOS_TO_VAR(fpos, typed, var) (var) = (typed)((fpos).__pos)
 #define VAR_TO_FPOS(fpos, var) (fpos).__pos = (var)
 #else

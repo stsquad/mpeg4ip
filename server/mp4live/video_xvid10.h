@@ -56,6 +56,10 @@ protected:
 	u_int32_t			m_vopBufferLength;
 	Timestamp               m_srcFrameTimestamp;
 	xvid_enc_stats_t		m_xvidResult;
+	uint8_t m_video_quality; // 0 to 6
+	bool m_use_gmc;
+	bool m_use_qpel;
+	bool m_use_lumimask_plugin;
 	//#define WRITE_RAW
 #ifdef WRITE_RAW
 	FILE *m_outfile;

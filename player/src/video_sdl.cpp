@@ -44,6 +44,11 @@
 // new hwsurface method doesn't work on windows.
 // If you have pre-directX 8.1 - you'll want to define OLD_SURFACE
 //#define OLD_SURFACE 1
+#define WM_WIN 1
+#endif
+
+#if defined (__unix__)
+#define WM_X11
 #endif
 
 #ifdef _WIN32
@@ -89,6 +94,28 @@ CSDLVideo::CSDLVideo(int initial_x, int initial_y)
   m_old_win_w = m_old_win_h = 0;
   m_old_w = m_old_h = 0;
   SDL_ShowCursor(SDL_DISABLE);
+
+  //Query the current Window system resolution 
+  SDL_SysWMinfo         info;
+  SDL_VERSION(&info.version);
+  if (SDL_GetWMInfo(&info)) {
+#if defined(WM_X11)
+  if ( info.subsystem == SDL_SYSWM_X11 ) {
+        info.info.x11.lock_func();
+	m_max_width = DisplayWidth(info.info.x11.display, 
+                            DefaultScreen(info.info.x11.display));
+	m_max_height = DisplayHeight(info.info.x11.display, 
+                            DefaultScreen(info.info.x11.display));
+        info.info.x11.unlock_func();
+  } else {
+      video_message(LOG_ERR, "Failed to get Max resolution foe window system\n");
+  }
+#elif defined (WM_WIN)
+      m_max_width=GetSystemMetrics(SM_CXSCREEN);
+      m_max_height=GetSystemMetrics(SM_CYSCREEN);
+#endif
+  }
+  video_message(LOG_INFO, "Max Window resolution %dx%d\n", m_max_width, m_max_height);
 }
 
 /*
@@ -203,9 +230,6 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
 #endif
   }
 
-  video_message(LOG_DEBUG, "Setting video mode %d %d %x %g", 
-		win_w, win_h, mask, m_aspect_ratio);
-
   if (win_w == m_old_win_w &&
       win_h == m_old_win_h &&
       m_image_w == m_old_w &&
@@ -213,6 +237,8 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
       m_fullscreen == fullscreen) {
     return;
   }
+  video_message(LOG_DEBUG, "Setting video mode %d %d %x %g", 
+		win_w, win_h, mask, m_aspect_ratio);
   m_fullscreen = fullscreen;
   if (m_image) {
     SDL_FreeYUVOverlay(m_image);

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: Our_SDL_audio.h,v 1.2 2004/03/15 23:56:21 wmaycisco Exp $";
+ "@(#) $Id: Our_SDL_audio.h,v 1.3 2004/05/05 23:36:23 wmaycisco Exp $";
 #endif
 
 /* Access to the raw audio mixing buffer for the SDL library */
@@ -101,6 +101,8 @@ extern DECLSPEC char * SDLCALL Our_SDL_AudioDriverName(char *namebuf, int maxlen
  * may modify the requested size of the audio buffer, you should allocate
  * any local mixing buffers after you open the audio device.
  */
+#define AUDIO_FORMAT_HW_AC3 0xfefe
+
 extern DECLSPEC int SDLCALL Our_SDL_OpenAudio(SDL_AudioSpec *desired, SDL_AudioSpec *obtained);
 
 /*

@@ -32,7 +32,7 @@ then echo "Please run cvs_bootstrap instead."
 fi
 
 target_system=`uname -s`
-  if sdl-config >/dev/null 2>/dev/null
+  if sdl-config --version >/dev/null 2>/dev/null
   then
     echo "SDL appears to be installed"
   else

@@ -66,6 +66,7 @@ class CSDLAudioSync : public CAudioSync {
   uint32_t m_fill_index, m_play_index;
   volatile int m_buffer_filled[DECODE_BUFFERS_MAX];
   uint64_t m_buffer_time[DECODE_BUFFERS_MAX];
+  uint32_t m_buffer_len[DECODE_BUFFERS_MAX];
   uint64_t m_last_fill_timestamp;
   uint64_t m_play_time;
   SDL_AudioSpec m_obtained;

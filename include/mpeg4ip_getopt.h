@@ -1,6 +1,7 @@
 #ifdef WIN32
 #define HAVE_IN_PORT_T
 #define HAVE_SOCKLEN_T
+#define __STDC__ 1
 #else
 #include "mpeg4ip.h"
 #endif
@@ -123,27 +124,27 @@ struct option
 /* Many other libraries have conflicting prototypes for getopt, with
    differences in the consts, in stdlib.h.  To avoid compilation
    errors, only prototype getopt for the GNU C library.  */
-extern int getopt (int __argc, char *const *__argv, const char *__shortopts);
+extern int getopt (int ___argc, char *const *___argv, const char *__shortopts);
 
 
 #endif /* HAVE_GETOPT */
 
 #ifndef HAVE_GETOPT_LONG  
 
-extern int getopt_long (int __argc, char *const *__argv, const char *__shortopts,
+extern int getopt_long (int ___argc, char *const *___argv, const char *__shortopts,
 		        const struct option *__longopts, int *__longind);
 
 #endif /* HAVE_GETOPT_LONG */
 
 #ifndef HAVE_GETOPT_LONG_ONLY
-extern int getopt_long_only (int __argc, char *const *__argv,
+extern int getopt_long_only (int ___argc, char *const *___argv,
 			     const char *__shortopts,
 		             const struct option *__longopts, int *__longind);
 #endif /* HAVE_GETOPT_LONG */
 
 #if !defined(HAVE_GETOPT) || !defined(HAVE_GETOPT_LONG) || !defined(HAVE_GETOPT_LONG_ONLY)
 
-  extern int _getopt_internal (int __argc, char *const *argv,
+  extern int _getopt_internal (int ___argc, char *const *argv,
 			       const char *optstring,
 			       const struct option *longopts,
 			       int *longind, int long_only);

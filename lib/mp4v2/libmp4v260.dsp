@@ -86,6 +86,14 @@ LIB32=link.exe -lib
 # PROP Default_Filter ".c, .cpp"
 # Begin Source File
 
+SOURCE=.\3gp.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_bitr.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\atom_co64.cpp
 # End Source File
 # Begin Source File
@@ -95,6 +103,14 @@ SOURCE=.\atom_cprt.cpp
 # Begin Source File
 
 SOURCE=.\atom_ctts.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_d263.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_damr.cpp
 # End Source File
 # Begin Source File
 
@@ -259,6 +275,18 @@ SOURCE=.\atom_root.cpp
 # Begin Source File
 
 SOURCE=.\atom_rtp.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_s263.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_samr.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_sawb.cpp
 # End Source File
 # Begin Source File
 

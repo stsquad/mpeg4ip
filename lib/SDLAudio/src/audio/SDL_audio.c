@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audio.c,v 1.1 2004/02/25 01:18:49 wmaycisco Exp $";
+ "@(#) $Id: SDL_audio.c,v 1.2 2004/05/05 23:36:23 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -460,6 +460,10 @@ int Our_SDL_OpenAudio(SDL_AudioSpec *desired, SDL_AudioSpec *obtained)
 	} else if ( desired->freq != audio->spec.freq ||
                     desired->format != audio->spec.format ||
 	            desired->channels != audio->spec.channels ) {
+	  // wmay
+	  if (desired->format == AUDIO_FORMAT_HW_AC3) {
+	    return -1;
+	  }
 		/* Build an audio conversion block */
 		if ( SDL_BuildAudioCVT(&audio->convert,
 			desired->format, desired->channels,
@@ -649,7 +653,11 @@ void SDL_CalculateAudioSpec(SDL_AudioSpec *spec)
 			spec->silence = 0x00;
 			break;
 	}
+ 	if (spec->format == AUDIO_FORMAT_HW_AC3) {
+ 	  spec->size = 256 * 6 * 2 * 2;
+ 	} else {
 	spec->size = (spec->format&0xFF)/8;
 	spec->size *= spec->channels;
 	spec->size *= spec->samples;
+	}
 }

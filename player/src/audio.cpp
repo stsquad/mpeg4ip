@@ -381,6 +381,8 @@ void CAudioSync::audio_convert_data (void *from, uint32_t samples)
     break;
   case AUDIO_FMT_S16:
     break;
+  case AUDIO_FMT_HW_AC3:
+    abort();
   }
 
   if (m_convert_buffer == NULL) {

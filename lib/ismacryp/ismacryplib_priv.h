@@ -84,7 +84,7 @@ typedef struct sess_struct{
     uint8_t  aes_overlay[AES_TOT_LEN];
  #endif
     ksc_t    ksc;
-  };
+  } kk;
  #ifndef NULL_ISMACRYP
     cipher_t            *cp;
  #endif

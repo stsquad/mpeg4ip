@@ -1,3 +1,4 @@
+#include "mpeg4ip.h"
 #include "mpeg4ip_getopt.h"
 #include "mpeg4ip_config_set.h"
 

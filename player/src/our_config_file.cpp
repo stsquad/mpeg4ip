@@ -60,6 +60,7 @@ static const SConfigVariable MyConfigVariables[] = {
   CONFIG_INT(CONFIG_FULL_SCREEN, "FullScreen", 0),
   CONFIG_STRING_HELP(CONFIG_MULTICAST_RX_IF, "MulticastIf", NULL, "Physical interface to receive multicast"),
   CONFIG_INT_HELP(CONFIG_RX_SOCKET_SIZE, "RxSocketSize", 0, "Default receive buffer socket size"),
+  CONFIG_STRING(CONFIG_MULTICAST_SRC, "MulticastSrc", NULL),
 };
 
 CConfigSet config(MyConfigVariables, 

@@ -230,9 +230,9 @@ int mpeg2t_ac3_audio_info (mpeg2t_es_t *es_pid, char *buffer, size_t len)
   int rate;
   if (es_pid->info_loaded == 0) return -1;
   rate = es_pid->bitrate / 1000;
-  snprintf(buffer, len, "AC3, %d kbps, %d %d", 
+  snprintf(buffer, len, "AC3, %d kbps, %d %d channels", 
 	   rate, es_pid->sample_freq, 
-	   es_pid->audio_chans == 1);
+	   es_pid->audio_chans);
   return 0;
 }
 #else

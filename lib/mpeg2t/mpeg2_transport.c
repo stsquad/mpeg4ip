@@ -287,6 +287,7 @@ static void create_pmap (mpeg2t_t *ptr, uint16_t prog_num, uint16_t pid)
  */
 static void create_es (mpeg2t_t *ptr, 
 		       uint16_t pid, 
+		       uint16_t prog_num,
 		       uint8_t stream_type,
 		       const uint8_t *es_data,
 		       uint32_t es_info_len)
@@ -306,6 +307,7 @@ static void create_es (mpeg2t_t *ptr,
   }
   es->pid.pak_type = MPEG2T_ES_PAK;
   es->pid.pid = pid;
+  es->prog_num = prog_num;
   es->stream_type = stream_type;
   switch (es->stream_type) {
   case 1:
@@ -502,7 +504,7 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
     if (es_len + len > section_len) return 0;
     if (mpeg2t_lookup_pid(ptr, e_pid) == NULL) {
       mpeg2t_message(LOG_NOTICE, "Creating es pid %x", e_pid);
-      create_es(ptr, e_pid, stream_type, &pmapptr[5], es_len);
+      create_es(ptr, e_pid, pmap_pid->program_number, stream_type, &pmapptr[5], es_len);
       ptr->program_maps_recvd++;
     }
     // create_es

@@ -27,8 +27,10 @@
 #include <sys/poll.h>
 #endif
 
-#if !defined(HAVE_ST_ADDRINFO) && !defined(_WIN32)
+#if 0
+#if !defined(HAVE_STRUCT_ADDRINFO) && !defined(_WIN32)
 #include "addrinfo.h"
+#endif
 #endif
 
 /*
@@ -270,8 +272,9 @@ void rtsp_close_socket (rtsp_client_t *info)
   if (info->server_socket != -1)
     closesocket(info->server_socket);
   info->server_socket = -1;
-#ifdef HAVE_ST_ADDRINFO
-  CHECK_AND_FREE(info->addr_info);
-#endif
+  if (info->addr_info != NULL) {
+    freeaddrinfo(info->addr_info);
+    info->addr_info = NULL;
+  }
 }
 

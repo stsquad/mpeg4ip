@@ -124,6 +124,7 @@ void CSDLAudioSync::set_config (int freq,
   switch (format) {
   case AUDIO_FMT_U8:
   case AUDIO_FMT_S8:
+  case AUDIO_FMT_HW_AC3:
     m_bytes_per_sample_input = sizeof(uint8_t);
     m_bytes_per_sample_output = sizeof(uint8_t);
     break;
@@ -256,6 +257,14 @@ void CSDLAudioSync::load_audio_buffer (uint8_t *from,
       m_buffer_ts = ts;
     }
   }
+  if (m_format == AUDIO_FMT_HW_AC3) {
+    to = get_audio_buffer();
+    memcpy(to, from, bytes);
+    m_buffer_len[m_fill_index] = bytes;
+    filled_audio_buffer(ts, 0);
+    m_loaded_next_ts = ts + m_msec_per_frame;
+    return;
+  }
   m_loaded_next_ts = bytes * TO_U64(1000);
   m_loaded_next_ts /= m_bytes_per_sample_input;
   m_loaded_next_ts /= m_freq;
@@ -327,7 +336,8 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
       audio_message(LOG_DEBUG, 
 		    "Filling - last "U64" new "U64, m_last_fill_timestamp, ts);
 #endif
-      if (diff > ((m_msec_per_frame + 1) * 4)) {
+      if (diff > ((m_msec_per_frame + 1) * 4) ||
+	  m_format == AUDIO_FMT_HW_AC3) {
 #ifdef DEBUG_AUDIO_FILL
       audio_message(LOG_DEBUG, 
 		    "resync required "D64, diff);
@@ -428,17 +438,6 @@ void CSDLAudioSync::set_eof(void)
   CAudioSync::set_eof();
 }
 
-static int fmt_to_sdl_format[] = {
-  AUDIO_U8,
-  AUDIO_S8,
-  AUDIO_U16LSB,
-  AUDIO_S16LSB,
-  AUDIO_U16MSB,
-  AUDIO_S16MSB,
-  AUDIO_U16SYS,
-  AUDIO_S16SYS
-};
-
 // Sync task api - initialize the sucker.
 // May need to check out non-standard frequencies, see about conversion.
 // returns 0 for not yet, 1 for initialized, -1 for error
@@ -451,12 +450,19 @@ int CSDLAudioSync::initialize_audio (int have_video)
       memset(&wanted, 0, sizeof(wanted));
       wanted.freq = m_freq;
       wanted.channels = m_channels;
-      if (m_format == AUDIO_FMT_FLOAT) {
-	wanted.format = AUDIO_S16SYS;
-	audio_message(LOG_DEBUG, "requesting float format");
-      } else {
-	wanted.format = fmt_to_sdl_format[m_format];
+      switch (m_format) {
+      case AUDIO_FMT_U8: wanted.format = AUDIO_U8; break;
+      case AUDIO_FMT_S8: wanted.format = AUDIO_S8; break;
+      case AUDIO_FMT_U16LSB: wanted.format = AUDIO_U16LSB; break;
+      case AUDIO_FMT_U16MSB: wanted.format = AUDIO_U16MSB; break;
+      case AUDIO_FMT_S16LSB: wanted.format = AUDIO_S16LSB; break;
+      case AUDIO_FMT_S16MSB: wanted.format = AUDIO_S16MSB; break;
+      case AUDIO_FMT_U16: wanted.format = AUDIO_U16SYS; break;
+      case AUDIO_FMT_S16: wanted.format = AUDIO_S16SYS; break;
+      case AUDIO_FMT_FLOAT: wanted.format = AUDIO_S16SYS; break;
+      case AUDIO_FMT_HW_AC3: wanted.format = AUDIO_FORMAT_HW_AC3; break;
       }
+
       int sample_size;
       sample_size = m_buffer_size / (m_channels * m_bytes_per_sample_input);
 #ifndef _WIN32
@@ -769,80 +775,109 @@ void CSDLAudioSync::audio_callback (Uint8 *outStream, int ilen)
   // We have a valid buffer.  Push it to SDL.
   m_consec_no_buffers = 0;
 
-  while (outBufferTotalBytes > 0) {
-    uint32_t outBufferSamples, outBufferBytes;
-    uint32_t decodedBufferBytes, decodedBufferSamples;
-
-    // calculate number of bytes left in the decoded bytes ring
-    decodedBufferBytes = m_buffer_size - m_play_sample_index;
-    // samples from bytes
-    decodedBufferSamples = 
-      decodedBufferBytes / (m_channels * m_bytes_per_sample_input);
-    
-    // See how many samples we can write into SDL buffers
-    outBufferSamples = outBufferTotalBytes / 
-      (m_got_channels * m_bytes_per_sample_output);
-
-    // Adjust bytes from decoded ring accordingly
-    if (outBufferSamples < decodedBufferSamples) {
-      decodedBufferBytes = 
-	outBufferSamples * m_channels * m_bytes_per_sample_input;
-      decodedBufferSamples = outBufferSamples;
-    }
-    // Adjust bytes to copy
-    outBufferBytes = 
-      decodedBufferSamples * m_got_channels * m_bytes_per_sample_output;
-#ifdef DEBUG_SYNC
-    audio_message(LOG_DEBUG, "Playing "U64" offset %d",
-		  m_buffer_time[m_play_index], m_play_sample_index);
-#endif
-    if (m_convert_buffer) {
-      // Convert the buffer based on the number of samples
-      audio_convert_data(&m_sample_buffer[m_play_index][m_play_sample_index],
-			 decodedBufferSamples);
-      // Mix based on the number of bytes
-      Our_SDL_MixAudio(outStream, (const unsigned char *)m_convert_buffer, 
-		       outBufferBytes, m_volume);
+  if (m_format == AUDIO_FMT_HW_AC3) {
+    Our_SDL_MixAudio(outStream, 
+		     (const unsigned char *)&m_sample_buffer[m_play_index][0],
+		     m_buffer_len[m_play_index],
+		     m_volume);
+    if (m_buffer_bytes_loaded > m_buffer_size) {
+      m_buffer_bytes_loaded -= m_buffer_size;
     } else {
-      Our_SDL_MixAudio(outStream, 
-		   (const unsigned char *)&m_sample_buffer[m_play_index][m_play_sample_index],
-		   outBufferBytes,
-		   m_volume);
-    }
-    outBufferTotalBytes -= outBufferBytes;
-    outStream += outBufferBytes;
-
-    if (decodedBufferBytes <= m_buffer_bytes_loaded)
-      m_buffer_bytes_loaded -= decodedBufferBytes;
-    else 
       m_buffer_bytes_loaded = 0;
-    m_play_sample_index += decodedBufferBytes;
-    if (m_play_sample_index >= m_buffer_size) {
+    }
+    m_buffer_filled[m_play_index] = 0;
+    m_play_index++;
+    m_play_index %= DECODE_BUFFERS_MAX;
+    m_play_sample_index = 0;
+    freed_buffer = 1;
+    if (m_resync_required) {
+	// resync required from codec side.  Shut down, and notify sync task
+      if (m_resync_buffer == m_play_index) {
+	Our_SDL_PauseAudio(1);
+	m_audio_paused = 1;
+	m_psptr->wake_sync_thread();
 #ifdef DEBUG_SYNC
-      audio_message(LOG_DEBUG, "finished with buffer %d %d", 
-		    m_play_index, m_buffer_bytes_loaded);
+	audio_message(LOG_DEBUG, "sempost");
+#endif
+	outBufferTotalBytes = 0;
+      }
+    }
+
+  } else {
+    while (outBufferTotalBytes > 0) {
+      uint32_t outBufferSamples, outBufferBytes;
+      uint32_t decodedBufferBytes, decodedBufferSamples;
+
+      // calculate number of bytes left in the decoded bytes ring
+      decodedBufferBytes = m_buffer_size - m_play_sample_index;
+      // samples from bytes
+      decodedBufferSamples = 
+	decodedBufferBytes / (m_channels * m_bytes_per_sample_input);
+    
+      // See how many samples we can write into SDL buffers
+      outBufferSamples = outBufferTotalBytes / 
+	(m_got_channels * m_bytes_per_sample_output);
+
+      // Adjust bytes from decoded ring accordingly
+      if (outBufferSamples < decodedBufferSamples) {
+	decodedBufferBytes = 
+	  outBufferSamples * m_channels * m_bytes_per_sample_input;
+	decodedBufferSamples = outBufferSamples;
+      }
+      // Adjust bytes to copy
+      outBufferBytes = 
+	decodedBufferSamples * m_got_channels * m_bytes_per_sample_output;
+#ifdef DEBUG_SYNC
+      audio_message(LOG_DEBUG, "Playing "U64" offset %d",
+		    m_buffer_time[m_play_index], m_play_sample_index);
+#endif
+      if (m_convert_buffer) {
+	// Convert the buffer based on the number of samples
+	audio_convert_data(&m_sample_buffer[m_play_index][m_play_sample_index],
+			   decodedBufferSamples);
+	// Mix based on the number of bytes
+	Our_SDL_MixAudio(outStream, (const unsigned char *)m_convert_buffer, 
+			 outBufferBytes, m_volume);
+      } else {
+	Our_SDL_MixAudio(outStream, 
+			 (const unsigned char *)&m_sample_buffer[m_play_index][m_play_sample_index],
+			 outBufferBytes,
+			 m_volume);
+      }
+      outBufferTotalBytes -= outBufferBytes;
+      outStream += outBufferBytes;
+
+      if (decodedBufferBytes <= m_buffer_bytes_loaded)
+	m_buffer_bytes_loaded -= decodedBufferBytes;
+      else 
+	m_buffer_bytes_loaded = 0;
+      m_play_sample_index += decodedBufferBytes;
+      if (m_play_sample_index >= m_buffer_size) {
+#ifdef DEBUG_SYNC
+	audio_message(LOG_DEBUG, "finished with buffer %d %d", 
+		      m_play_index, m_buffer_bytes_loaded);
 #endif
 
-      m_buffer_filled[m_play_index] = 0;
-      m_play_index++;
-      m_play_index %= DECODE_BUFFERS_MAX;
-      m_play_sample_index = 0;
-      freed_buffer = 1;
-      if (m_resync_required) {
-	// resync required from codec side.  Shut down, and notify sync task
-	if (m_resync_buffer == m_play_index) {
-	  Our_SDL_PauseAudio(1);
-	  m_audio_paused = 1;
-	  m_psptr->wake_sync_thread();
+	m_buffer_filled[m_play_index] = 0;
+	m_play_index++;
+	m_play_index %= DECODE_BUFFERS_MAX;
+	m_play_sample_index = 0;
+	freed_buffer = 1;
+	if (m_resync_required) {
+	  // resync required from codec side.  Shut down, and notify sync task
+	  if (m_resync_buffer == m_play_index) {
+	    Our_SDL_PauseAudio(1);
+	    m_audio_paused = 1;
+	    m_psptr->wake_sync_thread();
 #ifdef DEBUG_SYNC
-	  audio_message(LOG_DEBUG, "sempost");
+	    audio_message(LOG_DEBUG, "sempost");
 #endif
-	  outBufferTotalBytes = 0;
+	    outBufferTotalBytes = 0;
+	  }
 	}
       }
     }
-  }
-      
+  }    
   // Increment past this buffer.
   if (m_first_time != 0) {
     // First time through - tell the sync task we've started, so it can

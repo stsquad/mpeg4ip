@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysaudio.h,v 1.1 2004/02/25 01:18:49 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysaudio.h,v 1.2 2004/05/05 23:36:23 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_sysaudio_h
@@ -92,6 +92,8 @@ struct SDL_AudioDevice {
 	/* * * */
 	/* The function used to dispose of this structure */
 	void (*free)(_THIS);
+
+  Uint32 mixbuffer_length; // for hardware based audio, after mixer
 };
 #undef _THIS
 
