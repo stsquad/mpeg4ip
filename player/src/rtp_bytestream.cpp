@@ -452,10 +452,12 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
       } else {
 	uint64_t timeout;
 	timeout = get_time_of_day() - m_recvd_pak_timeout_time;
-	if (m_stream_ondemand) {
+	if (m_stream_ondemand && get_max_playtime() != 0.0) {
 	  uint64_t range_end = (uint64_t)(get_max_playtime() * 1000.0);
 	  if (m_last_realtime + timeout >= range_end) {
-	    rtp_message(LOG_DEBUG, "%s Timedout at range end", m_name);
+	    rtp_message(LOG_DEBUG, 
+			"%s Timedout at range end - last "LLU" range end "LLU, 
+			m_name, m_last_realtime, range_end);
 	    m_eof = 1;
 	  }
 	} else {

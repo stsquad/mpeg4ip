@@ -293,7 +293,7 @@ static void CodeBlockIntra(const MBParam * pParam,
 			bits = BitstreamPos(bs);
 
 #ifdef MPEG4IP
-	if ((pParam->global_flags & XVID_SHORT_HEADERS) == 0) {
+	if ((pParam->global_flags & XVID_SHORT_HEADERS) == 1) {
 			/* H.263 only does zigzag scan */
 			CodeCoeff(bs,
 				  &qcoeff[i*64],
