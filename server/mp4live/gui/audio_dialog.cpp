@@ -27,9 +27,18 @@
 static GtkWidget *dialog;
 
 static GtkWidget *device_entry;
+static GtkWidget *input_menu;
 static GtkWidget *channel_menu;
 static GtkWidget *sampling_rate_menu;
 static GtkWidget *bit_rate_menu;
+
+static char* inputValues[] = {
+	"cd", "line", "mic"
+};
+static char* inputNames[] = {
+	"CD", "Line In", "Microphone"
+};
+static u_int8_t inputIndex;
 
 static u_int8_t channelValues[] = {
 	1, 2
@@ -69,6 +78,11 @@ static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 	gtk_widget_destroy(dialog);
 	dialog = NULL;
 } 
+
+static void on_input_menu_activate (GtkWidget *widget, gpointer data)
+{
+	inputIndex = (unsigned int)data & 0xFF;
+}
 
 static void on_channel_menu_activate (GtkWidget *widget, gpointer data)
 {
@@ -148,6 +162,9 @@ static bool ValidateAndSave(void)
 	MyConfig->SetStringValue(CONFIG_AUDIO_DEVICE_NAME,
 		gtk_entry_get_text(GTK_ENTRY(device_entry)));
 
+	MyConfig->SetStringValue(CONFIG_AUDIO_INPUT_NAME,
+		inputValues[inputIndex]);
+
 	MyConfig->SetIntegerValue(CONFIG_AUDIO_CHANNELS, 
 		channelValues[channelIndex]);
 
@@ -207,6 +224,11 @@ void CreateAudioDialog (void)
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
+	label = gtk_label_new(" Input:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
+
 	label = gtk_label_new(" Channels:");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_widget_show(label);
@@ -232,6 +254,21 @@ void CreateAudioDialog (void)
 		MyConfig->GetStringValue(CONFIG_AUDIO_DEVICE_NAME));
 	gtk_widget_show(device_entry);
 	gtk_box_pack_start(GTK_BOX(vbox), device_entry, TRUE, TRUE, 0);
+
+	inputIndex = 0;
+	for (u_int8_t i = 0; i < sizeof(inputValues) / sizeof(u_int8_t); i++) {
+		if (!strcasecmp(MyConfig->GetStringValue(CONFIG_AUDIO_INPUT_NAME),
+		  inputValues[i])) {
+			inputIndex = i;
+			break;
+		}
+	}
+	input_menu = CreateOptionMenu (NULL,
+		inputNames, 
+		sizeof(inputNames) / sizeof(char*),
+		inputIndex,
+		GTK_SIGNAL_FUNC(on_input_menu_activate));
+	gtk_box_pack_start(GTK_BOX(vbox), input_menu, TRUE, TRUE, 0);
 
 	channelIndex = 0;
 	for (u_int8_t i = 0; i < sizeof(channelValues) / sizeof(u_int8_t); i++) {

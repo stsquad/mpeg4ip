@@ -25,16 +25,22 @@
 #include "audio_encoder.h"
 
 #include <lame.h>
+#include "mp3.h"
 
 class CLameAudioEncoder : public CAudioEncoder {
 public:
 	CLameAudioEncoder();
 
+	bool Init(
+		CLiveConfig* pConfig, bool realTime = true);
+
 	bool EncodeSamples(
-		u_int8_t* pBuffer, u_int32_t bufferLength);
+		u_int16_t* pBuffer, u_int32_t bufferLength);
 
 	bool GetEncodedFrame(
 		u_int8_t** ppBuffer, u_int32_t* pBufferLength);
+
+	void Stop();
 
 protected:
 	lame_global_flags	m_lameParams;
@@ -43,6 +49,7 @@ protected:
 	u_int8_t*			m_mp3FrameBuffer;
 	u_int32_t			m_mp3FrameBufferLength;
 	u_int32_t			m_mp3FrameBufferSize;
+	u_int32_t			m_mp3FrameMaxSize;
 };
 
 #endif /* __AUDIO_LAME_H__ */

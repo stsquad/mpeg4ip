@@ -25,27 +25,22 @@
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
-
 #include <linux/soundcard.h>
-#include <lame.h>
 
 #include "media_node.h"
+#include "audio_encoder.h"
 
 class CAudioSource : public CMediaSource {
 public:
 	CAudioSource() : CMediaSource() {
 		m_capture = false;
 		m_audioDevice = -1;
+		m_encoder = NULL;
 		m_rawFrameBuffer = NULL;
-		m_leftBuffer = NULL;
-		m_rightBuffer = NULL;
-		m_mp3FrameBuffer = NULL;
 	}
 	~CAudioSource() {
+		delete m_encoder;
 		free(m_rawFrameBuffer);
-		free(m_leftBuffer);
-		free(m_rightBuffer);
-		free(m_mp3FrameBuffer);
 	}
 
 	void StartCapture(void) {
@@ -72,27 +67,23 @@ protected:
 	bool InitEncoder(void);
 
 	void ProcessAudio(void);
-	u_int16_t ForwardCompletedFrames(void);
+	u_int16_t ForwardEncodedFrames(void);
 
 protected:
 	bool				m_capture;
 	int					m_audioDevice;
+	CAudioEncoder*		m_encoder;
+	u_int16_t			m_frameType;
 	Timestamp			m_startTimestamp;
 	u_int32_t			m_frameNumber;
 	u_int16_t			m_maxPasses;
+
 	Duration			m_rawFrameDuration;
 	u_int16_t			m_rawSamplesPerFrame;
 	u_int16_t*			m_rawFrameBuffer;
 	u_int32_t			m_rawFrameSize;
-	u_int16_t*			m_leftBuffer;
-	u_int16_t*			m_rightBuffer;
-	lame_global_flags	m_lameParams;
 
-	Duration			m_mp3FrameDuration;
-	u_int32_t			m_mp3MaxFrameSize;
-	u_int8_t*			m_mp3FrameBuffer;
-	u_int32_t			m_mp3FrameBufferLength;
-	u_int32_t			m_mp3FrameBufferSize;
+	Duration			m_encodedFrameDuration;
 };
 
 #endif /* __AUDIO_SOURCE_H__ */

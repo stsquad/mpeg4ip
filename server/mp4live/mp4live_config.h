@@ -62,9 +62,11 @@ enum {
 	CONFIG_AUDIO_ENABLE,
 	CONFIG_AUDIO_DEVICE_NAME,
 	CONFIG_AUDIO_MIXER_NAME,
+	CONFIG_AUDIO_INPUT_NAME,
 	CONFIG_AUDIO_CHANNELS,
 	CONFIG_AUDIO_SAMPLE_RATE,
 	CONFIG_AUDIO_BIT_RATE,
+	CONFIG_AUDIO_ENCODER,
 
 	CONFIG_VIDEO_ENABLE,
 	CONFIG_VIDEO_DEVICE_NAME,
@@ -140,6 +142,9 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_AUDIO_MIXER_NAME, "audioMixer", 
 		CONFIG_TYPE_STRING, "/dev/mixer", },
 
+	{ CONFIG_AUDIO_INPUT_NAME, "audioInput", 
+		CONFIG_TYPE_STRING, "line", },
+
 	{ CONFIG_AUDIO_CHANNELS, "audioChannels", 
 		CONFIG_TYPE_INTEGER, (config_integer_t)2, },
 
@@ -148,6 +153,9 @@ static SConfigVariable MyConfigVariables[] = {
 
 	{ CONFIG_AUDIO_BIT_RATE, "audioBitRate", 
 		CONFIG_TYPE_INTEGER, (config_integer_t)128, },
+
+	{ CONFIG_VIDEO_ENCODER, "audioEncoder",
+		CONFIG_TYPE_STRING, "lame", },
 
 	// VIDEO
 

@@ -20,7 +20,7 @@
  */
 
 #include "mp4live.h"
-#include "video_xvid.h"
+#include "audio_lame.h"
 
 CLameAudioEncoder::CLameAudioEncoder()
 {
@@ -59,11 +59,48 @@ bool CLameAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 			MP3_MPEG2_SAMPLES_PER_FRAME;
 	}
 
+	u_int16_t rawSamplesPerFrame = (u_int16_t)
+		((((float)m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE) 
+		/ (float)m_pConfig->m_audioMp3SampleRate)
+		* m_pConfig->m_audioMp3SamplesPerFrame) 
+		+ 0.5);
+
+	u_int32_t rawFrameSize = rawSamplesPerFrame
+		* m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) 
+		* sizeof(u_int16_t);
+
+	m_mp3FrameMaxSize = 
+		(u_int)(1.25 * m_pConfig->m_audioMp3SamplesPerFrame) + 7200;
+
+	m_mp3FrameBufferSize = 2 * m_mp3FrameMaxSize;
+
+	m_mp3FrameBufferLength = 0;
+
+	m_mp3FrameBuffer = (u_int8_t*)malloc(m_mp3FrameBufferSize);
+
+	if (!m_mp3FrameBuffer) {
+		return false;
+	}
+
+	m_leftBuffer = (u_int16_t*)malloc(rawFrameSize / 2);
+	m_rightBuffer = (u_int16_t*)malloc(rawFrameSize / 2);
+
+	if (!m_leftBuffer || !m_rightBuffer) {
+		free(m_mp3FrameBuffer);
+		free(m_leftBuffer);
+		free(m_rightBuffer);
+		return false;
+	}
+
+	if (m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 1) {
+		memset(m_rightBuffer, 0, rawFrameSize / 2);
+	}
+
 	return true;
 }
 
 bool CLameAudioEncoder::EncodeSamples(
-	u_int8_t* pBuffer, u_int32_t bufferLength)
+	u_int16_t* pBuffer, u_int32_t bufferLength)
 {
 	u_int32_t mp3DataLength = 0;
 
@@ -109,8 +146,35 @@ bool CLameAudioEncoder::EncodeSamples(
 bool CLameAudioEncoder::GetEncodedFrame(
 	u_int8_t** ppBuffer, u_int32_t* pBufferLength)
 {
-	// *ppBuffer = 
-	// *pBufferLength = 
+	u_int8_t* mp3Frame;
+	u_int32_t mp3FrameLength;
+
+	if (!Mp3FindNextFrame(m_mp3FrameBuffer, m_mp3FrameBufferLength, 
+	  &mp3Frame, &mp3FrameLength, false)) {
+		return false;
+	}
+
+	// check if we have all the bytes for the MP3 frame
+	if (mp3FrameLength > m_mp3FrameBufferLength) {
+		return false;
+	}
+
+	// need a buffer for this MP3 frame
+	*ppBuffer = (u_int8_t*)malloc(mp3FrameLength);
+	if (*ppBuffer == NULL) {
+		return false;
+	}
+
+	// copy the MP3 frame
+	memcpy(*ppBuffer, mp3Frame, mp3FrameLength);
+	*pBufferLength = mp3FrameLength;
+
+	// shift what remains in the buffer down
+	memcpy(m_mp3FrameBuffer, 
+		mp3Frame + mp3FrameLength, 
+		m_mp3FrameBufferLength - mp3FrameLength);
+
+	m_mp3FrameBufferLength -= mp3FrameLength;
 
 	return true;
 }

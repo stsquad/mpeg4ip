@@ -3,6 +3,11 @@ SUBDIRS = gui
 bin_PROGRAMS = mp4live
 
 mp4live_SOURCES = \
+	audio_encoder.h \
+	audio_faac.h \
+	audio_faac.cpp \
+	audio_lame.h \
+	audio_lame.cpp \
 	audio_source.cpp \
 	audio_source.h \
 	config_set.h \
@@ -10,6 +15,7 @@ mp4live_SOURCES = \
 	mp4live.h \
 	mp4live_config.h \
 	mp4live_config.cpp \
+	media_encoder.h \
 	media_flow.h \
 	media_flow.cpp \
 	media_frame.h \
@@ -53,14 +59,19 @@ INCLUDES=\
 	-I$(top_srcdir)/lib/rtp \
 	-I$(top_srcdir)/lib/sdp \
 	-I$(top_srcdir)/lib \
+	-I$(top_srcdir)/server/audio/faac \
 	-I$(top_srcdir)/server/audio/lame \
 	-I$(top_srcdir)/server/video/ffmpeg \
 	-I$(top_srcdir)/common/video/xvid \
 	-I$(top_srcdir)/player/lib
 
-AM_CFLAGS= -DADD_FFMPEG_ENCODER -DADD_XVID_ENCODER -D_REENTRANT -Wall -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
+AM_CFLAGS= -DADD_FFMPEG_ENCODER -DADD_XVID_ENCODER \
+	-DADD_LAME_ENCODER \
+	-D_REENTRANT -Wall -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
 
-AM_CXXFLAGS = -DADD_FFMPEG_ENCODER -DADD_XVID_ENCODER -D_REENTRANT -DNOCONTROLS -fexceptions -Wall
+AM_CXXFLAGS = -DADD_FFMPEG_ENCODER -DADD_XVID_ENCODER \
+	-DADD_LAME_ENCODER \
+	-D_REENTRANT -DNOCONTROLS -fexceptions -Wall
 
 LDADD = \
 	$(top_builddir)/server/mp4live/gui/liblive_gui.la \
@@ -68,6 +79,7 @@ LDADD = \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/rtp/libuclmmbase.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
+	$(top_builddir)/server/audio/faac/libfaac.la \
 	$(top_builddir)/server/audio/lame/libmp3lame.a \
 	$(top_builddir)/server/video/ffmpeg/libffmpeg.la \
 	$(top_builddir)/common/video/xvid/libxvid.la \

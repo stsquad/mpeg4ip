@@ -19,21 +19,33 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#ifndef __AUDIO_ENCODER_H__
-#define __AUDIO_ENCODER_H__
+#include "mp4live.h"
+#include "audio_faac.h"
 
-#include "media_encoder.h"
+CFaacAudioEncoder::CFaacAudioEncoder()
+{
+}
 
-class CAudioEncoder : public CEncoder {
-public:
-	CAudioEncoder() { };
+bool CFaacAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
+{
+	m_pConfig = pConfig;
 
-	virtual bool EncodeSamples(
-		u_int16_t* pBuffer, u_int32_t bufferLength) = NULL;
+	return false;
+}
 
-	virtual bool GetEncodedFrame(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength) = NULL;
-};
+bool CFaacAudioEncoder::EncodeSamples(
+	u_int16_t* pBuffer, u_int32_t bufferLength)
+{
+	return false;
+}
 
-#endif /* __AUDIO_ENCODER_H__ */
+bool CFaacAudioEncoder::GetEncodedFrame(
+	u_int8_t** ppBuffer, u_int32_t* pBufferLength)
+{
+	return false;
+}
+
+void CFaacAudioEncoder::Stop()
+{
+}
 

@@ -28,11 +28,16 @@ class CFaacAudioEncoder : public CAudioEncoder {
 public:
 	CFaacAudioEncoder();
 
+	bool Init(
+		CLiveConfig* pConfig, bool realTime = true);
+
 	bool EncodeSamples(
-		u_int8_t* pBuffer, u_int32_t bufferLength);
+		u_int16_t* pBuffer, u_int32_t bufferLength);
 
 	bool GetEncodedFrame(
 		u_int8_t** ppBuffer, u_int32_t* pBufferLength);
+
+	void Stop();
 
 protected:
 };

@@ -234,6 +234,8 @@ void CAVLiveMediaFlow::StopVideoPreview(void)
 
 void CAVLiveMediaFlow::SetAudioInput(void)
 {
+	static char* inputNames[] = SOUND_DEVICE_NAMES;
+
 	char* mixerName = 
 		m_pConfig->GetStringValue(CONFIG_AUDIO_MIXER_NAME);
 
@@ -244,8 +246,17 @@ void CAVLiveMediaFlow::SetAudioInput(void)
 		return;
 	}
 
-	int recmask = SOUND_MASK_LINE;
-	ioctl(mixer, SOUND_MIXER_WRITE_RECSRC, &recmask);
+	u_int8_t i;
+	int recmask = 0;
+
+	for (i = 0; i < sizeof(inputNames) / sizeof(char*); i++) {
+		if (!strcasecmp(m_pConfig->GetStringValue(CONFIG_AUDIO_INPUT_NAME),
+		  inputNames[i])) {
+			recmask |= (1 << i);
+			ioctl(mixer, SOUND_MIXER_WRITE_RECSRC, &recmask);
+			break;
+		}
+	}
 
 	close(mixer);
 }

@@ -105,26 +105,7 @@ AC_REPLACE_FUNCS(vsnprintf)
 # AC_CHECK_FUNC succeeds on our IRIX 6.2 boxes, but it is not 
 # declared anywhere, use egrep header to check (ugh lame, but works)
 
-AC_CACHE_CHECK(for inet_pton in <arpa/inet.h>, ucl_cv_inet_pton_in_inet_h,
-	[AC_CHECK_FUNC(inet_pton,
-			ucl_cv_inet_pton_in_inet_h=yes,
-			ucl_cv_inet_pton_in_inet_h=no)])
-if test $ucl_cv_inet_pton_in_inet_h = "no"
-then
-	AC_DEFINE(NEED_INET_PTON)
-	LIBOBJS="$LIBOBJS inet_pton.o"
-fi
-AC_CACHE_CHECK(for inet_ntop in <arpa/inet.h>, ucl_cv_inet_ntop_in_inet_h,
-	[AC_CHECK_FUNC(inet_ntop,
-			ucl_cv_inet_ntop_in_inet_h=yes,
-			ucl_cv_inet_ntop_in_inet_h=no)])
-if test $ucl_cv_inet_ntop_in_inet_h = "no"
-then
-	AC_DEFINE(NEED_INET_NTOP)
-	LIBOBJS="$LIBOBJS inet_ntop.o"
-fi
-AC_SUBST(LIBOBJS)
-
+AC_CHECK_FUNCS(inet_pton inet_ntop)
 dnl AC_REPLACE_FUNCS(inet_pton inet_ntop)
 
 AC_SEARCH_LIBS(socket, socket)

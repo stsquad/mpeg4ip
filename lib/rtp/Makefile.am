@@ -9,6 +9,8 @@ libuclmmbase_la_SOURCES= \
 	debug.c \
 	drand48.c \
 	hmac.c \
+	inet_ntop.c \
+	inet_pton.c \
 	mbus.c \
 	mbus_addr.c \
 	mbus_config.c \
@@ -23,8 +25,6 @@ libuclmmbase_la_SOURCES= \
 	rtp.c \
 	util.c \
 	version.h 
-
-libuclmmbase_la_LIBADD = @LIBOBJS@
 
 version.h: VERSION
 	sed -e 's/.*/#define CCL_VERSION "v&"/' $? > version.h
