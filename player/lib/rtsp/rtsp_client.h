@@ -290,6 +290,8 @@ int rtsp_is_url_my_stream(rtsp_session_t *session, const char *url,
 void rtsp_set_loglevel(int loglevel);
 
 void rtsp_set_error_func(error_msg_func_t func);
+
+const struct in_addr *rtsp_get_server_address(rtsp_client_t *client);
 #ifdef __cplusplus
 }
 #endif

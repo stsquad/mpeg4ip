@@ -251,6 +251,7 @@ static void add_to_pidQ (mpeg2t_t *ptr, mpeg2t_pid_t *pidptr)
 {
   mpeg2t_pid_t *p = &ptr->pas.pid;
 
+  pidptr->main = ptr;
   SDL_LockMutex(ptr->pid_mutex);
   while (p->next_pid != NULL) {
     p = p->next_pid;
@@ -314,6 +315,7 @@ static void create_es (mpeg2t_t *ptr,
     }
   }
   es->work_max_size = 4096;
+  es->save_frames = ptr->save_frames_at_start;
   add_to_pidQ(ptr, &es->pid);
 }
   
@@ -479,6 +481,9 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
   }
   section_len -= 4; // remove CRC
   len = 0;
+  if (section_len == 0) {
+    return 0;
+  }
   /*
    * Now, add all elementary streams for this PMAP
    */
@@ -516,6 +521,9 @@ static void clean_es_data (mpeg2t_es_t *es_pid)
     es_pid->header = 0;
     es_pid->work_loaded = 0;
     es_pid->have_seq_header = 0;
+    if (es_pid->work != NULL) {
+      mpeg2t_malloc_es_work(es_pid, es_pid->work->frame_len);
+    }
     break;
   case 3:
   case 4:
@@ -566,6 +574,11 @@ void mpeg2t_finished_es_work (mpeg2t_es_t *es_pid,
 			      uint32_t frame_len)
 {
   mpeg2t_frame_t *p;
+#if 0
+  mpeg2t_message(LOG_ERR, "pid %x pts %d %llu listing %d", 
+		 es_pid->pid.pid, es_pid->work->have_ps_ts, 
+		 es_pid->work->ps_ts, es_pid->save_frames);
+#endif
   SDL_LockMutex(es_pid->list_mutex);
   if (es_pid->save_frames == 0) {
     mpeg2t_malloc_es_work(es_pid, es_pid->work->frame_len);
@@ -720,8 +733,8 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
 	pts <<= 7;
 	pts |= ((esptr[7] >> 1) & 0x7f);
 	es_pid->have_ps_ts = 1;
-	es_pid->ps_ts = (pts * M_64) / (90 * M_64); // give msec
-	mpeg2t_message(LOG_DEBUG, "pid %x psts "U64, 
+	es_pid->ps_ts = pts; // (pts * M_64) / (90 * M_64); // give msec
+	mpeg2t_message(LOG_INFO, "pid %x psts "U64, 
 		       es_pid->pid.pid, es_pid->ps_ts);
       }
       buflen -= esptr[2] + 3;
@@ -932,6 +945,17 @@ void mpeg2t_start_saving_frames (mpeg2t_es_t *es_pid)
 void mpeg2t_stop_saving_frames (mpeg2t_es_t *es_pid)
 {
   es_pid->save_frames = 0;
+  SDL_LockMutex(es_pid->list_mutex);
+  es_pid->have_ps_ts = 0;
+  es_pid->have_seq_header = 0;
+  es_pid->frames_in_list = 0;
+  while (es_pid->list != NULL) {
+    mpeg2t_frame_t *f = es_pid->list;
+    es_pid->list = f->next_frame;
+    mpeg2t_free_frame(f);
+  }
+  clean_es_data(es_pid);
+  SDL_UnlockMutex(es_pid->list_mutex);
 }
 
 int mpeg2t_write_stream_info (mpeg2t_es_t *es_pid, 

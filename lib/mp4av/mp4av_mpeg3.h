@@ -32,6 +32,8 @@ extern "C" {
 
   int MP4AV_Mpeg3PictHdrType(uint8_t *pbuffer);
 
+  uint16_t MP4AV_Mpeg3PictHdrTempRef(uint8_t *pbuffer);
+
   int MP4AV_Mpeg3FindGopOrPictHdr(uint8_t *pbuffer, uint32_t buflen, int *ftype);
 #ifdef __cplusplus
 }

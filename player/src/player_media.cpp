@@ -34,6 +34,7 @@
 #include "codec_plugin.h"
 #include "audio.h"
 #include <time.h>
+#include "player_rtsp.h"
 //#define DROP_PAKS 1
 /*
  * c routines for callbacks
@@ -665,216 +666,7 @@ double CPlayerMedia::get_max_playtime (void)
 /***************************************************************************
  * Transport and RTP-Info RTSP header line parsing.
  ***************************************************************************/
-#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
-
 #define TTYPE(a,b) {a, sizeof(a), b}
-
-static char *transport_parse_unicast (char *transport, CPlayerMedia *m)
-{
-  ADV_SPACE(transport);
-  if (*transport == '\0') return (transport);
-
-  if (*transport != ';')
-    return (NULL);
-  transport++;
-  ADV_SPACE(transport);
-  return (transport);
-}
-
-static char *transport_parse_multicast (char *transport, CPlayerMedia *m)
-{
-  media_message(LOG_ERR,"Received multicast indication during SETUP");
-  return (NULL);
-}
-
-static char *convert_number (char *transport, uint32_t &value)
-{
-  value = 0;
-  while (isdigit(*transport)) {
-    value *= 10;
-    value += *transport - '0';
-    transport++;
-  }
-  return (transport);
-}
-
-static char *convert_hex (char *transport, uint32_t &value)
-{
-  value = 0;
-  while (isxdigit(*transport)) {
-    value *= 16;
-    if (isdigit(*transport))
-      value += *transport - '0';
-    else
-      value += tolower(*transport) - 'a' + 10;
-    transport++;
-  }
-  return (transport);
-}
-
-static char *transport_parse_client_port (char *transport, CPlayerMedia *m)
-{
-  uint32_t port;
-  uint16_t our_port, our_port_max;
-  if (*transport++ != '=') {
-    return (NULL);
-  }
-  ADV_SPACE(transport);
-  transport = convert_number(transport, port);
-  ADV_SPACE(transport);
-  our_port = m->get_our_port();
-  our_port_max = our_port + 1;
-
-  if (port != our_port) {
-    media_message(LOG_ERR, "Returned client port %u doesn't match sent %u",
-		  port, our_port);
-    return (NULL);
-  }
-  if (*transport == ';') {
-    transport++;
-    return (transport);
-  }
-  if (*transport == '\0') {
-    return (transport);
-  }
-  if (*transport != '-') {
-    return (NULL);
-  }
-  transport++;
-  ADV_SPACE(transport);
-  transport = convert_number(transport, port);
-  if ((port < our_port) || 
-      (port > our_port_max)) {
-    media_message(LOG_ERR, "Illegal client to port %u, range %u to %u",
-			 port, our_port, our_port_max);
-    return (NULL);
-  }
-  ADV_SPACE(transport);
-  if (*transport == ';') {
-    transport++;
-  }
-  return(transport);
-}
-
-static char *transport_parse_server_port (char *transport, CPlayerMedia *m)
-{
-  uint32_t fromport, toport;
-
-  if (*transport++ != '=') {
-    return (NULL);
-  }
-  ADV_SPACE(transport);
-  transport = convert_number(transport, fromport);
-  ADV_SPACE(transport);
-
-  m->set_server_port((uint16_t)fromport);
-
-  if (*transport == ';') {
-    transport++;
-    return (transport);
-  }
-  if (*transport == '\0') {
-    return (transport);
-  }
-  if (*transport != '-') {
-    return (NULL);
-  }
-  transport++;
-  ADV_SPACE(transport);
-  transport = convert_number(transport, toport);
-  if (toport < fromport || toport > fromport + 1) {
-    media_message(LOG_ERR, "Illegal server to port %u, from is %u",
-			 toport, fromport);
-    return (NULL);
-  }
-  ADV_SPACE(transport);
-  if (*transport == ';') {
-    transport++;
-  }
-  return(transport);
-}
-
-static char *transport_parse_source (char *transport, CPlayerMedia *m)
-{
-  char *ptr, *newone;
-  uint32_t addrlen;
-
-  if (*transport != '=') {
-    return (NULL);
-  }
-  transport++;
-  ADV_SPACE(transport);
-  ptr = transport;
-  while (*transport != ';' && *transport != '\0') transport++;
-  addrlen = transport - ptr;
-  if (addrlen == 0) {
-    return (NULL);
-  }
-  newone = (char *)malloc(addrlen + 1);
-  if (newone == NULL) {
-    media_message(LOG_ERR, "Can't alloc memory for transport source");
-    return (NULL);
-  }
-  strncpy(newone, ptr, addrlen);
-  newone[addrlen] = '\0';
-  m->set_source_addr(newone);
-  if (*transport == ';') transport++;
-  return (transport);
-}
-
-static char *transport_parse_ssrc (char *transport, CPlayerMedia *m)
-{
-  uint32_t ssrc;
-  if (*transport != '=') {
-    return (NULL);
-  }
-  transport++;
-  ADV_SPACE(transport);
-  transport = convert_hex(transport, ssrc);
-  ADV_SPACE(transport);
-  if (*transport != '\0') {
-    if (*transport != ';') {
-      return (NULL);
-    }
-    transport++;
-  }
-  m->set_rtp_ssrc(ssrc);
-  return (transport);
-}
-
-static char *transport_parse_interleave (char *transport, CPlayerMedia *m)
-{
-  uint32_t chan, chan2;
-  if (*transport != '=') {
-    return (NULL);
-  }
-  transport++;
-  ADV_SPACE(transport);
-  transport = convert_number(transport, chan);
-  chan2 = m->get_rtp_media_number() * 2;
-  if (chan != chan2) {
-    media_message(LOG_ERR, "Transport interleave not what was requested %d %d", 
-			 chan, chan2);
-    return NULL;
-  }
-  ADV_SPACE(transport);
-  if (*transport != '\0') {
-    if (*transport != '-') {
-      return (NULL);
-    }
-    transport++;
-    transport = convert_number(transport, chan2);
-    if (chan + 1 != chan2) {
-      media_message(LOG_ERR, "Error in transport interleaved field");
-      return (NULL);
-    }
-    
-    if (*transport == '\0') return (transport);
-  }
-  if (*transport != ';') return (NULL);
-  transport++;
-  return (transport);
-}
 
 static char *rtpinfo_parse_ssrc (char *transport, CPlayerMedia *m, int &end)
 {
@@ -884,7 +676,7 @@ static char *rtpinfo_parse_ssrc (char *transport, CPlayerMedia *m, int &end)
   }
   transport++;
   ADV_SPACE(transport);
-  transport = convert_hex(transport, ssrc);
+  transport = convert_hex(transport, &ssrc);
   ADV_SPACE(transport);
   if (*transport != '\0') {
     if (*transport == ',') {
@@ -906,7 +698,7 @@ static char *rtpinfo_parse_seq (char *rtpinfo, CPlayerMedia *m, int &endofurl)
   }
   rtpinfo++;
   ADV_SPACE(rtpinfo);
-  rtpinfo = convert_number(rtpinfo, seq);
+  rtpinfo = convert_number(rtpinfo, &seq);
   ADV_SPACE(rtpinfo);
   if (*rtpinfo != '\0') {
     if (*rtpinfo == ',') {
@@ -936,7 +728,7 @@ static char *rtpinfo_parse_rtptime (char *rtpinfo,
     rtpinfo++;
     ADV_SPACE(rtpinfo);
   }
-  rtpinfo = convert_number(rtpinfo, rtptime);
+  rtpinfo = convert_number(rtpinfo, &rtptime);
   ADV_SPACE(rtpinfo);
   if (*rtpinfo != '\0') {
     if (*rtpinfo == ',') {
@@ -953,82 +745,24 @@ static char *rtpinfo_parse_rtptime (char *rtpinfo,
   m->set_rtp_base_ts(rtptime);
   return (rtpinfo);
 }
-struct {
-  const char *name;
-  uint32_t namelen;
-  char *(*routine)(char *transport, CPlayerMedia *);
-} transport_types[] = 
-{
-  TTYPE("unicast", transport_parse_unicast),
-  TTYPE("multicast", transport_parse_multicast),
-  TTYPE("client_port", transport_parse_client_port),
-  TTYPE("server_port", transport_parse_server_port),
-  TTYPE("source", transport_parse_source),
-  TTYPE("ssrc", transport_parse_ssrc),
-  TTYPE("interleaved", transport_parse_interleave),
-  {NULL, 0, NULL},
-}; 
 
 int CPlayerMedia::process_rtsp_transport (char *transport)
 {
-  uint32_t protolen;
-  int ix;
+  rtsp_transport_parse_t parse;
+  memset(&parse, 0, sizeof(parse));
+  parse.client_port = get_our_port();
+  parse.interleave_port = get_rtp_media_number() * 2;
+  parse.use_interleaved = m_rtp_use_rtsp;
 
-  if (transport == NULL) 
-    return (-1);
+  int ret = ::process_rtsp_transport(&parse, transport, m_media_info->proto);
 
-  protolen = strlen(m_media_info->proto);
-  
-  if (strncasecmp(transport, m_media_info->proto, protolen) != 0) {
-    media_message(LOG_ERR, "transport %s doesn't match %s", transport, 
-			 m_media_info->proto);
-    return (-1);
-  }
-  transport += protolen;
-  if (*transport == '/') {
-    transport++;
-    if (m_rtp_use_rtsp) {
-      if (strncasecmp(transport, "TCP", strlen("TCP")) != 0) {
-	media_message(LOG_ERR, "Transport is not TCP");
-	return (-1);
-      }
-      transport += strlen("TCP");
-    } else {
-      if (strncasecmp(transport, "UDP", strlen("UDP")) != 0) {
-	media_message(LOG_ERR, "Transport is not UDP");
-	return (-1);
-      }
-      transport += strlen("UDP");
+  if (ret >= 0) {
+    set_server_port(parse.server_port);
+    if (parse.have_ssrc != 0) {
+      set_rtp_ssrc(parse.ssrc);
     }
   }
-  if (*transport != ';') {
-    return (-1);
-  }
-  transport++;
-  do {
-    ADV_SPACE(transport);
-    for (ix = 0; transport_types[ix].name != NULL; ix++) {
-      if (strncasecmp(transport, 
-		      transport_types[ix].name, 
-		      transport_types[ix].namelen - 1) == 0) {
-	transport += transport_types[ix].namelen - 1;
-	ADV_SPACE(transport);
-	transport = (transport_types[ix].routine)(transport, this);
-	break;
-      }
-    }
-    if (transport_types[ix].name == NULL) {
-      media_message(LOG_INFO, "Illegal mime type in transport - skipping %s", 
-			   transport);
-      while (*transport != ';' && *transport != '\0') transport++;
-      if (*transport != '\0') transport++;
-    }
-  } while (transport != NULL && *transport != '\0');
-
-  if (transport == NULL) {
-    return (-1);
-  }
-  return (0);
+  return ret;
 }
 
 struct {

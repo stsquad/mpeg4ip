@@ -146,3 +146,8 @@ int rtsp_send_and_get (rtsp_client_t *info,
   }
   return ret;
 }
+
+const struct in_addr *rtsp_get_server_address (rtsp_client_t *client)
+{
+  return &client->server_addr;
+}

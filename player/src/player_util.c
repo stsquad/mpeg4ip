@@ -217,4 +217,51 @@ int getIpAddressFromInterface (const char *ifname,
   return ret;
 }
 
+char *convert_number (char *transport, uint32_t *value)
+{
+  *value = 0;
+  while (isdigit(*transport)) {
+    *value *= 10;
+    *value += *transport - '0';
+    transport++;
+  }
+  return (transport);
+}
+
+char *convert_hex (char *transport, uint32_t *value)
+{
+  *value = 0;
+  while (isxdigit(*transport)) {
+    *value *= 16;
+    if (isdigit(*transport))
+      *value += *transport - '0';
+    else
+      *value += tolower(*transport) - 'a' + 10;
+    transport++;
+  }
+  return (transport);
+}
+
+char *get_host_ip_address (void)
+{
+  char sHostName[256];
+  char sIpAddress[16];
+  struct hostent* h;
+
+  if (gethostname(sHostName, sizeof(sHostName)) < 0) {
+    player_error_message("Couldn't gethostname");
+    strcpy(sIpAddress, "0.0.0.0");
+  } else {
+    h = gethostbyname(sHostName);
+    if (h == NULL) {
+      player_debug_message("Couldn't gethostbyname of %s", sHostName);
+      strcpy(sIpAddress, "0.0.0.0");
+    } else {
+      strcpy(sIpAddress,
+             inet_ntoa(*(struct in_addr*)(h->h_addr_list[0])));
+    }
+  }
+  return strdup(sIpAddress);
+}
+
 /* end file player_util.c */

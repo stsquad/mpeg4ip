@@ -78,8 +78,8 @@
 #define VIDEO_SIGNAL_SECAM 2
 
 #define VIDEO_FILTER_NONE      "none"
-#define VIDEO_FILTER_DEINTERLACE "deinterlace"
-#define VIDEO_FILTER_DECIMATE  "decimate"
+#define VIDEO_FILTER_DEINTERLACE "deinterlace - blend"
+#define VIDEO_FILTER_DECIMATE  "deinterlace - decimate"
 
 // to decide if we overwrite or not
 #define FILE_MP4_OVERWRITE 1

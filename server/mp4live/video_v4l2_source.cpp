@@ -141,7 +141,6 @@ bool CV4L2VideoSource::InitDevice(void)
     error_message("Failed to query video capabilities for %s", deviceName);
     goto failure;
   }
-  error_message("video capabilties is %x", capability.capabilities);
   // make sure device supports video capture
   if (!(capability.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
     error_message("Device %s is not capable of video capture!", deviceName);
@@ -261,9 +260,9 @@ bool CV4L2VideoSource::InitDevice(void)
       max_height = 576;
       break;
     }
-    if (max_width > width * 2 || max_height > height * 2) {
-      error_message("Decimate filter choosen with too large video size - max %ux%u",
-		    max_width / 2, max_height / 2);
+    if (max_width < width * 2 || max_height < height * 2) {
+      error_message("Decimate filter choosen with too large video size - %ux%u max %ux%u",
+		    width, height, max_width / 2, max_height / 2);
     } else {
       m_decimate_filter = true;
       width *= 2;

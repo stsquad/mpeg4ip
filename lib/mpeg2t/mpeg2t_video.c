@@ -159,6 +159,7 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 	      es_pid->w = w;
 	      es_pid->bitrate = bitrate;
 	      es_pid->frame_rate = frame_rate;
+	      es_pid->tick_per_frame = (uint32_t)(90000.0 / frame_rate);
 	      es_pid->mpeg_layer = have_mpeg2 ? 2 : 1;
 	    }
 	  }
@@ -167,6 +168,7 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 	  es_pid->work->frame_type = 
 	    MP4AV_Mpeg3PictHdrType(es_pid->work->frame + 
 				   es_pid->pict_header_offset);
+	  es_pid->work->pict_header_offset = es_pid->pict_header_offset;
 	  mpeg2t_finished_es_work(es_pid, es_pid->work_loaded);
 
 	  es_pid->have_seq_header = 0;

@@ -39,10 +39,11 @@ class CMpeg2tByteStream : public COurInByteStream
  public:
   CMpeg2tByteStream(mpeg2t_es_t *es_pid,
 		    const char *type,
-		    int has_video);
+		    int has_video, 
+		    int ondemand);
   ~CMpeg2tByteStream();
   int eof(void);
-  void reset(void);
+  virtual void reset(void);
   int have_no_data(void);
   uint64_t start_next_frame(uint8_t **buffer,
 			    uint32_t *buflen,
@@ -67,6 +68,8 @@ class CMpeg2tByteStream : public COurInByteStream
   int m_timestamp_loaded;
   uint64_t m_last_timestamp;
   int m_frames_since_last_timestamp;
+  int m_ondemand;
+  mpeg2t_stream_t *m_stream_ptr;
 };
 
 /*
@@ -76,10 +79,11 @@ class CMpeg2tByteStream : public COurInByteStream
 class CMpeg2tVideoByteStream : public CMpeg2tByteStream
 {
  public:
-  CMpeg2tVideoByteStream(mpeg2t_es_t *es_pid) :
-    CMpeg2tByteStream(es_pid, "video", 1) {
+  CMpeg2tVideoByteStream(mpeg2t_es_t *es_pid, int ondemand) :
+    CMpeg2tByteStream(es_pid, "video", 1, ondemand) {
     m_have_prev_frame_type = 0;
   };
+  void reset(void);
  protected:
   int get_timestamp_for_frame(mpeg2t_frame_t *, uint64_t &ts);
   int m_have_prev_frame_type;
@@ -94,8 +98,9 @@ class CMpeg2tVideoByteStream : public CMpeg2tByteStream
 class CMpeg2tAudioByteStream : public CMpeg2tByteStream
 {
  public:
-  CMpeg2tAudioByteStream(mpeg2t_es_t *es_pid) :
-    CMpeg2tByteStream(es_pid, "audio", 0) {};
+  CMpeg2tAudioByteStream(mpeg2t_es_t *es_pid, int ondemand) :
+    CMpeg2tByteStream(es_pid, "audio", 0, ondemand) {};
+  void reset(void);
  protected:
   int get_timestamp_for_frame(mpeg2t_frame_t *, uint64_t &ts);
 

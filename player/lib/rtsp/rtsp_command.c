@@ -98,9 +98,7 @@ static int rtsp_build_common (char *buffer,
     SNPRINTF_CHECK("Referer: %s\r\n", cmd->referer);
   }
   if (cmd && cmd->scale != 0.0) {
-    uint64_t temp = (uint64_t)(cmd->scale * 1000000.0);
-    SNPRINTF_CHECK("Scale: "U64, temp);
-    SNPRINTF_CHECK("."U64"\r\n", temp / 1000000);
+    SNPRINTF_CHECK("Scale: %f\r\n", cmd->scale);
   }
   if (session) {
     SNPRINTF_CHECK("Session: %s\r\n", session);
@@ -108,9 +106,7 @@ static int rtsp_build_common (char *buffer,
     SNPRINTF_CHECK("Session: %s\r\n", cmd->session);
   }
   if (cmd && cmd->speed != 0.0) {
-    uint64_t temp = (uint64_t)(cmd->speed * 1000000.0);
-    SNPRINTF_CHECK("Speed: "U64, temp);
-    SNPRINTF_CHECK("."U64"\r\n", temp / 1000000);
+    SNPRINTF_CHECK("Speed: %f\r\n", cmd->speed);
   }
   if (cmd && cmd->transport) {
     SNPRINTF_CHECK("Transport: %s\r\n", cmd->transport);

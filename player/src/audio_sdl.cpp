@@ -597,6 +597,7 @@ void CSDLAudioSync::audio_callback (Uint8 *outStream, int ilen)
   uint32_t outBufferTotalBytes = (uint32_t)ilen;
   uint64_t this_time;
   int delay = 0;
+  uint64_t index_time;
 
   if (m_resync_required) {
     // resync required from codec side.  Shut down, and notify sync task
@@ -810,7 +811,7 @@ void CSDLAudioSync::audio_callback (Uint8 *outStream, int ilen)
       // Here, we're using the delay value from the audio buffers,
       // rather than the calculated time...
       // Okay - now we check for latency changes.
-      uint64_t index_time = delay + m_play_time;
+      index_time = delay + m_play_time;
 
       if (this_time > index_time + ALLOWED_LATENCY || 
 	  this_time < index_time - ALLOWED_LATENCY) {
@@ -836,8 +837,12 @@ void CSDLAudioSync::audio_callback (Uint8 *outStream, int ilen)
 	    if (m_consec_wrong_latency > 5) {
 	      m_consec_wrong_latency = 0;
 	      m_wrong_latency_total = 0;
-	      if (test < -10000) abort();
-	      m_psptr->adjust_start_time(test);
+	      if (test < -10000) {
+		audio_message(LOG_ERR, "Latency error - test is "D64,
+			      test);
+	      } else {
+		m_psptr->adjust_start_time(test);
+	      }
 	    }
 	  } else {
 	    // average wrong latency is not greater than allowed latency

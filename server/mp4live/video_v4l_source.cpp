@@ -297,7 +297,7 @@ bool CV4LVideoSource::InitDevice(void)
 	   max_height = 576;
 	   break;
 	 }
-	 if (max_width > width * 2 || max_height > height * 2) {
+	 if (max_width < width * 2 || max_height < height * 2) {
 	   error_message("Decimate filter choosen with too large video size - max %ux%u",
 			 max_width / 2, max_height / 2);
 	 } else {

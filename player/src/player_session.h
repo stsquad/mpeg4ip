@@ -80,6 +80,12 @@ class CPlayerSession {
 				char *errmsg,
 				uint32_t errlen,
 				int use_rtp_tcp);
+  int create_streaming_ondemand_other(rtsp_client_t *rtsp_client,
+				      const char *control_url,
+				      int have_end_time,
+				      uint64_t end_time,
+				      int dont_send_start_play,
+				      int seekable);
   /*
    * API routine - play at time.  If start_from_begin is FALSE, start_time
    * and we're paused, it will continue from where it left off.
@@ -110,7 +116,7 @@ class CPlayerSession {
    * API routine - get the current time
    */
   uint64_t get_playing_time (void) {
-    if (m_streaming && session_is_seekable() == 0) {
+    if (m_streaming && m_streaming_ondemand == 0) {
       return (m_current_time - m_first_time_played);
     }
     return (m_current_time);
@@ -173,10 +179,10 @@ class CPlayerSession {
   void audio_is_ready (uint64_t latency, uint64_t time);
   void adjust_start_time(int64_t delta);
   int session_control_is_aggregate (void) {
-    return m_session_control_is_aggregate;
+    return m_session_control_url != NULL;
   };
-  void set_session_control (int is_aggregate) {
-    m_session_control_is_aggregate = is_aggregate;
+  void set_session_control_url (const char *url) {
+    m_session_control_url = strdup(url);
   }
   CPlayerMedia *rtsp_url_to_media (const char *url);
   int set_session_desc(int line, const char *desc);
@@ -197,6 +203,7 @@ class CPlayerSession {
   const char *m_content_base;
   int m_paused;
   int m_streaming;
+  int m_streaming_ondemand;
   uint64_t m_current_time; // current time playing
   uint64_t m_start;
   uint64_t m_latency;
@@ -213,7 +220,7 @@ class CPlayerSession {
   SDL_sem *m_master_msg_queue_sem;
   CMsgQueue m_sync_thread_msg_queue;
   range_desc_t *m_range;
-  int m_session_control_is_aggregate;
+  const char *m_session_control_url;
   int m_waiting_for_audio;
   int m_audio_volume;
   int m_screen_scale;
@@ -236,6 +243,9 @@ class CPlayerSession {
   uint64_t m_first_time_played;
   bool m_have_audio_rtcp_sync;
   rtcp_sync_t m_audio_rtcp_sync;
+  int m_set_end_time;
+  uint64_t m_end_time;
+  int m_dont_send_first_rtsp_play;
 };
 
 int c_sync_thread(void *data);

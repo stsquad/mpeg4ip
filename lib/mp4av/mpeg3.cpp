@@ -169,6 +169,11 @@ extern "C" int MP4AV_Mpeg3PictHdrType (uint8_t *pbuffer)
   return ((pbuffer[1] >> 3) & 0x7);
 }
 
+extern "C" uint16_t MP4AV_Mpeg3PictHdrTempRef (uint8_t *pbuffer)
+{
+  pbuffer += sizeof(uint32_t);
+  return ((pbuffer[0] << 2) | ((pbuffer[1] >> 6) & 0x3));
+}
 static int FindNextStart (uint8_t *pbuffer, 
 			  uint32_t buflen,
 			  uint32_t *optr, 

@@ -37,7 +37,7 @@
  * port, server_addr, server_name be set.
  * returns 0 for success, -1 for failure
  */
-static int rtsp_get_server_address (rtsp_client_t *info)
+static int rtsp_lookup_server_address (rtsp_client_t *info)
 {
 #ifdef HAVE_IPv6
   struct addrinfo hints;
@@ -90,7 +90,7 @@ int rtsp_create_socket (rtsp_client_t *info)
     rtsp_debug(LOG_CRIT, "No server name in create socket");
     return (-1);
   }
-  result = rtsp_get_server_address(info);
+  result = rtsp_lookup_server_address(info);
   if (result != 0) return -1;
   
 #ifndef _WIN32
@@ -274,3 +274,4 @@ void rtsp_close_socket (rtsp_client_t *info)
   CHECK_AND_FREE(info->addr_info);
 #endif
 }
+

@@ -224,5 +224,4 @@ int find_rtcp_bandwidth_from_media (media_desc_t *media,
   return 0;
 }
 
-
 /* end file player_sdp.c */

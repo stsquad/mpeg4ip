@@ -69,7 +69,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_fullscreen = 0;
   m_pixel_height = -1;
   m_pixel_width = -1;
-  m_session_control_is_aggregate = 0;
+  m_session_control_url = NULL;
   for (int ix = 0; ix < SESSION_DESC_COUNT; ix++) {
     m_session_desc[ix] = NULL;
   }
@@ -81,6 +81,8 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_latency = 0;
   m_have_audio_rtcp_sync = false;
   m_screen_scale = 2;
+  m_set_end_time = 0;
+  m_dont_send_first_rtsp_play = 0;
 }
 
 CPlayerSession::~CPlayerSession ()
@@ -106,7 +108,7 @@ CPlayerSession::~CPlayerSession ()
     rtsp_decode_t *decode;
     memset(&cmd, 0, sizeof(rtsp_command_t));
     rtsp_send_aggregate_teardown(m_rtsp_client,
-				 m_sdp_info->control_string,
+				 m_session_control_url,
 				 &cmd,
 				 &decode);
     free_decode_response(decode);
@@ -180,6 +182,7 @@ int CPlayerSession::create_streaming_broadcast (session_desc_t *sdp,
   session_set_seekable(0);
   m_sdp_info = sdp;
   m_streaming = 1;
+  m_streaming_ondemand = 0;
   m_rtp_over_rtsp = 0;
   return (0);
 }
@@ -272,9 +275,6 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
     return (-1);
   }
 
-  if (m_sdp_info->control_string != NULL) {
-    set_session_control(1);
-  }
   /*
    * Make sure we can use the urls in the sdp info
    */
@@ -299,9 +299,33 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
   convert_relative_urls_to_absolute(m_sdp_info,
 				    m_content_base);
 
+  if (m_sdp_info->control_string != NULL) {
+    player_debug_message("setting control url to %s", m_sdp_info->control_string);
+    set_session_control_url(m_sdp_info->control_string);
+  }
   free_decode_response(decode);
   m_streaming = 1;
+  m_streaming_ondemand = (get_range_from_sdp(m_sdp_info) != NULL);
   return (0);
+}
+
+int CPlayerSession::create_streaming_ondemand_other(rtsp_client_t *rtsp_client,
+						    const char *control_url,
+						    int have_end_time,
+						    uint64_t end_time,
+						    int dont_send_start_play,
+						    int seekable)
+{
+  session_set_seekable(seekable);
+  m_streaming = 1;
+  m_streaming_ondemand = 1;
+  m_rtsp_client = rtsp_client;
+  m_set_end_time = have_end_time;
+  m_end_time = end_time;
+  m_dont_send_first_rtsp_play = dont_send_start_play;
+  m_session_control_url = control_url;
+  streaming_media_set_up();
+  return 0;
 }
 
 CVideoSync * CPlayerSession::set_up_video_sync (void)
@@ -311,6 +335,7 @@ CVideoSync * CPlayerSession::set_up_video_sync (void)
   }
   return m_video_sync;
 }
+
 
 CAudioSync *CPlayerSession::set_up_audio_sync (void)
 {
@@ -352,20 +377,26 @@ int CPlayerSession::play_all_media (int start_from_begin,
 {
   int ret;
   CPlayerMedia *p;
-  range_desc_t *range;
 
-  if (m_sdp_info && m_sdp_info->session_range.have_range != FALSE) {
-    range = &m_sdp_info->session_range;
-  } else {
-    range = NULL;
-    p = m_my_media;
-    while (range == NULL && p != NULL) {
-      media_desc_t *media;
-      media = p->get_sdp_media_desc();
-      if (media && media->media_range.have_range) {
-	range = &media->media_range;
+  if (m_set_end_time == 0) {
+    range_desc_t *range;
+    if (m_sdp_info && m_sdp_info->session_range.have_range != FALSE) {
+      range = &m_sdp_info->session_range;
+    } else {
+      range = NULL;
+      p = m_my_media;
+      while (range == NULL && p != NULL) {
+	media_desc_t *media;
+	media = p->get_sdp_media_desc();
+	if (media && media->media_range.have_range) {
+	  range = &media->media_range;
+	}
+	p = p->get_next();
       }
-      p = p->get_next();
+    }
+    if (range != NULL) {
+      m_end_time = (uint64_t)(range->range_end * 1000.0);
+      m_set_end_time = 1;
     }
   }
   p = m_my_media;
@@ -390,21 +421,21 @@ int CPlayerSession::play_all_media (int start_from_begin,
   send_sync_thread_a_message(MSG_START_SESSION);
   // If we're doing aggregate rtsp, send the play command...
 
-  if (session_control_is_aggregate()) {
+  if (session_control_is_aggregate() &&
+      m_dont_send_first_rtsp_play == 0) {
     char buffer[80];
     rtsp_command_t cmd;
     rtsp_decode_t *decode;
 
     memset(&cmd, 0, sizeof(rtsp_command_t));
-    if (range != NULL) {
+    if (m_set_end_time != 0) {
       uint64_t stime = (uint64_t)(start_time * 1000.0);
-      uint64_t etime = (uint64_t)(range->range_end * 1000.0);
       sprintf(buffer, "npt="U64"."U64"-"U64"."U64, 
-	      stime / 1000, stime % 1000, etime / 1000, etime % 1000);
+	      stime / 1000, stime % 1000, m_end_time / 1000, m_end_time % 1000);
       cmd.range = buffer;
     }
     if (rtsp_send_aggregate_play(m_rtsp_client,
-				 m_sdp_info->control_string,
+				 m_session_control_url,
 				 &cmd,
 				 &decode) != 0) {
       if (errmsg != NULL) {
@@ -431,6 +462,7 @@ int CPlayerSession::play_all_media (int start_from_begin,
       return (-1);
     }
   }
+  m_dont_send_first_rtsp_play = 0;
 
   while (p != NULL) {
     ret = p->do_play(start_time, errmsg, errlen);
@@ -455,7 +487,7 @@ int CPlayerSession::pause_all_media (void)
 
     memset(&cmd, 0, sizeof(rtsp_command_t));
     if (rtsp_send_aggregate_pause(m_rtsp_client,
-				  m_sdp_info->control_string,
+				  m_session_control_url,
 				  &cmd,
 				  &decode) != 0) {
       player_debug_message("RTSP aggregate pause command failed");
@@ -561,6 +593,11 @@ double CPlayerSession::get_max_time (void)
     if (temp > max) max = temp;
     p = p->get_next();
   }
+  if (max == 0.0 && m_set_end_time) {
+    max = (double)m_end_time;
+    max /= 1000.0;
+  }
+    
   return (max);
 }
 

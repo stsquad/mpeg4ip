@@ -26,7 +26,7 @@
 #include <SDL.h>
 #include <SDL_thread.h>
 #include <mpeg2t/mpeg2_transport.h>
-
+#include <rtsp/rtsp_client.h>
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
@@ -40,15 +40,16 @@ class CPlayerMedia;
 typedef struct mpeg2t_thread_info_ mpeg2t_thread_info_t;
 
 struct addrinfo;
-
 typedef struct mpeg2t_stream_t {
   struct mpeg2t_stream_t *next_stream;
+  mpeg2t_client_t *m_parent;
   CPlayerMedia *m_mptr;
   int m_have_info;
   int m_is_video;
   int m_buffering;
   int m_frames_since_last_psts;
   uint64_t m_last_psts;
+  int m_have_eof;
 } mpeg2t_stream_t;
 
 
@@ -98,6 +99,14 @@ struct mpeg2t_client_ {
   uint32_t m_buffer_len, m_offset_on;
   char m_resp_buffer[1500];
   mpeg2t_stream_t *stream;
+  int m_have_rtsp;
+  rtsp_client_t *m_rtsp_client;
+  char *m_rtsp_url;
+  int m_have_end_time;
+  uint64_t m_end_time;
+
+  int m_have_start_psts;
+  uint64_t m_start_psts;
 };
 
 #ifdef __cplusplus

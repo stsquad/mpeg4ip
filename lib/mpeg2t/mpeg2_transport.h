@@ -39,6 +39,7 @@ typedef struct mpeg2t_frame_t {
   int frame_type; // for video
   uint8_t *frame; // frame data
   uint32_t frame_len; // length of frame
+  uint32_t pict_header_offset;
 } mpeg2t_frame_t;
 
 /*
@@ -51,8 +52,11 @@ typedef enum mpeg2t_pak_type {
   MPEG2T_ES_PAK,
 } mpeg2t_pak_type;
 
+struct mpeg2t_t;
+
 typedef struct mpeg2t_pid_t {
   struct mpeg2t_pid_t *next_pid;
+  struct mpeg2t_t *main;
   uint32_t lastcc;
   uint32_t data_len;
   uint16_t pid;
@@ -119,6 +123,7 @@ typedef struct mpeg2t_es_t {
   int info_loaded;           // 1 if video info or audio info is valid
   int h, w;                  // video info
   double frame_rate;         // video info
+  uint32_t tick_per_frame;   // video info
   int mpeg_layer;
   double bitrate;
   uint16_t sample_freq;      // audio info
@@ -134,6 +139,9 @@ typedef struct mpeg2t_t {
   int program_count;
   int program_maps_recvd;
   SDL_mutex *pid_mutex;
+  int save_frames_at_start;
+  int have_initial_psts;
+  uint64_t initial_psts;
 } mpeg2t_t;
 
 #ifdef __cplusplus 

@@ -15,15 +15,12 @@ SUBDIRS = codec osx win_client win_common win_gui
 noinst_LTLIBRARIES = libmp4playerutils.la libmp4player.la libmp4syncbase.la \
 	libmp4syncsdl.la
 
-libmp4player_la_LDFLAGS = -static
-
 if USE_MMX
 EXTRA_libmp4player_la_SOURCES = frame_doubler_mmx.asm
 else
 EXTRA_libmp4player_la_SOURCES = frame_doubler.cpp
 endif
 
-libmp4playerutils_la_LDFLAGS = -static
 libmp4playerutils_la_SOURCES = \
 	our_bytestream.h \
 	our_bytestream_file.cpp \
@@ -36,14 +33,12 @@ libmp4syncbase_la_SOURCES = \
 	audio.h \
 	video.cpp \
 	video.h 
-libmp4syncbase_la_LDFLAGS = -static
 
 libmp4syncsdl_la_SOURCES = \
 	audio_sdl.cpp \
 	audio_sdl.h \
 	video_sdl.cpp \
 	video_sdl.h
-libmp4syncsdl_la_LDFLAGS = -static
 
 include_HEADERS = \
 	codec_plugin.h \
@@ -86,6 +81,8 @@ libmp4player_la_SOURCES = \
 	player_media.h \
 	player_media_decode.cpp \
 	player_media_rtp.cpp \
+	player_rtsp.c \
+	player_rtsp.h \
 	player_sdp.c \
 	player_sdp.h \
 	player_session.cpp \
