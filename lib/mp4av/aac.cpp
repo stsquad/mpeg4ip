@@ -38,7 +38,7 @@ static u_int32_t AacSamplingRates[NUM_AAC_SAMPLING_RATES] = {
 /*
  * compute ADTS frame size
  */
-u_int16_t MP4AV_AacAdtsGetFrameSize(u_int8_t* pHdr)
+extern "C" u_int16_t MP4AV_AacAdtsGetFrameSize(u_int8_t* pHdr)
 {
 	/* extract the necessary fields from the header */
 	u_int8_t isMpeg4 = !(pHdr[1] & 0x08);
@@ -56,7 +56,7 @@ u_int16_t MP4AV_AacAdtsGetFrameSize(u_int8_t* pHdr)
 /*
  * Compute length of ADTS header in bits
  */
-u_int16_t MP4AV_AacAdtsGetHeaderBitSize(u_int8_t* pHdr)
+extern "C" u_int16_t MP4AV_AacAdtsGetHeaderBitSize(u_int8_t* pHdr)
 {
 	u_int8_t isMpeg4 = !(pHdr[1] & 0x08);
 	u_int8_t hasCrc = !(pHdr[1] & 0x01);
@@ -73,7 +73,7 @@ u_int16_t MP4AV_AacAdtsGetHeaderBitSize(u_int8_t* pHdr)
 	return hdrSize;
 }
 
-u_int16_t MP4AV_AacAdtsGetHeaderByteSize(u_int8_t* pHdr)
+extern "C" u_int16_t MP4AV_AacAdtsGetHeaderByteSize(u_int8_t* pHdr)
 {
 	u_int16_t hdrBitSize = MP4AV_AacAdtsGetHeaderBitSize(pHdr);
 	
@@ -84,22 +84,22 @@ u_int16_t MP4AV_AacAdtsGetHeaderByteSize(u_int8_t* pHdr)
 	}
 }
 
-u_int8_t MP4AV_AacAdtsGetVersion(u_int8_t* pHdr)
+extern "C" u_int8_t MP4AV_AacAdtsGetVersion(u_int8_t* pHdr)
 {
 	return (pHdr[1] & 0x08) >> 3;
 }
 
-u_int8_t MP4AV_AacAdtsGetProfile(u_int8_t* pHdr)
+extern "C" u_int8_t MP4AV_AacAdtsGetProfile(u_int8_t* pHdr)
 {
 	return (pHdr[2] & 0xc0) >> 6;
 }
 
-u_int8_t MP4AV_AacAdtsGetSamplingRateIndex(u_int8_t* pHdr)
+extern "C" u_int8_t MP4AV_AacAdtsGetSamplingRateIndex(u_int8_t* pHdr)
 {
 	return (pHdr[2] & 0x3c) >> 2;
 }
 
-u_int8_t MP4AV_AacGetSamplingRateIndex(u_int32_t samplingRate)
+extern "C" u_int8_t MP4AV_AacGetSamplingRateIndex(u_int32_t samplingRate)
 {
 	for (u_int8_t i = 0; i < NUM_AAC_SAMPLING_RATES; i++) {
 		if (samplingRate == AacSamplingRates[i]) {
@@ -109,12 +109,12 @@ u_int8_t MP4AV_AacGetSamplingRateIndex(u_int32_t samplingRate)
 	return NUM_AAC_SAMPLING_RATES - 1;
 }
 
-u_int32_t MP4AV_AacAdtsGetSamplingRate(u_int8_t* pHdr)
+extern "C" u_int32_t MP4AV_AacAdtsGetSamplingRate(u_int8_t* pHdr)
 {
 	return AacSamplingRates[MP4AV_AacAdtsGetSamplingRateIndex(pHdr)];
 }
 
-u_int8_t MP4AV_AacAdtsGetChannels(u_int8_t* pHdr)
+extern "C" u_int8_t MP4AV_AacAdtsGetChannels(u_int8_t* pHdr)
 {
 	return ((pHdr[2] & 0x1) << 2) | ((pHdr[3] & 0xc0) >> 6);
 }
@@ -133,12 +133,12 @@ u_int8_t MP4AV_AacAdtsGetChannels(u_int8_t* pHdr)
  * 	ExtensionFlag 			1 bit (always 0)
  */
 
-u_int8_t MP4AV_AacConfigGetSamplingRateIndex(u_int8_t* pConfig)
+extern "C" u_int8_t MP4AV_AacConfigGetSamplingRateIndex(u_int8_t* pConfig)
 {
 	return ((pConfig[0] << 1) | (pConfig[1] >> 7)) & 0xF;
 }
 
-u_int32_t MP4AV_AacConfigGetSamplingRate(u_int8_t* pConfig)
+extern "C" u_int32_t MP4AV_AacConfigGetSamplingRate(u_int8_t* pConfig)
 {
 	u_int8_t index =
 		MP4AV_AacConfigGetSamplingRateIndex(pConfig);
@@ -152,7 +152,7 @@ u_int32_t MP4AV_AacConfigGetSamplingRate(u_int8_t* pConfig)
 	return AacSamplingRates[index];
 }
 
-u_int16_t MP4AV_AacConfigGetSamplingWindow(u_int8_t* pConfig)
+extern "C" u_int16_t MP4AV_AacConfigGetSamplingWindow(u_int8_t* pConfig)
 {
 	u_int8_t adjust = 0;
 
@@ -166,7 +166,7 @@ u_int16_t MP4AV_AacConfigGetSamplingWindow(u_int8_t* pConfig)
 	return 1024;
 }
 
-u_int8_t MP4AV_AacConfigGetChannels(u_int8_t* pConfig)
+extern "C" u_int8_t MP4AV_AacConfigGetChannels(u_int8_t* pConfig)
 {
 	u_int8_t adjust = 0;
 
@@ -176,7 +176,7 @@ u_int8_t MP4AV_AacConfigGetChannels(u_int8_t* pConfig)
 	return (pConfig[1 + adjust] >> 3) & 0xF;
 }
 
-bool MP4AV_AacGetConfiguration(
+extern "C" bool MP4AV_AacGetConfigurationHdr(
 	u_int8_t** ppConfig,
 	u_int32_t* pConfigLength,
 	u_int8_t* pHdr)
@@ -189,7 +189,7 @@ bool MP4AV_AacGetConfiguration(
 		MP4AV_AacAdtsGetChannels(pHdr));
 }
 
-bool MP4AV_AacGetConfiguration(
+extern "C" bool MP4AV_AacGetConfiguration(
 	u_int8_t** ppConfig,
 	u_int32_t* pConfigLength,
 	u_int8_t profile,

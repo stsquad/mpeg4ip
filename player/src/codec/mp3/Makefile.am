@@ -18,7 +18,7 @@ libmp3_la_LDFLAGS = -static
 libmp3_la_SOURCES = \
 	mp3_rtp_bytestream.cpp
 
-INCLUDES = -I.. -I../..  -I../../../lib -I../../../lib/audio -I$(top_srcdir)/lib/SDL/include -I../../../../common/video/mpeg4 -I../../../../include -I../../../../lib
+INCLUDES = -I.. -I../..  -I../../../lib -I../../../lib/audio -I$(top_srcdir)/lib/SDL/include -I../../../../common/video/mpeg4 -I../../../../include -I../../../../lib -I$(top_builddir)/lib/mp4v2
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 

@@ -25,6 +25,9 @@
 #include <mp4.h>
 
 // Audio Track Utitlites
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 u_int8_t MP4AV_AudioGetChannels(
 	MP4FileHandle mp4File, 
@@ -37,6 +40,8 @@ u_int32_t MP4AV_AudioGetSamplingRate(
 u_int16_t MP4AV_AudioGetSamplingWindow(
 	MP4FileHandle mp4File, 
 	MP4TrackId audioTrackId);
-
+#ifdef __cplusplus
+}
+#endif
 #endif /* __MP4AV_AUDIO_INCLUDED__ */ 
 

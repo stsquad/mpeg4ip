@@ -27,6 +27,10 @@
 #define MP4AV_AAC_SSR_PROFILE	2
 #define MP4AV_AAC_LTP_PROFILE	3
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 u_int16_t MP4AV_AacAdtsGetFrameSize(
 	u_int8_t* pHdr);
 
@@ -66,7 +70,7 @@ u_int16_t MP4AV_AacConfigGetSamplingWindow(
 u_int8_t MP4AV_AacConfigGetChannels(
 	u_int8_t* pConfig);
 
-bool MP4AV_AacGetConfiguration(
+bool MP4AV_AacGetConfigurationHdr(
 	u_int8_t** ppConfig,
 	u_int32_t* pConfigLength,
 	u_int8_t* pHdr);
@@ -78,4 +82,7 @@ bool MP4AV_AacGetConfiguration(
 	u_int32_t samplingRate,
 	u_int8_t channels);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* __MP4AV_AAC_INCLUDED__ */

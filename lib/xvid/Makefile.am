@@ -4,6 +4,8 @@ lib_LTLIBRARIES = libxvid.la
 
 AM_CFLAGS= -O3
 
+INCLUDES=-I../../include
+
 libxvid_la_SOURCES = \
 	decoder.h \
 	decoder.c \

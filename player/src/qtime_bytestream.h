@@ -24,7 +24,7 @@
 
 #ifndef __QTIME_BYTESTREAM_H__
 #define __QTIME_BYTESTREAM_H__
-#include <quicktime.h>
+#include <mp4/quicktime.h>
 #include "our_bytestream.h"
 #include "qtime_file.h"
 

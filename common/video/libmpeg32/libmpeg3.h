@@ -29,14 +29,14 @@ extern "C" {
 #define MPEG3_YUV422P 13
 
 /* Check for file compatibility.  Return 1 if compatible. */
-int mpeg3_check_sig(char *path);
+int mpeg3_check_sig(const char *path);
 
 /* Open the MPEG3 stream. */
-mpeg3_t* mpeg3_open(char *path);
+mpeg3_t* mpeg3_open(const char *path);
 
 /* Open the MPEG3 stream and copy the tables from an already open stream. */
 /* Eliminates the initial timecode search. */
-mpeg3_t* mpeg3_open_copy(char *path, mpeg3_t *old_file);
+mpeg3_t* mpeg3_open_copy(const char *path, mpeg3_t *old_file);
 int mpeg3_close(mpeg3_t *file);
 
 
@@ -52,7 +52,8 @@ int mpeg3_total_astreams(mpeg3_t *file);             /* Number of multiplexed au
 int mpeg3_audio_channels(mpeg3_t *file, int stream);
 int mpeg3_sample_rate(mpeg3_t *file, int stream);
 char* mpeg3_audio_format(mpeg3_t *file, int stream);
-
+  int mpeg3_audio_samples_per_frame(mpeg3_t *file, int stream);
+  uint32_t mpeg3_audio_get_number_of_frames(mpeg3_t *file, int stream);
 /* Total length obtained from the timecode. */
 /* For DVD files, this is unreliable. */
 long mpeg3_audio_samples(mpeg3_t *file, int stream); 
@@ -63,6 +64,7 @@ long mpeg3_get_sample(mpeg3_t *file, int stream);    /* Tell current position */
 /* Return a 1 if error. */
 /* Stream defines the number of the multiplexed stream to read. */
 /* If both output arguments are null the audio is not rendered. */
+#if 0
 int mpeg3_read_audio(mpeg3_t *file, 
 		float *output_f,      /* Pointer to pre-allocated buffer of floats */
 		short *output_i,      /* Pointer to pre-allocated buffer of int16's */
@@ -86,6 +88,15 @@ int mpeg3_read_audio_chunk(mpeg3_t *file,
 		long *size, 
 		long max_size,
 		int stream);
+#endif
+
+  int mpeg3_read_audio_frame(mpeg3_t *file,
+			     unsigned char **output,
+			     uint32_t *size,
+			     uint32_t *max_size,
+			     int stream);
+  int mpeg3_get_audio_format(mpeg3_t *file, int stream);
+
 
 /* Query the stream about video. */
 int mpeg3_has_video(mpeg3_t *file);
@@ -108,6 +119,8 @@ long mpeg3_get_frame(mpeg3_t *file, int stream);            /* Tell current posi
 /* This eliminates the need for tocs and 64 bit longs but doesn't  */
 /* give frame accuracy. */
 int mpeg3_seek_percentage(mpeg3_t *file, double percentage);
+int mpeg3_seek_audio_percentage(mpeg3_t *file, int stream, double percentage);
+int mpeg3_seek_video_percentage(mpeg3_t *file, int stream, double percentage);
 double mpeg3_tell_percentage(mpeg3_t *file);
 int mpeg3_previous_frame(mpeg3_t *file, int stream);
 int mpeg3_end_of_audio(mpeg3_t *file, int stream);
@@ -171,13 +184,11 @@ int mpeg3_read_video_chunk(mpeg3_t *file,
 		long max_size,
 		int stream);
 
-#ifdef MPEG4IP
   int mpeg3_read_video_chunk_resize(mpeg3_t *file,
 				    unsigned char **output,
 				    long *size,
-				    long *max_size,
 				    int stream);
-#endif
+  void mpeg3_read_video_chunk_cleanup(mpeg3_t *file, int stream);
 /* Master control */
 int mpeg3_total_programs();
 int mpeg3_set_program(int program);

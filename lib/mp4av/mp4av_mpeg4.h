@@ -27,6 +27,9 @@
 #define MP4AV_MPEG4_GOV_START	0xB3
 #define MP4AV_MPEG4_VOP_START	0xB6
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 bool MP4AV_Mpeg4ParseVosh(
 	u_int8_t* pVoshBuf, 
 	u_int32_t voshSize,
@@ -62,5 +65,7 @@ u_int8_t MP4AV_Mpeg4VideoToSystemsProfileLevel(
 u_char MP4AV_Mpeg4GetVopType(
 	u_int8_t* pVopBuf, 
 	u_int32_t vopSize);
-
+#ifdef __cplusplus
+}
+#endif
 #endif /* __MP4AV_MPEG4_INCLUDED__ */

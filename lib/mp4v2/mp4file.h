@@ -206,6 +206,7 @@ public: /* equivalent to MP4 library API */
 	void SetTrackTimeScale(MP4TrackId trackId, u_int32_t value);
 
 	u_int8_t GetTrackAudioType(MP4TrackId trackId);
+	u_int8_t GetTrackAudioMpeg4Type(MP4TrackId trackId);
 	u_int8_t GetTrackVideoType(MP4TrackId trackId);
 
 	MP4Duration GetTrackFixedSampleDuration(MP4TrackId trackId);

@@ -1,3 +1,7 @@
+xx/xx/xx Next Version
+    Mpeg1/2 video codec and file playback in player.
+    IPv6 integration
+
 05/08/02 Version 0.9.4
     Plugin concept for player codecs (also adds YUV/PCM output from mp4 file)
     Show play time in player GUI

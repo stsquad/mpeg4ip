@@ -23,7 +23,7 @@
  */
 #ifndef __QTIME_FILE_H__
 #define __QTIME_FILE_H__ 1
-#include "quicktime.h"
+#include "mp4/quicktime.h"
 #include <SDL.h>
 #include <SDL_thread.h>
 

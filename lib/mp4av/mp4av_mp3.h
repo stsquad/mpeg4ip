@@ -24,12 +24,16 @@
 
 typedef u_int32_t MP4AV_Mp3Header;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool MP4AV_Mp3GetNextFrame(
 	u_int8_t* pSrc, 
 	u_int32_t srcLength,
 	u_int8_t** ppFrame, 
 	u_int32_t* pFrameSize, 
-	bool allowLayer4 = false);
+	bool allowLayer4 DEFAULT_PARM(false));
 
 MP4AV_Mp3Header MP4AV_Mp3HeaderFromBytes(u_int8_t* pBytes);
 
@@ -55,4 +59,7 @@ u_int8_t MP4AV_Mp3GetSideInfoSize(MP4AV_Mp3Header hdr);
 
 u_int8_t MP4AV_Mp3ToMp4AudioType(u_int8_t mpegVersion);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* __MP4AV_MP3_INCLUDED__ */

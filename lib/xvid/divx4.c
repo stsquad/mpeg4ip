@@ -40,7 +40,7 @@
  *************************************************************************/
 
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>     // memset
 
 #include "xvid.h"

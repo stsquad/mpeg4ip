@@ -23,7 +23,7 @@
  */
 #ifndef __AVI_FILE_H__
 #define __AVI_FILE_H__ 1
-#include "avilib.h"
+#include "avi/avilib.h"
 #include <SDL.h>
 #include <SDL_thread.h>
 

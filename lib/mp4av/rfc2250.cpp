@@ -26,7 +26,7 @@
 
 #include <mp4av_common.h>
 
-bool MP4AV_Rfc2250Hinter(
+extern "C" bool MP4AV_Rfc2250Hinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
 	bool interleave,
@@ -44,17 +44,24 @@ bool MP4AV_Rfc2250Hinter(
 		return false;
 	}
 
+	u_int32_t numSamples =
+		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
+
+	if (numSamples == 0) {
+		return false;
+	}
+
+	MP4Duration sampleDuration = 
+		MP4GetTrackFixedSampleDuration(mp4File, mediaTrackId);
+
+	if (sampleDuration == MP4_INVALID_DURATION) {
+		return false;
+	}
+
 	u_int8_t payloadNumber = 0; // use dynamic payload number
 
 	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
 		"MPA", &payloadNumber, 0);
-
-	u_int32_t numSamples = 
-		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
-
-	MP4Duration sampleDuration = 
-		MP4GetTrackFixedSampleDuration(mp4File, mediaTrackId);
-	ASSERT(sampleDuration != MP4_INVALID_DURATION);
 
 	u_int16_t bytesThisHint = 0;
 	u_int16_t samplesThisHint = 0;

@@ -28,7 +28,7 @@
 #include "systems.h"
 #include "rtp_bytestream.h"
 #include <sdp/sdp.h>
-#include <mp3util/mp3util.h>
+#include <mp4av/mp4av.h>
 
 typedef struct adu_data_t {
   struct adu_data_t *next_adu;
@@ -44,7 +44,8 @@ typedef struct adu_data_t {
   int headerSize;
   int sideInfoSize;
   int backpointer;
-  mp3_header_t mp3hdr;
+  int framesize;
+  MP4AV_Mp3Header mp3hdr;
   
   int interleave_idx;
   int cyc_ct;

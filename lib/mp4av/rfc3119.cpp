@@ -395,7 +395,7 @@ bool MP4AV_Rfc3119Fragmenter(
 	return true;
 }
 
-bool MP4AV_Rfc3119Hinter(
+extern "C" bool MP4AV_Rfc3119Hinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
 	bool interleave,
@@ -405,6 +405,20 @@ bool MP4AV_Rfc3119Hinter(
 		MP4AddHintTrack(mp4File, mediaTrackId);
 
 	if (hintTrackId == MP4_INVALID_TRACK_ID) {
+		return false;
+	}
+
+	u_int32_t numSamples =
+		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
+
+	if (numSamples == 0) {
+		return false;
+	}
+
+	MP4Duration sampleDuration = 
+		MP4GetSampleDuration(mp4File, mediaTrackId, 1);
+
+	if (sampleDuration == MP4_INVALID_DURATION) {
 		return false;
 	}
 
@@ -419,10 +433,6 @@ bool MP4AV_Rfc3119Hinter(
 	MP4Duration maxLatency = 
 		MP4GetTrackTimeScale(mp4File, hintTrackId) / 2;
 	ASSERT(maxLatency);
-
-	MP4Duration sampleDuration = 
-		MP4GetSampleDuration(mp4File, mediaTrackId, 1);
-	ASSERT(sampleDuration != MP4_INVALID_DURATION);
 
 	// load mp3 frame information into memory
 	GetFrameInfo(

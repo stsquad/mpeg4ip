@@ -6,6 +6,7 @@ noinst_LTLIBRARIES = libxvidbitstream.la
 libxvidbitstream_la_LDFLAGS = -static
 
 AM_CFLAGS= -O3
+INCLUDES=-I$(top_builddir)/include
 
 libxvidbitstream_la_SOURCES = \
 	bitstream.c \

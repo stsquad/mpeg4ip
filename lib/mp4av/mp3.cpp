@@ -46,7 +46,7 @@ static u_int16_t Mp3SampleRates[4][3] = {
 	{ 44100, 48000, 32000 }		/* MPEG-1 */
 };
 
-bool MP4AV_Mp3GetNextFrame(
+extern "C" bool MP4AV_Mp3GetNextFrame(
 	u_int8_t* pSrc, 
 	u_int32_t srcLength,
 	u_int8_t** ppFrame, 
@@ -121,7 +121,7 @@ bool MP4AV_Mp3GetNextFrame(
 	}
 }
 
-MP4AV_Mp3Header MP4AV_Mp3HeaderFromBytes(u_int8_t* pBytes)
+extern "C" MP4AV_Mp3Header MP4AV_Mp3HeaderFromBytes(u_int8_t* pBytes)
 {
 	return (pBytes[0] << 24) | (pBytes[1] << 16)
 		| (pBytes[2] << 8) | pBytes[3];
@@ -142,19 +142,19 @@ MP4AV_Mp3Header MP4AV_Mp3HeaderFromBytes(u_int8_t* pBytes)
 //	original		1 bit
 //	emphasis		2 bits
 
-u_int8_t MP4AV_Mp3GetHdrVersion(MP4AV_Mp3Header hdr)
+extern "C" u_int8_t MP4AV_Mp3GetHdrVersion(MP4AV_Mp3Header hdr)
 {
 	/* extract the necessary field from the MP3 header */
 	return ((hdr >> 19) & 0x3); 
 }
 
-u_int8_t MP4AV_Mp3GetHdrLayer(MP4AV_Mp3Header hdr)
+extern "C" u_int8_t MP4AV_Mp3GetHdrLayer(MP4AV_Mp3Header hdr)
 {
 	/* extract the necessary field from the MP3 header */
 	return ((hdr >> 17) & 0x3); 
 }
 
-u_int8_t MP4AV_Mp3GetChannels(MP4AV_Mp3Header hdr)
+extern "C" u_int8_t MP4AV_Mp3GetChannels(MP4AV_Mp3Header hdr)
 {
 	if (((hdr >> 6) & 0x3) == 3) {
 		return 1;
@@ -162,7 +162,7 @@ u_int8_t MP4AV_Mp3GetChannels(MP4AV_Mp3Header hdr)
 	return 2;
 }
 
-u_int16_t MP4AV_Mp3GetHdrSamplingRate(MP4AV_Mp3Header hdr)
+extern "C" u_int16_t MP4AV_Mp3GetHdrSamplingRate(MP4AV_Mp3Header hdr)
 {
 	/* extract the necessary fields from the MP3 header */
 	u_int8_t version = MP4AV_Mp3GetHdrVersion(hdr);
@@ -171,7 +171,7 @@ u_int16_t MP4AV_Mp3GetHdrSamplingRate(MP4AV_Mp3Header hdr)
 	return Mp3SampleRates[version][sampleRateIndex];
 }
 
-u_int16_t MP4AV_Mp3GetHdrSamplingWindow(MP4AV_Mp3Header hdr)
+extern "C" u_int16_t MP4AV_Mp3GetHdrSamplingWindow(MP4AV_Mp3Header hdr)
 {
 	u_int8_t version = MP4AV_Mp3GetHdrVersion(hdr);
 	u_int8_t layer = MP4AV_Mp3GetHdrLayer(hdr);
@@ -192,7 +192,7 @@ u_int16_t MP4AV_Mp3GetHdrSamplingWindow(MP4AV_Mp3Header hdr)
 	return samplingWindow;
 }
 
-u_int16_t MP4AV_Mp3GetSamplingWindow(u_int16_t samplingRate)
+extern "C" u_int16_t MP4AV_Mp3GetSamplingWindow(u_int16_t samplingRate)
 {
 	// assumes MP3 usage
 	if (samplingRate > 24000) {
@@ -204,7 +204,7 @@ u_int16_t MP4AV_Mp3GetSamplingWindow(u_int16_t samplingRate)
 /*
  * compute MP3 frame size
  */
-u_int16_t MP4AV_Mp3GetFrameSize(MP4AV_Mp3Header hdr)
+extern "C" u_int16_t MP4AV_Mp3GetFrameSize(MP4AV_Mp3Header hdr)
 {
 	/* extract the necessary fields from the MP3 header */
 	u_int8_t version = MP4AV_Mp3GetHdrVersion(hdr);
@@ -212,7 +212,6 @@ u_int16_t MP4AV_Mp3GetFrameSize(MP4AV_Mp3Header hdr)
 	u_int8_t bitRateIndex1;
 	u_int8_t bitRateIndex2 = (hdr >> 12) & 0xF;
 	u_int8_t sampleRateIndex = (hdr >> 10) & 0x3;
-	bool isProtected = !((hdr >> 16) & 0x1);
 	bool isPadded = (hdr >> 9) & 0x1;
 	u_int16_t frameSize = 0;
 
@@ -222,7 +221,7 @@ u_int16_t MP4AV_Mp3GetFrameSize(MP4AV_Mp3Header hdr)
 	} else {
 		/* MPEG-2 or MPEG-2.5 */
 		if (layer == 3) {
-			/* layer 1 */
+			/* Layer I */
 			bitRateIndex1 = 4;
 		} else {
 			bitRateIndex1 = 3;
@@ -233,17 +232,20 @@ u_int16_t MP4AV_Mp3GetFrameSize(MP4AV_Mp3Header hdr)
 	frameSize = (144 * 1000 * Mp3BitRates[bitRateIndex1][bitRateIndex2-1]) 
 		/ (Mp3SampleRates[version][sampleRateIndex] << !(version & 1));
 
-	if (isProtected) {
-		frameSize += 2;		/* 2 byte checksum is present */
-	}
 	if (isPadded) {
-		frameSize++;		/* 1 byte pad is present */
+		if (layer == 3) {
+			/* Layer I */
+			frameSize += 4;		/* 4 byte pad is present */
+		} else {
+			frameSize++;		/* 1 byte pad is present */
+		}
 	}
 
 	return frameSize;
 }
 
-u_int16_t MP4AV_Mp3GetAduOffset(u_int8_t* pFrame, u_int32_t frameSize)
+extern "C" u_int16_t 
+MP4AV_Mp3GetAduOffset(u_int8_t* pFrame, u_int32_t frameSize)
 {
 	if (frameSize < 2) {
 		return 0;
@@ -271,12 +273,12 @@ u_int16_t MP4AV_Mp3GetAduOffset(u_int8_t* pFrame, u_int32_t frameSize)
 	}
 }
 
-u_int8_t MP4AV_Mp3GetCrcSize(MP4AV_Mp3Header hdr)
+extern "C" u_int8_t MP4AV_Mp3GetCrcSize(MP4AV_Mp3Header hdr)
 {
 	return ((hdr & 0x00010000) ? 0 : 2);
 }
 
-u_int8_t MP4AV_Mp3GetSideInfoSize(MP4AV_Mp3Header hdr)
+extern "C" u_int8_t MP4AV_Mp3GetSideInfoSize(MP4AV_Mp3Header hdr)
 {
 	u_int8_t version = MP4AV_Mp3GetHdrVersion(hdr);
 	u_int8_t layer = MP4AV_Mp3GetHdrLayer(hdr);
@@ -305,7 +307,7 @@ u_int8_t MP4AV_Mp3GetSideInfoSize(MP4AV_Mp3Header hdr)
 	}
 }
 
-u_int8_t MP4AV_Mp3ToMp4AudioType(u_int8_t mpegVersion)
+extern "C" u_int8_t MP4AV_Mp3ToMp4AudioType(u_int8_t mpegVersion)
 {
 	u_int8_t audioType = MP4_INVALID_AUDIO_TYPE;
 

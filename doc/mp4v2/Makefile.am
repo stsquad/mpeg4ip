@@ -50,6 +50,7 @@ man_MANS = \
 	MP4GetSessionSdp.3 \
 	MP4GetTimeScale.3 \
 	MP4GetTrackAudioType.3 \
+	MP4GetTrackAudioMpeg4Type.3 \
 	MP4GetTrackBitRate.3 \
 	MP4GetTrackDuration.3 \
 	MP4GetTrackESConfiguration.3 \

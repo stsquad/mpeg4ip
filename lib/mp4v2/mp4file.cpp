@@ -1649,6 +1649,32 @@ u_int8_t MP4File::GetTrackAudioType(MP4TrackId trackId)
 		"mdia.minf.stbl.stsd.mp4a.esds.decConfigDescr.objectTypeId");
 }
 
+u_int8_t MP4File::GetTrackAudioMpeg4Type(MP4TrackId trackId)
+{
+	// verify that track is an MPEG-4 audio track 
+	if (GetTrackAudioType(trackId) != MP4_MPEG4_AUDIO_TYPE) {
+		return MP4_MPEG4_INVALID_AUDIO_TYPE;
+	}
+
+	u_int8_t* pEsConfig = NULL;
+	u_int32_t esConfigSize;
+
+	// The Mpeg4 audio type (AAC, CELP, HXVC, ...)
+	// is the first 5 bits of the ES configuration
+
+	GetTrackESConfiguration(trackId, &pEsConfig, &esConfigSize);
+
+	if (esConfigSize < 1) {
+		return MP4_MPEG4_INVALID_AUDIO_TYPE;
+	}
+
+	u_int8_t mpeg4Type = (pEsConfig[0] >> 3);
+
+	free(pEsConfig);
+
+	return mpeg4Type;
+}
+
 u_int8_t MP4File::GetTrackVideoType(MP4TrackId trackId)
 {
 	return GetTrackIntegerProperty(trackId, 

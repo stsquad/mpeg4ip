@@ -737,6 +737,22 @@ extern "C" u_int8_t MP4GetTrackAudioType(
 	return MP4_INVALID_AUDIO_TYPE;
 }
 
+extern "C" u_int8_t MP4GetTrackAudioMpeg4Type(
+	MP4FileHandle hFile, MP4TrackId trackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetTrackAudioMpeg4Type(trackId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return MP4_MPEG4_INVALID_AUDIO_TYPE;
+}
+
+
 extern "C" u_int8_t MP4GetTrackVideoType(
 	MP4FileHandle hFile, MP4TrackId trackId)
 {

@@ -26,6 +26,9 @@
 class CBitstream {
  public:
   CBitstream(void) {};
+  CBitstream(const unsigned char *buffer, uint32_t bit_len) {
+    init(buffer, bit_len);
+  };
   ~CBitstream (void) {};
   void init(const unsigned char *buffer, uint32_t bit_len);
   void init(const char *buffer, uint32_t bit_len) {
@@ -43,13 +46,28 @@ class CBitstream {
   void init(const unsigned char *buffer, unsigned short bit_len) {
     init(buffer, (uint32_t)bit_len);
   };
-  int getbits(uint32_t bits, uint32_t *retvalue);
+  uint32_t GetBits(uint32_t bits);
+  int getbits(uint32_t bits, uint32_t *retvalue) {
+    try {
+      *retvalue = GetBits(bits);
+    } catch (...) {
+      return -1;
+    }
+    return 0;
+  }
   int peekbits(uint32_t bits, uint32_t *retvalue) {
     int ret;
     bookmark(1);
     ret = getbits(bits, retvalue);
     bookmark(0);
     return (ret);
+  }
+  uint32_t PeekBits(uint32_t bits) {
+    uint32_t ret;
+    bookmark(1);
+    ret = GetBits(bits);
+    bookmark(0);
+    return ret;
   }
   void bookmark(int on);
   int bits_remain (void) {

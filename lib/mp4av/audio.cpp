@@ -51,7 +51,7 @@ static MP4AV_Mp3Header GetMp3Header(
 	return mp3Hdr;
 }
 
-u_int8_t MP4AV_AudioGetChannels(
+extern "C" u_int8_t MP4AV_AudioGetChannels(
 	MP4FileHandle mp4File, 
 	MP4TrackId audioTrackId)
 {
@@ -110,7 +110,7 @@ u_int8_t MP4AV_AudioGetChannels(
 	return 0;
 }
 
-u_int32_t MP4AV_AudioGetSamplingRate(
+extern "C" u_int32_t MP4AV_AudioGetSamplingRate(
 	MP4FileHandle mp4File, 
 	MP4TrackId audioTrackId)
 {
@@ -158,7 +158,7 @@ u_int32_t MP4AV_AudioGetSamplingRate(
 	return 0;
 }
 
-u_int16_t MP4AV_AudioGetSamplingWindow(
+extern "C" u_int16_t MP4AV_AudioGetSamplingWindow(
 	MP4FileHandle mp4File, 
 	MP4TrackId audioTrackId)
 {

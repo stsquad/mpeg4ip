@@ -13,30 +13,27 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001-2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *		Bill May (wmay@cisco.com)
  */
-
-#ifndef __MP4AV_INCLUDED__
-#define __MP4AV_INCLUDED__ 
+#ifndef __MP4AV_MPEG3_H__
+#define __MP4AV_MPEG3_H__ 1
 
 #ifdef __cplusplus
-/* exploit C++ ability of default values for function parameters */
-#define DEFAULT_PARM(x)	=x
-#else
-#define DEFAULT_PARM(x)
+extern "C" {
 #endif
 
-/* MP4AV library API */
-#include "mp4av_aac.h"
-#include "mp4av_mp3.h"
-#include "mp4av_mpeg4.h"
-#include "mp4av_audio.h"
-#include "mp4av_hinters.h"
-#include "mp4av_mpeg3.h"
-#undef DEFAULT_PARM
+  int MP4AV_Mpeg3ParseSeqHdr(uint8_t *pbuffer, uint32_t buflen, 
+			      uint32_t *height, uint32_t *width, 
+			      double *frame_rate);
 
-#endif /* __MP4AV_INCLUDED__ */ 
+  int MP4AV_Mpeg3PictHdrType(uint8_t *pbuffer);
 
+  int MP4AV_Mpeg3FindGopOrPictHdr(uint8_t *pbuffer, uint32_t buflen);
+#ifdef __cplusplus
+}
+#endif
+
+#endif

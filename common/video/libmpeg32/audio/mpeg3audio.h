@@ -34,9 +34,9 @@ struct al_table
 
 typedef struct
 {
-	void* file;
 	void* track;
 	mpeg3_bits_t *astream;
+  int format;
 
 /* In order of importance */
 	int layer;                /* layer if mpeg */

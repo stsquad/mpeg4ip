@@ -1,6 +1,8 @@
 #include <mpeg4ip.h>
 #ifdef HAVE_BYTESWAP_H
 #include <byteswap.h>
+#else
+#include <mpeg4ip_byteswap.h>
 #endif
 #include <dirent.h>
 #include <fcntl.h>
@@ -62,12 +64,12 @@ typedef struct {
 
 static u_int get4bytes(u_char *buf)
 {
-	return bswap_32 (*((u_int32_t *)buf));
+	return B2N_32(*((u_int32_t *)buf));
 }
 
 static u_int get2bytes(u_char *buf)
 {
-	return bswap_16 (*((u_int16_t *)buf));
+	return B2N_16(*((u_int16_t *)buf));
 }
 
 static int ifo_read(int fd, long pos, long count, unsigned char *data)
@@ -139,7 +141,7 @@ static int ifo_table(ifo_t *ifo, unsigned long offset, unsigned long tbl_id)
 		default: 
 		{
 			ifo_hdr_t *hdr = (ifo_hdr_t *)data;
-			len = bswap_32(hdr->len) + 1;
+			len = B2N_32(hdr->len) + 1;
 		}
 	}
 
@@ -156,7 +158,7 @@ static int ifo_table(ifo_t *ifo, unsigned long offset, unsigned long tbl_id)
 
 	if(tbl_id == ID_TMT) 
 		for (i = 0; i < len; i++)
-			ptr[i] = bswap_32(ptr[i]);
+			ptr[i] = B2N_32(ptr[i]);
 
 	return 0;
 }
@@ -237,13 +239,14 @@ static int ifo_audio(char *_hdr, char **ptr)
 
 	*ptr = _hdr + AUDIO_HDR_LEN;
 
-	return bswap_16(hdr->num);
+	return B2N_16(hdr->num);
 }
 
 
 static int pgci(ifo_hdr_t *hdr, int title, char **ptr)
 {
 	pgci_sub_t *pgci_sub;
+	uint32_t temp;
 
 	*ptr = (char *) hdr;
 
@@ -255,7 +258,9 @@ static int pgci(ifo_hdr_t *hdr, int title, char **ptr)
 
 	pgci_sub = (pgci_sub_t *)*ptr + title;
 
-	*ptr = (char *)hdr + bswap_32(pgci_sub->start);
+	temp = pgci_sub->start;
+	temp = B2N_32(temp);
+	*ptr = (char *)hdr + temp;
 
 	return 0;
 }
@@ -463,7 +468,7 @@ static void cellplayinfo(ifo_t *ifo, mpeg3ifo_celltable_t *cells)
 	int i, j;
 	char *cell_hdr, *cell_hdr_start, *cell_info;
 	ifo_hdr_t *hdr = (ifo_hdr_t*)ifo->data[ID_TITLE_PGCI];
-	int program_chains = bswap_16(hdr->num);
+	int program_chains = B2N_16(hdr->num);
 	long total_cells;
 
 //printf("cellplayinfo\n");
@@ -500,8 +505,8 @@ static void cellplayinfo(ifo_t *ifo, mpeg3ifo_celltable_t *cells)
 			for(i = 0; i < total_cells; i++)
 			{
 				ifo_pgci_cell_addr_t *cell_addr = (ifo_pgci_cell_addr_t *)cell_info;
-				long start_byte = bswap_32(cell_addr->vobu_start);
-				long end_byte = bswap_32(cell_addr->vobu_last_end);
+				long start_byte = B2N_32(cell_addr->vobu_start);
+				long end_byte = B2N_32(cell_addr->vobu_last_end);
 				int cell_type = cell_addr->chain_info;
 
 				if(!cells->total_cells && start_byte > 0)
@@ -534,19 +539,19 @@ static void celladdresses(ifo_t *ifo, mpeg3ifo_celltable_t *cell_addresses)
 	int done = 0;
 //printf("celladdresses\n");
 
-	if(total_addresses = bswap_32(cell_addr_hdr->len) / sizeof(ifo_cell_addr_t))
+	if(total_addresses = B2N_32(cell_addr_hdr->len) / sizeof(ifo_cell_addr_t))
 	{
 		for(i = 0; i < total_addresses; i++)
 		{
 			mpeg3ifo_cell_t *cell;
 			cell = append_cell(cell_addresses);
-			cell->start_byte = (int64_t)bswap_32(cell_addr->start);
-			cell->end_byte = (int64_t)bswap_32(cell_addr->end);
-			cell->vob_id = bswap_16(cell_addr->vob_id);
+			cell->start_byte = (int64_t)B2N_32(cell_addr->start);
+			cell->end_byte = (int64_t)B2N_32(cell_addr->end);
+			cell->vob_id = B2N_16(cell_addr->vob_id);
 			cell->cell_id = cell_addr->cell_id;
 /*
  * printf("celladdresses vob id: %x cell id: %x start: %ld end: %ld\n", 
- * 	bswap_16(cell_addr->vob_id), cell_addr->cell_id, (long)cell->start_byte, (long)cell->end_byte);
+ * 	B2N_16(cell_addr->vob_id), cell_addr->cell_id, (long)cell->start_byte, (long)cell->end_byte);
  */
 			cell_addr++;
 		}

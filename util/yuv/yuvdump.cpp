@@ -89,7 +89,6 @@ int main (int argc, char **argv)
 	qevent = 1;
       }
     }
-    fcount++;
     readbytes = fread(ybuf, ysize,  sizeof(uint8_t), yuvfile);
     if (readbytes != 1) {
       printf("frame %u - y buf read error\n", fcount);
@@ -112,6 +111,8 @@ int main (int argc, char **argv)
 
     SDL_DisplayYUVOverlay(m_image, &m_dstrect);
     SDL_UnlockYUVOverlay(m_image);
+    if (fcount == 0) SDL_Delay(1000);
+    fcount++;
     //SDL_Delay(33);
     //printf("%u\n", fcount);
   } while (qevent == 0 && !feof(yuvfile));

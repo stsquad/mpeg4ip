@@ -28,23 +28,27 @@
 
 // Audio Hinters
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool MP4AV_Rfc2250Hinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
-	bool interleave = false,
-	u_int16_t maxPayloadSize = MP4AV_DFLT_PAYLOAD_SIZE);
+	bool interleave DEFAULT_PARM(false),
+	u_int16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE));
 
 bool MP4AV_Rfc3119Hinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
-	bool interleave = false,
-	u_int16_t maxPayloadSize = MP4AV_DFLT_PAYLOAD_SIZE);
+	bool interleave DEFAULT_PARM(false),
+	u_int16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE));
 
 bool MP4AV_RfcIsmaHinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
-	bool interleave = false,
-	u_int16_t maxPayloadSize = MP4AV_DFLT_PAYLOAD_SIZE);
+	bool interleave DEFAULT_PARM(false),
+	u_int16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE));
 
 
 // Video Hinters
@@ -52,7 +56,10 @@ bool MP4AV_RfcIsmaHinter(
 bool MP4AV_Rfc3016Hinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
-	u_int16_t maxPayloadSize = MP4AV_DFLT_PAYLOAD_SIZE);
+	u_int16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE));
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __MP4AV_HINTERS_INCLUDED__ */ 
 

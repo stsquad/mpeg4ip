@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.11 $ 
- * $Date: 2002/04/05 00:49:57 $
+ * $Revision: 1.12 $ 
+ * $Date: 2002/05/21 19:38:13 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -68,15 +68,15 @@
 
 static int rijndael_initialize(struct rtp *session, u_char *hash, int hash_len);
 static int rijndael_decrypt(struct rtp *session, unsigned char *data,
-			    unsigned int size, unsigned char *initVec);
+			    unsigned int size);
 static int rijndael_encrypt(struct rtp *session, unsigned char *data,
-			    unsigned int size, unsigned char *initVec);
+			    unsigned int size);
 
 static int des_initialize(struct rtp *session, u_char *hash, int hash_len);
 static int des_decrypt(struct rtp *session, unsigned char *data,
-		unsigned int size, unsigned char *initVec);
+		       unsigned int size);
 static int des_encrypt(struct rtp *session, unsigned char *data,
-		       unsigned int size, unsigned char *initVec);
+		       unsigned int size);
 
 #define MAX_DROPOUT    3000
 #define MAX_MISORDER   100
@@ -208,9 +208,9 @@ typedef struct {
  * Encryption function types
  */
 typedef int (*rtp_encrypt_func)(struct rtp *, unsigned char *data,
-			       unsigned int size, unsigned char *initvec);
+				unsigned int size);
 typedef int (*rtp_decrypt_func)(struct rtp *, unsigned char *data,
-			       unsigned int size, unsigned char *initvec);
+				unsigned int size);
 typedef int (*rtcp_send_f)(struct rtp *s, char *buffer, int buflen);
 
 /*
@@ -1364,8 +1364,7 @@ int rtp_process_recv_data (struct rtp *session,
   if (buflen > 0) {
     if (session->encryption_enabled)
       {
-	uint8_t 	 initVec[8] = {0,0,0,0,0,0,0,0};
-	(session->decrypt_func)(session, buffer, buflen, initVec);
+	(session->decrypt_func)(session, buffer, buflen);
       }
     
     /* Convert header fields to host byte order... */
@@ -1774,7 +1773,6 @@ void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen)
 	rtp_event	 event;
 	struct timeval	 event_ts;
 	rtcp_t		*packet;
-	uint8_t 	 initVec[8] = {0,0,0,0,0,0,0,0};
 	int		 first;
 	uint32_t	 packet_ssrc = rtp_my_ssrc(session);
 
@@ -1783,7 +1781,7 @@ void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen)
 		if (session->encryption_enabled)
 		{
 			/* Decrypt the packet... */
-			(session->decrypt_func)(session, buffer, buflen, initVec);
+			(session->decrypt_func)(session, buffer, buflen);
 			buffer += 4;	/* Skip the random prefix... */
 			buflen -= 4;
 		}
@@ -2182,7 +2180,6 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m,
 	int		 buffer_len, i, rc, pad, pad_len;
 	uint8_t		*buffer;
 	rtp_packet	*packet;
-	uint8_t 	 initVec[8] = {0,0,0,0,0,0,0,0};
 
 	check_database(session);
 
@@ -2257,7 +2254,7 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m,
 	{
 		ASSERT((buffer_len % session->encryption_pad_length) == 0);
 		(session->encrypt_func)(session, buffer + RTP_PACKET_HEADER_SIZE,
-					buffer_len, initVec); 
+					buffer_len); 
 	}
 
 	rc = udp_send(session->rtp_socket, buffer + RTP_PACKET_HEADER_SIZE, buffer_len);
@@ -2626,7 +2623,6 @@ static void send_rtcp(struct rtp *session,
 	uint8_t   *old_ptr;
 	uint8_t   *lpt;		/* the last packet in the compound */
 	rtcp_app  *app;
-	uint8_t    initVec[8] = {0,0,0,0,0,0,0,0};
 
 	check_database(session);
 	/* If encryption is enabled, add a 32 bit random prefix to the packet */
@@ -2696,7 +2692,7 @@ static void send_rtcp(struct rtp *session,
 			((rtcp_t *) lpt)->common.p = TRUE;
 			((rtcp_t *) lpt)->common.length = htons((int16_t)(((ptr - lpt) / 4) - 1));
 		}
- 		(session->encrypt_func)(session, buffer, ptr - buffer, initVec); 
+ 		(session->encrypt_func)(session, buffer, ptr - buffer); 
 	}
 	if (session->rtcp_bw != 0.0) {
 	  (session->rtcp_send)(session, buffer, ptr - buffer);
@@ -2858,7 +2854,6 @@ static void rtp_send_bye_now(struct rtp *session)
 	uint8_t	 	 buffer[RTP_MAX_PACKET_LEN + MAX_ENCRYPTION_PAD];	/* + 8 to allow for padding when encrypting */
 	uint8_t		*ptr = buffer;
 	rtcp_common	*common;
-	uint8_t    	 initVec[8] = {0,0,0,0,0,0,0,0};
 
 	check_database(session);
 	/* If encryption is enabled, add a 32 bit random prefix to the packet */
@@ -2897,7 +2892,7 @@ static void rtp_send_bye_now(struct rtp *session)
 			common->length = htons((int16_t)(((ptr - (uint8_t *) common) / 4) - 1));
 		}
 		ASSERT(((ptr - buffer) % session->encryption_pad_length) == 0);
-		(session->encrypt_func)(session, buffer, ptr - buffer, initVec);
+		(session->encrypt_func)(session, buffer, ptr - buffer);
 	}
 	(session->rtcp_send)(session, buffer, ptr - buffer);
 	/* Loop the data back to ourselves so local participant can */
@@ -3190,16 +3185,18 @@ static int des_initialize(struct rtp *session, u_char *hash, int hashlen)
 }
 
 static int des_encrypt(struct rtp *session, unsigned char *data,
-		unsigned int size, unsigned char *initVec)
+		unsigned int size)
 {
+  uint8_t 	 initVec[8] = {0,0,0,0,0,0,0,0};
     qfDES_CBC_e(session->crypto_state.des.encryption_key,
 		data, size, initVec);
     return TRUE;
 }
 
 static int des_decrypt(struct rtp *session, unsigned char *data,
-		unsigned int size, unsigned char *initVec)
+		       unsigned int size)
 {
+  uint8_t 	 initVec[8] = {0,0,0,0,0,0,0,0};
     qfDES_CBC_d(session->crypto_state.des.encryption_key,
 		data, size, initVec);
     return TRUE;
@@ -3240,11 +3237,10 @@ static int rijndael_initialize(struct rtp *session, u_char *hash, int hash_len)
 }
 
 static int rijndael_encrypt(struct rtp *session, unsigned char *data,
-		unsigned int size, unsigned char *initVec)
+			    unsigned int size)
 {
 	int rc;
 
-	UNUSED(initVec);
 
 	/*
 	 * Try doing this in place. If it doesn't work that way,
@@ -3257,10 +3253,9 @@ static int rijndael_encrypt(struct rtp *session, unsigned char *data,
 }
 
 static int rijndael_decrypt(struct rtp *session, unsigned char *data,
-		unsigned int size, unsigned char *initVec)
+			    unsigned int size)
 {
 	int rc;
-	UNUSED(initVec);
 
 	/*
 	 * Try doing this in place. If it doesn't work that way,

@@ -652,13 +652,7 @@ int mpeg3video_get_macroblocks(mpeg3video_t *video, int framenum)
 int mpeg3video_allocate_decoders(mpeg3video_t *video, int decoder_count)
 {
 	int i;
-#ifndef MPEG4IP
-	mpeg3_t *file = video->file;
-	int cpus = file->cpus;
-/* Get the slice decoders */
-#else
 	int cpus = video->cpus;
-#endif
 	  if (video->total_slice_decoders != cpus)
 	{
 		for(i = 0; i < video->total_slice_decoders; i++)
@@ -682,12 +676,7 @@ int mpeg3video_allocate_decoders(mpeg3video_t *video, int decoder_count)
 int mpeg3video_getpicture(mpeg3video_t *video, int framenum)
 {
 	int i, result = 0;
-	#ifndef MPEG4IP
-	mpeg3_t *file = video->file;
-	int cpus = file->cpus;
-	#else
 	int cpus = video->cpus;
-	#endif
 
 	if(video->pict_struct == FRAME_PICTURE && video->secondfield)
 	{

@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 
-mpeg3_title_t* mpeg3_new_title(mpeg3_t *file, char *path)
+mpeg3_title_t* mpeg3_new_title(mpeg3_t *file, const char *path)
 {
 	mpeg3_title_t *title = calloc(1, sizeof(mpeg3_title_t));
 	title->fs = mpeg3_new_fs(path);

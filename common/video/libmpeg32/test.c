@@ -52,6 +52,21 @@ int main (int argc, char **argv)
     w = mpeg3_video_width(file, 0);
     h = mpeg3_video_height(file, 0);
     printf("max frames %d w %d h %d\n", max_frames, w, h);
+#if 1
+    mpeg3_seek_percentage(file, 0.5);
+    y_output = u_output = v_output = NULL;
+    ret = mpeg3_read_yuvframe_ptr(file,
+				  &y_output,
+				  &u_output,
+				  &v_output,
+				  0);
+    if (ret == 0 && ofile != NULL && y_output != NULL) {
+      printf("frame on %d ret %d\n", frame_on, ret);
+      fwrite(y_output, w, h, ofile);
+      fwrite(u_output, w/2, h/2, ofile);
+      fwrite(v_output, w/2, h/2, ofile);
+    }
+#else
     for (frame_on = 0; frame_on < max_frames; frame_on++) {
       y_output = u_output = v_output = NULL;
       ret = mpeg3_read_yuvframe_ptr(file,
@@ -66,6 +81,7 @@ int main (int argc, char **argv)
 	fwrite(v_output, w/2, h/2, ofile);
       }
     }
+#endif
   }
 #else
   {

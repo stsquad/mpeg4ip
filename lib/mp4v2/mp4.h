@@ -111,7 +111,22 @@ typedef u_int64_t	MP4Duration;
 #define MP4_VORBIS_AUDIO_TYPE			0xE1	/* a private definition */
 #define MP4_AC3_AUDIO_TYPE				0xE2	/* a private definition */
 
-// MP4 Audio type utilities following common usage
+/* MP4 MPEG-4 Audio types from 14496-3 Table 1.5.1 */
+#define MP4_MPEG4_INVALID_AUDIO_TYPE		0
+#define MP4_MPEG4_AAC_MAIN_AUDIO_TYPE		1
+#define MP4_MPEG4_AAC_LC_AUDIO_TYPE			2
+#define MP4_MPEG4_AAC_SSR_AUDIO_TYPE		3
+#define MP4_MPEG4_AAC_LTP_AUDIO_TYPE		4
+#define MP4_MPEG4_AAC_SCALABLE_AUDIO_TYPE	6
+#define MP4_MPEG4_CELP_AUDIO_TYPE			8
+#define MP4_MPEG4_HVXC_AUDIO_TYPE			9
+#define MP4_MPEG4_TTSI_AUDIO_TYPE			12
+#define MP4_MPEG4_MAIN_SYNTHETIC_AUDIO_TYPE	13
+#define MP4_MPEG4_WAVETABLE_AUDIO_TYPE		14
+#define MP4_MPEG4_MIDI_AUDIO_TYPE			15
+#define MP4_MPEG4_ALGORITHMIC_FX_AUDIO_TYPE	16
+
+/* MP4 Audio type utilities following common usage */
 #define MP4_IS_MP3_AUDIO_TYPE(type) \
 	((type) == MP4_MPEG1_AUDIO_TYPE || (type) == MP4_MPEG2_AUDIO_TYPE) 
 
@@ -119,6 +134,11 @@ typedef u_int64_t	MP4Duration;
 	(((type) >= MP4_MPEG2_AAC_MAIN_AUDIO_TYPE \
 		&& (type) <= MP4_MPEG2_AAC_SSR_AUDIO_TYPE) \
 	  || (type) == MP4_MPEG4_AUDIO_TYPE)
+
+#define MP4_IS_MPEG4_AAC_AUDIO_TYPE(type) \
+	(((type) >= MP4_MPEG4_AAC_MAIN_AUDIO_TYPE \
+		&& (type) <= MP4_MPEG4_AAC_LTP_AUDIO_TYPE) \
+	  || (type) == MP4_MPEG4_AAC_SCALABLE_AUDIO_TYPE)
 
 /* MP4 Video track types - see MP4AddVideoTrack() */
 #define MP4_INVALID_VIDEO_TYPE			0x00
@@ -303,6 +323,9 @@ bool MP4SetTrackTimeScale(
 	MP4FileHandle hFile, MP4TrackId trackId, u_int32_t value);
 
 u_int8_t MP4GetTrackAudioType(
+	MP4FileHandle hFile, MP4TrackId trackId);
+
+u_int8_t MP4GetTrackAudioMpeg4Type(
 	MP4FileHandle hFile, MP4TrackId trackId);
 
 u_int8_t MP4GetTrackVideoType(

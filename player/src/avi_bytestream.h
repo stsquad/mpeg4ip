@@ -24,7 +24,7 @@
 
 #ifndef __AVI_BYTESTREAM_H__
 #define __AVI_BYTESTREAM_H__
-#include <avilib.h>
+#include "avi/avilib.h"
 #include "our_bytestream.h"
 #include "avi_file.h"
 

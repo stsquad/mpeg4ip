@@ -2,7 +2,7 @@ SUBDIRS = audio video
 
 noinst_LTLIBRARIES = libmpeg3.la
 
-INCLUDES= -I$(top_srcdir)/include
+INCLUDES= -I$(top_srcdir)/include -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/mp4v2
 AM_CFLAGS= -DHAVE_CSS
 libmpeg3_la_LDFLAGS = -static 
 libmpeg3_la_SOURCES = \

@@ -32,7 +32,7 @@ int mpeg3demux_read_program(mpeg3_demuxer_t *demuxer);
 
 /* TITLE */
 
-mpeg3_title_t* mpeg3_new_title(mpeg3_t *file, char *path);
+mpeg3_title_t* mpeg3_new_title(mpeg3_t *file, const char *path);
 void mpeg3_new_timecode(mpeg3_title_t *title, 
 		long start_byte, 
 		double start_time,
@@ -67,7 +67,7 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 int mpeg3_delete_vtrack(mpeg3_t *file, mpeg3_vtrack_t *vtrack);
 
 /* AUDIO */
-mpeg3audio_t* mpeg3audio_new(mpeg3_t *file, mpeg3_atrack_t *track, int is_ac3);
+mpeg3audio_t* mpeg3audio_new(mpeg3_atrack_t *track, int is_ac3);
 int mpeg3audio_delete(mpeg3audio_t *audio);
 
 
@@ -97,7 +97,7 @@ int mpeg3video_read_yuvframe_ptr(mpeg3video_t *video,
 
 /* FILESYSTEM */
 
-mpeg3_fs_t* mpeg3_new_fs(char *path);
+mpeg3_fs_t* mpeg3_new_fs(const char *path);
 int mpeg3_delete_fs(mpeg3_fs_t *fs);
 int mpeg3io_open_file(mpeg3_fs_t *fs);
 int mpeg3io_close_file(mpeg3_fs_t *fs);

@@ -6,6 +6,7 @@ noinst_LTLIBRARIES = libxvidutils.la
 libxvidutils_la_LDFLAGS = -static
 
 AM_CFLAGS= -O3
+INCLUDES=-I$(top_builddir)/include
 
 libxvidutils_la_SOURCES = \
 	emms.c \

@@ -33,4 +33,7 @@ libmpeg3_la_SOURCES = \
 libmpeg3_la_LIBADD = \
 	audio/libmpeg3audio.la \
 	video/libmpeg3video.la 
+check_PROGRAMS = test
+test_SOURCES = test.c
+test_LDADD = libmpeg3.la -lm -lpthread
 

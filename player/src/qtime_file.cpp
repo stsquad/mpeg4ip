@@ -27,7 +27,7 @@
 #include "player_media.h"
 #include "player_util.h"
 #include "media_utils.h"
-#include "quicktime.h"
+#include "mp4/quicktime.h"
 #include "qtime_bytestream.h"
 #include "qtime_file.h"
 #include <mp4util/mpeg4_audio_config.h>

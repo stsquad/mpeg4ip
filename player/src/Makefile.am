@@ -35,6 +35,8 @@ libmp4player_la_SOURCES = \
 	ip_port.cpp \
 	media_utils.cpp \
 	our_config_file.cpp \
+	mpeg3_bytestream.cpp \
+	mpeg3_file.cpp \
 	mpeg3_rtp_bytestream.cpp \
 	mp4_file.cpp \
 	mp4_bytestream.cpp \
@@ -71,7 +73,7 @@ gmp4player_SOURCES = \
 movplayer_SOURCES = \
 	movplayer.cpp
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib @GLIB_CFLAGS@ @GTK_CFLAGS@ @SDL_CFLAGS@ @X_CFLAGS@
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/common/video/libmpeg32 @GLIB_CFLAGS@ @GTK_CFLAGS@ @SDL_CFLAGS@ @X_CFLAGS@
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"
 
@@ -82,6 +84,7 @@ mp4player_LDADD = \
 	$(top_builddir)/player/src/libmp4player.la \
 	$(top_builddir)/player/src/codec/aa/libaa.la \
 	$(top_builddir)/player/src/codec/mp3/libmp3.la \
+	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \
 	$(top_builddir)/player/lib/audio/mp3util/libmp3utils.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/player/lib/mp4util/libmp4util.la \
@@ -89,6 +92,7 @@ mp4player_LDADD = \
 	$(top_builddir)/lib/config_file/libconfig_file.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/bitstream/libbitstream.la \
+	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/rtp/libuclmmbase.la \
 	$(top_builddir)/player/lib/rtsp/librtsp.la \
 	$(top_builddir)/lib/mp4/libmp4.la \

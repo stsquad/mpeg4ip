@@ -1,8 +1,15 @@
-Changes from 0.9.3 to 1.0.0
+Changes from 0.9.4 to 0.9.5
+---------------------------
+Added
+	MP4GetTrackAudioMpeg4Type()
+		Returns MPEG-4 Audio type (e.g. AAC, CELP, HXVC, MIDI, etc.)
+
+Changes from 0.9.3 to 0.9.4
 ---------------------------
 Added
 	MP4GetTrackVideoFrameRate()
 		Returns video frame rate (average rate if video is variable rate).
+
 	MP4GetTrackBitRate()
 		Returns track average bit rate in bits-per-second.
 

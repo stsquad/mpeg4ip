@@ -19,7 +19,7 @@
  *              Bill May        wmay@cisco.com
  */
 #include "mp3if.h"
-#include <mp3util/mp3util.h>
+#include <mp4av/mp4av.h>
 #include <mp4v2/mp4.h>
 
 #define mp3_message mp3->m_vft->log_msg
@@ -130,9 +130,9 @@ static int mp3_decode (codec_data_t *ptr,
 
     mp3->m_chans = mp3->m_mp3_info->isstereo() ? 2 : 1;
     mp3->m_freq = mp3->m_mp3_info->getfrequency();
+    
     mp3->m_samplesperframe = 
-      mp3_get_samples_per_frame(mp3->m_mp3_info->getlayer(),
-				mp3->m_mp3_info->getversion());
+      MP4AV_Mp3GetHdrSamplingWindow(MP4AV_Mp3HeaderFromBytes(buffer));
     mp3_message(LOG_DEBUG, "libmp3", "chans %d freq %d samples %d", 
 		mp3->m_chans, mp3->m_freq, mp3->m_samplesperframe);
     mp3->m_vft->audio_configure(mp3->m_ifptr,
@@ -223,10 +223,15 @@ static int mp3_codec_check (lib_message_func_t message,
       return -1;
     }
   }
-  if (compressor != NULL &&
-      (strcasecmp(compressor, "AVI FILE") == 0) &&
-      (audio_type == 85)) {
-    return 1;
+  if (compressor != NULL) {
+    if ((strcasecmp(compressor, "AVI FILE") == 0) &&
+	(audio_type == 85)) {
+      return 1;
+    }
+    if ((strcasecmp(compressor, "MPEG FILE") == 0) &&
+	(audio_type == 1)) { // AUDIO_MPEG def from libmpeg3
+      return 1;
+    }
   }
 
   if (fptr != NULL) {

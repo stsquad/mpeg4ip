@@ -7,6 +7,7 @@ libxvidmotion_la_LDFLAGS = -static
 
 AM_CFLAGS= -O3
 
+INCLUDES=-I$(top_builddir)/include
 libxvidmotion_la_SOURCES = \
 	motion_comp.c \
 	motion_est.c \

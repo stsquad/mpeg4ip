@@ -7,6 +7,8 @@ libxvidimage_la_LDFLAGS = -static
 
 AM_CFLAGS= -O3
 
+INCLUDES=-I$(top_builddir)/include
+
 libxvidimage_la_SOURCES = \
 	colorspace.c \
 	colorspace.h \

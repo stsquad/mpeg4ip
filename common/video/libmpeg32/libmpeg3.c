@@ -9,7 +9,7 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
-mpeg3_t* mpeg3_new(char *path)
+mpeg3_t* mpeg3_new(const char *path)
 {
 	int i;
 	mpeg3_t *file = calloc(1, sizeof(mpeg3_t));
@@ -61,7 +61,7 @@ int mpeg3_delete(mpeg3_t *file)
 	return 0;
 }
 
-int mpeg3_check_sig(char *path)
+int mpeg3_check_sig(const char *path)
 {
 	mpeg3_fs_t *fs;
 	u_int32_t bits;
@@ -339,7 +339,7 @@ static int read_toc(mpeg3_t *file)
 
 
 
-mpeg3_t* mpeg3_open_copy(char *path, mpeg3_t *old_file)
+mpeg3_t* mpeg3_open_copy(const char *path, mpeg3_t *old_file)
 {
 	mpeg3_t *file = 0;
 	unsigned int bits;
@@ -605,7 +605,7 @@ mpeg3_t* mpeg3_open_copy(char *path, mpeg3_t *old_file)
 	return file;
 }
 
-mpeg3_t* mpeg3_open(char *path)
+mpeg3_t* mpeg3_open(const char *path)
 {
 	return mpeg3_open_copy(path, 0);
 }
@@ -661,6 +661,21 @@ int mpeg3_sample_rate(mpeg3_t *file,
 	return -1;
 }
 
+int mpeg3_audio_samples_per_frame(mpeg3_t *file,
+		int stream)
+{
+	if(file->total_astreams)
+		return file->atrack[stream]->samples_per_frame;
+	return -1;
+}
+
+uint32_t mpeg3_audio_get_number_of_frames (mpeg3_t *file, 
+					   int stream)
+{
+  if (file->total_astreams) 
+    return file->atrack[stream]->total_frames;
+  return -1;
+}
 long mpeg3_get_sample(mpeg3_t *file,
 		int stream)
 {
@@ -787,10 +802,22 @@ int mpeg3_seek_percentage(mpeg3_t *file, double percentage)
 
 	for(i = 0; i < file->total_astreams; i++)
 	{
-		mpeg3audio_seek_percentage(file->atrack[i]->audio, percentage);
+	  mpeg3atrack_seek_percentage(file->atrack[i], percentage);
 	}
 
 	return 0;
+}
+
+int mpeg3_seek_audio_percentage(mpeg3_t *file, int stream, double percentage)
+{
+  mpeg3atrack_seek_percentage(file->atrack[stream], percentage);
+  return 0;
+}
+
+int mpeg3_seek_video_percentage(mpeg3_t *file, int stream, double percentage)
+{
+  mpeg3vtrack_seek_percentage(file->vtrack[stream], percentage);
+  return 0;
 }
 
 #if 0
@@ -995,6 +1022,7 @@ int mpeg3_read_yuvframe_ptr(mpeg3_t *file,
 	return result;
 }
 
+#if 0
 int mpeg3_read_audio(mpeg3_t *file, 
 		float *output_f, 
 		short *output_i, 
@@ -1062,6 +1090,34 @@ int mpeg3_read_audio_chunk(mpeg3_t *file,
 	return result;
 }
 
+#endif
+
+int mpeg3_read_audio_frame (mpeg3_t *file,
+			    unsigned char **output,
+			    uint32_t *size,
+			    uint32_t *max_size,
+			    int stream)
+{
+  int result = -1;
+  if (file->total_astreams) {
+    result = mpeg3_atrack_read_frame(file->atrack[stream],
+				     output, 
+				     size,
+				     max_size);
+    file->last_type_read = 1;
+    file->last_stream_read = stream;
+
+  }
+  return result;
+}
+				 
+int mpeg3_get_audio_format (mpeg3_t *file, int stream)
+{
+  if (file->total_astreams) {
+    return (file->atrack[stream]->format);
+  }
+  return AUDIO_UNKNOWN;
+}
 int mpeg3_read_video_chunk(mpeg3_t *file, 
 		unsigned char *output, 
 		long *size, 
@@ -1078,3 +1134,28 @@ int mpeg3_read_video_chunk(mpeg3_t *file,
 	return result;
 }
 
+int mpeg3_read_video_chunk_resize (mpeg3_t *file,
+				   unsigned char **output,
+				   long *size,
+				   int stream)
+{
+	int result = 0;
+	if(file->total_vstreams)
+	{
+		result = mpeg3vtrack_read_raw_resize(file->vtrack[stream], 
+						     output, 
+						     size);
+		file->last_type_read = 2;
+		file->last_stream_read = stream;
+	}
+	return result;
+}
+void mpeg3_read_video_chunk_cleanup (mpeg3_t *file,
+				     int stream)
+{
+	int result = 0;
+	if(file->total_vstreams)
+	{
+	  mpeg3vtrack_cleanup_frame(file->vtrack[stream]);
+	}
+}

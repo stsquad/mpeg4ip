@@ -1,6 +1,3 @@
-#ifndef MPEG4IP
-#include "../mpeg3demux.h"
-#endif
 #include "../mpeg3private.h"
 #include "../mpeg3protos.h"
 #include "mpeg3video.h"
@@ -11,9 +8,6 @@
 int mpeg3video_getseqhdr(mpeg3video_t *video)
 {
 	int i;
-#ifndef MPEG4IP
-	mpeg3_t *file = video->file;
-#endif
 
 	int aspect_ratio, picture_rate, vbv_buffer_size;
 	int constrained_parameters_flag;

@@ -491,7 +491,9 @@ int CPlayerSession::sync_thread (int state)
     break;
   }
 #ifdef DEBUG_SYNC_STATE
-  sync_message(LOG_INFO, "sync changed state to %s", sync_state[newstate]);
+  if (state != newstate)
+    sync_message(LOG_INFO, "sync changed state %s to %s", 
+		 sync_state[state], sync_state[newstate]);
 #endif
   if (state != newstate) {
     state = newstate;

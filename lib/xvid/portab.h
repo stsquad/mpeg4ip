@@ -87,8 +87,10 @@ static __inline int64_t read_counter() {
 #define CACHE_LINE  16
 
 #if defined(LINUX) || defined(__linux__) || defined(__bsdi__) || defined(__FreeBSD__)
-
+#include "systems.h"
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
 
 #define DECLARE_ALIGNED_MATRIX(name,sizex,sizey,type,alignment) \
 	type name##_storage[(sizex)*(sizey)+(alignment)-1]; \

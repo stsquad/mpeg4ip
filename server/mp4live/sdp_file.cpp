@@ -62,16 +62,20 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 	bool destIsMcast = false;
 	bool destIsSSMcast = false;
 	struct in_addr in;
+	struct in6_addr in6;
 
 	if (inet_aton(pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS), &in)) {
+		sdp.session_connect.conn_type = "IP4";
 		destIsMcast = IN_MULTICAST(ntohl(in.s_addr));
 		if ((ntohl(in.s_addr) >> 24) == 232) {
 			destIsSSMcast = true;
 		}
+	} else if (inet_pton(AF_INET6, pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS), &in6)) {
+		sdp.session_connect.conn_type = "IP6";
+		destIsMcast = IN6_IS_ADDR_MULTICAST(&in6);
 	}
 
 	// c=
-	sdp.session_connect.conn_type = "IP4";
 	sdp.session_connect.conn_addr = 
 		pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS);
 	if (destIsMcast) {

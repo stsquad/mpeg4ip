@@ -12,7 +12,7 @@
 #include <sys/stat.h>
 #endif
 
-mpeg3_fs_t* mpeg3_new_fs(char *path)
+mpeg3_fs_t* mpeg3_new_fs(const char *path)
 {
 	mpeg3_fs_t *fs = calloc(1, sizeof(mpeg3_fs_t));
 	fs->buffer = calloc(1, MPEG3_IO_SIZE);

@@ -40,12 +40,25 @@ bool MP4AV_RfcIsmaConcatenator(
 		return true;
 	}
 
+	u_int8_t auPayloadHdrSize;
+
+	// LATER would be more efficient if this were a parameter
+	u_int8_t mpeg4AudioType =
+		MP4GetTrackAudioMpeg4Type(mp4File, mediaTrackId);
+
+	if (mpeg4AudioType == MP4_MPEG4_CELP_AUDIO_TYPE) {
+		auPayloadHdrSize = 1;
+	} else {
+		auPayloadHdrSize = 2;
+	}
+
 	// construct the new hint
 	MP4AddRtpHint(mp4File, hintTrackId);
 	MP4AddRtpPacket(mp4File, hintTrackId, true);
 
 	u_int8_t payloadHeader[2];
-	u_int16_t numHdrBits = 16 * samplesThisHint;
+
+	u_int16_t numHdrBits = samplesThisHint * auPayloadHdrSize;
 	payloadHeader[0] = numHdrBits >> 8;
 	payloadHeader[1] = numHdrBits & 0xFF;
 
@@ -61,16 +74,25 @@ bool MP4AV_RfcIsmaConcatenator(
 		u_int32_t sampleSize = 
 			MP4GetSampleSize(mp4File, mediaTrackId, sampleId);
 
-		// AU payload header is 13 bits of size
-		// follow by 3 bits of the difference between sampleId's - 1
-		payloadHeader[0] = sampleSize >> 5;
-		payloadHeader[1] = (sampleSize & 0x1F) << 3;
+		if (auPayloadHdrSize == 1) {
+			// AU payload header is 6 bits of size
+			// follow by 2 bits of the difference between sampleId's - 1
+			payloadHeader[0] = sampleSize << 2;
+
+		} else { // auPayloadHdrSize == 2
+			// AU payload header is 13 bits of size
+			// follow by 3 bits of the difference between sampleId's - 1
+			payloadHeader[0] = sampleSize >> 5;
+			payloadHeader[1] = (sampleSize & 0x1F) << 3;
+		}
+
 		if (i > 0) {
-			payloadHeader[1] |= ((sampleId - pSampleIds[i-1]) - 1); 
+			payloadHeader[auPayloadHdrSize - 1] 
+				|= ((sampleId - pSampleIds[i-1]) - 1); 
 		}
 
 		MP4AddRtpImmediateData(mp4File, hintTrackId,
-			(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
+			(u_int8_t*)&payloadHeader, auPayloadHdrSize);
 	}
 
 	// then the samples
@@ -102,6 +124,8 @@ bool MP4AV_RfcIsmaFragmenter(
 
 	MP4AddRtpPacket(mp4File, hintTrackId, false);
 
+	// Note: CELP is never fragmented
+	// so we assume the two byte AAC-hbr payload header
 	u_int8_t payloadHeader[4];
 	payloadHeader[0] = 0;
 	payloadHeader[1] = 16;
@@ -136,12 +160,14 @@ bool MP4AV_RfcIsmaFragmenter(
 	return true;
 }
 
-bool MP4AV_RfcIsmaHinter(
+extern "C" bool MP4AV_RfcIsmaHinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
 	bool interleave,
 	u_int16_t maxPayloadSize)
 {
+	// gather information, and check for validity
+
 	MP4TrackId hintTrackId =
 		MP4AddHintTrack(mp4File, mediaTrackId);
 
@@ -149,25 +175,87 @@ bool MP4AV_RfcIsmaHinter(
 		return false;
 	}
 
+	u_int32_t numSamples =
+		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
+
+	if (numSamples == 0) {
+		return false;
+	}
+
+	u_int32_t timeScale =
+		MP4GetTrackTimeScale(mp4File, hintTrackId);
+
+	if (timeScale == 0) {
+		return false;
+	}
+
+	MP4Duration sampleDuration = 
+		MP4GetSampleDuration(mp4File, mediaTrackId, 1);
+
+	if (sampleDuration == MP4_INVALID_DURATION) {
+		return false;
+	}
+
+	// check that track contains either MPEG-4 AAC or CELP
+	u_int8_t mpeg4AudioType =
+		MP4GetTrackAudioMpeg4Type(mp4File, mediaTrackId);
+
+	if (!MP4_IS_MPEG4_AAC_AUDIO_TYPE(mpeg4AudioType) 
+	  && mpeg4AudioType != MP4_MPEG4_CELP_AUDIO_TYPE) {
+		return false;
+	}
+
+	/* get the ES configuration */
+	u_int8_t* pConfig = NULL;
+	u_int32_t configSize;
+
+	MP4GetTrackESConfiguration(mp4File, mediaTrackId, &pConfig, &configSize);
+
+	if (!pConfig) {
+		return false;
+	}
+
+	/* convert ES Config into ASCII form */
+	char* sConfig = 
+		MP4BinaryToBase16(pConfig, configSize);
+
+	free(pConfig);
+
+	if (!sConfig) {
+		return false;
+	}
+
+	/* create the appropriate SDP attribute */
+	char* sdpBuf = 
+		(char*)malloc(strlen(sConfig) + 256);
+
+	if (!sdpBuf) {
+		free(sConfig);
+		return false;
+	}
+
+
+	// now add the hint track
 	u_int8_t payloadNumber = 0;
 
 	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
 		"mpeg4-generic", &payloadNumber, 0);
 
-	/* get the aac configuration */
-	u_int8_t* pConfig;
-	u_int32_t configSize;
+	MP4Duration maxLatency;
 
-	MP4GetTrackESConfiguration(mp4File, mediaTrackId, &pConfig, &configSize);
+	if (mpeg4AudioType == MP4_MPEG4_CELP_AUDIO_TYPE) {
+		sprintf(sdpBuf,
+			"a=fmtp:%u "
+			"streamtype=5; profile-level-id=15; mode=CELP-vbr; config=%s; "
+			"SizeLength=6; IndexLength=2; IndexDeltaLength=2; Profile=0;"
+			"\015\012",
+				payloadNumber,
+				sConfig); 
 
-	if (pConfig) {
-		/* convert it into ASCII form */
-		char* sConfig = MP4BinaryToBase16(pConfig, configSize);
-		ASSERT(sConfig);
+		// 200 ms max latency for ISMA profile 1
+		maxLatency = timeScale / 5;
 
-		/* create the appropriate SDP attribute */
-		char* sdpBuf = (char*)malloc(strlen(sConfig) + 256);
-
+	} else { // AAC
 		sprintf(sdpBuf,
 			"a=fmtp:%u "
 			"streamtype=5; profile-level-id=15; mode=AAC-hbr; config=%s; "
@@ -176,21 +264,15 @@ bool MP4AV_RfcIsmaHinter(
 				payloadNumber,
 				sConfig); 
 
-		/* add this to the track's sdp */
-		MP4AppendHintTrackSdp(mp4File, hintTrackId, sdpBuf);
-
-		free(sConfig);
-		free(sdpBuf);
+		// 500 ms max latency for ISMA profile 1
+		maxLatency = timeScale / 2;
 	}
 
-	// 500 ms max latency for ISMA profile 1
-	MP4Duration maxLatency = 
-		MP4GetTrackTimeScale(mp4File, hintTrackId) / 2;
-	ASSERT(maxLatency);
+	/* add this to the track's sdp */
+	MP4AppendHintTrackSdp(mp4File, hintTrackId, sdpBuf);
 
-	MP4Duration sampleDuration = 
-		MP4GetSampleDuration(mp4File, mediaTrackId, 1);
-	ASSERT(sampleDuration != MP4_INVALID_DURATION);
+	free(sConfig);
+	free(sdpBuf);
 
 	u_int32_t samplesPerPacket = 0;
  

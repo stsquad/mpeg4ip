@@ -38,6 +38,7 @@
 #include <gnu/strcasestr.h>
 #include "rfc3119_bytestream.h"
 #include "mpeg3_rtp_bytestream.h"
+#include "mpeg3_file.h"
 /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
@@ -52,12 +53,12 @@ enum {
 };
 
 enum {
-  AUDIO_AAC,
-  AUDIO_MP3,
-  AUDIO_WAV,
-  AUDIO_MPEG4_GENERIC,
-  AUDIO_MP3_ROBUST,
-  AUDIO_GENERIC,
+  MPEG4IP_AUDIO_AAC,
+  MPEG4IP_AUDIO_MP3,
+  MPEG4IP_AUDIO_WAV,
+  MPEG4IP_AUDIO_MPEG4_GENERIC,
+  MPEG4IP_AUDIO_MP3_ROBUST,
+  MPEG4IP_AUDIO_GENERIC,
 };
 /*
  * these are lists of supported audio and video codecs
@@ -77,11 +78,11 @@ static struct codec_list_t {
   {NULL, -1},
 },
   audio_codecs[] = {
-    {"MPEG4-GENERIC", AUDIO_MPEG4_GENERIC},
-    {"MPA", AUDIO_MP3 },
-    {"mpa-robust", AUDIO_MP3_ROBUST}, 
-    {"L16", AUDIO_GENERIC },
-    {"L8", AUDIO_GENERIC },
+    {"MPEG4-GENERIC", MPEG4IP_AUDIO_MPEG4_GENERIC},
+    {"MPA", MPEG4IP_AUDIO_MP3 },
+    {"mpa-robust", MPEG4IP_AUDIO_MP3_ROBUST}, 
+    {"L16", MPEG4IP_AUDIO_GENERIC },
+    {"L8", MPEG4IP_AUDIO_GENERIC },
     {NULL, -1},
   };
 
@@ -147,7 +148,7 @@ static int sdp_lookup_audio_defaults (media_desc_t *media)
 {
   for (format_list_t *fptr = media->fmt; fptr != NULL; fptr = fptr->next) {
     if (strcmp(fptr->fmt, "14") == 0) {
-      return (AUDIO_MP3);
+      return (MPEG4IP_AUDIO_MP3);
     }
   }
   return (-1);
@@ -495,6 +496,10 @@ int parse_name_for_session (CPlayerSession *psptr,
 				    errmsg, 
 				    errlen, 
 				    have_audio_driver);
+  } else if (strcasecmp(suffix, ".mpeg") == 0 ||
+	     strcasecmp(suffix, ".mpg") == 0) {
+    err = create_media_for_mpeg_file(psptr, name, errmsg, 
+				     errlen, have_audio_driver);
   } else {
     // raw files
     if (have_audio_driver) {
@@ -559,7 +564,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
     }
   } else {
     if (rtp_pt == 14) {
-      codec = AUDIO_MP3;
+      codec = MPEG4IP_AUDIO_MP3;
     } else {
       codec = lookup_codec_by_name(fmt->rtpmap->encode_name, 
 				   audio_codecs);
@@ -568,8 +573,8 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       }
     }
     switch (codec) {
-    case AUDIO_AAC:
-    case AUDIO_MPEG4_GENERIC:
+    case MPEG4IP_AUDIO_AAC:
+    case MPEG4IP_AUDIO_MPEG4_GENERIC:
       fmtp_parse_t *fmtp;
 
       fmtp = parse_fmtp_for_mpeg4(fmt->fmt_param, message);
@@ -596,7 +601,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       }
       // Otherwise, create default...
       break;
-    case AUDIO_MP3:
+    case MPEG4IP_AUDIO_MP3:
       rtp_byte_stream = 
 	new CMP3RtpByteStream(rtp_pt, ondemand, tps, head, tail, 
 			      rtpinfo_received, rtp_rtptime, 
@@ -606,7 +611,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 	return (rtp_byte_stream);
       }
       break;
-    case AUDIO_MP3_ROBUST:
+    case MPEG4IP_AUDIO_MP3_ROBUST:
       rtp_byte_stream = 
 	new CRfc3119RtpByteStream(rtp_pt, ondemand, tps, head, tail, 
 				  rtpinfo_received, rtp_rtptime, 
@@ -616,7 +621,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 	return (rtp_byte_stream);
       }
       break;
-    case AUDIO_GENERIC:
+    case MPEG4IP_AUDIO_GENERIC:
       rtp_byte_stream = 
 	new CAudioRtpByteStream(rtp_pt, ondemand, tps, head, tail, 
 				rtpinfo_received, rtp_rtptime, 

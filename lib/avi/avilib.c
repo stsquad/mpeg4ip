@@ -459,17 +459,19 @@ static int avi_close_output_file(avi_t *AVI)
 
    /* Output the header, truncate the file to the number of bytes
       actually written, report an error if someting goes wrong */
-#ifdef _WINDOWS
-#pragma message("If you're using AVI write, you've got an error and need to write a ftruncate function")
-#else
+
    if ( lseek(AVI->fdes,0,SEEK_SET)<0 ||
         write(AVI->fdes,AVI_header,HEADERBYTES)!=HEADERBYTES ||
-        ftruncate(AVI->fdes,AVI->pos)<0 )
+#ifndef _WINDOWS
+        ftruncate(AVI->fdes,AVI->pos)<0
+#else
+		_chsize(AVI->fdes,AVI->pos)<0 
+#endif
+		)
    {
       AVI_errno = AVI_ERR_CLOSE;
       return -1;
    }
-#endif
 
    if(idxerror) return -1;
 

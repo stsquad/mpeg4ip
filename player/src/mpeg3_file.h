@@ -13,30 +13,26 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001-2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *              Bill May        wmay@cisco.com
  */
+/*
+ * mpeg3_file.h - contains interfacing to mpg files for local playback
+ */
+#ifndef __MPEG3_FILE_H__
+#define __MPEG3_FILE_H__ 1
+#include <libmpeg3.h>
+#include <SDL.h>
+#include <SDL_thread.h>
 
-#ifndef __MP4AV_INCLUDED__
-#define __MP4AV_INCLUDED__ 
+class CPlayerSession;
 
-#ifdef __cplusplus
-/* exploit C++ ability of default values for function parameters */
-#define DEFAULT_PARM(x)	=x
-#else
-#define DEFAULT_PARM(x)
+int create_media_for_mpeg_file (CPlayerSession *psptr,
+				const char *name,
+				char *errmsg,
+				uint32_t errlen, 
+				int have_audio_driver);
+
 #endif
-
-/* MP4AV library API */
-#include "mp4av_aac.h"
-#include "mp4av_mp3.h"
-#include "mp4av_mpeg4.h"
-#include "mp4av_audio.h"
-#include "mp4av_hinters.h"
-#include "mp4av_mpeg3.h"
-#undef DEFAULT_PARM
-
-#endif /* __MP4AV_INCLUDED__ */ 
-

@@ -205,9 +205,8 @@ static inline int mpeg3video_addblock(mpeg3_slice_t *slice,
   	}
   	else 
   	{
-#ifndef MPEG4IP
 /* libtool PIC causes problems here */
-#ifdef HAVE_MMX
+#if defined(HAVE_MMX) && !defined(MPEG4IP)
 		if(video->have_mmx)
 		{
     		if(spar) 
@@ -270,7 +269,6 @@ static inline int mpeg3video_addblock(mpeg3_slice_t *slice,
 		}
 		else
 #endif /* HAVE_MMX */
-#endif /* MPEG4IP */
     		for(i = 0; i < 8; i++)
 			{
     			rfp[0] = CLIP(bp[0] + 128);

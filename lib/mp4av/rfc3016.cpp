@@ -27,7 +27,7 @@
 #include <mp4av_common.h>
 #include <mp4av_mpeg4.h>
 
-bool MP4AV_Rfc3016Hinter(
+extern "C" bool MP4AV_Rfc3016Hinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
 	u_int16_t maxPayloadSize)
@@ -92,6 +92,11 @@ bool MP4AV_Rfc3016Hinter(
 
 	u_int32_t numSamples = MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
 	u_int32_t maxSampleSize = MP4GetTrackMaxSampleSize(mp4File, mediaTrackId);
+	
+	if (numSamples == 0 || maxSampleSize == 0) {
+		return false;
+	}
+
 	u_int8_t* pSampleBuffer = (u_int8_t*)malloc(maxSampleSize);
 	ASSERT(pSampleBuffer);
 

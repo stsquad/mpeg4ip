@@ -25,7 +25,9 @@
 #include "mpeg3.h"
 extern "C" {
 #include <mpeg3protos.h>
+#include <mpeg3videoprotos.h>
 }
+#include "mp4av.h"
 
 //#define DEBUG_MPEG3_FRAME 1
 
@@ -53,6 +55,7 @@ static codec_data_t *mpeg3_create (format_list_t *media_fmt,
 				  0, 
 				  1);
 
+  mpeg3->m_did_pause = 1;
   return ((codec_data_t *)mpeg3);
 }
 
@@ -73,6 +76,10 @@ static void mpeg3_close (codec_data_t *ifptr)
 
 static void mpeg3_do_pause (codec_data_t *ifptr)
 {
+  mpeg3_codec_t *mpeg3 = (mpeg3_codec_t *)ifptr;
+  mpeg3->m_did_pause = 1;
+  mpeg3->m_got_i = 0;
+  mpeg3->m_video->repeat_count = mpeg3->m_video->current_repeat = 0;
 }
 
 static int mpeg3_decode (codec_data_t *ptr,
@@ -83,6 +90,7 @@ static int mpeg3_decode (codec_data_t *ptr,
 			uint32_t buflen)
 {
   int ret;
+  int render = 1;
   mpeg3_codec_t *mpeg3 = (mpeg3_codec_t *)ptr;
   mpeg3video_t *video;
   video = mpeg3->m_video;
@@ -92,6 +100,20 @@ static int mpeg3_decode (codec_data_t *ptr,
   buffer[buflen + 2] = 1;
   buffer[buflen + 3] = 0;
 
+#if 0
+  if (mpeg3->m_did_pause != 0) {
+    for (uint32_t ix = 0; ix < buflen + 3; ix++) {
+      if (buffer[ix] == 0 &&
+	  buffer[ix + 1] == 0 &&
+	  buffer[ix + 2] == 1) {
+	mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "index %d - value %x %x %x", 
+			      ix, buffer[ix + 3], buffer[ix + 4],
+			      buffer[ix + 5]);
+      }
+    }
+  }
+#endif
+	
   mpeg3bits_use_ptr_len(video->vstream, buffer, buflen + 3);
   if (video->decoder_initted == 0) {
     mpeg3video_get_header(video, 1);
@@ -106,11 +128,30 @@ static int mpeg3_decode (codec_data_t *ptr,
 				    VIDEO_FORMAT_YUV);
       // Gross and disgusting, but it looks like it didn't clean up
       // properly - so just start from beginning of buffer and decode.
-      mpeg3bits_use_ptr_len(video->vstream, buffer, buflen + 3);
     } else 
       return buflen;
-  }
+    mpeg3->m_did_pause = 0;
+  } else {
+    if (mpeg3->m_did_pause) {
+      if (mpeg3->m_got_i == 0) {
+	int ret;
+	ret = MP4AV_Mpeg3FindGopOrPictHdr(buffer, buflen);
 
+	if (ret >= 0) {
+	  mpeg3->m_got_i = 1;
+	  render = 0;
+	} else
+	  return (buflen);
+      } else {
+	mpeg3->m_got_i++;
+	if (mpeg3->m_got_i == 4) {
+	  mpeg3->m_did_pause = 0;
+	} else {
+	  render = 0;
+	}
+      }
+    }
+  }
   char *y, *u, *v;
 
   y = NULL;
@@ -120,7 +161,8 @@ static int mpeg3_decode (codec_data_t *ptr,
 				     &y,
 				     &u,
 				     &v);
-  if (ret == 0 && y != NULL) {
+
+  if (ret == 0 && y != NULL && render != 0) {
 #ifdef DEBUG_MPEG3_FRAME
     mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame %llu decoded", 
 			  ts);
@@ -132,6 +174,9 @@ static int mpeg3_decode (codec_data_t *ptr,
 					 mpeg3->m_w, mpeg3->m_w / 2, ts);
   } else {
 #ifdef DEBUG_MPEG3_FRAME
+    if (render == 0) {
+      mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "skip render");
+    }
     mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame %llu ret %d %p", 
 			  ts, ret, y);
 #endif
@@ -153,6 +198,9 @@ static int mpeg3_codec_check (lib_message_func_t message,
     if (strcmp(fptr->fmt, "32") == 0) {
       return 1;
     }
+  }
+  if (compressor != NULL && strcmp(compressor, "MPEG FILE") == 0) {
+    return 1;
   }
   return -1;
 }

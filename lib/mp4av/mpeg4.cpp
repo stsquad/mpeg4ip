@@ -68,10 +68,11 @@ u_int32_t CBitBuffer::GetBits(u_int8_t numBits)
 	return bits;
 }
 
-bool MP4AV_Mpeg4ParseVosh(
-	u_int8_t* pVoshBuf, 
-	u_int32_t voshSize,
-	u_int8_t* pProfileLevel)
+
+extern "C" bool MP4AV_Mpeg4ParseVosh(
+				     u_int8_t* pVoshBuf, 
+				     u_int32_t voshSize,
+				     u_int8_t* pProfileLevel)
 {
 	CBitBuffer vosh(pVoshBuf, voshSize);
 
@@ -86,7 +87,7 @@ bool MP4AV_Mpeg4ParseVosh(
 	return true;
 }
 
-bool MP4AV_Mpeg4ParseVol(
+extern "C" bool MP4AV_Mpeg4ParseVol(
 	u_int8_t* pVolBuf, 
 	u_int32_t volSize,
 	u_int8_t* pTimeBits, 
@@ -171,7 +172,7 @@ bool MP4AV_Mpeg4ParseVol(
 	return true;
 }
 
-bool MP4AV_Mpeg4ParseGov(
+extern "C" bool MP4AV_Mpeg4ParseGov(
 	u_int8_t* pGovBuf, 
 	u_int32_t govSize,
 	u_int8_t* pHours, 
@@ -194,7 +195,7 @@ bool MP4AV_Mpeg4ParseGov(
 	return true;
 }
 
-bool MP4AV_Mpeg4ParseVop(
+extern "C" bool MP4AV_Mpeg4ParseVop(
 	u_int8_t* pVopBuf, 
 	u_int32_t vopSize,
 	u_char* pVopType, 
@@ -247,7 +248,8 @@ bool MP4AV_Mpeg4ParseVop(
 
 // Map from ISO IEC 14496-2:2000 Appendix G 
 // to ISO IEC 14496-1:2001 8.6.4.2 Table 6
-u_int8_t MP4AV_Mpeg4VideoToSystemsProfileLevel(u_int8_t videoProfileLevel)
+extern "C" u_int8_t 
+MP4AV_Mpeg4VideoToSystemsProfileLevel(u_int8_t videoProfileLevel)
 {
 	switch (videoProfileLevel) {
 	// Simple Profile
@@ -352,7 +354,7 @@ u_int8_t MP4AV_Mpeg4VideoToSystemsProfileLevel(u_int8_t videoProfileLevel)
 	}
 }
 
-u_char MP4AV_Mpeg4GetVopType(u_int8_t* pVopBuf, u_int32_t vopSize)
+extern "C" u_char MP4AV_Mpeg4GetVopType(u_int8_t* pVopBuf, u_int32_t vopSize)
 {
 	u_char vopType;
 

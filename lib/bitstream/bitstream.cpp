@@ -52,7 +52,7 @@ void CBitstream::bookmark (int bSet)
   if (bSet) {
     m_uNumOfBitsInBuffer_bookmark = m_uNumOfBitsInBuffer;
     m_chDecBuffer_bookmark = m_chDecBuffer;
-    m_chDecBufferSize_bookmark = m_chDecBufferSize_bookmark;
+    m_chDecBufferSize_bookmark = m_chDecBufferSize;
     m_bBookmarkOn = 1;
   } else {
     m_uNumOfBitsInBuffer = m_uNumOfBitsInBuffer_bookmark;
@@ -62,13 +62,15 @@ void CBitstream::bookmark (int bSet)
   }
 }
 
-int CBitstream::getbits (uint32_t numBits, uint32_t *pretData)
+uint32_t CBitstream::GetBits (uint32_t numBits)
 {
   uint32_t retData;
 
-  if (numBits > 32) return -1;
+  if (numBits > 32) {
+    throw;
+  }
+  
   if (numBits == 0) {
-    *pretData = 0;
     return 0;
   }
 	
@@ -86,25 +88,25 @@ int CBitstream::getbits (uint32_t numBits, uint32_t *pretData)
     switch ((nbits - 1) / 8) {
     case 3:
       nbits -= 8;
-      if (m_chDecBufferSize < 8) return (-1);
+      if (m_chDecBufferSize < 8) throw;
       retData |= *m_chDecBuffer++ << nbits;
       m_chDecBufferSize -= 8;
       // fall through
     case 2:
       nbits -= 8;
-      if (m_chDecBufferSize < 8) return (-1);
+      if (m_chDecBufferSize < 8) throw;
       retData |= *m_chDecBuffer++ << nbits;
       m_chDecBufferSize -= 8;
     case 1:
       nbits -= 8;
-      if (m_chDecBufferSize < 8) return (-1);
+      if (m_chDecBufferSize < 8) throw;
       retData |= *m_chDecBuffer++ << nbits;
       m_chDecBufferSize -= 8;
     case 0:
       break;
     }
     if (m_chDecBufferSize < nbits) {
-      return -1;
+      throw;
     }
     m_chDecData = *m_chDecBuffer++;
     m_uNumOfBitsInBuffer = MIN(8, m_chDecBufferSize) - nbits;
@@ -112,8 +114,7 @@ int CBitstream::getbits (uint32_t numBits, uint32_t *pretData)
     retData |= (m_chDecData >> m_uNumOfBitsInBuffer) & msk[nbits];
   }
   //printf("bits %d value %d\n", numBits, retData&msk[numBits]);
-  *pretData =  retData & msk[numBits];
-  return (0);
+  return (retData & msk[numBits]);
 }
 
 int CBitstream::byte_align(void) 

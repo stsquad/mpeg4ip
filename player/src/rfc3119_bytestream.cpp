@@ -200,6 +200,7 @@ void CRfc3119RtpByteStream::process_packet (void)
   uint64_t pak_ts;
   int adu_offset;
   adu_data_t *prev_adu;
+  int thisAduSize;
 
   do {
     /*
@@ -258,6 +259,7 @@ void CRfc3119RtpByteStream::process_packet (void)
 	  /*
 	   * See if we're past the end of the packet
 	   */
+	  thisAduSize = adu->aduDataSize;
 	  if (adu_offset + adu->aduDataSize > pak->rtp_data_len) {
 	    // have a fragment here...
 	    // malloc a frame pointer, and copy the rest... 
@@ -324,26 +326,14 @@ void CRfc3119RtpByteStream::process_packet (void)
 	  /*
 	   * Decode the mp3 header
 	   */
-	  if (decode_mp3_header(adu->frame_ptr, 
-				&adu->mp3hdr) < 0) {
-	    mpa_message(LOG_ERR, 
-			"Couldn't decode mp3 header, rtp seq %d idx %d cyct %d", 
-			adu->pak->rtp_pak_seq, 
-			adu->interleave_idx,
-			adu->cyc_ct);
-		     
-	    // error case figure this out
-	    if (prev_adu != NULL) {
-	      prev_adu->last_in_pak = adu->last_in_pak;
-	    } 
-	    free_adu(adu);
-	    continue;
-	  } 
+	  adu->mp3hdr = MP4AV_Mp3HeaderFromBytes(adu->frame_ptr);
+	  adu->framesize = MP4AV_Mp3GetFrameSize(adu->mp3hdr);
+
 	  /*
 	   * Headersize, sideInfoSize and aduDataSize 
 	   */
 	  adu->headerSize = 4;
-	  adu->sideInfoSize = mp3_sideinfo_size(&adu->mp3hdr);
+	  adu->sideInfoSize = MP4AV_Mp3GetSideInfoSize(adu->mp3hdr);
 
 	  adu->aduDataSize -= (adu->headerSize + adu->sideInfoSize);
 
@@ -352,9 +342,9 @@ void CRfc3119RtpByteStream::process_packet (void)
 	   */
 	  if (m_rtp_ts_add == 0) {
 	    m_rtp_ts_add = 
-	      ( 1000 * mp3_get_samples_per_frame(adu->mp3hdr.layer, 
-						 adu->mp3hdr.version));
-	    m_rtp_ts_add /= adu->mp3hdr.frequency;
+	      ( 1000 * MP4AV_Mp3GetHdrSamplingWindow(adu->mp3hdr));
+
+	    m_rtp_ts_add /= MP4AV_Mp3GetHdrSamplingRate(adu->mp3hdr);
 	  }
 	
 	  // here we make a few decisions as to where the packet should
@@ -407,8 +397,8 @@ void CRfc3119RtpByteStream::process_packet (void)
 	    insert_interleaved = m_have_interleave;
 	  }
 
-	  adu->backpointer = mp3_get_backpointer(&adu->mp3hdr, 
-						 adu->frame_ptr);
+	  adu->backpointer =  MP4AV_Mp3GetAduOffset(adu->frame_ptr, 
+						    thisAduSize);
 
 	  if (insert_interleaved) {
 	    insert_interleave_adu(adu);
@@ -498,13 +488,15 @@ int CRfc3119RtpByteStream::needToGetAnADU (void)
  
   p = m_pending_adu_list;
 
-  endOfHeadFrame = p->mp3hdr.framesize - p->headerSize - p->sideInfoSize;
+  endOfHeadFrame = p->framesize - p->headerSize - p->sideInfoSize;
 
   while (p != NULL) {
+    int framesize = p->framesize;
     int endOfData = frameOffset - p->backpointer + p->aduDataSize;
+    
 #ifdef DEBUG_3119
     mpa_message(LOG_DEBUG, "add fr %d hd %d si %d bp %d adu %d", 
-		p->mp3hdr.framesize,
+		framesize,
 		p->headerSize,
 		p->sideInfoSize,
 		p->backpointer, p->aduDataSize);
@@ -514,7 +506,7 @@ int CRfc3119RtpByteStream::needToGetAnADU (void)
     if (endOfData >= endOfHeadFrame) {
       return 0;
     }
-    frameOffset += p->mp3hdr.framesize - p->headerSize - p->sideInfoSize;
+    frameOffset += framesize - p->headerSize - p->sideInfoSize;
     p = p->next_adu;
   }
   return 1;
@@ -531,7 +523,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
   
 #ifdef DEBUG_3119
   mpa_message(LOG_DEBUG, "tail fr %d bp %d si %d", 
-	      tailADU->mp3hdr.framesize, 
+	      tailADU->framesize,
 	      tailADU->backpointer, 
 	      tailADU->sideInfoSize);
 #endif
@@ -550,7 +542,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
 
   while (1) {
     if (m_pending_adu_list != tailADU) {
-      prevADUend = prevADU->mp3hdr.framesize + 
+      prevADUend = prevADU->framesize + 
 	prevADU->backpointer -
 	prevADU->headerSize -
 	prevADU->sideInfoSize;
@@ -561,7 +553,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
       }
 #ifdef DEBUG_3119
       mpa_message(LOG_DEBUG, "fr %d bp %d si %d", 
-		  prevADU->mp3hdr.framesize, 
+		  prevADU->framesize,
 		  prevADU->backpointer, 
 		  prevADU->sideInfoSize);
       mpa_message(LOG_DEBUG, "prevADUend is %d, prev size %d tail bpointer %d", 
@@ -610,7 +602,8 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
       SDL_UnlockMutex(m_rtp_packet_mutex);
 
       prevADU->pak = NULL;
-      prevADU->frame_ptr = (unsigned char *)malloc(tailADU->mp3hdr.framesize);
+      prevADU->frame_ptr = 
+	(unsigned char *)malloc(tailADU->framesize);
       prevADU->aduDataSize = 0;
       prevADU->timestamp = ts;
       prevADU->first_in_pak = 0;
@@ -624,12 +617,12 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
 	     prevADU->headerSize + prevADU->sideInfoSize);
 
       ZeroOutMP3SideInfo(prevADU->frame_ptr, 
-			 tailADU->mp3hdr.framesize,
+			 tailADU->framesize,
 			 prevADUend);
-      decode_mp3_header(prevADU->frame_ptr, 
-			&prevADU->mp3hdr);
-      prevADU->backpointer = mp3_get_backpointer(&prevADU->mp3hdr,
-						 prevADU->frame_ptr);
+      prevADU->mp3hdr = MP4AV_Mp3HeaderFromBytes(prevADU->frame_ptr);
+      prevADU->framesize = MP4AV_Mp3GetFrameSize(prevADU->mp3hdr);
+      prevADU->backpointer = MP4AV_Mp3GetAduOffset(prevADU->frame_ptr,
+						   prevADU->framesize);
     } else {
       return;
     }
@@ -663,7 +656,8 @@ uint64_t CRfc3119RtpByteStream::start_next_frame (unsigned char **buffer,
    * first element of the ordered list to the pending list, and use that.
    */
   if (m_pending_adu_list == NULL) {
-    if (m_ordered_adu_list->mp3hdr.layer != 3) {
+    if (MP4AV_Mp3GetHdrLayer(m_ordered_adu_list->mp3hdr) != 1) {
+      //if (m_ordered_adu_list->mp3hdr.layer != 3)
       SDL_LockMutex(m_rtp_packet_mutex);
       m_pending_adu_list = m_ordered_adu_list;
       m_ordered_adu_list = m_ordered_adu_list->next_adu;
@@ -677,7 +671,7 @@ uint64_t CRfc3119RtpByteStream::start_next_frame (unsigned char **buffer,
       mpa_message(LOG_DEBUG, "Not layer 3");
 #endif
       *buffer = m_pending_adu_list->frame_ptr;
-      *buflen = m_pending_adu_list->mp3hdr.framesize;
+      *buflen = m_pending_adu_list->framesize;
       return m_pending_adu_list->timestamp;
     }
   }
@@ -711,7 +705,7 @@ uint64_t CRfc3119RtpByteStream::start_next_frame (unsigned char **buffer,
   /*
    * We should have enough on the pending list to fill up a frame
    */
-  endOfHeadFrame = m_pending_adu_list->mp3hdr.framesize;
+  endOfHeadFrame = m_pending_adu_list->framesize;
   if (m_mp3_frame == NULL ||
       m_mp3_frame_size < endOfHeadFrame) {
     m_mp3_frame_size = endOfHeadFrame * 2;
@@ -755,16 +749,16 @@ uint64_t CRfc3119RtpByteStream::start_next_frame (unsigned char **buffer,
 	   p->frame_ptr + p->headerSize + p->sideInfoSize + fromOffset,
 	   bytesUsedHere);
     toOffset += bytesUsedHere;
-    frameOffset += p->mp3hdr.framesize - p->headerSize - p->sideInfoSize;
+    frameOffset += p->framesize - p->headerSize - p->sideInfoSize;
     p = p->next_adu;
   }
 
 #ifdef DEBUG_3119
   mpa_message(LOG_DEBUG, "ts %llu, framesize %d", 
-	      m_pending_adu_list->timestamp, m_pending_adu_list->mp3hdr.framesize);
+	      m_pending_adu_list->timestamp, m_pending_adu_list->framesize);
 #endif
   *buffer = m_mp3_frame;
-  *buflen = m_pending_adu_list->mp3hdr.framesize;
+  *buflen = m_pending_adu_list->framesize;
 
   return (m_pending_adu_list->timestamp);
 }

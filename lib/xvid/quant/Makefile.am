@@ -7,6 +7,7 @@ libxvidquant_la_LDFLAGS = -static
 
 AM_CFLAGS= -O3
 
+INCLUDES=-I$(top_builddir)/include
 libxvidquant_la_SOURCES = \
 	adapt_quant.c \
 	adapt_quant.h \
