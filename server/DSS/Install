@@ -47,10 +47,10 @@ if [ $USERID = 0 ]; then
 	
 	
 	echo copying "PlaylistBroadcaster" to "/usr/local/sbin/PlaylistBroadcaster"
-	cp -f PlaylistBroadcaster.tproj/PlaylistBroadcaster /usr/local/sbin/
+	cp -f PlaylistBroadcaster /usr/local/sbin/
 	
 	echo copying "qtpasswd" to "/usr/local/sbin/qtpasswd"
-	cp -f qtpasswd.tproj/qtpasswd /usr/local/sbin/
+	cp -f qtpasswd /usr/local/sbin/
 	
 	echo copying modules to "/usr/local/sbin/StreamingServerModules"
 	if [ ! -d /usr/local/sbin/StreamingServerModules ]; then
