@@ -61,7 +61,6 @@ LDADD = \
 	$(top_builddir)/server/audio/lame/libmp3lame.a \
 	$(top_builddir)/server/video/divx/libdivxencore.la \
 	$(top_builddir)/server/video/ffmpeg/libffmpeg.la \
-	$(top_builddir)/common/video/xvid/libxvid.la \
 	-lpthread \
 	$(top_builddir)/lib/SDL/src/libSDL.la \
 	@GTK_LIBS@ @GLIB_LIBS@

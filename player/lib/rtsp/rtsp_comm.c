@@ -77,6 +77,7 @@ int rtsp_create_socket (rtsp_client_t *info)
     return (-1);
   }
 
+#ifndef _WIN32
   if (info->thread != NULL) {
     result = fcntl(info->server_socket, F_GETFL);
     result = fcntl(info->server_socket, F_SETFL, result | O_NONBLOCK);
@@ -84,6 +85,7 @@ int rtsp_create_socket (rtsp_client_t *info)
       rtsp_debug(LOG_ERR, "Couldn't create nonblocking %d", errno);
     }
   }
+#endif
 
   return (0);
 }
