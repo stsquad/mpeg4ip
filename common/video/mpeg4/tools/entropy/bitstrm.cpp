@@ -80,31 +80,52 @@ Char CInBitStream::getBitsC (Int iNOfBits)
 	return (Char)  getBits ((UInt) iNOfBits);
 }
 
+static unsigned int msk[33] =
+{
+  0x00000000, 0x00000001, 0x00000003, 0x00000007,
+  0x0000000f, 0x0000001f, 0x0000003f, 0x0000007f,
+  0x000000ff, 0x000001ff, 0x000003ff, 0x000007ff,
+  0x00000fff, 0x00001fff, 0x00003fff, 0x00007fff,
+  0x0000ffff, 0x0001ffff, 0x0003ffff, 0x0007ffff,
+  0x000fffff, 0x001fffff, 0x003fffff, 0x007fffff,
+  0x00ffffff, 0x01ffffff, 0x03ffffff, 0x07ffffff,
+  0x0fffffff, 0x1fffffff, 0x3fffffff, 0x7fffffff,
+  0xffffffff
+};
+
 UInt CInBitStream::getBits (UInt numBits)
 {
-	assert (numBits <= 32);
-	if (numBits == 0) return 0;
+  assert (numBits <= 32);
+  if (numBits == 0) return 0;
 	
-	UInt retData;
-	if (m_uNumOfBitsInBuffer >= numBits) {	// don't need to read from FILE
-		retData = getbit (m_chDecBuffer, 7, numBits);
-		m_chDecBuffer = m_chDecBuffer << numBits;
-		m_uNumOfBitsInBuffer -= numBits;
-        m_lCounter += numBits;
-	}
-	else { // ready, but need to handle the leftover part
-		numBits -= m_uNumOfBitsInBuffer; // left-over unhandled bits
-		retData = getbit (m_chDecBuffer, 7, m_uNumOfBitsInBuffer) << numBits;
-        m_lCounter += m_uNumOfBitsInBuffer;
-	if (m_bBookmarkOn == FALSE) {
-	  // bookmark on - if we hit EOF, just read it, anyway
-		assert(!m_pInStream->eof()); // dont allow repeated gets off end of file
-	}
-        m_chDecBuffer = m_pInStream -> get ();
-		m_uNumOfBitsInBuffer = 8;
-		retData += getBits (numBits);
-	}
-	return retData;
+  UInt retData;
+  if (m_uNumOfBitsInBuffer >= numBits) {	// don't need to read from FILE
+    m_uNumOfBitsInBuffer -= numBits;
+    retData = m_chDecBuffer >> m_uNumOfBitsInBuffer;
+    retData &= msk[numBits];
+  } else {
+    int nbits;
+    nbits = numBits - m_uNumOfBitsInBuffer;
+    retData = m_chDecBuffer << nbits;
+    switch ((nbits - 1) / 8) {
+    case 3:
+      nbits -= 8;
+      retData |= m_pInStream->get() << nbits;
+      // fall through
+    case 2:
+      nbits -= 8;
+      retData |= m_pInStream->get() << nbits;
+    case 1:
+      nbits -= 8;
+      retData |= m_pInStream->get() << nbits;
+    case 0:
+      break;
+    }
+    m_chDecBuffer = m_pInStream->get();
+    m_uNumOfBitsInBuffer = 8 - nbits;
+    retData |= (m_chDecBuffer >> m_uNumOfBitsInBuffer) & msk[nbits];
+  }
+  return retData & msk[numBits];
 
 }
 
@@ -380,7 +401,7 @@ Int CInBitStream::peekOneBit (const UInt numBits) const
 	Int nBitsToPeek = numBits - m_uNumOfBitsInBuffer;
 	
 	if(nBitsToPeek<=0)
-		iBit=m_chDecBuffer&(256>>numBits);
+		iBit=m_chDecBuffer&(256>>(m_uNumOfBitsInBuffer - 1 - numBits));
 	else
 	{
 	  m_pInStream->bookmark(TRUE);

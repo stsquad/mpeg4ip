@@ -44,7 +44,7 @@ Revision History:
 
 #ifndef _BITSTREAM_HPP_
 #define _BITSTREAM_HPP_
-#include <streambuf.h>
+//#include <streambuf.h>
 #include "bytestrm.hpp"
 class istream;
 class ostream;
@@ -97,7 +97,6 @@ protected:
 	UInt m_uNumOfBitsInBuffer;
 	Char m_chDecBuffer;
 	Bool m_bBookmarkOn;
-	streampos m_bookmark_strmpos;
 	UInt m_uNumOfBitsInBuffer_bookmark;
 	Char m_chDecBuffer_bookmark;
     Int m_lCounter_bookmark;
