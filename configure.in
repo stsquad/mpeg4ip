@@ -47,6 +47,22 @@ esac],
 [player=true])
 AM_CONDITIONAL(PLAYER, test $player = true)
 
+AC_ARG_ENABLE(mp4live,
+[  --enable-mp4live       enable mp4live build on Linux [default=yes]],
+                  , enable_mp4live=yes)
+    if test x$enable_mp4live = xyes; then
+		case "$target" in
+		*-*-linux*)
+			AM_CONDITIONAL(MP4LIVE, true)
+			;;
+		*)
+			AM_CONDITIONAL(MP4LIVE, false)
+			;;
+		esac
+	else
+		AM_CONDITIONAL(MP4LIVE, false)
+    fi
+
 dnl ### Checking for the existence of files
 dnl MY_CHECK_FILE(FILE, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]])
 
@@ -121,11 +137,11 @@ AC_OUTPUT( \
 	lib/Makefile \
 	lib/avi/Makefile \
 	lib/bitstream/Makefile \
+	lib/config_file/Makefile \
+	lib/mp4/Makefile \
+	lib/msg_queue/Makefile \
+	lib/sdp/Makefile \
 	common/Makefile \
-	common/lib/Makefile \
-	common/lib/config_file/Makefile \
-	common/lib/msg_queue/Makefile \
-	common/mp4/Makefile \
 	common/video/Makefile \
 	server/Makefile \
 	server/audio/Makefile \
@@ -148,7 +164,6 @@ AC_OUTPUT( \
 	server/util/mp4extract/Makefile \
 	player/Makefile \
 	player/lib/Makefile \
-	player/lib/sdp/Makefile \
 	player/lib/rtsp/Makefile \
 	player/lib/audio/Makefile \
 	player/lib/audio/faad/Makefile \

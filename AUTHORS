@@ -1,6 +1,15 @@
 MPEG4IP original code and integration by:
-	Dave Mackie	dmackie@cisco.com
-	Bill May	wmay@cisco.com
+	Dave Mackie					dmackie@cisco.com
+	Bill May					wmay@cisco.com
+	Alix Marchandise-Franquet	alix@cisco.com
 
-Authors for incorporated open source packages can be found in the respective package sub-directories. The primary authors are also listed in the README.
+Authors for incorporated open source packages can be found in the respective 
+package sub-directories. The primary authors are also listed in the README.
+
+Please direct all questions and comments about MPEG4IP to the project
+discussion forum on SourceForge! This will ensure the fastest response by
+the most knowledgeable person, and also benefit the community knowledge
+base.
+
+http://sourceforge.net/forums/?group_id=18676
 

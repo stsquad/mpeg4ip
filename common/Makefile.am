@@ -1,1 +1,1 @@
-SUBDIRS = lib mp4 video
+SUBDIRS = video

@@ -1,3 +1,12 @@
+8/1/01 Version 0.7
+	Added live encoding program, mp4live
+	Improved player synchronization of audio and video for OSS 
+        supported platforms.
+	Improved OpenDivX encoder performance
+	Added interleaved audio RTP payload format support
+	Fixed a number of bugs with mp4 file library
+	Fixed compiling on windows platforms
+
 5/7/01 Version 0.6.2
 	Fixes so that package now builds on RedHat 6.1, 6.2, 7.0, and 7.1
 	LAME MP3 encoder is now included

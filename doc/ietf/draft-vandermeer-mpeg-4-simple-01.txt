@@ -1,0 +1,1239 @@
+
+
+Internet Engineering Task Force                        J. van der Meer
+Internet Draft                                     Philips Electronics
+                                                             D. Mackie
+                                                    Cisco Systems Inc.
+                                                        V. Swaminathan
+                                                 Sun Microsystems Inc.
+                                                             D. Singer
+                                                        Apple Computer
+
+                                                              July 2001
+                                                   Expires January 2002
+
+   Document: draft-vandermeer-mpeg-4-simple-01.txt
+
+
+   Use of "RFC-generic" for MPEG-4 Elementary Streams with no SL layer
+
+
+
+
+Status of this Memo
+
+   This document is an Internet-Draft and is in full conformance with
+   all provisions of Section 10 of RFC2026.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups. Note that
+   other groups may also distribute working documents as Internet-
+   Drafts. Internet-Drafts are draft documents valid for a maximum of
+   six months and may be updated, replaced, or obsoleted by other
+   documents at any time. It is inappropriate to use Internet- Drafts
+   as reference material or to cite them other than as "work in
+   progress."
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html.
+
+
+
+Abstract
+
+   The MPEG Committee (ISO/IEC JTC1/SC29 WG11) is a working group in ISO 
+   that recently produced the MPEG-4 [1] standard. MPEG defines tools to 
+   compress content such as audio-visual information into elementary 
+   streams. In [6] a generic RTP payload format is defined for transport 
+   of any non-multiplexed MPEG-4 elementary stream. To achieve the generic 
+   MPEG-4 functionality, [6] addresses detailed issues related to the 
+   MPEG-4 SL layer. However, many initial applications will not use the SL 
+   Layer. To facilitate usage of [6] by such applications, this document 
+   describes how to use [6] when no SL layer is used. 
+
+   This specification is a product of the Audio/Video Transport working
+   group within the Internet Engineering Task Force. Comments are 
+   solicited and should be addressed to the working group's mailing 
+   list at avt@ietf.org and/or the authors.
+
+1. Introduction
+
+   The MPEG Committee is Working Group 11 (WG11) in ISO/IEC JTC1 SC29 
+   that specified the MPEG-1, MPEG-2 and, more recently, the MPEG-4 
+   standards [1]. The MPEG-4 standard specifies compression of 
+   audio-visual data into for example an audio or video elementary 
+   stream. In the MPEG-4 standard, these streams take the form of 
+   audiovisual objects that may be arranged into an audio-visual scene 
+   by means of a scene description. Each MPEG-4 elementary stream 
+   consists of a sequence of Access Units; in case of audio an Access 
+   Unit (AU) is an audio frame and in case of video a picture. 
+
+   The MPEG-4 system specification is a rather abstract specification in 
+   the sense that no transport format for MPEG-4 elementary streams is 
+   defined. Instead, a conceptual SL layer has been specified to store 
+   transport specific information such as time stamps and random access 
+   point information. When transporting an MPEG-4 elementary stream, 
+   transport information from the SL layer is typically mapped to the 
+   actual transport layer. Note however that the SL layer is conceptual 
+   and may not exist in practice.
+
+   In [6], a general payload format is defined for transport of a single 
+   MPEG-4 elementary stream over RTP. The RTP payload format specified 
+   in [6] allows for carriage of any information that may be contained in 
+   the MPEG-4 SL layer, either by mapping to the RTP header fields or by 
+   carriage in specific fields defined in the RTP payload. Consequently, 
+   the format defined in [6] is very generic and complete; for example, 
+   transcoding issues from and to the SL layer are described in detail. 
+   
+   However, in many initial MPEG-4 applications the SL layer does not 
+   exist in practice. Such applications do not require any knowledge of 
+   the SL layer. While the use of [6] is highly desirable for all MPEG-4 
+   applications, to understand [6] may be difficult without knowledge of 
+   the MPEG-4 SL layer. Therefore in this document the use of [6] is 
+   described without requiring knowledge of the SL layer to understand 
+   its functionality. 
+
+   Sophisticated features on interleaving of fragmented Access Units are 
+   defined in [6]. Because initial applications do not require these 
+   complicated features, these features are not supported in this 
+   document. Hence, only a functional subset of [6] is supported. 
+
+   In [6], a general and configurable payload structure is defined for 
+   transport of MPEG-4 streams. This allows for the design of receivers 
+   that can be configured to receive any MPEG-4 stream. Configuration of 
+   the payload is provided to accommodate transport of any MPEG-4 stream, 
+   but for a specific MPEG-4 elementary stream typically only very few 
+   configurations are needed. For initial applications this document 
+   defines three usage modes. For each usage mode a single payload 
+   configuration is defined, so as to allow for the design of simplified, 
+   but dedicated receivers. New RFCs may be defined in future to specify 
+   more usage modes. 
+
+   In summary, this document:
+   - is intended for applications that do not apply the SL layer;
+   - describes how to use [6] without requiring knowledge of the SL layer;
+   - defines a functional but true subset of [6]; 
+   - defines three usage modes, each with a single payload configuration.
+   
+   The use of [6] defined in this document is simple to implement and 
+   reasonably efficient. It allows for optional interleaving of Access 
+   Units (such as audio frames) to increase error resiliency in packet 
+   loss.
+
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in
+   this document are to be interpreted as described in RFC 2119 [3].
+
+
+2. Carriage of MPEG-4 elementary streams over RTP 
+
+2.1 MPEG-4 stream type identification
+
+   Information on the type of MPEG-4 stream that is carried in the 
+   payload is conveyed by format parameters in an SDP message or by other 
+   means.
+
+2.2 MPEG Access Units
+
+   For carriage of compressed audio-visual data MPEG defines Access 
+   Units. An MPEG Access Unit (AU) is the smallest data entity to which 
+   timing information can be attributed. In case of audio an Access 
+   Unit represents an audio frame and in case of video a picture. MPEG 
+   Access Units are by definition byte aligned. If for example an audio 
+   frame is not byte aligned, up to 7 zero-padding bits MUST be inserted 
+   at the end of the frame to achieve a byte-aligned Access Unit. 
+   Decoders MUST be able to decode AUs in which such padding is applied.
+
+   Consistent with the MPEG-4 specification, this document requires that 
+   each MPEG-4 video Access Unit includes all the coded data of a 
+   picture, any video stream headers that may precede the coded picture 
+   data, and any video stream stuffing that may follow it, up to, but not 
+   including the startcode indicating the start of a new video stream or 
+   the next Access Unit.
+
+2.3 Concatenation of Access Units
+
+   Frequently it is possible to carry multiple Access Units in one RTP 
+   packet. This is particularly useful for audio; for example, when AAC 
+   is used for encoding of a stereo signal at 64 kbits/sec, AAC frames 
+   contain on average approximately 200 bytes. On a LAN with a 1500 byte 
+   MTU this would allow on average 7 complete AAC frames to be carried 
+   per AAC packet.
+
+   Access Units may have a fixed size in bytes, but a variable size is 
+   also possible. To facilitate parsing in case of multiple concatenated 
+   AUs in one RTP packet, the size of each AU is made known to the 
+   receiver. When concatenating in case of a constant AU size, this size 
+   is communicated through a format parameter. When concatenating in case 
+   of variable size AUs, the RTP payload carries an AU size field for 
+   each contained AU. In combination with the RTP payload length the 
+   size information allows the RTP payload to be split by the receiver 
+   back into the individual AUs.
+
+   To simplify the implementation of [6] defined in this document, it 
+   is required that when multiple AUs are carried in an RTP packet, that 
+   each AU MUST be complete, i.e. the number of AUs in an RTP packet 
+   MUST be integral.
+
+2.4 Fragmentation of Access Units
+
+   MPEG allows for very large Access Units. Since most IP networks have 
+   significantly smaller MTU's, this payload format allows to fragment 
+   the AUs over multiple RTP packets so as to avoid IP layer 
+   fragmentation. To simplify the implementation of [6] defined in this 
+   document, an RTP packet SHALL either carry one or more complete 
+   Access Units or a single fragment of one Access Unit. 
+
+2.5 Interleaving
+
+   When an RTP packet carries a contiguous sequence of Access Units, 
+   the loss of such packet can result in "decoding gaps" for the user. 
+   One method to alleviate this problem is to allow for the Access 
+   Units to be interleaved in the RTP packets. For a modest cost in 
+   latency and implementation complexity, significant error resiliency 
+   to packet loss can be achieved. 
+
+   To support optional interleaving of Access Units, this payload 
+   format allows for index information to be sent for each Access Unit. 
+   The RTP sender is free to choose the interleaving pattern without 
+   propagating this information to the receiver(s). Indeed the sender 
+   could dynamically adjust the interleaving pattern based on the 
+   Access Unit size, error rates, etc. The RTP receiver does not need 
+   to know the interleaving pattern used, it only need extract the
+   index information of the Access Unit and insert the Access Unit into 
+   the appropriate sequence in the rendering queue. An example of 
+   interleaving is given below. 
+
+   Assume that an RTP packet contains 3 AUs, and that the AUs are 
+   numbered 1, 2, 3, 4, etc. If an interleaving group length of 9 is 
+   chosen, then RTP packet(i) contain the following AU(n):
+   RTP packet(1):  AU(1),  AU(4),  AU(7)
+   RTP packet(2):  AU(2),  AU(5),  AU(8)
+   RTP packet(3):  AU(3),  AU(6),  AU(9)
+   RTP packet(4):  AU(10), AU(13), AU(16)
+   RTP packet(5):  AU(11), AU(14), AU(17)
+   Etc.
+
+2.6 Time stamp information
+
+   MPEG-4 defines two type of time stamps, the decoding time stamp DTS 
+   and the composition time stamp CTS. The RTP timestamp is equivalent 
+   to the composition time stamp.
+
+   The RTP time stamp MUST carry the sampling instance of the first AU 
+   (fragment) in the RTP packet. When multiple AUs are carried within 
+   an RTP packet, the time stamps of subsequent AUs can be calculated 
+   if the frame period of each AU is known. For audio and video this 
+   is possible if the frame rate is constant. However, in some cases it
+   is not possible to make such calculation, for example for variable 
+   frame rate video and for MPEG-4 BIFS streams carrying composition 
+   information. To support such cases, this payload format can be 
+   configured to carry a CTS in the RTP payload for each contained 
+   Access Unit. A CTS time stamp MAY be conveyed in the RTP payload 
+   only for non-first AUs in the RTP packet, and SHALL NOT be conveyed 
+   for the first AU (fragment), as the time stamp for the latter is 
+   carried by the RTP time stamp. 
+
+   The DTS timestamp is applied only in MPEG video streams that use 
+   bi-directional coding, i.e. when pictures may be predicted in both 
+   forward and backward direction by using either a reference picture in 
+   the past, or a reference picture in the future. The DTS cannot be 
+   carried in the RTP header. In some cases the DTS can be derived from 
+   the RTP time stamp using frame rate information; this requires deep 
+   parsing in the video stream, which may be considered objectionable. 
+   But if the video frame rate is variable, the required information 
+   is not even present in the video stream. For both reasons, the 
+   capability has been defined to optionally carry a DTS in the RTP 
+   payload for each contained Access Unit.
+
+   Since RTP time stamps may be re-stamped by RTP devices, each CTS 
+   and DTS contained in the RTP payload is coded differentially from the 
+   RTP time stamp, so as to avoid extensive parsing by re-stamping 
+   devices. 
+
+2.7 Carriage of auxiliary information.
+
+   This payload format defines a specific field to carry auxiliary data 
+   on the contained MPEG-4 stream, representing MPEG-4 system information. 
+   The auxiliary data corresponds to the RSLH field defined in [6]. 
+   Receivers MAY use the auxiliary data to decode the contained stream, 
+   but receivers that have no interest in such data MAY skip the 
+   auxiliary data field. To facilitate skipping of the data, and to avoid 
+   the need for parsing it, the auxiliary data field is preceded by a 
+   field that specifies the length of the auxiliary data.
+
+2.8 Format parameters and the conditional presence and length of fields
+
+   To support the features described in the previous sections several 
+   fields are defined for carriage in the RTP payload. However, their use 
+   strongly depends on the type of MPEG-4 elementary stream that is 
+   carried. Sometimes a specific field is needed with a certain length, 
+   while in other cases such field is not needed at all. To be efficient 
+   in either case, the fields needed for these features are configurable 
+   by means of format parameters. In general, a format parameter defines 
+   the presence and length of associated fields. A length of zero 
+   indicates absence of the field. As a consequence, parsing of the 
+   payload requires knowledge of format parameters. The format 
+   parameters are conveyed to the receiver via SDP messages or through 
+   other means.
+
+2.9 Global structure of payload format
+
+   The payload structure in [6] is described in terms derived from the 
+   SL layer. In this document exactly the same structure is described 
+   in more general terms, so as to improve the readability for people 
+   with no knowledge of the SL layer. So the payload structure described 
+   below corresponds on bit level exactly to the payload structure 
+   defined in [6].
+
+   The RTP payload following the RTP header, contains three byte aligned 
+   data sections, of which the first two MAY be empty. See figure 1.
+
+          +---------+-----------+-----------+---------------+
+          | RTP     | AU Header | Auxiliary | Access Unit   |
+          | Header  | Section   | Section   | Data Section  |
+          +---------+-----------+-----------+---------------+
+
+                    <----------RTP Packet Payload----------->
+
+   Figure 1: Data sections within an RTP packet
+
+   The first data section is the AU (Access Unit) Header Section, that 
+   contains one or more AU headers; however, each AU header MAY be empty, 
+   in which case the entire AU Header Section is empty. The second 
+   section is the Auxiliary Section, containing auxiliary data; also 
+   this section MAY be configured empty. The third section is the Access 
+   Unit Data Section, containing either a single fragment of one Access 
+   Unit or one or more complete Access Units. The Access Unit Data 
+   Section is never empty.
+
+   When compared to the terms used in [6], the AU Header Section exactly 
+   corresponds to the MSLHSection, the Auxiliary Section to the 
+   RSLHSection, and the Access Unit Data Section to the SLPPSection. 
+
+2.10 Alignment with "RFC-generic" and RFC 3016
+
+   This document defines a subset of the "RTP payload format for MPEG-4 
+   streams" [6]. RTP payloads that conform to [6] comply to the subset 
+   defined in this document if the constraint is applied that each RTP 
+   packet contains either a single fragment of one Access Unit or one or 
+   more complete Access Units. 
+
+   Receivers designed to only comply to this document may not be able to 
+   exploit some of features of the SL layer supported in [6], such as 
+   knowledge of AU-start, random access information and other information 
+   carried in the SL header, but not described in this document. 
+
+   Receivers that comply with [6] are able to decode MPEG-4 streams carried 
+   in compliance with this document.
+
+   Furthermore, this payload can be configured to be identical to the 
+   payload format defined in RFC 3016 for the MPEG-4 video configurations 
+   recommended in RFC 3016. Hence, receivers that comply with RFC 3016 
+   can decode such RTP payload.
+
+
+3 Payload Format
+
+3.1 RTP Header Fields Usage
+
+   Payload Type (PT): The assignment of an RTP payload type for this
+   RTP packet format is outside the scope of this document, and will
+   not be specified here. It is expected that the RTP profile for a
+   particular class of applications will assign a payload type for this
+   encoding, or if that is not done, then a payload type in the dynamic
+   range shall be chosen.
+
+   Marker (M) bit: The M bit is set to 1 to indicate that the RTP packet 
+   payload includes the end of each Access Unit of which data is 
+   contained in this RTP packet. As the payload either carries one or 
+   more complete Access Units or a single fragment of an Access Unit, 
+   the M is always set to set to 1, except when the packet carries a 
+   single fragment of an Access Unit that is not the last one.  
+
+   Extension (X) bit: Defined by the RTP profile used.
+
+   Sequence Number: The RTP sequence number SHOULD be generated by the
+   sender with a constant random offset.
+
+   Timestamp: Indicates the sampling instance of the first AU contained 
+   in the RTP payload. This sampling instance is equivalent to the CTS 
+   in the MPEG-4 time domain. The clock rate of the RTP time stamp MAY 
+   be expressed as part of the RTPMAP. If an audio or video stream with 
+   a fixed frame rate is transported, the rate SHOULD be set to the same 
+   value as the sampling frequency of the audio or video frames (number 
+   of samples per second). 
+   In all cases, the sender SHALL make sure that RTP time stamps
+   are identical only if the RTP time stamp refers to fragments of the
+   same Access Unit.
+   According to RFC 1889 [2] (section 5.1), RTP timestamps are 
+   recommended to start at a random value for security reasons. However, 
+   then a receiver is in the general case not able to reconstruct the 
+   original MPEG Time Stamps which can be of use for applications 
+   where streams from multiple sources are to be synchronized. Therefore 
+   the usage of a random offset SHOULD be avoided.
+
+   SSRC: set as described in RFC1889 [2]. 
+
+   CC and CSRC fields are used as described in RFC 1889 [2].
+
+   RTCP SHOULD be used as defined in RFC 1889 [2].
+
+
+3.2 RTP Payload Structure
+
+   As already noted in section 2.9 of this document, this document uses 
+   more general names to describe exactly the same payload structure as 
+   defined in [6]. For mapping between section names in [6] and in this 
+   document see section 2.9. 
+
+
+3.2.1 The AU Header Section
+
+   When present, the AU Header Section consists of the AU-header-length 
+   field, followed by a number of AU-headers. See figure 2.
+
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- .. -+-+-+-+-+-+-+-+-+-+
+   |AU-headers-length|AU-header|AU-header|      |AU-header|padding|
+   |                 |   (1)   |   (2)   |      |   (n)   | bits  |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- .. -+-+-+-+-+-+-+-+-+-+
+
+   Figure 2: The AU Header Section 
+
+   The AU-headers are configured using format parameters and MAY be empty. 
+   If the AU-header is configured empty, the AU-headers-length field 
+   SHALL not be present and consequently the AU Header Section is empty. 
+   If the AU-header is not configured empty, then the AU-headers-length 
+   is a two byte field that specifies the length in bits of the 
+   immediately following AU-headers.
+
+   Each AU-header is associated with a single Access Unit (fragment) 
+   contained in the Access Unit Data Section in the same RTP packet. For 
+   each contained Access Unit (fragment) there is exactly one AU-header. 
+   Within the AU Header Section, the AU-headers are bit-wise concatenated 
+   in the order in which the Access Units are contained in the Access 
+   Unit Data Section. Hence, the n-th AU-header refers to the n-th AU 
+   (fragment). If the concatenated AU-headers consume a non-integer 
+   number of bytes, up to 7 zero-padding bits MUST be inserted at the end 
+   in order to achieve byte-alignment of the AU Header Section.
+
+3.2.1.1 The AU-header
+
+   The AU-header contains the fields given in figure 3. The length in 
+   bits of the above fields with the exception of the CTS-flag and 
+   the DTS-flag fields is defined by format parameters; see section 4.1. 
+   If a format parameter has the default value of zero, then the 
+   associated field is not present. 
+
+   +---------------------------------------+
+   |     AU-size                           |
+   +---------------------------------------+
+   |     AU-Index / AU-Index-delta         |
+   +---------------------------------------+
+   |     CTS-flag                          |
+   +---------------------------------------+
+   |     CTS-delta                         |
+   +---------------------------------------+
+   |     DTS-flag                          |
+   +---------------------------------------+
+   |     DTS-delta                         |
+   +---------------------------------------+
+
+   Figure 3: The fields in the AU-header. If used, the AU-Index field 
+             only occurs in the first AU-header within an AU Header 
+             Section; in any other AU-header the AU-Index-delta field 
+             occurs instead.
+
+
+   AU-size: indicates the size in bytes of the associated Access Unit 
+         in the Access Unit Data Section in the same RTP packet. When the 
+         AU-size is associated to an AU fragment, the AU size indicates 
+         the size of the entire AU and not the size of the fragment. This 
+         can be exploited to determine whether a packet contains an entire 
+         AU or a fragment, which is particularly useful after losing a 
+         packet carrying the last fragment of an AU. 
+
+   AU-Index: indicates the serial number of the associated Access Unit 
+         (fragment). For each (in time) consecutive AU or AU fragment, 
+         the serial number is incremented with 1. When present, the 
+         AU-Index field occurs in the first AU-header in the AU Header 
+         Section, but SHALL not occur in any subsequent (non-first) 
+         AU-header in that Section. To encode the serial number in any 
+         such non-first AU-header, the AU-IndexDelta field is used. 
+         AU-Index will roll-over frequently, and for placing the Access 
+         Units in their logical sequence in time, it may be needed to 
+         compute the time stamp of each Access Unit. See also section 
+         3.2.3.2.
+
+   AU-Index-delta: The AU-Index-delta field is an unsigned integer 
+         that specifies the serial number the associated AU as the 
+         difference with respect to the serial number of the previous 
+         Access Unit. Hence, for the n-th (n>1) AU the serial number is 
+         found from: 
+         AU-Index(n) = AU-Index(n-1) + AU-Index-delta(n) + 1
+         If the AU-Index field is present in the first AU-header in 
+         the AU Header Section, then the AU-Index-delta field MUST be 
+         present in any subsequent (non-first) AU-header. When the 
+         AU-Index-delta is coded with the value 0, it indicates that 
+         the Access Units are consecutive in time. An AU-Index-delta  
+         value larger than 0 signals that interleaving is applied.
+
+   CTS-flag: Indicates whether the CTS-delta field is present. 
+         A value of 1 indicates that the field is present, a value of 0 
+         that it is not present. 
+         The CTS-flag field MUST be present in each AU-header if the 
+         length of the CTS-delta field is signalled to be larger than 
+         zero. In that case, the CTS-flag field MUST have the value 0 
+         in the first AU-header and MAY have the value 1 in all non-first 
+         AU headers. The CTS-flag field SHOULD be 0 for any non-first 
+         fragment of an Access Unit. 
+
+   CTS-delta: Encodes the CTS by specifying the value of CTS as a 
+         2-complement offset (delta) from the timestamp in the RTP header 
+         of this RTP packet. The CTS MUST use the same clock rate as the
+         time stamp in the RTP header. 
+
+   DTS-flag: Indicates whether the DTS-delta field is present. A value 
+         value of 1 indicates that DTS-delta is present, a value of 0 
+         that it is not present. 
+         The DTS-flag field MUST be present in each AU-header if the 
+         length of the DTS-delta field is signalled to be larger than 
+         zero. The DTS-flag field SHOULD be 0 for any non-first 
+         fragment of an Access Unit. 
+
+   DTS-delta: specifies the value of the DTS as a 2-complement offset 
+         (delta) from the CTS timestamp. The DTS MUST use the same clock 
+         rate as the time stamp in the RTP header.  
+
+   If present, the fields MUST occur in the mutual order given in 
+   figure 3. In the general case a receiver can only discover the size 
+   of an AU-header by parsing it since the presence of the CTS-delta 
+   and DTS-delta fields is signalled by the value of the CTS-flag and 
+   DTS-flag, respectively.
+
+3.2.2 The Auxiliary Section
+
+   The Auxiliary Section consists of the auxiliary-data-size field 
+   followed by the auxiliary-data field. Receivers MAY (but are not 
+   required to) parse the auxiliary-data field; to facilitate skipping 
+   of the auxiliary-data field by receivers, the auxiliary-data-size 
+   field indicates the length in bits of the auxiliary-data. If the  
+   concatenation of the auxiliary-data-size and the auxiliary-data 
+   fields consume a non-integer number of bytes, up to 7 zero padding 
+   bits MUST be inserted immediately after the auxiliary data in order 
+   to achieve byte-alignment. See figure 4.    
+
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- .. -+-+-+-+-+-+-+-+-+
+   | auxiliary-data-size   | auxiliary-data       |padding bits |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- .. -+-+-+-+-+-+-+-+-+
+
+   Figure 4: The fields in the Auxiliary Section 
+
+   The length in bits of the auxiliary-data-size field is configurable 
+   by a format parameter; see section 4.1. The default length of zero 
+   indicates that the entire Auxiliary Section is absent.
+
+   auxiliary-data-size; specifies the length in bits of the immediately 
+         following auxiliary-data field;
+
+   auxiliary-data; the auxiliary-data field contains the Remaining SL 
+         headers (RSLHs) as defined in [6].
+
+3.2.3 The Access Unit Data Section
+
+   The Access Unit Data Section contains an integer number of complete 
+   Access Units or a single fragment of one AU. The Access Unit Data 
+   Section is never empty. If data of more than one Access Units is 
+   contained, then the AUs are concatenated into a contiguous string of 
+   bytes. See figure 5. The AUs inside the Access Unit Data Section 
+   MUST be in decoding order.
+
+   The size and number of Access Units SHOULD be adjusted such that the 
+   resulting RTP packet is not larger than the path-MTU. To handle 
+   larger packets, this payload format relies on lower layers for 
+   fragmentation, which may not be desirable.
+
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ 
+   |AU(1)                                                              |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-                                |
+   |                                                                   |
+   |     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |               |AU(2)                                              |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                                   |
+   |                                                                   |
+   |                            -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                               | AU(n)                             |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |               |
+   |-+-+-+-+-+-+-+-+
+
+   Figure 5: Access Unit Data Section; each AU is byte aligned. 
+
+
+   When multiple Access Units are carried, the size of each AU MUST be 
+   made available to the receiver. If the AU size is variable then the 
+   size of each AU MUST be indicated in the AU-size field of the 
+   corresponding AU-header. However, if the AU size is constant for a 
+   stream, this mechanism SHOULD NOT be used, but instead the fixed size 
+   SHOULD be signalled by the format parameter "ConstantSize", see 
+   section 4.1. 
+ 
+   The absence of both AU-size in the AU-header and the ConstantSize 
+   format parameter indicates carriage of a single AU (fragment), i.e. 
+   that a single Access Unit (fragment) is transported in each RTP 
+   packet for that stream.
+
+3.2.3.1 Fragmentation
+
+   A packet SHALL carry either one or more Access Units, or a single
+   fragment of an Access Unit.  Fragments of the same Access Unit have
+   the same time-stamp but differing RTP sequence numbers. The marker
+   bit in the RTP header is 1 on the last fragment of an Access Unit, 
+   and 0 on all other fragments.
+
+3.2.3.2 Interleaving
+
+   Access Units MAY be interleaved. Senders MAY perform interleaving.
+   Receivers MUST support interleaving.
+
+   When interleaving of Access Units is used it SHALL be implemented 
+   using the AU-Index and AU-Index-delta fields in the AU-header.
+
+   The conjunction of RTP sequence number, the RTP time stamp and the 
+   serial number of the Access Unit can produce a quasi-unique identifier 
+   for each AU so that a receiver can unambiguously reconstruct the 
+   original order even in case of out-of-order packets, packet loss or 
+   duplication. 
+
+   However, when the length of the AU-Index field is short, the AU-Index 
+   will rollover often; in such cases timestamps SHOULD be used as the 
+   basis for de-interleaving, i.e. the reordering algorithm should 
+   consider timestamps and AU-Index-delta first and use AU-Index values 
+   only when CTSs are not available. Therefore senders SHOULD only use 
+   small values for the AU-Index-delta field when either the CTS for each 
+   AU can be computed unambiguously, or when CTS-delta fields are present 
+   in the AU-header. In all other cases properly large values SHOULD be 
+   used for the length of the AU-Index field. 
+
+   When interleaving is applied, in receivers a de-interleave buffer is 
+   needed to put the Access Units in their correct logical consecutive 
+   order in time. This requires the computation of the time stamp for 
+   each Access Unit. In case of a fixed time duration per Access Unit, 
+   the time-stamp of each access unit i in an RTP packet with RTP 
+   time-stamp T is calculated as follows:
+
+   Timestamp[0] = T
+   Timestamp[i, i > 0] = T +(Sum(for k=1 to i of (AU-Index-delta[k] 
+                         + 1))) * access-unit-duration
+
+   When AU-Index-delta is always 0, this reduces to T + I * (access-unit- 
+   duration). This is the non-interleaved case, the frames are consecutive 
+   in time. Note that the AU-Index field (present for the first Access 
+   Unit) is not needed in this calculation.
+
+   When an RTP packet arrives (after any re-ordering has been done),
+   receivers may 'flush' all Access Units from the interleave buffer 
+   which have a time-stamp strictly less than the time-stamp of the 
+   arriving packet. Similarly the first Access Unit of every arriving 
+   packet can always be flushed (as no following packet can provide an 
+   earlier Access Unit), and any Access Units which are consecutive with 
+   it which have already been received. Access Units should also be 
+   flushed in time to be played; this can be important if there is loss 
+   before end-of-stream, before a silence interval, or before a large 
+   drop-out.
+
+3.2.3.2.1 Constraints for interleaving 
+
+   The size of the packets should be suitably chosen to be appropriate
+   to both the path MTU and the duration and capacity of the receiver's
+   de-interleave buffer. The maximum packet size for a session should be 
+   chosen not to exceed the path MTU.
+
+   In order to control receiver latency and mitigate the effects of loss, 
+   there are profile-based limits on the size of the packet. This is 
+   expressed as a duration: it is calculated from the duration of the 
+   Access Units contained within a packet. It is NOT the difference in 
+   time-stamp between the first and last Access Unit in a packet.
+
+   No matter what interleaving scheme is used, the scheme must be 
+   analyzed to calculate the minimum number of frames a receiver has to
+   buffer in order to de-interleave. 
+
+   The maximum packet duration in milliseconds, and the maximum 
+   de-interleave buffer required at the receiver, for the two profiles,
+   shall not exceed:
+
+   RTP transport profile 0 -- 200 milliseconds 
+   RTP transport profile 1 -- 500 milliseconds 
+
+   When interleaving is applied, the applied RTP transport profile MUST 
+   be signalled by the profile parameter; see section 4.1.
+
+   Note that for low bit-rate material, the duration limit may make
+   packets shorter than the MTU size.
+
+
+3.3 Special usage modes
+
+3.3.1 General
+
+   The mode parameter can be used to define special usage modes. For each 
+   usage mode additional constraints and specific payload configurations 
+   can be defined. However, each usage mode MUST be in full compliance 
+   with the specification in this document.
+
+   Usage modes are defined so as to allow for the design of simplified 
+   and dedicated receivers, only capable of decoding one or more specific 
+   configurations. However receivers that are capable to handle all 
+   features and configurations can receive any stream, irrespective of 
+   the usage mode.
+
+   In this document three usage mode are defined, A0, A1 and A2. More
+   usage modes may be defined in future RFCs. Usage modes A0 is defined 
+   to transport AUs with a fixed size without interleaving. Usage modes 
+   A1 and A2 are defined to transport variable size AUs with a size up to 
+   63 and 8192 bytes, respectively, with optional support for interleaving 
+   and fragmenting.
+
+3.3.2 Fixed size AUs without interleaving.
+
+   Usage mode A0 is defined to transport fixed size AUs without support 
+   for interleaving. In this usage mode the RTP payload consist of one or 
+   more concatenated AUs, each of the same size. There are no extra 
+   headers beyond the standard RTP header. Two extra format parameters 
+   MUST be provided: 
+a) ConstantSize, to specify the length of the AUs. 
+b) mode, to indicate usage mode A0.
+   For an example see below.
+
+   m=audio 49230 RTP/AVP 96
+   a=rtpmap:96 mpeg-generic/44100/2
+   a=fmtp:96 streamtype=5; profile-level-id=15; mode=A0; config=
+   AudioSpecificConfig(); ConstantSize=xxx;
+
+   The AudioSpecificConfig() specifies the audio stream type, in this case 
+   CELP or AAC frames.
+
+3.3.3 Variable size AUs and optional interleaving and fragmenting
+
+   For carriage of variable size AUs, two usage modes are defined that 
+   both allow for interleaving as well as fragmenting. Both configurations 
+   use an AU Header section which gives :
+   (a) the size of each AU and 
+   (b) an indication of how to compute the sequence (and hence timing) of 
+       each AU (fragment) in each packet.  
+   The two usage modes differ only in the number of bits allocated to 
+   each of these fields.
+
+3.3.3.1 Usage mode A1; AU (fragment) sizes up to 63 bytes
+
+   Usage mode A1 is been defined to transport small AU(fragment)s, with 
+   a size up to 63 bytes. This usage mode is very suitable for MPEG-4 
+   CELP, for which the maximum frame size requires that the AU-size field 
+   is coded with 6 bits. In usage mode A1, 6 bits are allocated to the 
+   AU-size field, and 2 bits to the AU-Index(-delta) field. The AU-header 
+   therefore is 1 byte for each AU. The AU-headers are preceded by a 
+   16-bit indication of the length of the AU-header section. After the 
+   AU-headers the AUs are concatenated into the packet. The configuration 
+   is achieved by the following format parameters that MUST be present: 
+   Mode, SizeLength, IndexLength, and IndexDeltaLength. When interleaving 
+   is applied (AU-Index-delta coded with a value larger than 0), also the 
+   profile parameter MUST be present. 
+
+   Example :
+
+   m=audio 49230 RTP/AVP 96
+   a=rtpmap:96 mpeg4-generic/44100/2
+   a=fmtp:96 streamtype=5; profile-level-id=15; mode=A1; config=
+   AudioSpecificConfig();SizeLength=6; IndexLength=2; IndexDeltaLength=2; 
+   Profile=1
+
+   The AudioSpecificConfig() specifies the audio stream type, in this case 
+   CELP or AAC frames.
+
+3.3.3.2 Usage mode A2; AU (fragment) sizes up to 8191 bytes
+
+   In usage mode A2, 13 bits are allocated to the AU-size, and 3 bits 
+   to the AU-Index(-delta) field. Thus each AU-header has a size of 2 
+   bytes. The AU-headers are preceded by a 16-bit indication of the length 
+   of the AU-header section.  After the AU-headers the AUs are 
+   concatenated into the packet. The configuration is achieved by the 
+   following format parameters that MUST be present: 
+   Mode. SizeLength, IndexLength, and IndexDeltaLength. When interleaving 
+   is applied (AU-Index-delta coded with a value larger than 0), also the 
+   profile parameter MUST be present.
+
+   Example :
+   m=audio 49230 RTP/AVP 96
+   a=rtpmap:96 mpeg4-generic/44100/2
+   a=fmtp:96 streamtype=5; profile-level-id=15; mode=A2; config=
+   AudioSpecificConfig();SizeLength=13; IndexLength=3; IndexDeltaLength=3; 
+   Profile=1
+
+   The AudioSpecificConfig() specifies the audio stream type, in this case 
+   CELP or AAC frames.
+
+3.3.4 Transport of AAC and CELP
+
+   For the transport of MPEG-4 AAC and CELP streams, one of the usage 
+   modes A0, A1 or A2 MUST be used. Usage modes A1 and A2 permit 
+   fragmentation, but it would normally only be used for AAC. Usage mode 
+   A1 with a one byte AU header per AU (fragment) is optimized for CELP, 
+   although it can be used for low bitrate AAC, when minimal overhead is 
+   important. AAC frames may be larger, and hence a larger AU-size field 
+   is required. To code the maximum size of an AAC frame requires 13 
+   bits. Hence for AAC usage mode A2 provides an efficient solution.
+
+   For all three usage modes, the following attributes are REQUIRED:
+
+   a) The payload name
+   b) The RTP clock-rate MUST be expressed as part of the RTPMAP. It is 
+      recommended that this be the sampling rate of the audio, to give 
+      sample-accurate timing.  However, other rates MAY be used (e.g. 
+      90 kHz).
+   c) The channel count MUST be specified, for example as 2 for stereo 
+      material (see RFC 2327) and MAY be specified as 1 for mono material; 
+      1 is the default.
+   d) The format parameters streamtype=5 (audio), profile-level-id=15
+      (high quality audio), and config (the decoder configuration) MUST be 
+      provided.
+   e) the format parameter mode MUST be provided, indicating usage mode 
+      A0, A1 or A2.
+
+
+4. Types and names 
+
+   This section describes the MIME types and names associated with this 
+   payload format.
+    
+   Depending on the required payload configuration, format parameters may 
+   need to be available to the receiver. This is done using the parameters 
+   described in the next section. The absence of any of these parameters 
+   is equivalent to the associated field set to its default value, which 
+   is always zero. The absence of any such parameters resolves into a 
+   default "basic" configuration. 
+   
+   In the MPEG-4 framework the SL stream configuration information is 
+   carried using the Object Descriptor. When such information is present 
+   both in an Object Descriptor and as a parameter of this payload format 
+   it MUST be exactly the same. 
+
+
+4.1 MIME types 
+ 
+   This specification uses exactly the same MIME types as [6], and hence 
+   no further MIME type registration is required. In [6] uses the MIME 
+   media type names: "video" or "audio" or "application".
+
+      "video" SHOULD be used for any MPEG Video stream or any MPEG-4 
+      System (ISO/IEC 14496-1) stream that conveys information needed for 
+      an audio-visual presentation.
+
+      "audio" SHOULD be used for any MPEG Audio streams and any MPEG-4 
+      System (ISO/IEC 14496-1) stream that conveys information needed for 
+      an audio-only presentation.
+
+      "application" SHOULD be used for MPEG-4 Systems streams 
+      (ISO/IEC14496-1) that serve other purposes than audio/visual 
+      presentation, e.g. in some cases when MPEG-J streams are transmitted.
+
+    
+   MIME subtype name: mpeg4-generic
+
+
+   Required parameters:
+
+      StreamType:
+
+      The integer value that indicates the type of MPEG-4 stream that is 
+      carried; its coding corresponds to the values of the streamType as 
+      defined for the DecoderConfigDescriptor in ISO/IEC 14496-1.
+
+      Profile-level-id: 
+      A decimal representation of the MPEG-4 Profile Level indication. 
+      This parameter MUST be used in the capability exchange or session 
+      set-up procedure to indicate the MPEG-4 Profile and Level 
+      combination of which the relevant MPEG-4 media codec is capable 
+      of. 
+      For audio streams, this parameter is the decimal value from Table 5 
+      (audioProfileLevelIndicationValues) in ISO/IEC 14496-1, indicating 
+      which MPEG-4 Audio tool subsets are applied to encode the audio 
+      stream. 
+      For visual streams, this parameter is the decimal value from Table 
+      G-1 (FLC table for profile and level indication of ISO/IEC 14496-2, 
+      indicating which MPEG-4 Visual tool subsets are applied to encode 
+      the visual stream.
+    
+      Config: 
+      A hexadecimal representation of an octet string that expresses the 
+      media payload configuration. Configuration data is mapped onto the 
+      octet string in an MSB-first basis. The first bit of the 
+      configuration data SHALL be located at the MSB of the first octet. 
+      In the last octet, if necessary to achieve byte alignment, up to 
+      7 zero-valued padding bits shall follow the configuration data. 
+      For audio streams, config is the audio object type specific decoder 
+      configuration data AudioSpecificConfig() as defined in ISO/IEC 
+      14496-3.
+      For visual streams, config is the MPEG-4 Visual configuration 
+      information, as defined in subclause 6.2.1 Start codes of 
+      ISO/IEC14496-2. The configuration information indicated by this 
+      parameter SHALL be the same as the configuration information in the 
+      corresponding MPEG-4 Visual stream, except for first-half-vbv-
+      occupancy and latter-half-vbv-occupancy, if it exists, which may 
+      vary in the repeated configuration information inside an MPEG-4 
+      Visual stream (See 6.2.1 Start codes of ISO/IEC14496-2). 
+
+
+   Optional parameters:
+
+      Mode: 
+      The mode in which this specification is used. When the mode 
+      parameter is not present, the default mode SHALL be assumed. In the 
+      default mode no constraints are applied and no specific payload 
+      configuration is defined. The usage modes A0, A1 and A2 are 
+      identified by mode=A0; mode=A1 and mode=A2. Other modes may be 
+      defined as needed in other RFCs in future. 
+      A mode MUST be comply to [6]. Specifically when defining a mode care 
+      MUST be taken that an implementation of all features of this 
+      specification can decode the payload format corresponding to this 
+      new mode. For this reason a mode MUST NOT specify new default values 
+      for MIME parameters and MIME parameters MUST be present (unless they 
+      have the default value), even if it is redundant in case the mode 
+      assigns fixed values. A mode may define additionally that some MIME 
+      parameters are required instead of optional, that some MIME 
+      parameters have fixed values (or ranges), and that there are rules 
+      restricting the usage.  
+
+      ConstantSize:
+      The constant size in bytes of each Access Unit for this stream. 
+      Simultaneous presence of ConstantSize and the SizeLength 
+      parameters is not permitted.
+
+      SizeLength: 
+      The number of bits on which the AU-size field is encoded in the 
+      AU header. Simultaneous presence of SizeLength and the ConstantSize 
+      parameter is not permitted.
+
+      IndexLength:
+      The number of bits on which the AU-Index is encoded in the first 
+      AU-header. The default value of zero indicates the absence of the 
+      AU-Index and AU-Index-delta fields in each AU-header.
+
+      IndexDeltaLength:
+      The number of bits on which the AU-Index-delta field is encoded in 
+      any non-first AU-header. 
+
+      CTSDeltaLength:
+      The number of bits on which the CTS-delta field is encoded in the 
+      AU-header. 
+
+      DTSDeltaLength:
+      The number of bits on which the DTS-delta field is encoded in the 
+      AU-header. 
+
+      AuxiliaryDataSizeLength:
+      The number of bits that is used to encode the auxiliary-data-size 
+      field. 
+
+      Profile:
+      The decimal representation of the RTP transport profile.
+ 
+   Applications MAY use more parameters, in addition to those defined 
+   above. Receivers MUST tolerate the presence of such additional 
+   parameters, but these parameters SHALL not impact the decoding of 
+   receivers that comply to this specification. 
+
+   Encoding considerations: 
+   System bitstreams MUST be generated according to MPEG-4 System 
+   specifications (ISO/IEC 14496-1). Video bitstreams MUST be generated 
+   according to MPEG-4 Visual specifications (ISO/IEC 14496-2). Audio 
+   bitstreams MUST be generated according to MPEG-4 Visual 
+   specifications (ISO/IEC 14496-3). The RTP packets MUST be packetized 
+   according to the RTP payload format defined in RFC <self-reference-to-
+   this>. 
+    
+   Security considerations: 
+   As in RFC <self-reference-to-this>. 
+    
+   Interoperability considerations: 
+   MPEG-4 provides a large and rich set of tools for the coding of 
+   visual objects.  For effective implementation of the standard, 
+   subsets of the MPEG-4 tool sets have been provided for use in 
+   specific applications. These subsets, called 'Profiles', limit the 
+   size of the tool set a decoder is required to implement. In order to 
+   restrict computational complexity, one or more 'Levels' are set for 
+   each Profile. A Profile@Level combination allows: 
+   . a codec builder to implement only the subset of the standard he 
+     needs, while maintaining interworking with other MPEG-4 devices 
+     included in the same combination, and 
+   . checking whether MPEG-4 devices comply with the standard 
+     ('conformance testing'). 
+   A stream SHALL be compliant with the MPEG-4 Profile@Level specified 
+   by the parameter "profile-level-id". Interoperability between a 
+   sender and a receiver may be achieved by specifying the parameter 
+   "profile-level-id" in MIME content, or by arranging in the 
+   capability exchange/announcement procedure to set this parameter 
+   mutually to the same value. 
+    
+   Published specification: 
+   The specifications for MPEG-4 streams are presented in ISO/IEC 
+   14469-1, 14469-2, and 14469-3.  The RTP payload format is described 
+   in RFC <self-reference-to-this>. 
+    
+   Applications which use this media type: 
+   Multimedia streaming and conferencing tools, Internet messaging and 
+   Email applications.
+    
+   Additional information: none 
+    
+   Magic number(s): none 
+    
+   File extension(s): 
+   None. A file format with the extension .mp4 has been defined for 
+   MPEG-4 content but is not directly correlated with this MIME type 
+   which sole purpose is RTP transport. 
+    
+   Macintosh File Type Code(s): none 
+    
+   Person & email address to contact for further information: 
+   Authors of RFC <self-reference-to-this>. 
+    
+   Intended usage: COMMON 
+    
+   Author/Change controller: 
+   Authors of RFC <self-reference-to-this>. 
+    
+4.2 Concatenation of parameters 
+    
+   Multiple parameters SHOULD be expressed as a MIME media type string, 
+   in the form of a semicolon-separated list of parameter=value pairs 
+   (for parameter usage examples see Appendix A). 
+    
+4.3 Usage of SDP 
+    
+4.3.1 The a=fmtp keyword 
+    
+   It is assumed that one typical way to transport the above-described 
+   parameters associated with this payload format is via a SDP message 
+   for example transported to the client in reply to a RTSP DESCRIBE of 
+   via SAP. In that case the (a=fmtp) keyword MUST be used as described 
+   in RFC 2327 [8, section 6]. The syntax being then: 
+    
+   a=fmtp:<format> <parameter name>=<value>[; <parameter name>=<value>] 
+
+
+5. Security Considerations
+
+   RTP packets using the payload format defined in this specification 
+   are subject to the security considerations discussed in the RTP 
+   specification [2]. This implies that confidentiality of the media 
+   streams is achieved by encryption. Because the data compression used 
+   with this payload format is applied end-to-end, encryption may be 
+   performed on the compressed data so there is no conflict between the 
+   two operations. The packet processing complexity of this payload 
+   type (i.e. excluding media data processing) does not exhibit any 
+   significant non-uniformity in the receiver side to cause a denial-
+   of-service threat. 
+    
+   However, it is possible to inject non-compliant MPEG streams (Audio, 
+   Video, and Systems) to overload the receiver/decoder's buffers which 
+   might compromise the functionality of the receiver or even crash it. 
+   This is especially true for end-to-end systems like MPEG where the 
+   buffer models are precisely defined. 
+    
+   MPEG-4 Systems supports stream types including commands that are 
+   executed on the terminal like OD commands, BIFS commands, etc. and 
+   programmatic content like MPEG-J (Java(TM) Byte Code) and 
+   ECMASCRIPT. It is possible to use one or more of the above in a 
+   manner non-compliant to MPEG to crash or temporarily make the 
+   receiver unavailable. 
+    
+   Authentication mechanisms can be used to validate of the sender and 
+   the data to prevent security problems due to non-compliant malignant 
+   MPEG-4 streams. 
+    
+   A security model is defined in MPEG-4 Systems streams carrying MPEG-J 
+   access units which comprises Java(TM) classes and objects. MPEG-J 
+   defines a set of Java APIs and a secure execution model. MPEG-J 
+   content can call this set of APIs and Java(TM) methods from a set of 
+   Java packages supported in the receiver within the defined security 
+   model. According to this security model, downloaded byte code is 
+   forbidden to load libraries, define native methods, start programs, 
+   read or write files, or read system properties. 
+    
+   Receivers can implement intelligent filters to validate the buffer 
+   requirements or parametric (OD, BIFS, etc.) or programmatic (MPEG-J, 
+   ECMAScript) commands in the streams. However, this can increase the 
+   complexity significantly. 
+
+
+6. References
+
+   [1] ISO/IEC International Standard 14496 (MPEG-4); "Information 
+   technology - Coding of audio-visual objects", January 2000
+  
+   [2] Schulzrinne, Casner, Frederick, Jacobson RTP: A Transport
+   Protocol for Real Time Applications  RFC 1889, Internet Engineering
+   Task Force, January 1996.
+
+   [3] S. Bradner, Key words for use in RFCs to Indicate Requirement
+   Levels, RFC 2119, March 1997.
+
+   [4] D. Hoffman, G. Fernando, V. Goyal, M. Civanlar, RTP payload 
+   format for MPEG1/MPEG2 Video, RFC 2250, January 1998.
+
+   [5] Y. Kikuchi, T. Nomura, S. Fukunaga, Y. Matsui, H. Kimata, RTP
+   payload format for MPEG-4 Audio/Visual streams, RFC 3016.
+
+   [6] Avaro, Basso, Casner, Civanlar, Gentric, Herpel, Lim, Perkins, 
+   van der Meer, RTP payload format for MPEG-4 streams, work in progress, 
+   draft-gentric-avt-mpeg4-multiSL-01.txt, January 2001.
+
+   [7] D. Singer, Y Lim, A Framework for the delivery of MPEG-4 over
+   IP-based Protocols, work in progress, draft-singer-mpeg4-ip-
+   01.txt,October 2000.
+
+   [8] Handley, Jacobson, SDP: Session Description Protocol, RFC 2327,
+   Internet Engineering Task Force, April 1998.
+
+
+7. Author Adresses
+
+   Jan van der Meer
+   Philips Digital Networks
+   Cederlaan 4
+   5600 JB Eindhoven
+   Netherlands
+   Email : jan.vandermeer@philips.com
+
+   David Mackie
+   Cisco Systems Inc.
+   170 West Tasman Dr.
+   San Jose, CA 95034
+   Email: dmackie@cisco.com
+
+   Viswanathan Swaminathan
+   Sun Microsystems Inc.
+   901 San Antonio Road, M/S UMPK15-214
+   Palo Alto, CA 94303
+   Email: viswanathan.swaminathan@sun.com
+
+   David Singer
+   Apple Computer, Inc.
+   One Infinite Loop, MS:302-3MT
+   Cupertino  CA 95014
+   Email: singer@apple.com
+
+
+   Full Copyright Statement
+
+   "Copyright (C) The Internet Society (date). All Rights Reserved. This 
+   document and translations of it may be copied and furnished to others, 
+   and derivative works that comment on or otherwise explain it or assist 
+   in its implementation may be prepared, copied, published and 
+   distributed, in whole or in part, without restriction of any kind, 
+   provided that the above copyright notice and this paragraph are 
+   included on all such copies and derivative works. However, this 
+   document itself may not be modified in any way, such as by removing 
+   the copyright notice or references to the Internet Society or other 
+   Internet organizations, except as needed for the purpose of developing 
+   Internet standards in which case the procedures for copyrights defined 
+   in the Internet Standards process MUST be followed, or as required to 
+   translate it into.
+
+
+
+
+APPENDIX: Usage of this payload format
+
+Appendix A. Examples
+
+A.1 Examples of delay analysis with interleave
+
+A.1.1 Group interleave
+
+   An example of regular interleave is when packets are formed into 
+   groups.  If the number of packets in a group is N, packet 0 contains 
+   frame 0, frame N, frame 2N, and so on;  packet 1 contains frame 1, 
+   frame 1+N, 1+2N, and so on.  The AU-Index field is used to document 
+   the sequence of the packet within the group (or the first frame in the 
+   packet, which is the same thing in this scheme), and all the
+   AU-Index-delta fields contain N-1.
+
+   Receivers can tell when a new interleave group is starting, by noting
+   that the computed time-stamp of the first frame in a packet is later
+   than any previously computed time-stamp.  This is because no
+   following packet can contain an earlier RTP timestamp (RTP rules),
+   and the second and subsequent frames in a packet have larger
+   time-stamps (the frames in a packet are also in time-order).
+
+   If the group size is 3, then packets are formed as follows:
+
+   Packet   Time-stamp   Frame Numbers       AU-Index, AU-Index-delta 
+   0        T[0]         0, 3, 6             0, 2, 2
+   1        T[1]         1, 4, 7             1, 2, 2
+   2        T[2]         2, 5, 8             2, 2, 2
+   3        T[9]         9,12,15             0, 2, 2
+
+
+   In this case, the receiver would have to buffer 4 frames at least
+   from packets 0 and 1, and can flush all frames when packet 2 arrives.
+   (Frame 0 can be flushed as packet 0 arrives, since it is the earliest
+   frame we hold, and likewise frame 1 from packet 1; we are therefore
+   holding 3,4,6,7 until packet 2 arrives).
+
+   If there is loss, then the receiver may wait longer than is strictly
+   necessary before it emits frames.  For example, say packet 1 is lost
+   from the above example.  Packet 0 allows frame 0 to be emitted, and
+   then packet 2 arrives, allowing us to notice the loss of frame 1, and
+   emit frame 2 and 3.  Then it is not until the arrival of packet 3
+   (which has a time-stamp beyond the times of all the frames seen so
+   far), that we can finish dealing with the loss, even though the first
+   group has, in fact, ended.  (This is in contrast to schemes which
+   signal the group size explicitly;  if the receiver knows that this is
+   packet 3 of 3, then even if 2 of 3 is missing, it can de-interleave
+   this group without waiting for the next one to start).
+
+A.1.2 Continuous interleave
+
+   In continuous interleave, once the scheme is 'primed', the number of
+   frames in a packet exceeds the 'stride' (the distance between them).
+   This shortens the buffering needed, smooths the data-flow, and gives
+   slightly larger packets -- and thus lower overhead -- for the same
+   interleave.  For example, here is a continuous interleave also over a
+   stride of 3 frames, but with 4 frames per packet, for a run of 20
+   frames.  This shows both how the scheme 'starts up' and how it
+   finishes.
+
+   Packet   Time-stamp   Frame Numbers       AU-Index, AU-Index-delta 
+   0        T[0]                     0       0
+   1        T[1]                 1   4       1  2
+   2        T[2]             2   5   8       2  2  2
+   3        T[3]          3   6   9  12      3  2  2  2
+   4        T[7]          7  10  13  16      3  2  2  2
+   5        T[11]        11  14  17  20      3  2  2  2
+   6        T[15]        15  18              3  2
+   7        T[19]        19                  3
+
+   In this case, the receiver has to buffer only 3 frames, not 4.  Say
+   we are waiting for packet 4.  We can flush frames 0, 1, 2, 3, 4, 5,
+   6;  we are holding therefore 8, 9, 12.   Packet 4 arrives, allowing
+   us to emit 7,8,9,10, and we are holding 12,13,16.  Each arriving
+   packet contains 4 frames, and allows 4 frames to be flushed.
+
+   If there is loss, again the receiver has to wait to emit the erasure
+   frames.  In this case, say packet 3 is lost.  We were holding frames
+   4, 5, and 8.  On the arrival of packet 4, (time-stamp of frame 7), we
+   now know frame 3 was lost, we can emit frames 4,5, and we know 6 must
+   be lost, and emit 7, which is in the packet that arrived.  Then on
+   the arrival of packet 5 (time-stamp 11) we can emit 8, indicate loss
+   of 9, and emit 10 and 11.  Finally, the arrival of packet 6
+   (time-stamp 15) indicates that 12 must be lost;  we have now detected
+   all the lost frames.
+
+
+
+

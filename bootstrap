@@ -22,11 +22,11 @@ pushd ./server/lib/sndfile
 ./configure $*
 popd
 
-pushd ./player/lib/SDL
+pushd ./lib/SDL
 ./configure $*
 popd
 
-pushd ./player/lib/rtp
+pushd ./lib/rtp
 ./configure $*
 popd
 

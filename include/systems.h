@@ -43,6 +43,7 @@ typedef unsigned __int16 u_int16_t;
 typedef unsigned char u_int8_t;
 typedef __int64 int64_t;
 typedef __int32 int32_t;
+typedef __int8  int8_t;
 typedef unsigned short in_port_t;
 typedef unsigned int socklen_t;
 

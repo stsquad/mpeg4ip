@@ -1,4 +1,4 @@
-May 21, 2001
+August 1, 2001
 
 MPEG4IP Project
 ===============
@@ -12,6 +12,10 @@ Please note this project is intended for developers who are interested
 in MPEG-4 audio and video, and Internet streaming. It is not intended
 for end-users. Please read all the legal information!
 
+Also note that the primary development focus of this project is the 
+Linux platform. If you're going to use the package on other platforms,
+especially non-UNIX platforms, you'll probably have some work to do.
+
 Please use the SourceForge site to report problems, suggest enhancements,
 ask questions, etc. The URL is http://www.sourceforge.net/projects/mpeg4ip
 
@@ -19,14 +23,26 @@ ask questions, etc. The URL is http://www.sourceforge.net/projects/mpeg4ip
 Overview
 ========
 
-The starting point for MPEG4IP is some raw audio and/or video in a file.
-This needs to be encoded using the included tools to create a 
-streamable MP4 file. The simple approach is to use the 'mp4encode' script.
-Detailed instructions for this script and the individual tools that it uses
-are in doc/encoding/encoding.htm  
+There are now two ways to use MPEG4IP to create content. 
 
-Once the MP4 file is prepared, it should be placed in the content 
-directory of the streaming server. We include Apple's Darwin Streaming 
+The older method assumes that you've somehow managed to capture raw audio
+and/or video into a file. That's the starting point from which you can use
+the MPEG4IP encoding tools to create an MP4 file. The simplest method being 
+to use the 'mp4encode' script. Detailed instructions for this script and the
+individual tools that it uses are in doc/encoding/encoding.htm  
+
+The new method is an integrated live encoding tool called mp4live.  This 
+program is designed to make it easy to create MP4 files or transmit live
+audio/video streams over the network. It can even do both things 
+simultaneously!  The key requirement to use this tool is to have a video 
+capture device and a Video for Linux (v4l) driver for it. So far we've 
+tested with the bttv driver for Brooktree based video capture cards, and 
+the qce driver for Logitech QuickCam Express USB webcams. Both of these 
+solutions can be acquired for about $50 US! Please see the file 
+mpeg4ip/server/live/README for more information about mp4live.
+
+Once an MP4 file is prepared, it can be placed in the content 
+directory of a streaming server. We include Apple's Darwin Streaming 
 Server with MPEG4IP, but any server that understands MP4 files (or
 hinted Quicktime files) can be used. 
 
@@ -40,10 +56,10 @@ a local file. E.g
     $ gmp4player mycontent.mp4
 
 That's not all! The player is not limited to local playback of MP4 files.
-It can also read AVI, CMP, DIVX, AAC, and MP3. This is useful for debugging
-since the encoded data can be check indepedently of the MP4 file container,
-and known good content, such as your favorite MP3, can be used to verify
-that the player is working correctly with your hardware. E.g.
+It can also read AVI, CMP, DIVX, AAC, MP3, and WAV. This is useful for 
+debugging since the encoded data can be check independently of the MP4 
+file container, and known good content, such as your favorite MP3, can be 
+used to verify that the player is working correctly with your hardware. E.g.
     $ gmp4player mymusic.mp3
 
 Note: If you prefer a no UI version of the player, just the bare video 
@@ -96,10 +112,20 @@ Name:       avilib
 Version:    1999
 Origin:     http://www.munich-vision.de/lavtools
 Author:     Rainer Johanni
-Directory:  mpeg4ip/server/lib/avi
+Directory:  mpeg4ip/lib/avi
 License:    GNU Library General Public License (LGPL), version 2 1991
 Notes:      Extracted from lavtools package,
             Used only by the avi2raw utility
+
+Name:       ffmpeg
+Version:    0.3.4
+Origin:     http://www.sourceforge.net/projects/ffmpeg
+Author:     Gerard Lantau
+Directory:	mpeg4ip/server/video/ffmpeg
+License:    GNU General Public License (GPL), version 2 1991
+Notes:		Code redistributed with MPEG4IP is the video encoder library
+			portion of the ffmpeg project. See the ffmpeg site to obtain
+			the complete distribution.
 
 Name:       Freeware Advanced Audio Coder (FAAC) / Decoder (FAAD)
 Version:    1.1
@@ -132,7 +158,7 @@ Notes:      Use may require payment of patent royalties
             Many contributors are listed in the individual source files.
 
 Name:       Open DivX
-Version:    4.0 alpha48
+Version:    4.0, alpha 50 for encoder, alpha48 for decoder 
 Origin:     http://www.projectmayo.com/
 Author:     Project Mayo
 Directory:  mpeg4ip/server/video/divx, and mpeg4ip/player/lib/video/divx
@@ -147,7 +173,7 @@ Name:       Quicktime for Linux
 Version:    1.2
 Origin:     http://heroine.linuxave.net/quicktime.html 
 Author:     Adam Williams
-Directory:  mpeg4ip/common/mp4
+Directory:  mpeg4ip/lib/mp4
 License:    Other, see README_ORIGINAL
 Notes:      This directory also contains original MPEG4IP code.
 
@@ -155,7 +181,7 @@ Name:       Simple DirectMedia Layer
 Version:    1.2
 Origin:     http://www.libsdl.org/
 Author:     Sam Lantinga
-Directory:  mpeg4ip/player/lib/SDL
+Directory:  mpeg4ip/lib/SDL
 License:    GNU Library General Public License (LGPL), version 2 1991
 
 Name:       sndfile
@@ -177,7 +203,7 @@ Name:       UCL Common Multimedia Library
 Version:    1.2
 Origin:     http://www-mice.cs.ucl.ac.uk/multimedia/software/common/
 Author:     University College London
-Directory:  mpeg4ip/player/lib/rtp
+Directory:  mpeg4ip/lib/rtp
 License:    Other, see COPYRIGHT
 Notes:      This directory contains additional third-party code with 
             different licenses.
@@ -281,7 +307,9 @@ will end up in /usr/local/bin.
 
 For encoding tools, you get:
 
-mp4encode   Front-end script to the encoding tools
+mp4live		Integrated, live encoding to file or network - Linux only
+
+mp4encode   Front-end script to the following encoding tools:
 
 avi2raw     Extracts raw audio/video tracks from an AVI file
 lboxcrop    Vertically crops raw video to a new aspect ratio
@@ -333,20 +361,26 @@ mpeg4ip - top level project directory
 
     include - project wide includes 
 
-    common - project wide code
-        mp4 - MP4 (aka MOV/Quicktime) file format library
+    common - shared code
         video 
             mpeg4 - MPEG-4 video encoder/decoder
+
+    lib - project wide libraries
+	SDL - Simple DirectMedia Layer
+	avi - AVI file format
+	bitstream - MPEG style low level bitstream utlity
+	config_file - Configuration file utility
+        mp4 - MP4 (aka MOV/Quicktime) file format library
+	msg_queue - SDL based Inter-thread messages utlity
+	rtp - UCL RTP 
+	sdp - Our own SDP
 
     player - player specific code
         lib - libraries specifically for the player
             audio
                 faad - FAAD AAC decoder
                 mp3 - MP3 decoder
-            rtp - UCL RTP 
             rtsp - Our own RTSP client 
-            SDL - Simple DirectMedia Layer
-            sdp - Our own SDP
             video
                 divx - OpenDivx decoder
         src - the player executable
@@ -355,6 +389,7 @@ mpeg4ip - top level project directory
                 divx - wrapper around OpenDivx
                 mp3 - wrapper around MP3
                 mpeg4 - wrapper around mpeg4v
+		wav - wrapper around PCM wav
 
     server - server specific code
         DSS - Darwin QuickTime Streaming Server
@@ -363,7 +398,6 @@ mpeg4ip - top level project directory
             faac - AAC encoder program
             lame - MP3 encoder program
         lib - libraries specifically for the server tools
-            avi - AVI file format
             sndfile - sound file formats, used by faac
         util
             avi2raw - extract raw A/V data from AVI files
@@ -376,6 +410,7 @@ mpeg4ip - top level project directory
             mp4dump - dump MP4 file meta-info contents
         video
             divx - OpenDivx encoder library and program
+			ffmpeg - ffmpeg video encoder library
 
     util - generally useful utilities
         yuv - simple tools for examining raw video
@@ -391,7 +426,7 @@ please let us know. We certainly will want to fix it.
 
 Here are the citations:
 
-ISO/IEC 14496-2:1999 MPEG-4 Video
+ISO/IEC 14496-2:2000 MPEG-4 Video
 ISO/IEC 14496-3:1999 MPEG-4 Audio (including AAC)
 ISO/IEC 13818-7:1997 MPEG-2 AAC
 
@@ -401,15 +436,19 @@ body, and provides an online store under www.ansi.org
 
 
 IETF RFC 1889 & 1890 RTP
+
 IETF RFC 2326 RTSP
+
 IETF RFC 2327 SDP
+
 IETF RFC 2250 RTP Payload for MPEG-1/2
 	Note: we're just using the audio part for MP3.
+
 IETF RFC 3016 RTP Payload for MPEG-4 Audio/Visual
-    Note: we're implementing the video part,
-    the audio part mandates the use of MPEG-4 LATM which is far too
-    complicated for our needs. Instead we're using an AAC RTP payload 
-    format similar to that of RFC 2250.
+    Note: we're implementing the MPEG-4 video part
+
+IETF draft-vandermeer-mpeg4-simple-01.txt - work in progress
+    Note: we're implementing the AAC audio part
 
 The IETF RFCs can be found in mpeg4ip/doc/ietf
 
@@ -430,5 +469,15 @@ Note that the OpenDivx encoder has bitrate control that works.
 menu consumes enough CPU to adversely effect playback, resulting in audio
 and video falling out of sync. When we get a chance we'll implement an MMX
 version of the smoothing stretcher to fix this (on PC's at least).
+
+* The player for windows is sketchy at best.  We have included project
+files that should build.  We have noticed the following problems:
+  - only debug version seems to work.  When receiving streaming content, 
+    it will lose packets very regularly
+ -  release version seems to have problems with exceptions.  Our bytestream
+   class will throw an exception when it has a problem - missing sequence
+   numbers because of dropped packets, for example.  The release version,
+   even though all projects have exception processing enabled, seems to
+   crash when they occur.
 
 === END OF README ===
