@@ -22,13 +22,8 @@
 #ifndef __MP4_FILE_INCLUDED__
 #define __MP4_FILE_INCLUDED__
 
-// MP4 API time types
-typedef u_int64_t	MP4Timestamp;
-typedef int64_t		MP4Duration;
-
 // forward declarations
 class MP4Atom;
-class MP4RootAtom;
 class MP4Property;
 class MP4Float32Property;
 class MP4StringProperty;
@@ -40,9 +35,9 @@ public:
 	~MP4File();
 
 	/* file operations */
-	int Read();
-	int Write();
-	int Dump(FILE* pDumpFile = NULL);
+	void Read();
+	void Write();
+	void Dump(FILE* pDumpFile = NULL);
 
 	/* library property per file */
 
@@ -66,21 +61,38 @@ public:
 	void SetStringProperty(char* name, char* value);
 	void SetBytesProperty(char* name, u_int8_t* pValue, u_int32_t valueSize);
 
+	// file level convenience functions
+
+	MP4Duration GetDuration();
+
+	u_int32_t GetTimeScale();
+	void SetTimeScale(u_int32_t value);
+
+	u_int8_t GetODProfileLevel();
+	void SetODProfileLevel(u_int8_t value);
+
+	u_int8_t GetSceneProfileLevel();
+	void SetSceneProfileLevel(u_int8_t value);
+
+	u_int8_t GetVideoProfileLevel();
+	void SetVideoProfileLevel(u_int8_t value);
+
+	u_int8_t GetAudioProfileLevel();
+	void SetAudioProfileLevel(u_int8_t value);
+
+	u_int8_t GetGraphicsProfileLevel();
+	void SetGraphicsProfileLevel(u_int8_t value);
+
+
 	/* track operations */
 
 	MP4TrackId AddTrack(char* type);
 	void DeleteTrack(MP4TrackId trackId);
 
-	u_int32_t GetNumTracks(char* type = NULL);
+	u_int32_t GetNumberOfTracks(char* type = NULL);
 
 	MP4TrackId FindTrackId(u_int16_t index, char* type = NULL);
 	u_int16_t FindTrackIndex(MP4TrackId trackId);
-
-	void SetTrackPosition(MP4SampleId sampleId);
-
-	void SetTrackTime(MPTimestamp when) {
-		SetTrackPosition(GetSampleIdFromTime(MP4Timestamp when));
-	}
 
 	/* track properties */
 
@@ -105,8 +117,8 @@ public:
 
 	/* sample operations */
 
-	MP4SampleId GetSampleIdFromTime(MP4Timestamp when);
-	MP4SampleId GetSyncSampleIdFromTime(MP4Timestamp when);
+	MP4SampleId GetSampleIdFromTime(MP4TrackId trackId, 
+		MP4Timestamp when, bool wantSyncSample = false);
 
 	void ReadSample(
 		// input parameters
@@ -128,28 +140,6 @@ public:
 		MP4Duration renderingOffset = 0, 
 		bool isSyncSample = true);
 
-	// file level convenience functions
-
-	MP4Duration GetDuration();
-
-	u_int32_t GetTimeScale();
-	void SetTimeScale(u_int32_t value);
-
-	u_int8_t GetODProfileLevel();
-	void SetODProfileLevel(u_int8_t value);
-
-	u_int8_t GetSceneProfileLevel();
-	void SetSceneProfileLevel(u_int8_t value);
-
-	u_int8_t GetVideoProfileLevel();
-	void SetVideoProfileLevel(u_int8_t value);
-
-	u_int8_t GetAudioProfileLevel();
-	void SetAudioProfileLevel(u_int8_t value);
-
-	u_int8_t GetGraphicsProfileLevel();
-	void SetGraphicsProfileLevel(u_int8_t value);
-
 	/* track level convenience functions */
 
 	MP4TrackId AddAudioTrack(u_int32_t timeScale, u_int32_t sampleDuration);
@@ -158,6 +148,8 @@ public:
 		u_int16_t width, u_int16_t height);
 
 	MP4TrackId AddHintTrack(MP4TrackId refTrackId);
+
+	MP4SampleId GetNumberofTrackSamples(MP4TrackId trackId);
 
 	MP4Duration GetTrackDuration(MP4TrackId trackId);
 
@@ -227,11 +219,11 @@ protected:
 		MP4Property** ppProperty, u_int32_t* pIndex);
 
 	char* MakeTrackName(MP4TrackId trackId, char* name);
-	static const char* NormalizeTrackType(const char* type);
 
 protected:
+	char*			m_fileName;
 	FILE*			m_pFile;
-	MP4RootAtom*	m_pRootAtom;
+	MP4Atom*		m_pRootAtom;
 	MP4TrackArray	m_pTracks;
 	u_int32_t		m_verbosity;
 

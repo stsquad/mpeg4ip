@@ -48,6 +48,7 @@ public:
 		pProperty->SetParentAtom(m_pParentAtom);
 	}
 
+	virtual void Generate();
 	virtual void Read(MP4File* pFile);
 	virtual void Write(MP4File* pFile);
 	virtual void Dump(FILE* pFile);

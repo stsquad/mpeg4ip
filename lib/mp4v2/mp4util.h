@@ -93,13 +93,19 @@ public:
 
 	void Print(FILE* pFile = stderr) {
 		if (m_where) {
-			fprintf(pFile, "%s: ", m_where);
+			fprintf(pFile, "%s", m_where);
 		}
 		if (m_errstring) {
-			fprintf(pFile, "%s: ", m_errstring);
+			if (m_where) {
+				fprintf(pFile, ": ");
+			}
+			fprintf(pFile, "%s", m_errstring);
 		}
 		if (m_errno) {
-			fprintf(pFile, "%s ", strerror(m_errno));
+			if (m_where || m_errstring) {
+				fprintf(pFile, ": ");
+			}
+			fprintf(pFile, "%s", strerror(m_errno));
 		}
 		fprintf(pFile, "\n");
 	}
@@ -115,6 +121,10 @@ inline void* MP4Malloc(size_t size) {
 		throw new MP4Error(errno);
 	}
 	return p;
+}
+
+inline void* MP4Calloc(size_t size) {
+	return memset(MP4Malloc(size), 0, size);
 }
 
 inline char* MP4Stralloc(char* s1) {
@@ -137,6 +147,12 @@ inline void* MP4Realloc(void* p, u_int32_t newSize) {
 
 inline void MP4Free(void* p) {
 	free(p);
+}
+
+inline MP4Timestamp MP4GetAbsTimestamp() {
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return tv.tv_sec + 209606400;	// MP4 start date is 1/1/1904
 }
 
 bool MP4NameFirstMatches(const char* s1, const char* s2);

@@ -32,6 +32,7 @@ EXTRA_DIST =		\
         VisualC.zip	\
         MPWmake.sea.bin	\
 	CWprojects.sea.bin \
+	PBProjects.tar.gz \
         WhatsNew	\
         docs.html	\
         sdl.m4		\
@@ -56,6 +57,13 @@ exports:
 	(cd src/main/macos/exports; $(MAKE))
 	(cd src/main/win32/exports; $(MAKE))
 
+# Rule to build the Project Builder archive in MacOS X
+PBProjects.tar.gz:
+	rm -f `find . -name .DS_Store`
+	if [ -d PBProjects ]; then \
+	    tar zcvf $@ PBProjects src/main/macosx/SDLMain.nib; \
+	fi
+
 # Rule to force automake to rebuild the library
 changed:
 	@echo "This build target is no longer necessary"
@@ -75,11 +83,11 @@ dist-hook:
 	rm -rf `find $(distdir) -type d -name CVS -print`
 
 # Create a CVS snapshot that people can run update -d on
-CVSROOT = :pserver:guest@cvs.lokigames.com:/cvs
+CVSROOT = :pserver:guest@libsdl.org:/home/slouken/libsdl.org/cvs
 snapshot:
 	cvs -d $(CVSROOT) login
-	cvs -d $(CVSROOT) checkout -r devel_1_1_0 SDL
-	(cd SDL && ./autogen.sh)
-	mv SDL SDL-1.2
+	cvs -d $(CVSROOT) checkout SDL12
+	(cd SDL12 && ./autogen.sh)
+	mv SDL12 SDL-1.2
 	tar zcvf $(HOME)/SDL-1.2.tar.gz SDL-1.2
 	rm -rf SDL-1.2

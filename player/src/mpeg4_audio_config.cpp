@@ -49,32 +49,32 @@ void decode_mpeg4_audio_config (const unsigned char *buffer,
   CBitstream bit;
   uint32_t ret;
 
-  player_debug_message("decoding audio config - len %d", buf_len);
+  player_debug_message("decoding audio config - len %d %x", buf_len, *(ushort *)buffer);
   bit.init(buffer, buf_len * 8);
 
-  if (bit.getbits(5, ret) < 0)
+  if (bit.getbits(5, &ret) < 0)
     return;
 
   mptr->audio_object_type = ret;
 
-  if (bit.getbits(4, ret) < 0)
+  if (bit.getbits(4, &ret) < 0)
     return;
 
   if (ret == 0xf) {
-    if (bit.getbits(24, ret) < 0) 
+    if (bit.getbits(24, &ret) < 0) 
       return;
     mptr->frequency = ret;
   } else {
     mptr->frequency = freq_index_to_freq[ret];
   }
-  if (bit.getbits(4, ret) < 0)
+  if (bit.getbits(4, &ret) < 0)
     return;
 
   mptr->channels = ret;
   // rptr points to remaining bits - starting with 0x04, moving
   // down buffer_len.
   if (audio_object_type_is_aac(mptr)) {
-    if (bit.getbits(1, ret) < 0)
+    if (bit.getbits(1, &ret) < 0)
       return;
     if (ret == 0) {
       mptr->codec.aac.frame_len_1024 = 1;

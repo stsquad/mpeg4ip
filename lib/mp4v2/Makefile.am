@@ -23,6 +23,14 @@ libmp4v2_la_SOURCES = \
 	descriptors.h \
 	descriptors.cpp 
 
+bin_PROGRAMS = mp4dump mp4extract
+
+mp4dump_SOURCES = mp4dump.cpp
+mp4dump_LDADD = libmp4v2.la
+
+mp4extract_SOURCES = mp4extract.cpp
+mp4extract_LDADD = libmp4v2.la
+
 check_PROGRAMS = ctest cpptest
 
 ctest_SOURCES = ctest.c

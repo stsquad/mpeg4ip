@@ -70,6 +70,7 @@ static struct codec_list_t {
   {"mp4v", VIDEO_MPEG4_ISO},
   {"MPG4", VIDEO_MPEG4_ISO},
   {"MP4V-ES", VIDEO_MPEG4_ISO_OR_DIVX},
+  {"MPEG4-GENERIC", VIDEO_DIVX},
   {"divx", VIDEO_DIVX},
   {"dvx1", VIDEO_DIVX},
   {NULL, -1},
@@ -82,6 +83,7 @@ static struct codec_list_t {
     {"mpeg-simple-a0", AUDIO_AAC },
     {"mpeg-simple-a1", AUDIO_AAC }, // for now - will have to choose
     {"mpeg4-simple-a2", AUDIO_AAC }, // between this and celp.
+    {"MPEG4-GENERIC", AUDIO_AAC},
     {"mp3 ", AUDIO_MP3 },
     {"MPA", AUDIO_MP3 },
     {"wav ", AUDIO_WAV },

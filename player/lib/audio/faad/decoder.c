@@ -16,7 +16,7 @@
 
 
 
-faacDecHandle FAADAPI faacDecOpen(int object_type)
+faacDecHandle FAADAPI faacDecOpen(int object_type, int sample_freq)
 {
 	int i;
 	faacDecHandle hDecoder = NULL;
@@ -34,6 +34,13 @@ faacDecHandle FAADAPI faacDecOpen(int object_type)
     hDecoder->default_config = 1;
     hDecoder->mc_info.object_type = object_type; /* assumed defaults */
     hDecoder->mc_info.sampling_rate_idx = Fs_44;
+    if (sample_freq > 0) {
+      for (i = 0; SampleRates[i] != 0; i++) {
+	if (sample_freq == SampleRates[i]) {
+	  hDecoder->mc_info.sampling_rate_idx = i;
+	}
+      }
+    }
 	hDecoder->dolbyShortOffset_f2t = 1;
 	hDecoder->dolbyShortOffset_t2f = 1;
 	hDecoder->first_cpe = 0;
@@ -175,7 +182,6 @@ int FAADAPI faacDecInit(faacDecHandle hDecoder, unsigned char *buffer,
 	hDecoder->ld.m_alignment_offset=0;
 #endif
 
-	*samplerate = 44100;
 	hDecoder->chans_inited = 0;
 	hDecoder->numChannels = *channels = 2;
 
@@ -187,8 +193,10 @@ int FAADAPI faacDecInit(faacDecHandle hDecoder, unsigned char *buffer,
 	  hDecoder->chans_inited = 1;
 		*samplerate = SampleRates[hDecoder->adts_header.fixed.sampling_rate_idx];
 		hDecoder->numChannels = *channels = hDecoder->adts_header.fixed.channel_configuration; /* This works up to 6 channels */
+	} else {
+	  *samplerate = SampleRates[hDecoder->mc_info.sampling_rate_idx];
 	}
-
+	
 	huffbookinit(hDecoder);
 	nok_init_lt_pred(hDecoder->nok_lt_status, Chans);
 	init_pred(hDecoder, hDecoder->sp_status, Chans);

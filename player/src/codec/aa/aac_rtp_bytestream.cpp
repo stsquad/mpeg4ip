@@ -212,7 +212,10 @@ CRtpByteStreamBase *create_aac_rtp_bytestream (format_list_t *media_fmt,
 		  strlen("mpeg-simple-a")) == 0) ||
       (strncasecmp(media_fmt->rtpmap->encode_name, 
 		   "mpeg4-simple-a",
-		   strlen("mpeg4-simple-a")) == 0)) {
+		   strlen("mpeg4-simple-a")) == 0) ||
+      (strncasecmp(media_fmt->rtpmap->encode_name,
+		   "mpeg4-generic",
+		   strlen("mpeg4-generic")) == 0)) {
     fmtp_parse_t *fmtp;
 
     fmtp = parse_fmtp_for_mpeg4(media_fmt->fmt_param);

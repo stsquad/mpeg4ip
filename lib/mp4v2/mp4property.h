@@ -80,6 +80,7 @@ public:
 	virtual u_int32_t GetCount() = NULL;
 	virtual void SetCount(u_int32_t count) = NULL;
 
+	virtual void Generate() { /* default is a no-op */ };
 	virtual void Read(MP4File* pFile, u_int32_t index = 0) = NULL;
 	virtual void Write(MP4File* pFile, u_int32_t index = 0) = NULL;
 	virtual void Dump(FILE* pFile, u_int32_t index = 0) = NULL;
@@ -314,7 +315,7 @@ public:
 	MP4BytesProperty(char* name, u_int32_t valueSize = 0)
 		: MP4Property(name) {
 		SetCount(1);
-		m_values[0] = NULL;
+		m_values[0] = (u_int8_t*)MP4Calloc(valueSize);
 		m_valueSizes[0] = valueSize;
 	}
 	~MP4BytesProperty() {
@@ -475,6 +476,7 @@ public:
 		return m_pDescriptors.Resize(count);
 	}
 
+	void Generate();
 	void Read(MP4File* pFile, u_int32_t index = 0);
 	void Write(MP4File* pFile, u_int32_t index = 0);
 	void Dump(FILE* pFile, u_int32_t index = 0);

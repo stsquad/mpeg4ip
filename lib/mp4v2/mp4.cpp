@@ -35,12 +35,24 @@ extern "C" MP4FileHandle MP4Open(char* fileName, char* mode)
 
 extern "C" int MP4Read(MP4FileHandle pFile)
 {
-	return ((MP4File*)pFile)->Read();
+	try {
+		((MP4File*)pFile)->Read();
+		return 0;
+	}
+	catch (MP4Error* e) {
+		return -1;
+	}
 }
 
 extern "C" int MP4Write(MP4FileHandle pFile)
 {
-	return ((MP4File*)pFile)->Write();
+	try {
+		((MP4File*)pFile)->Write();
+		return 0;
+	}
+	catch (MP4Error* e) {
+		return -1;
+	}
 }
 
 extern "C" int MP4Close(MP4FileHandle pFile)
@@ -51,7 +63,13 @@ extern "C" int MP4Close(MP4FileHandle pFile)
 
 extern "C" int MP4Dump(MP4FileHandle pFile, FILE* pDumpFile)
 {
-	return ((MP4File*)pFile)->Dump(pDumpFile);
+	try {
+		((MP4File*)pFile)->Dump(pDumpFile);
+		return 0;
+	}
+	catch (MP4Error* e) {
+		return -1;
+	}
 }
 
 extern "C" u_int32_t MP4GetVerbosity(MP4FileHandle pFile)

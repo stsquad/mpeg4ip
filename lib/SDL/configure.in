@@ -14,9 +14,9 @@ dnl Set various version strings - taken gratefully from the GTk sources
 #
 SDL_MAJOR_VERSION=1
 SDL_MINOR_VERSION=2
-SDL_MICRO_VERSION=0
-SDL_INTERFACE_AGE=0
-SDL_BINARY_AGE=0
+SDL_MICRO_VERSION=2
+SDL_INTERFACE_AGE=2
+SDL_BINARY_AGE=2
 SDL_VERSION=$SDL_MAJOR_VERSION.$SDL_MINOR_VERSION.$SDL_MICRO_VERSION
 
 AC_SUBST(SDL_MAJOR_VERSION)
@@ -37,12 +37,12 @@ AC_SUBST(LT_CURRENT)
 AC_SUBST(LT_REVISION)
 AC_SUBST(LT_AGE)
 
-dnl Setup for automake
-AM_INIT_AUTOMAKE(SDL, $SDL_VERSION)
-
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
+
+dnl Setup for automake
+AM_INIT_AUTOMAKE(SDL, $SDL_VERSION)
 
 dnl Check for tools
 
@@ -62,6 +62,10 @@ case "$target" in
     # This is stupid, but necessary on some versions of Linux (joysticks)
     *-*-linux*)
         AC_PROG_CXX
+        ;;
+    *-*-darwin*)
+        OBJC="???"
+        AC_SUBST(OBJC)
         ;;
 esac
 AC_PROG_INSTALL
@@ -241,24 +245,25 @@ CheckOSS()
     if test x$enable_audio = xyes -a x$enable_oss = xyes; then
         AC_MSG_CHECKING(for OSS audio support)
         have_oss=no
-        AC_TRY_COMPILE([
-          #ifdef linux
-          #include <linux/soundcard.h>
-          #endif
-          #ifdef __FreeBSD__
-          #include <machine/soundcard.h>
-          #endif
-          #ifdef __bsdi__
-          #include <sys/soundcard.h>
-          #endif
-          #ifdef __USLC__
-          #include <sys/soundcard.h>
-          #endif
-        ],[
-	  int arg = SNDCTL_DSP_SETFRAGMENT;
-        ],[
-        have_oss=yes
-        ])
+        if test x$have_oss != xyes; then
+            AC_TRY_COMPILE([
+              #include <sys/soundcard.h>
+            ],[
+              int arg = SNDCTL_DSP_SETFRAGMENT;
+            ],[
+            have_oss=yes
+            ])
+        fi
+        if test x$have_oss != xyes; then
+            AC_TRY_COMPILE([
+              #include <soundcard.h>
+            ],[
+              int arg = SNDCTL_DSP_SETFRAGMENT;
+            ],[
+            have_oss=yes
+            CFLAGS="$CFLAGS -DOSS_USE_SOUNDCARD_H"
+            ])
+        fi
         AC_MSG_RESULT($have_oss)
         if test x$have_oss = xyes; then
             CFLAGS="$CFLAGS -DOSS_SUPPORT"
@@ -286,6 +291,19 @@ CheckALSA()
             AUDIO_SUBDIRS="$AUDIO_SUBDIRS alsa"
             AUDIO_DRIVERS="$AUDIO_DRIVERS alsa/libaudio_alsa.la"
         fi
+    fi
+}
+
+dnl Check whether we want to use OpenBSD native audio or not
+CheckOPENBSDAUDIO()
+{
+    AC_ARG_ENABLE(openbsdaudio,
+[  --enable-openbsdaudio   OpenBSD native audio support [default=yes]],
+                  , enable_openbsdaudio=yes)
+    if test x$enable_audio = xyes -a x$enable_openbsdaudio = xyes; then
+        CFLAGS="$CFLAGS -DOPENBSD_AUDIO_SUPPORT"
+        AUDIO_SUBDIRS="$AUDIO_SUBDIRS openbsd"
+        AUDIO_DRIVERS="$AUDIO_DRIVERS openbsd/libaudio_openbsd.la"
     fi
 }
 
@@ -344,21 +362,34 @@ dnl See if the NAS audio interface is supported
 CheckNAS()
 {
     AC_ARG_ENABLE(nas,
-[  --enable-nas		support the NAS audio API [default=yes]],
-		, enable_nas=yes)
+[  --enable-nas		  support the NAS audio API [default=yes]],
+                  , enable_nas=yes)
     if test x$enable_audio = xyes -a x$enable_nas = xyes; then
-	AC_MSG_CHECKING(for NAS audio support)
-	have_nas=no
-	if test -r /usr/X11R6/include/audio/audiolib.h ; then
-		have_nas=yes
-	fi
-	AC_MSG_RESULT($have_nas)
-	if test x$have_nas = xyes; then
-	    CFLAGS="$CFLAGS -DNAS_SUPPORT"
-	    SYSTEM_LIBS="$SYSTEM_LIBS -laudio -lXt"
-	    AUDIO_SUBDIRS="$AUDIO_SUBDIRS nas"
-	    AUDIO_DRIVERS="$AUDIO_DRIVERS nas/libaudio_nas.la"
-	fi
+        AC_MSG_CHECKING(for NAS audio support)
+        have_nas=no
+        if test -r /usr/X11R6/include/audio/audiolib.h; then
+            have_nas=yes
+        fi
+        AC_MSG_RESULT($have_nas)
+        if test x$have_nas = xyes; then
+            CFLAGS="$CFLAGS -DNAS_SUPPORT"
+            SYSTEM_LIBS="$SYSTEM_LIBS -laudio -lXt"
+            AUDIO_SUBDIRS="$AUDIO_SUBDIRS nas"
+            AUDIO_DRIVERS="$AUDIO_DRIVERS nas/libaudio_nas.la"
+        fi
+    fi
+}
+
+dnl rcg07142001 See if the user wants the disk writer audio driver...
+CheckDiskAudio()
+{
+    AC_ARG_ENABLE(diskaudio,
+[  --enable-diskaudio  	  support the disk writer audio driver [default=yes]],
+                  , enable_diskaudio=yes)
+    if test x$enable_audio = xyes -a x$enable_diskaudio = xyes; then
+        CFLAGS="$CFLAGS -DDISKAUD_SUPPORT"
+        AUDIO_SUBDIRS="$AUDIO_SUBDIRS disk"
+        AUDIO_DRIVERS="$AUDIO_DRIVERS disk/libaudio_disk.la"
     fi
 }
 
@@ -398,6 +429,49 @@ CheckNASM()
             SDL_EXTRALIBS="$SDL_EXTRALIBS hermes/libhermes.la"
         fi
     fi
+}
+
+dnl Find the nanox include and library directories
+CheckNANOX()
+{
+	AC_ARG_ENABLE(video-nanox,
+		[  --enable-video-nanox use nanox video driver [default=no]],
+	        , enable_video_nanox=no)
+	AC_ARG_ENABLE(nanox-debug,  
+		[  --enable-nanox-debug print debug messages [default=no]],
+		, enable_nanox_debug=no)
+	AC_ARG_ENABLE(nanox-share-memory,  
+		[  --enable-nanox-share-memory use share memory [default=no]],
+		, enable_nanox_share_memory=no)
+
+	AC_ARG_WITH(nanox_pixel_type, 
+		[  --with-nanox-pixel-type=[rgb/0888/888/565/555/332/pal]])
+
+	if test x$enable_video = xyes -a x$enable_video_nanox = xyes; then
+		if test x$enable_nanox_debug = xyes; then
+			CFLAGS="$CFLAGS -DENABLE_NANOX_DEBUG"
+		fi
+
+		if test x$enable_nanox_share_memory = xyes; then
+			CFLAGS="$CFLAGS -DNANOX_SHARE_MEMORY"
+		fi
+
+		case "$with_nanox_pixel_type" in
+			 rgb) CFLAGS="$CFLAGS -DNANOX_PIXEL_RGB" ;;
+			0888) CFLAGS="$CFLAGS -DNANOX_PIXEL_0888" ;;
+			 888) CFLAGS="$CFLAGS -DNANOX_PIXEL_888"  ;;
+			 565) CFLAGS="$CFLAGS -DNANOX_PIXEL_565"  ;;
+			 555) CFLAGS="$CFLAGS -DNANOX_PIXEL_555"  ;;
+			 332) CFLAGS="$CFLAGS -DNANOX_PIXEL_332"  ;;
+			 pal) CFLAGS="$CFLAGS -DNANOX_PIXEL_PAL"  ;;
+			   *) AC_MSG_ERROR([Invalid nanox_pixel_type]);;
+		esac
+
+		CFLAGS="$CFLAGS $X_CFLAGS -DENABLE_NANOX"
+		SYSTEM_LIBS="$SYSTEM_LIBS -lnano-X"
+		VIDEO_SUBDIRS="$VIDEO_SUBDIRS nanox"
+		VIDEO_DRIVERS="$VIDEO_DRIVERS nanox/libvideo_nanox.la"
+	fi
 }
 
 dnl Find the X11 include and library directories
@@ -471,25 +545,30 @@ CheckX11()
                     fi
                 fi
             fi
+            AC_ARG_ENABLE(dga,
+[  --enable-dga            allow use of X11 DGA code [default=yes]],
+                          , enable_dga=yes)
             AC_ARG_ENABLE(video-x11-dgamouse,
 [  --enable-video-x11-dgamouse  use X11 DGA for mouse events [default=yes]],
                           , enable_video_x11_dgamouse=yes)
-            AC_MSG_CHECKING(for XFree86 DGA 1.0 support)
-            video_x11_dga=no
-            AC_TRY_COMPILE([
-             #include <X11/Xlib.h>
-             #include <X11/extensions/xf86dga.h>
-            ],[
-            ],[
-            video_x11_dga=yes
-            ])
-            AC_MSG_RESULT($video_x11_dga)
-            if test x$video_x11_dga = xyes; then
-                CFLAGS="$CFLAGS -DXFREE86_DGAMOUSE"
-                if test x$enable_video_x11_dgamouse = xyes; then
-                    CFLAGS="$CFLAGS -DDEFAULT_DGAMOUSE"
+            if test x$enable_dga = xyes; then
+                AC_MSG_CHECKING(for XFree86 DGA 1.0 support)
+                video_x11_dga=no
+                AC_TRY_COMPILE([
+                 #include <X11/Xlib.h>
+                 #include <X11/extensions/xf86dga.h>
+                ],[
+                ],[
+                video_x11_dga=yes
+                ])
+                AC_MSG_RESULT($video_x11_dga)
+                if test x$video_x11_dga = xyes; then
+                    CFLAGS="$CFLAGS -DXFREE86_DGAMOUSE"
+                    if test x$enable_video_x11_dgamouse = xyes; then
+                        CFLAGS="$CFLAGS -DDEFAULT_DGAMOUSE"
+                    fi
+                    SYSTEM_LIBS="$SYSTEM_LIBS -lXxf86dga"
                 fi
-                SYSTEM_LIBS="$SYSTEM_LIBS -lXxf86dga"
             fi
             AC_ARG_ENABLE(video-x11-xv,
 [  --enable-video-x11-xv   use X11 XvImage extension for video [default=yes]],
@@ -520,7 +599,7 @@ CheckX11()
 CheckPHOTON()
 {
     AC_ARG_ENABLE(video-photon,
-[  --enable-video-photon   use QNX Photonvideo driver [default=yes]],
+[  --enable-video-photon   use QNX Photon video driver [default=yes]],
                   , enable_video_photon=yes)
     if test x$enable_video = xyes -a x$enable_video_photon = xyes; then
         AC_MSG_CHECKING(for QNX Photon support)
@@ -537,6 +616,7 @@ CheckPHOTON()
         ])
         AC_MSG_RESULT($video_photon)
         if test x$video_photon = xyes; then
+            CFLAGS="$CFLAGS -DENABLE_PHOTON"
             SYSTEM_LIBS="$SYSTEM_LIBS -lph"
             VIDEO_SUBDIRS="$VIDEO_SUBDIRS photon"
             VIDEO_DRIVERS="$VIDEO_DRIVERS photon/libvideo_photon.la"
@@ -592,6 +672,31 @@ CheckFBCON()
             CFLAGS="$CFLAGS -DENABLE_FBCON"
             VIDEO_SUBDIRS="$VIDEO_SUBDIRS fbcon"
             VIDEO_DRIVERS="$VIDEO_DRIVERS fbcon/libvideo_fbcon.la"
+        fi
+    fi
+}
+
+dnl See if we're running on PlayStation 2 hardware
+CheckPS2GS()
+{
+    AC_ARG_ENABLE(video-ps2gs,
+[  --enable-video-ps2gs    use PlayStation 2 GS video driver [default=yes]],
+                  , enable_video_ps2gs=yes)
+    if test x$enable_video = xyes -a x$enable_video_ps2gs = xyes; then
+        AC_MSG_CHECKING(for PlayStation 2 GS support)
+        video_ps2gs=no
+        AC_TRY_COMPILE([
+         #include <linux/ps2/dev.h>
+         #include <linux/ps2/gs.h>
+        ],[
+        ],[
+        video_ps2gs=yes
+        ])
+        AC_MSG_RESULT($video_ps2gs)
+        if test x$video_ps2gs = xyes; then
+            CFLAGS="$CFLAGS -DENABLE_PS2GS"
+            VIDEO_SUBDIRS="$VIDEO_SUBDIRS ps2gs"
+            VIDEO_DRIVERS="$VIDEO_DRIVERS ps2gs/libvideo_ps2gs.la"
         fi
     fi
 }
@@ -654,6 +759,37 @@ CheckSVGA()
     fi
 }
 
+dnl Find the VGL includes and libraries
+CheckVGL()
+{
+    AC_ARG_ENABLE(video-vgl,
+[  --enable-video-vgl     use VGL video driver [default=no]],
+                  , enable_video_vgl=no)
+    if test x$enable_video = xyes -a x$enable_video_vgl = xyes; then
+        AC_MSG_CHECKING(for libVGL support)
+        video_vgl=no
+        AC_TRY_COMPILE([
+         #include <sys/fbio.h>
+         #include <sys/consio.h>
+         #include <sys/kbio.h>
+         #include <vgl.h>
+        ],[
+         VGLBitmap bitmap;
+         exit(bitmap.PyxelBytes);
+        ],[
+        video_vgl=yes
+        ])
+        AC_MSG_RESULT($video_vgl)
+        if test x$video_vgl = xyes; then
+            CFLAGS="$CFLAGS -DENABLE_VGL"
+            SYSTEM_LIBS="$SYSTEM_LIBS -lvgl"
+
+            VIDEO_SUBDIRS="$VIDEO_SUBDIRS vgl"
+            VIDEO_DRIVERS="$VIDEO_DRIVERS vgl/libvideo_vgl.la"
+        fi
+    fi
+}
+
 dnl Find the AAlib includes
 CheckAAlib()
 {
@@ -677,6 +813,19 @@ CheckAAlib()
             VIDEO_SUBDIRS="$VIDEO_SUBDIRS aalib"
             VIDEO_DRIVERS="$VIDEO_DRIVERS aalib/libvideo_aa.la"
         fi
+    fi
+}
+
+dnl rcg04172001 Set up the Null video driver.
+CheckDummyVideo()
+{
+    AC_ARG_ENABLE(video-dummy,
+[  --enable-video-dummy    use dummy video driver [default=yes]],
+                  , enable_video_dummy=yes)
+    if test x$enable_video_dummy = xyes; then
+      CFLAGS="$CFLAGS -DENABLE_DUMMYVIDEO"
+      VIDEO_SUBDIRS="$VIDEO_SUBDIRS dummy"
+      VIDEO_DRIVERS="$VIDEO_DRIVERS dummy/libvideo_null.la"
     fi
 }
 
@@ -733,8 +882,8 @@ CheckInputEvents()
 {
     dnl Check for Linux 2.4 unified input event interface support
     AC_ARG_ENABLE(input-events,
-[  --enable-input-events   use Linux 2.4 unified input interface [default=yes]],
-                  , enable_input_events=yes)
+[  --enable-input-events   use Linux 2.4 unified input interface [default=no]],
+                  , enable_input_events=no)
     if test x$enable_input_events = xyes; then
         AC_MSG_CHECKING(for Linux 2.4 unified input interface)
         use_input_events=no
@@ -763,7 +912,7 @@ CheckPTHREAD()
                   , enable_pthreads=yes)
     dnl This is used on Linux for glibc binary compatibility (Doh!)
     AC_ARG_ENABLE(pthread-sem,
-[    --enable-pthread-sem  use pthread semaphores [default=yes]],
+[  --enable-pthread-sem    use pthread semaphores [default=yes]],
                   , enable_pthread_sem=yes)
     ac_save_libs="$LIBS"
     case "$target" in
@@ -779,6 +928,10 @@ CheckPTHREAD()
         *-*-freebsd*)
             pthread_cflags="-D_REENTRANT -D_THREAD_SAFE"
             pthread_lib="-pthread"
+            ;;
+        *-*-netbsd*)
+            pthread_cflags="-I/usr/pkg/include -D_REENTRANT"
+            pthread_lib="-L/usr/pkg/lib -lpthread -lsem"
             ;;
         *-*-openbsd*)
             pthread_cflags="-D_REENTRANT"
@@ -851,6 +1004,20 @@ CheckPTHREAD()
             AC_MSG_RESULT($has_recursive_mutexes)
             if test x$has_recursive_mutexes != xyes; then
                 CFLAGS="$CFLAGS -DPTHREAD_NO_RECURSIVE_MUTEX"
+            fi
+
+            # Check to see if pthread semaphore support is missing
+            if test x$enable_pthread_sem = xyes; then
+                AC_MSG_CHECKING(for pthread semaphores)
+                have_pthread_sem=no
+                AC_TRY_COMPILE([
+                  #include <pthread.h>
+                  #include <semaphore.h>
+                ],[
+                ],[
+                have_pthread_sem=yes
+                ])
+                AC_MSG_RESULT($have_pthread_sem)
             fi
 
             # Check to see if this is broken glibc 2.0 pthreads
@@ -1012,6 +1179,8 @@ CheckKSTAT()
 case "$target" in
     *-*-linux*)
         ARCH=linux
+        CheckDummyVideo
+        CheckDiskAudio
         CheckNASM
         CheckOSS
         CheckALSA
@@ -1019,8 +1188,10 @@ case "$target" in
         CheckESD
         CheckNAS
         CheckX11
+        CheckNANOX
         CheckDGA
         CheckFBCON
+        CheckPS2GS
         CheckGGI
         CheckSVGA
         CheckAAlib
@@ -1051,7 +1222,7 @@ case "$target" in
             fi
             COPY_ARCH_SRC(src/thread, linux, SDL_systhread.c)
             COPY_ARCH_SRC(src/thread, linux, SDL_systhread_c.h)
-            if test x$use_pthreads = xyes -a x$enable_pthread_sem != xyes; then
+            if test x$use_pthreads = xyes -a x$have_pthread_sem != xyes; then
                 COPY_ARCH_SRC(src/thread, generic, SDL_syssem.c)
             else
                 COPY_ARCH_SRC(src/thread, linux, SDL_syssem.c)
@@ -1076,12 +1247,17 @@ case "$target" in
         ;;
     *-*-bsdi*)
         ARCH=bsdi
+        CheckDummyVideo
+        CheckDiskAudio
         CheckNASM
         CheckOSS
+        CheckARTSC
+        CheckESD
         CheckNAS
         CheckX11
         CheckDGA
         CheckSVGA
+        CheckVGL
         CheckAAlib
         CheckOpenGL
         CheckPTHREAD
@@ -1116,6 +1292,8 @@ case "$target" in
         ;;
     *-*-freebsd*)
         ARCH=freebsd
+        CheckDummyVideo
+        CheckDiskAudio
         CheckNASM
         CheckOSS
         CheckARTSC
@@ -1151,7 +1329,7 @@ case "$target" in
             COPY_ARCH_SRC(src/thread, linux, SDL_systhread_c.h)
             COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex.c)
             COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex_c.h)
-            if test x$use_pthreads = xyes -a x$enable_pthread_sem != xyes; then
+            if test x$use_pthreads = xyes -a x$have_pthread_sem != xyes; then
                 COPY_ARCH_SRC(src/thread, generic, SDL_syssem.c)
             else
                 COPY_ARCH_SRC(src/thread, linux, SDL_syssem.c)
@@ -1167,6 +1345,8 @@ case "$target" in
         ;;
     *-*-netbsd*)
         ARCH=netbsd
+        CheckDummyVideo
+        CheckDiskAudio
         CheckNASM
         CheckOSS
         CheckARTSC
@@ -1199,53 +1379,7 @@ case "$target" in
             COPY_ARCH_SRC(src/thread, linux, SDL_systhread_c.h)
             COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex.c)
             COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex_c.h)
-            COPY_ARCH_SRC(src/thread, linux, SDL_syssem.c)
-            COPY_ARCH_SRC(src/thread, generic, SDL_syssem_c.h)
-            COPY_ARCH_SRC(src/thread, linux, SDL_syscond.c)
-            COPY_ARCH_SRC(src/thread, generic, SDL_syscond_c.h)
-        fi
-        # Set up files for the timer library
-        if test x$enable_timers = xyes; then
-            COPY_ARCH_SRC(src/timer, linux, SDL_systimer.c)
-        fi
-        # NetBSD does not define "unix"
-        CFLAGS="$CFLAGS -Dunix"
-        ;;
-    *-*-openbsd*)
-        ARCH=openbsd
-        CheckNASM
-        CheckOSS
-        CheckARTSC
-        CheckESD
-        CheckNAS
-        CheckX11
-        CheckAAlib
-        CheckOpenGL
-        CheckPTHREAD
-        # Set up files for the main() stub
-        COPY_ARCH_SRC(src/main, linux, SDL_main.c)
-        # Set up files for the audio library
-        if test x$enable_audio = xyes; then
-            AUDIO_SUBDIRS="$AUDIO_SUBDIRS sun"
-            AUDIO_DRIVERS="$AUDIO_DRIVERS sun/libaudio_sun.la"
-        fi
-        # Set up files for the joystick library
-        # (No joystick support yet)
-        if test x$enable_joystick = xyes; then
-            JOYSTICK_SUBDIRS="$JOYSTICK_SUBDIRS dummy"
-            JOYSTICK_DRIVERS="$JOYSTICK_DRIVERS dummy/libjoystick_dummy.la"
-        fi
-        # Set up files for the cdrom library
-        if test x$enable_cdrom = xyes; then
-            COPY_ARCH_SRC(src/cdrom, openbsd, SDL_syscdrom.c)
-        fi
-        # Set up files for the thread library
-        if test x$enable_threads = xyes; then
-            COPY_ARCH_SRC(src/thread, linux, SDL_systhread.c)
-            COPY_ARCH_SRC(src/thread, linux, SDL_systhread_c.h)
-            COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex.c)
-            COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex_c.h)
-            if test x$use_pthreads = xyes -a x$enable_pthread_sem != xyes; then
+            if test x$use_pthreads = xyes -a x$have_pthread_sem != xyes; then
                 COPY_ARCH_SRC(src/thread, generic, SDL_syssem.c)
             else
                 COPY_ARCH_SRC(src/thread, linux, SDL_syssem.c)
@@ -1258,9 +1392,71 @@ case "$target" in
         if test x$enable_timers = xyes; then
             COPY_ARCH_SRC(src/timer, linux, SDL_systimer.c)
         fi
+        # NetBSD does not define "unix"
+        CFLAGS="$CFLAGS -Dunix -D_POSIX_THREAD_SYSCALL_SOFT=1"
+        ;;
+    *-*-openbsd*)
+        ARCH=openbsd
+        CheckDummyVideo
+        CheckDiskAudio
+        CheckOPENBSDAUDIO
+        CheckNASM
+        CheckOSS
+        CheckARTSC
+        CheckESD
+        CheckNAS
+        CheckX11
+        CheckAAlib
+        CheckOpenGL
+        CheckPTHREAD
+        # Set up files for the main() stub
+        COPY_ARCH_SRC(src/main, linux, SDL_main.c)
+        # Set up files for the audio library
+        # We use the OSS and native API's, not the Sun audio API
+        #if test x$enable_audio = xyes; then
+        #    AUDIO_SUBDIRS="$AUDIO_SUBDIRS sun"
+        #    AUDIO_DRIVERS="$AUDIO_DRIVERS sun/libaudio_sun.la"
+        #fi
+        # OpenBSD needs linking with ossaudio emulation library
+        if test x$have_oss = xyes; then
+            SYSTEM_LIBS="$SYSTEM_LIBS -lossaudio"
+        fi
+        # Set up files for the joystick library
+        # (No joystick support yet)
+        if test x$enable_joystick = xyes; then
+            JOYSTICK_SUBDIRS="$JOYSTICK_SUBDIRS dummy"
+            JOYSTICK_DRIVERS="$JOYSTICK_DRIVERS dummy/libjoystick_dummy.la"
+        fi
+        # Set up files for the cdrom library
+        if test x$enable_cdrom = xyes; then
+            COPY_ARCH_SRC(src/cdrom, openbsd, SDL_syscdrom.c)
+        fi
+        # Set up files for the thread library
+        if test x$enable_threads = xyes; then
+            COPY_ARCH_SRC(src/thread, linux, SDL_systhread.c)
+            COPY_ARCH_SRC(src/thread, linux, SDL_systhread_c.h)
+            COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex.c)
+            COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex_c.h)
+            if test x$use_pthreads = xyes -a x$have_pthread_sem != xyes; then
+                COPY_ARCH_SRC(src/thread, generic, SDL_syssem.c)
+            else
+                COPY_ARCH_SRC(src/thread, linux, SDL_syssem.c)
+            fi
+            COPY_ARCH_SRC(src/thread, generic, SDL_syssem_c.h)
+            COPY_ARCH_SRC(src/thread, linux, SDL_syscond.c)
+            COPY_ARCH_SRC(src/thread, generic, SDL_syscond_c.h)
+        fi
+        # Set up files for the timer library
+        if test x$enable_timers = xyes; then
+            COPY_ARCH_SRC(src/timer, linux, SDL_systimer.c)
+        fi
+        # OpenBSD does not define "unix"
+        CFLAGS="$CFLAGS -Dunix"
         ;;
     *-*-sysv5*)
         ARCH=sysv5
+        CheckDummyVideo
+        CheckDiskAudio
         CheckNASM
         CheckOSS
         CheckARTSC
@@ -1306,7 +1502,11 @@ case "$target" in
         ;;
     *-*-solaris*)
         ARCH=solaris
+        CFLAGS="$CFLAGS -D__ELF__" # Fix for nasm on Solaris x86
+        CheckDummyVideo
+        CheckDiskAudio
         CheckNASM
+        CheckOSS
         CheckARTSC
         CheckESD
         CheckNAS
@@ -1350,6 +1550,8 @@ case "$target" in
         ;;
     *-*-irix*)
         ARCH=irix
+        CheckDummyVideo
+        CheckDiskAudio
         CheckNAS
         CheckX11
         CheckAAlib
@@ -1361,7 +1563,7 @@ case "$target" in
         if test x$enable_audio = xyes; then
             AUDIO_SUBDIRS="$AUDIO_SUBDIRS dmedia"
             AUDIO_DRIVERS="$AUDIO_DRIVERS dmedia/libaudio_dmedia.la"
-            LIBS="$LIBS -laudio"
+            SYSTEM_LIBS="$SYSTEM_LIBS -laudio"
         fi
         # Set up files for the joystick library
         # (No joystick support yet)
@@ -1381,7 +1583,7 @@ case "$target" in
                 COPY_ARCH_SRC(src/thread, linux, SDL_systhread_c.h)
                 COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex.c)
                 COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex_c.h)
-                if test x$enable_pthread_sem != xyes; then
+                if test x$have_pthread_sem != xyes; then
                     COPY_ARCH_SRC(src/thread, generic, SDL_syssem.c)
                 else
                     COPY_ARCH_SRC(src/thread, linux, SDL_syssem.c)
@@ -1407,6 +1609,9 @@ case "$target" in
         ;;
     *-*-hpux*)
         ARCH=hpux
+        CheckDummyVideo
+        CheckDiskAudio
+        CheckOSS
         CheckNAS
         CheckX11
         CheckGGI
@@ -1449,6 +1654,9 @@ case "$target" in
         ;;
     *-*-aix*)
         ARCH=aix
+        CheckDummyVideo
+        CheckDiskAudio
+        CheckOSS
         CheckNAS
         CheckX11
         CheckGGI
@@ -1490,6 +1698,8 @@ case "$target" in
         ;;
     *-*-osf*)
         ARCH=osf
+        CheckDummyVideo
+        CheckDiskAudio
         CheckNAS
         CheckX11
         CheckGGI
@@ -1532,6 +1742,8 @@ case "$target" in
         ;;
     *-*-qnx*)
         ARCH=qnx
+        CheckDummyVideo
+        CheckDiskAudio
         CheckNAS
         CheckPHOTON
         CheckX11
@@ -1581,8 +1793,12 @@ case "$target" in
             ac_default_prefix=/usr/local/cross-tools/i386-mingw32msvc
         else
             # Look for the location of the tools and install there
-            ac_default_prefix=$BUILD_PREFIX
+            if [ "$BUILD_PREFIX" != "" ]; then
+                ac_default_prefix=$BUILD_PREFIX
+            fi
         fi
+        CheckDummyVideo
+        CheckDiskAudio
         CheckWIN32
         CheckDIRECTX
         CheckNASM
@@ -1593,8 +1809,8 @@ case "$target" in
             AUDIO_SUBDIRS="$AUDIO_SUBDIRS windib"
             AUDIO_DRIVERS="$AUDIO_DRIVERS windib/libaudio_windib.la"
             if test x$use_directx = xyes; then
-    	        AUDIO_SUBDIRS="$AUDIO_SUBDIRS windx5"
-    	        AUDIO_DRIVERS="$AUDIO_DRIVERS windx5/libaudio_windx5.la"
+                AUDIO_SUBDIRS="$AUDIO_SUBDIRS windx5"
+                AUDIO_DRIVERS="$AUDIO_DRIVERS windx5/libaudio_windx5.la"
             fi
         fi
         # Set up files for the joystick library
@@ -1623,11 +1839,23 @@ case "$target" in
         fi
         # The Win32 platform requires special setup
         SDL_CFLAGS="$SDL_CFLAGS -Dmain=SDL_main"
-        SDL_LIBS="-lmingw32 -lSDLmain $SDL_LIBS -mwindows"
+        case "$target" in
+            *-*-cygwin*)
+                CFLAGS="$CFLAGS -I/usr/include/mingw -DWIN32 -Uunix"
+                SDL_CFLAGS="$SDL_CFLAGS -I/usr/include/mingw -DWIN32 -Uunix"
+                LIBS="$LIBS -mno-cygwin"
+                SDL_LIBS="-lmingw32 -lSDLmain $SDL_LIBS -mwindows -mno-cygwin"
+                ;;
+            *-*-mingw32*)
+                SDL_LIBS="-lmingw32 -lSDLmain $SDL_LIBS -mwindows"
+                ;;
+        esac
         ;;
     *-*-beos*)
         ARCH=beos
         ac_default_prefix=/boot/develop/tools/gnupro
+        CheckDummyVideo
+        CheckDiskAudio
         CheckNASM
         CheckBWINDOW
         CheckBeGL
@@ -1672,6 +1900,8 @@ case "$target" in
         # use it at present, but Apple is working on a X-to-9 compiler
         # for which this case would be handy.
         ARCH=macos
+        CheckDummyVideo
+        CheckDiskAudio
         CheckTOOLBOX
         CheckMacGL
         # Set up files for the main() stub
@@ -1714,6 +1944,8 @@ case "$target" in
         # just the OS X kernel sans upper layers like Carbon.  But
         # config.guess comes back with "darwin", so go with the flow.
         ARCH=macos
+        CheckDummyVideo
+        CheckDiskAudio
         CheckCARBON
         CheckMacGL
         CheckPTHREAD
@@ -1740,7 +1972,7 @@ case "$target" in
             COPY_ARCH_SRC(src/thread, linux, SDL_systhread_c.h)
             COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex.c)
             COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex_c.h)
-            if test x$use_pthreads = xyes -a x$enable_pthread_sem != xyes; then
+            if test x$use_pthreads = xyes -a x$have_pthread_sem != xyes; then
                 COPY_ARCH_SRC(src/thread, generic, SDL_syssem.c)
             else
                 COPY_ARCH_SRC(src/thread, linux, SDL_syssem.c)
@@ -1755,7 +1987,7 @@ case "$target" in
         fi
         # The MacOS X platform requires special setup
         SDL_CFLAGS="$SDL_CFLAGS -F/System/Library/Frameworks/Carbon.framework"
-        SDL_LIBS="$SDL_LIBS -framework Carbon"
+        SDL_LIBS="-lSDLmain $SDL_LIBS -framework Carbon"
         ;;
     *)
         AC_MSG_ERROR(Unsupported target:  Please add to configure.in)
@@ -1769,6 +2001,7 @@ AM_CONDITIONAL(TARGET_SOLARIS, test $ARCH = solaris)
 AM_CONDITIONAL(TARGET_IRIX, test $ARCH = irix)
 AM_CONDITIONAL(TARGET_BSDI, test $ARCH = bsdi)
 AM_CONDITIONAL(TARGET_FREEBSD, test $ARCH = freebsd)
+AM_CONDITIONAL(TARGET_NETBSD, test $ARCH = netbsd)
 AM_CONDITIONAL(TARGET_OPENBSD, test $ARCH = openbsd)
 AM_CONDITIONAL(TARGET_AIX, test $ARCH = aix)
 AM_CONDITIONAL(TARGET_WIN32, test $ARCH = win32)
@@ -1788,6 +2021,10 @@ fi
 
 if test $ARCH = solaris; then
   SDL_RLD_FLAGS="-R\${exec_prefix}/lib"
+fi
+
+if test $ARCH = openbsd; then
+  SDL_RLD_FLAGS="-Wl,-rpath,\${exec_prefix}/lib $SYSTEM_LIBS"
 fi
 
 dnl Output the video drivers we use
@@ -1852,29 +2089,37 @@ src/audio/esd/Makefile
 src/audio/macrom/Makefile
 src/audio/nas/Makefile
 src/audio/nto/Makefile
+src/audio/openbsd/Makefile
 src/audio/paudio/Makefile
 src/audio/sun/Makefile
 src/audio/ums/Makefile
 src/audio/windib/Makefile
 src/audio/windx5/Makefile
+src/audio/disk/Makefile
 src/video/Makefile
 src/video/cybergfx/Makefile
 src/video/x11/Makefile
 src/video/dga/Makefile
+src/video/nanox/Makefile
 src/video/fbcon/Makefile
+src/video/ps2gs/Makefile
 src/video/ggi/Makefile
 src/video/maccommon/Makefile
 src/video/macdsp/Makefile
 src/video/macrom/Makefile
+src/video/quartz/Makefile
 src/video/svga/Makefile
+src/video/vgl/Makefile
 src/video/aalib/Makefile
 src/video/wincommon/Makefile
 src/video/windib/Makefile
 src/video/windx5/Makefile
 src/video/bwindow/Makefile
 src/video/photon/Makefile
+src/video/dummy/Makefile
 src/events/Makefile
 src/joystick/Makefile
+src/joystick/amigaos/Makefile
 src/joystick/beos/Makefile
 src/joystick/dummy/Makefile
 src/joystick/linux/Makefile

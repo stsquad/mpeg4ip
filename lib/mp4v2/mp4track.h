@@ -25,20 +25,71 @@
 // forward declarations
 class MP4File;
 class MP4Atom;
+class MP4Integer32Property;
 
 class MP4Track {
 public:
 	MP4Track(MP4File* pFile, MP4Atom* pTrakAtom);
 
-	MP4TrackId GetId();
-	bool IsType(char* type);
+	MP4TrackId GetId() {
+		return m_trackId;
+	}
+
+	const char* GetType() {
+		return m_type;
+	}
+	void SetType(const char* type) {
+		strncpy(m_type, NormalizeTrackType(type), 4);
+		m_type[4] = '\0';
+	}
+
+	MP4Atom* GetTrakAtom() {
+		return m_pTrakAtom;
+	}
+
+	MP4SampleId GetSampleIdFromTime(MP4Timestamp when, 
+		bool wantSyncSample = false);
+
+	void ReadSample(
+		// input parameters
+		MP4SampleId sampleId,
+		// output parameters
+		u_int8_t** ppBytes, 
+		u_int32_t* pNumBytes, 
+		MP4Timestamp* pStartTime = NULL, 
+		MP4Duration* pDuration = NULL,
+		MP4Duration* pRenderingOffset = NULL, 
+		bool* pIsSyncSample = NULL);
+
+	void WriteSample(
+		u_int8_t* pBytes, 
+		u_int32_t numBytes,
+		MP4Duration duration = 0,
+		MP4Duration renderingOffset = 0, 
+		bool isSyncSample = true);
+
+	static const char* NormalizeTrackType(const char* type);
+
+protected:
+	u_int64_t GetSampleOffset(MP4SampleId sampleId);
+	u_int32_t GetSampleSize(MP4SampleId sampleId);
 
 protected:
 	MP4File*	m_pFile;
 	MP4Atom* 	m_pTrakAtom;		// moov.trak[]
 	MP4TrackId	m_trackId;			// moov.trak[].tkhd.trackId
+	char		m_type[5];		
+
 	MP4SampleId m_currentSample;
+
 	u_int32_t 	m_cachedSampleSize;
+	MP4Integer32Property* m_pSampleSizeProperty;
+
+	MP4Integer32Property* m_pStscCountProperty;
+	MP4Integer32Property* m_pStscFirstChunkProperty;
+	MP4Integer32Property* m_pStscSamplesPerChunkProperty;
+	MP4Integer32Property* m_pStscFirstSampleProperty;
+	MP4Integer32Property* m_pChunkOffsetProperty;
 };
 
 MP4ARRAY_DECL(MP4Track, MP4Track*);

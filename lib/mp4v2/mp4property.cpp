@@ -294,13 +294,17 @@ void MP4TableProperty::Write(MP4File* pFile, u_int32_t index)
 		return;
 	}
 
+#ifdef BUGGY
 	u_int32_t numEntries = GetCount();
 
+printf("atom %s table %s\n", m_pParentAtom->GetType(), m_name);
+printf("numEntries %u, property count %u\n", m_pProperties[0]->GetCount());
 	ASSERT(m_pProperties[0]->GetCount() == numEntries);
 
 	for (u_int32_t i = 0; i < numEntries; i++) {
 		WriteEntry(pFile, i);
 	}
+#endif
 }
 
 void MP4TableProperty::WriteEntry(MP4File* pFile, u_int32_t index)
@@ -338,6 +342,19 @@ void MP4DescriptorProperty::SetParentAtom(MP4Atom* pParentAtom) {
 	m_pParentAtom = pParentAtom;
 	for (u_int32_t i = 0; i < m_pDescriptors.Size(); i++) {
 		m_pDescriptors[i]->SetParentAtom(pParentAtom);
+	}
+}
+
+void MP4DescriptorProperty::Generate()
+{
+	// generate a default descriptor
+	// if it is mandatory, single, and the tag is fixed
+	if (m_mandatory && m_onlyOne && m_tagsEnd == 0) {
+		MP4Descriptor* pDescriptor = CreateDescriptor(m_tagsStart);
+		ASSERT(pDescriptor);
+		m_pDescriptors.Add(pDescriptor);
+		pDescriptor->SetParentAtom(m_pParentAtom);
+		pDescriptor->Generate();
 	}
 }
 

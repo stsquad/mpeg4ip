@@ -21,70 +21,34 @@
 
 #include "mp4.h"
 
-void mp4vcreate(int argc, char** argv)
+void mp4create(int argc, char** argv)
 {
-	MP4File* pFile = new MP4File(argv[1], "w");
+	MP4File* pFile = new MP4File(argv[1], "w", MP4_DETAILS_ALL);
 
+	pFile->SetODProfileLevel(1);
+	pFile->SetSceneProfileLevel(1);
 	pFile->SetVideoProfileLevel(1);
+	pFile->SetAudioProfileLevel(1);
+	pFile->SetGraphicsProfileLevel(1);
 
-	// MP4TrackId videoTrackId = pFile->AddVideoTrack();
+	MP4TrackId odTrackId = 
+		pFile->AddTrack("od");
+
+#ifdef NOTDEF
+	MP4TrackId bifsTrackId = 
+		pFile->AddTrack("bifs");
+
+	MP4TrackId videoTrackId = 
+		pFile->AddVideoTrack(90000, 3000, 320, 240);
+
+	MP4TrackId audioTrackId = 
+		pFile->AddAudioTrack(44100, 1152);
+#endif
+
+	// pFile->SetTrackESConfiguration();
 	// pFile->WriteSample();
 
 	pFile->Write();
-
-	delete pFile;
-}
-
-void mp4dump(int argc, char** argv)
-{
-	MP4File* pFile = new MP4File(argv[1], "r", MP4_DETAILS_ALL);
-	
-	pFile->Dump();
-
-	delete pFile;
-}
-
-void mp4vextract(int argc, char** argv)
-{
-	MP4File* pFile = new MP4File(argv[1], "r", MP4_DETAILS_FIND);
-
-	printf("movie duration is %u secs\n", 
-		pFile->GetDuration() / pFile->GetTimeScale());
-
-	printf("video profileLevel id is %u\n",
-		pFile->GetVideoProfileLevel());
-
-	u_int8_t* pConfig;
-	u_int32_t configSize;
-	pFile->GetTrackESConfiguration(2, &pConfig, &configSize);
-
-	printf("first video config is %u bytes long\n", configSize);
-
-#ifdef NOTDEF
-	// foreach video track
-	u_int32_t numVideoTracks = pFile->GetNumberOfTracks("video");
-
-	for (u_int32_t i = 0; i < numVideoTracks; i++) {
-
-		MP4TrackId videoTrack = pFile->FindTrack(i, "video");
-
-		int rawFd = open("extract1.yuv", O_CREAT | O_TRUNC);
-
-		u_int8_t* pFrame;
-		u_int32_t frameSize;
-
-		// get video decoder info
-		pFile->GetESConfigInfo(videoTrack, &pFrame, &frameSize);
-		write(rawFd, pFrame, frameSize);
-		free(pFrame);
-
-		// while there are video frames, read them, and write them raw
-		while (pFile->GetNextVideoFrame(&pFrame, &frameSize) == 0)) {
-			write(rawFd, pFrame, frameSize);
-			free(pFrame);
-		}
-	}
-#endif
 
 	delete pFile;
 }
@@ -97,11 +61,7 @@ main(int argc, char** argv)
 	}
 
 	try {
-		//mp4vcreate(argc, argv);
-
-		mp4dump(argc, argv);
-
-		mp4vextract(argc, argv);
+		mp4create(argc, argv);
 	}
 	catch (MP4Error* e) {
 		e->Print();

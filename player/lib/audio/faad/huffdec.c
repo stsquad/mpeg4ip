@@ -498,7 +498,6 @@ static int getics(faacDecHandle hDecoder, Info *info, int common_window, byte *w
     if (!common_window) {
 		if (!get_ics_info(hDecoder, win, wshape, group, max_sfb, lpflag, prstflag,
 				  nok_ltp_status, NULL, 0)) {
-		  printf("get_ics_info\n");
 			return 0;
 		}
 	}
@@ -522,7 +521,6 @@ static int getics(faacDecHandle hDecoder, Info *info, int common_window, byte *w
 	*/
     nsect = huffcb(hDecoder, sect, info->sectbits, tot_sfb, info->sfb_per_sbk[0], *max_sfb);
     if(nsect==0 && *max_sfb>0) {
-      printf ("huffcb nsect == 0 && maxsfb %d tot_sfb %d\n", *max_sfb, tot_sfb);
 		return 0;
     }
 
@@ -553,7 +551,6 @@ static int getics(faacDecHandle hDecoder, Info *info, int common_window, byte *w
 	* scale factor data
 	*/
     if(!hufffac(hDecoder, info, group, nsect, sect, *global_gain, factors)) {
-      printf("hufffac\n");
 		return 0;
     }
 
@@ -621,7 +618,6 @@ static int huffcb(faacDecHandle hDecoder, byte *sect, int *sectbits,
     }
 
     if(base != tot_sfb || nsect > tot_sfb) {
-      printf("base %d totsfb %d nsect %d\n", base, tot_sfb, nsect);
 		return 0;
     }
 

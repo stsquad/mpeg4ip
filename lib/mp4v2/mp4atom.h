@@ -117,6 +117,10 @@ public:
 		m_unknownType = unknownType;
 	}
 
+	bool IsRootAtom() {
+		return m_type[0] == '\0';
+	}
+
 	MP4Atom* GetParentAtom() {
 		return m_pParentAtom;
 	}
@@ -137,8 +141,6 @@ public:
 		}
 	}
 
-	// TBD GetNumberOfChildAtoms(char* name = NULL);
-
 	MP4Atom* FindAtom(char* name);
 
 	bool FindProperty(char* name, 
@@ -150,7 +152,7 @@ public:
 
 	virtual void Generate();
 	virtual void Read();
-	virtual void Write(bool use64 = false);
+	virtual void Write();
 	virtual void Dump(FILE* pFile);
 
 protected:
@@ -177,6 +179,8 @@ protected:
 
 	MP4AtomInfo* FindAtomInfo(const char* name);
 
+	bool IsMe(char* name);
+
 	MP4Atom* FindChildAtom(char* name);
 
 	bool FindContainedProperty(char* name, 
@@ -194,6 +198,8 @@ protected:
 	void WriteChildAtoms();
 
 	u_int8_t GetVersion();
+	void SetVersion(u_int8_t version);
+
 	u_int32_t GetFlags();
 	void SetFlags(u_int32_t flags);
 
@@ -216,19 +222,12 @@ protected:
 	MP4AtomArray		m_pChildAtoms;
 };
 
-inline u_int32_t ATOMID(const char* type) {
+inline u_int32_t STRTOINT32(const char* type) {
 	return (type[0] << 24) | (type[1] << 16) | (type[2] << 8) | type[3];
 }
 
-class MP4RootAtom : public MP4Atom {
-public:
-	MP4RootAtom() : MP4Atom(NULL) {
-		ExpectChildAtom("moov", true);
-		ExpectChildAtom("mdat", false, false);
-		ExpectChildAtom("free", false, false);
-		ExpectChildAtom("skip", false, false);
-		ExpectChildAtom("udta", false, false);
-	}
-};
+inline u_int32_t ATOMID(const char* type) {
+	return STRTOINT32(type);
+}
 
 #endif /* __MP4_ATOM_INCLUDED__ */

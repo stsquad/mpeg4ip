@@ -28,6 +28,21 @@
 #define Many		false
 #define Counted		true
 
+class MP4RootAtom : public MP4Atom {
+public:
+	MP4RootAtom() : MP4Atom(NULL) {
+		ExpectChildAtom("ftyp", Required, OnlyOne);
+		ExpectChildAtom("moov", Required, OnlyOne);
+		ExpectChildAtom("mdat", Optional, Many);
+		ExpectChildAtom("free", Optional, Many);
+		ExpectChildAtom("skip", Optional, Many);
+		ExpectChildAtom("udta", Optional, Many);
+	}
+	void Write() {
+		WriteChildAtoms();
+	}
+};
+
 /* PROPOSED */
 class MP4FtypAtom : public MP4Atom {
 public:
@@ -49,6 +64,11 @@ public:
 		pTable->AddProperty(
 			new MP4Integer32Property("brand"));
 	}
+
+	void Generate() {
+		((MP4Integer32Property*)m_pProperties[0])->SetValue(STRTOINT32("isom"));
+	}
+
 	void Read() {
 		// table entry count computed from atom size
 		((MP4Integer32Property*)m_pProperties[2])->SetReadOnly(false);
@@ -66,10 +86,7 @@ public:
 	void Read() {
 		Skip();
 	}
-	void Write() {
-		// LATER option to use64
-		MP4Atom::Write();
-	}
+	// LATER option to use 64 bit write 
 };
 
 class MP4MoovAtom : public MP4Atom {
@@ -87,35 +104,56 @@ public:
 	MP4MvhdAtom() : MP4Atom("mvhd") {
 		AddVersionAndFlags();
 	}
+	void AddVersion0Properties() {
+		AddProperty(
+			new MP4Integer32Property("creationTime"));
+		AddProperty(
+			new MP4Integer32Property("modificationTime"));
+		AddProperty(
+			new MP4Integer32Property("timeScale"));
+		AddProperty(
+			new MP4Integer32Property("duration"));
+		AddReserved("reserved", 76);
+		AddProperty(
+			new MP4Integer32Property("nextTrackId"));
+	}
+	void AddVersion1Properties() {
+		AddProperty(
+			new MP4Integer64Property("creationTime"));
+		AddProperty(
+			new MP4Integer64Property("modificationTime"));
+		AddProperty(
+			new MP4Integer32Property("timeScale"));
+		AddProperty(
+			new MP4Integer64Property("duration"));
+		AddReserved("reserved", 76);
+		AddProperty(
+			new MP4Integer32Property("nextTrackId"));
+	}
+	void Generate() {
+		SetVersion(1);
+		AddVersion1Properties();
+
+		// set creation and modification times
+		MP4Timestamp now = MP4GetAbsTimestamp();
+		((MP4Integer64Property*)m_pProperties[2])->SetValue(now);
+		((MP4Integer64Property*)m_pProperties[3])->SetValue(now);
+
+		// set next track id
+		((MP4Integer32Property*)m_pProperties[7])->SetValue(1);
+	}
 	void Read() {
 		/* read atom version */
 		ReadProperties(0, 1);
 
 		/* need to create the properties based on the atom version */
 		if (GetVersion() == 1) {
-			AddProperty(
-				new MP4Integer64Property("creationTime"));
-			AddProperty(
-				new MP4Integer64Property("modificationTime"));
-			AddProperty(
-				new MP4Integer32Property("timeScale"));
-			AddProperty(
-				new MP4Integer64Property("duration"));
+			AddVersion1Properties();
 		} else {
-			AddProperty(
-				new MP4Integer32Property("creationTime"));
-			AddProperty(
-				new MP4Integer32Property("modificationTime"));
-			AddProperty(
-				new MP4Integer32Property("timeScale"));
-			AddProperty(
-				new MP4Integer32Property("duration"));
+			AddVersion0Properties();
 		}
-		AddReserved("reserved", 76);
-		AddProperty(
-			new MP4Integer32Property("nextTrackId"));
 
-		/* now we can read the properties */
+		/* now we can read the remaining properties */
 		ReadProperties(1);
 
 		Skip();	// to end of atom
@@ -148,33 +186,49 @@ public:
 	MP4TkhdAtom() : MP4Atom("tkhd") {
 		AddVersionAndFlags();
 	}
+	void AddVersion0Properties() {
+		AddProperty(
+			new MP4Integer32Property("creationTime"));
+		AddProperty(
+			new MP4Integer32Property("modificationTime"));
+		AddProperty(
+			new MP4Integer32Property("trackId"));
+		AddReserved("reserved1", 4);
+		AddProperty(
+			new MP4Integer32Property("duration"));
+		AddReserved("reserved2", 60);
+	}
+	void AddVersion1Properties() {
+		AddProperty(
+			new MP4Integer64Property("creationTime"));
+		AddProperty(
+			new MP4Integer64Property("modificationTime"));
+		AddProperty(
+			new MP4Integer32Property("trackId"));
+		AddReserved("reserved1", 4);
+		AddProperty(
+			new MP4Integer64Property("duration"));
+		AddReserved("reserved2", 60);
+	}
+	void Generate() {
+		SetVersion(1);
+		AddVersion1Properties();
+
+		// set creation and modification times
+		MP4Timestamp now = MP4GetAbsTimestamp();
+		((MP4Integer64Property*)m_pProperties[2])->SetValue(now);
+		((MP4Integer64Property*)m_pProperties[3])->SetValue(now);
+	}
 	void Read() {
 		/* read atom version */
 		ReadProperties(0, 1);
 
 		/* need to create the properties based on the atom version */
 		if (GetVersion() == 1) {
-			AddProperty(
-				new MP4Integer64Property("creationTime"));
-			AddProperty(
-				new MP4Integer64Property("modificationTime"));
-			AddProperty(
-				new MP4Integer32Property("trackId"));
-			AddReserved("reserved1", 4);
-			AddProperty(
-				new MP4Integer64Property("duration"));
+			AddVersion1Properties();
 		} else {
-			AddProperty(
-				new MP4Integer32Property("creationTime"));
-			AddProperty(
-				new MP4Integer32Property("modificationTime"));
-			AddProperty(
-				new MP4Integer32Property("trackId"));
-			AddReserved("reserved1", 4);
-			AddProperty(
-				new MP4Integer32Property("duration"));
+			AddVersion0Properties();
 		}
-		AddReserved("reserved2", 60);
 
 		/* now we can read the properties */
 		ReadProperties(1);
@@ -228,34 +282,51 @@ public:
 	MP4MdhdAtom() : MP4Atom("mdhd") {
 		AddVersionAndFlags();
 	}
+	void AddVersion0Properties() {
+		AddProperty(
+			new MP4Integer32Property("creationTime"));
+		AddProperty(
+			new MP4Integer32Property("modificationTime"));
+		AddProperty(
+			new MP4Integer32Property("timeScale"));
+		AddProperty(
+			new MP4Integer32Property("duration"));
+		AddProperty(
+			new MP4Integer16Property("language"));
+		AddReserved("reserved", 2);
+	}
+	void AddVersion1Properties() {
+		AddProperty(
+			new MP4Integer64Property("creationTime"));
+		AddProperty(
+			new MP4Integer64Property("modificationTime"));
+		AddProperty(
+			new MP4Integer32Property("timeScale"));
+		AddProperty(
+			new MP4Integer64Property("duration"));
+		AddProperty(
+			new MP4Integer16Property("language"));
+		AddReserved("reserved", 2);
+	}
+	void Generate() {
+		SetVersion(1);
+		AddVersion1Properties();
 
+		// set creation and modification times
+		MP4Timestamp now = MP4GetAbsTimestamp();
+		((MP4Integer64Property*)m_pProperties[2])->SetValue(now);
+		((MP4Integer64Property*)m_pProperties[3])->SetValue(now);
+	}
 	void Read() {
 		/* read atom version */
 		ReadProperties(0, 1);
 
 		/* need to create the properties based on the atom version */
 		if (GetVersion() == 1) {
-			AddProperty(
-				new MP4Integer64Property("creationTime"));
-			AddProperty(
-				new MP4Integer64Property("modificationTime"));
-			AddProperty(
-				new MP4Integer32Property("timeScale"));
-			AddProperty(
-				new MP4Integer64Property("duration"));
+			AddVersion1Properties();
 		} else {
-			AddProperty(
-				new MP4Integer32Property("creationTime"));
-			AddProperty(
-				new MP4Integer32Property("modificationTime"));
-			AddProperty(
-				new MP4Integer32Property("timeScale"));
-			AddProperty(
-				new MP4Integer32Property("duration"));
+			AddVersion0Properties();
 		}
-		AddProperty(
-			new MP4Integer16Property("language"));
-		AddReserved("reserved", 2);
 
 		/* now we can read the properties */
 		ReadProperties(1);
@@ -618,16 +689,14 @@ public:
 		Skip();	// to end of atom
 	}
 	void Write() {
-		WriteProperties(0, 4);
-
 		u_int32_t sampleSize = 
 			((MP4Integer32Property*)m_pProperties[2])->GetValue();
 
 		// only attempt to write entries table if sampleSize is zero
 		// i.e sample size is not constant
-		if (sampleSize == 0) {
-			WriteProperties(4);
-		}
+		m_pProperties[4]->SetImplicit(sampleSize != 0);
+
+		MP4Atom::Write();
 	}
 };
 
@@ -794,11 +863,6 @@ class MP4ElstAtom : public MP4Atom {
 public:
 	MP4ElstAtom() : MP4Atom("elst") { 
 		AddVersionAndFlags();
-	}
-
-	void Read() {
-		/* read atom version */
-		ReadProperties(0, 1);
 
 		MP4Integer32Property* pCount = 
 			new MP4Integer32Property("entryCount"); 
@@ -806,23 +870,45 @@ public:
 
 		MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
 		AddProperty(pTable);
+	}
+	void AddVersion0Properties() {
+		MP4TableProperty* pTable = (MP4TableProperty*)m_pProperties[3];
 
-		/* need to create the properties based on the atom version */
-		if (GetVersion() == 1) {
-			pTable->AddProperty(
-				new MP4Integer64Property("segmentDuration"));
-			pTable->AddProperty(
-				new MP4Integer64Property("mediaTime"));
-		} else {
-			pTable->AddProperty(
-				new MP4Integer32Property("segmentDuration"));
-			pTable->AddProperty(
-				new MP4Integer32Property("mediaTime"));
-		}
+		pTable->AddProperty(
+			new MP4Integer32Property("segmentDuration"));
+		pTable->AddProperty(
+			new MP4Integer32Property("mediaTime"));
 		pTable->AddProperty(
 			new MP4Integer16Property("mediaRate"));
 		pTable->AddProperty(
 			new MP4Integer16Property("reserved"));
+	}
+	void AddVersion1Properties() {
+		MP4TableProperty* pTable = (MP4TableProperty*)m_pProperties[3];
+
+		pTable->AddProperty(
+			new MP4Integer64Property("segmentDuration"));
+		pTable->AddProperty(
+			new MP4Integer64Property("mediaTime"));
+		pTable->AddProperty(
+			new MP4Integer16Property("mediaRate"));
+		pTable->AddProperty(
+			new MP4Integer16Property("reserved"));
+	}
+	void Generate() {
+		SetVersion(0);
+		AddVersion0Properties();
+	}
+	void Read() {
+		/* read atom version */
+		ReadProperties(0, 1);
+
+		/* need to create the properties based on the atom version */
+		if (GetVersion() == 1) {
+			AddVersion1Properties();
+		} else {
+			AddVersion0Properties();
+		}
 
 		/* now we can read the remaining properties */
 		ReadProperties(1);
@@ -1044,7 +1130,9 @@ MP4Atom* MP4Atom::CreateAtom(char* type)
 {
 	MP4Atom* pAtom = NULL;
 
-	if (ATOMID(type) == ATOMID("ftyp")) {
+	if (type == NULL) {
+		pAtom = new MP4RootAtom();
+	} else if (ATOMID(type) == ATOMID("ftyp")) {
 		pAtom = new MP4FtypAtom();
 	} else if (ATOMID(type) == ATOMID("mdat")) {
 		pAtom = new MP4MdatAtom();

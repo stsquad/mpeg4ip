@@ -43,8 +43,8 @@ class CBitstream {
   void init(const unsigned char *buffer, unsigned short bit_len) {
     init(buffer, (uint32_t)bit_len);
   };
-  int getbits(uint32_t bits, uint32_t &retvalue);
-  int peekbits(uint32_t bits, uint32_t &retvalue) {
+  int getbits(uint32_t bits, uint32_t *retvalue);
+  int peekbits(uint32_t bits, uint32_t *retvalue) {
     int ret;
     bookmark(1);
     ret = getbits(bits, retvalue);
@@ -59,6 +59,7 @@ class CBitstream {
  private:
   uint32_t m_uNumOfBitsInBuffer;
   const unsigned char *m_chDecBuffer;
+  unsigned char m_chDecData;
   uint32_t m_chDecBufferSize;
   int m_bBookmarkOn;
   uint32_t m_uNumOfBitsInBuffer_bookmark;

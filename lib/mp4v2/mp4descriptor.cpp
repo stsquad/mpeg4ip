@@ -34,6 +34,14 @@ bool MP4Descriptor::FindContainedProperty(char *name,
 	return false;
 }
 
+void MP4Descriptor::Generate()
+{
+	// generate properties
+	for (u_int32_t i = 0; i < m_pProperties.Size(); i++) {
+		m_pProperties[i]->Generate();
+	}
+}
+
 void MP4Descriptor::Read(MP4File* pFile)
 {
 	ReadHeader(pFile);

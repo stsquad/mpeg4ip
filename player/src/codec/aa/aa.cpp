@@ -96,7 +96,7 @@ CAACodec::CAACodec (CAudioSync *a,
   }
 
   player_debug_message("AAC object type is %d", m_object_type);
-  m_info = faacDecOpen(m_object_type);
+  m_info = faacDecOpen(m_object_type, m_freq);
   m_msec_per_frame = m_output_frame_size;
   m_msec_per_frame *= M_LLU;
   m_msec_per_frame /= m_freq;

@@ -73,7 +73,9 @@ CIsmaAudioRtpByteStream::CIsmaAudioRtpByteStream (format_list_t *media_fmt,
   m_rtp_ts_add = audio_config.codec.aac.frame_len_1024 != 0 ? 1024 : 960;
   m_rtp_ts_add = (m_rtp_ts_add * media_fmt->rtpmap->clock_rate) /
     audio_config.frequency;
-  player_debug_message("Rtp ts add is %d", m_rtp_ts_add);
+  player_debug_message("Rtp ts add is %d (%d %d)", m_rtp_ts_add,
+		       media_fmt->rtpmap->clock_rate, 
+		       audio_config.frequency);
   m_fmtp = *fmtp;
   m_min_first_header_bits = m_fmtp.size_length + m_fmtp.index_length;
   m_min_header_bits = m_fmtp.size_length + m_fmtp.index_delta_length;
@@ -331,15 +333,15 @@ void CIsmaAudioRtpByteStream::get_au_header_bits (void)
 {
   uint32_t temp;
   if (m_fmtp.CTS_delta_length > 0) {
-    m_header_bitstream.getbits(1, temp);
+    m_header_bitstream.getbits(1, &temp);
     if (temp > 0) {
-      m_header_bitstream.getbits(m_fmtp.CTS_delta_length, temp);
+      m_header_bitstream.getbits(m_fmtp.CTS_delta_length, &temp);
     }
   }
   if (m_fmtp.DTS_delta_length > 0) {
-    m_header_bitstream.getbits(1, temp);
+    m_header_bitstream.getbits(1, &temp);
     if (temp > 0) {
-      m_header_bitstream.getbits(m_fmtp.DTS_delta_length, temp);
+      m_header_bitstream.getbits(m_fmtp.DTS_delta_length, &temp);
     }
   }
 }
@@ -428,7 +430,7 @@ int CIsmaAudioRtpByteStream::process_fragment (rtp_packet *pak,
 	if (m_fmtp.auxiliary_data_size_length > 0) {
 	  m_header_bitstream.byte_align();
 	  uint32_t aux_len;
-	  m_header_bitstream.getbits(m_fmtp.auxiliary_data_size_length, aux_len);
+	  m_header_bitstream.getbits(m_fmtp.auxiliary_data_size_length, &aux_len);
 	  aux_len = (aux_len + 7) / 8;
 	  cur->frag_ptr += aux_len;
 	  cur->frag_len -= aux_len;
@@ -478,9 +480,9 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
 
   m_header_bitstream.init(&pak->data[sizeof(uint16_t)],
 						  header_len);
-  if (m_header_bitstream.getbits(m_fmtp.size_length, frame_len) != 0) 
+  if (m_header_bitstream.getbits(m_fmtp.size_length, &frame_len) != 0) 
     return;
-  m_header_bitstream.getbits(m_fmtp.index_length, retvalue);
+  m_header_bitstream.getbits(m_fmtp.index_length, &retvalue);
   get_au_header_bits();
 #ifdef DEBUG_ISMA_AAC
   uint64_t wrap_offset = m_wrap_offset;
@@ -528,8 +530,8 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
   frame_ptr = frame_data->frame_ptr + frame_data->frame_len;
   while (m_header_bitstream.bits_remain() >= m_min_header_bits) {
     uint32_t stride;
-    m_header_bitstream.getbits(m_fmtp.size_length, frame_len);
-    m_header_bitstream.getbits(m_fmtp.index_delta_length, stride);
+    m_header_bitstream.getbits(m_fmtp.size_length, &frame_len);
+    m_header_bitstream.getbits(m_fmtp.index_delta_length, &stride);
     get_au_header_bits();
     ts += (m_rtp_ts_add * (1 + stride));
 #ifdef DEBUG_ISMA_AAC
@@ -572,7 +574,7 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
   if (m_fmtp.auxiliary_data_size_length > 0) {
     m_header_bitstream.byte_align();
     uint32_t aux_len;
-    m_header_bitstream.getbits(m_fmtp.auxiliary_data_size_length, aux_len);
+    m_header_bitstream.getbits(m_fmtp.auxiliary_data_size_length, &aux_len);
     aux_len = (aux_len + 7) / 8;
 #ifdef DEBUG_ISMA_AAC
     player_debug_message("Adding %d bytes for aux data size", 

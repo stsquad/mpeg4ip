@@ -21,16 +21,24 @@
 
 #include "mp4common.h"
 
+
 // generate a skeletal self
 
 void MP4Atom::Generate()
 {
-	u_int32_t numAtomInfo = m_pChildAtomInfos.Size();
 
-	// for all mandatory child atom types
-	for (u_int32_t i = 0; i < numAtomInfo; i++) {
-		if (m_pChildAtomInfos[i]->m_mandatory) {
-			// create the mandatory child atom
+	// for all properties
+	for (u_int32_t i = 0; i < m_pProperties.Size(); i++) {
+		// ask it to self generate
+		m_pProperties[i]->Generate();
+	}
+
+	// for all mandatory, single child atom types
+	for (u_int32_t i = 0; i < m_pChildAtomInfos.Size(); i++) {
+		if (m_pChildAtomInfos[i]->m_mandatory
+		  && m_pChildAtomInfos[i]->m_onlyOne) {
+
+			// create the mandatory, single child atom
 			MP4Atom* pChildAtom = 
 				CreateAtom(m_pChildAtomInfos[i]->m_name);
 			ASSERT(pChildAtom);
@@ -73,13 +81,13 @@ MP4Atom* MP4Atom::ReadAtom(MP4File* pFile, MP4Atom* pParentAtom)
 
 	if (dataSize == 0) {
 		// extends to EOF
-		dataSize = pFile->GetSize() - (pos + hdrSize);
+		dataSize = pFile->GetSize() - pos;
 	}
 
 	dataSize -= hdrSize;
 
 	VERBOSE_READ(pFile->GetVerbosity(), 
-		printf("ReadAtom: type = %s data size = %llu (0x%llx)\n", 
+		printf("ReadAtom: type = %s data-size = %llu (0x%llx)\n", 
 			type, dataSize, dataSize));
 
 	if (pos + hdrSize + dataSize > pParentAtom->GetEnd()) {
@@ -164,33 +172,74 @@ void MP4Atom::Skip() {
 	m_pFile->SetPosition(m_end);
 }
 
-bool MP4Atom::FindAtom(char* name)
+MP4Atom* MP4Atom::FindAtom(char* name)
+{
+	if (!IsMe(name)) {
+		return NULL;
+	}
+
+	if (!IsRootAtom()) {
+		VERBOSE_FIND(m_pFile->GetVerbosity(),
+			printf("FindAtom: matched %s\n", name));
+
+		name = MP4NameAfterFirst(name);
+
+		// I'm the sought after atom 
+		if (name == NULL) {
+			return this;
+		}
+	}
+
+	// else it's one of my children
+	return FindChildAtom(name);
+}
+
+bool MP4Atom::FindProperty(char *name, 
+	MP4Property** ppProperty, u_int32_t* pIndex)
+{
+	if (!IsMe(name)) {
+		return false;
+	}
+
+	if (!IsRootAtom()) {
+		VERBOSE_FIND(m_pFile->GetVerbosity(),
+			printf("FindProperty: matched %s\n", name));
+
+		name = MP4NameAfterFirst(name);
+
+		// no property name given
+		if (name == NULL) {
+			return false;
+		}
+	}
+
+	return FindContainedProperty(name, ppProperty, pIndex);
+}
+
+bool MP4Atom::IsMe(char* name)
 {
 	if (name == NULL) {
 		return false;
 	}
 
+	// root atom always matches
 	if (!strcmp(m_type, "")) {
 		return true;
 	}
 
-	// check that our atom name is specified as the first component
+	// check if our atom name is specified as the first component
 	if (!MP4NameFirstMatches(m_type, name)) {
 		return false;
 	}
 
-	VERBOSE_FIND(m_pFile->GetVerbosity(),
-		printf("FindAtom: matched %s\n", name));
-
 	return true;
-
-	// TBD FindChildAtom
 }
 
 MP4Atom* MP4Atom::FindChildAtom(char* name)
 {
-	// check if we have an index, e.g. trak[1].mdia...
 	u_int32_t atomIndex = 0;
+
+	// get the index if we have one, e.g. moov.trak[2].mdia...
 	MP4NameFirstIndex(name, &atomIndex);
 
 	// need to get to the index'th child atom of the right type
@@ -198,39 +247,13 @@ MP4Atom* MP4Atom::FindChildAtom(char* name)
 		if (MP4NameFirstMatches(m_pChildAtoms[i]->GetType(), name)) {
 			if (atomIndex == 0) {
 				// this is the one, ask it to match
-				return m_pChildAtoms[i];
+				return m_pChildAtoms[i]->FindAtom(name);
 			}
 			atomIndex--;
 		}
 	}
 
 	return NULL;
-}
-
-bool MP4Atom::FindProperty(char *name, 
-	MP4Property** ppProperty, u_int32_t* pIndex)
-{
-	if (name == NULL) {
-		return false;
-	}
-
-	// check that our atom name is specified as the first component
-	if (strcmp(m_type, "")) {
-		if (!MP4NameFirstMatches(m_type, name)) {
-			return false;
-		}
-
-		VERBOSE_FIND(m_pFile->GetVerbosity(),
-			printf("FindProperty: matched %s\n", name));
-
-		name = MP4NameAfterFirst(name);
-		if (name == NULL) {
-			return false;
-		}
-	}
-
-	// check if this property exists
-	return FindContainedProperty(name, ppProperty, pIndex);
 }
 
 bool MP4Atom::FindContainedProperty(char *name,
@@ -245,30 +268,22 @@ bool MP4Atom::FindContainedProperty(char *name,
 		}
 	}
 
-	// check if we have an index, e.g. trak[1].mdia...
-	u_int32_t atomIndex;
+	// not one of our properties, 
+	// presumably one of our children's properties
+	// check child atoms...
+
+	// check if we have an index, e.g. trak[2].mdia...
+	u_int32_t atomIndex = 0;
 	bool haveAtomIndex = MP4NameFirstIndex(name, &atomIndex);
 
-	u_int32_t numChildren = m_pChildAtoms.Size();
-
-	if (!haveAtomIndex) {
-		// no atom index, just ask child atoms if they can match
-		for (u_int32_t i = 0; i < numChildren; i++) {
-			if (m_pChildAtoms[i]->FindProperty(name, ppProperty, pIndex)) {
-				return true;
+	// need to get to the index'th child atom of the right type
+	for (u_int32_t i = 0; i < m_pChildAtoms.Size(); i++) {
+		if (MP4NameFirstMatches(m_pChildAtoms[i]->GetType(), name)) {
+			if (atomIndex == 0) {
+				// this is the one, ask it to match
+				return m_pChildAtoms[i]->FindProperty(name, ppProperty, pIndex);
 			}
-		}
-	} else {
-		// atom index, need to get to the index'th child atom of the right type
-		for (u_int32_t i = 0; i < numChildren; i++) {
-			if (MP4NameFirstMatches(m_pChildAtoms[i]->GetType(), name)) {
-				if (atomIndex == 0) {
-					// this is the one, ask it to match
-					return m_pChildAtoms[i]->FindProperty(name, 
-						ppProperty, pIndex);
-				}
-				atomIndex--;
-			}
+			atomIndex--;
 		}
 	}
 
@@ -364,8 +379,11 @@ MP4AtomInfo* MP4Atom::FindAtomInfo(const char* name)
 }
 
 // generic write
-void MP4Atom::Write(bool use64 = false)
+void MP4Atom::Write()
 {
+	// TBD use of 64 bit write
+	bool use64 = false;
+
 	ASSERT(m_pFile);
 
 	BeginWrite(use64);
@@ -436,6 +454,14 @@ u_int8_t MP4Atom::GetVersion()
 		return 0;
 	}
 	return ((MP4Integer8Property*)m_pProperties[0])->GetValue();
+}
+
+void MP4Atom::SetVersion(u_int8_t version) 
+{
+	if (strcmp("version", m_pProperties[0]->GetName())) {
+		return;
+	}
+	return ((MP4Integer8Property*)m_pProperties[0])->SetValue(version);
 }
 
 u_int32_t MP4Atom::GetFlags()

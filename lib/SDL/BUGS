@@ -16,6 +16,8 @@ Linux:
 	input translation extension.  I will implement it as requested.
 	Latin-1 keyboard input works fine.
 
+	The keyboard modifiers are not set to the correct state on startup.
+
 	The AAlib, GGI, and SVGAlib video drivers are not heavily tested.
 
 Win32:
@@ -68,22 +70,35 @@ MacOS:
 	Not all of the keys are properly recognized on the keyboard.
 
 MacOS X:
-	Fullscreen mode doesn't work - it requires the QuickTime framework
-	and that the new SDL window gets raised to the top of the Z order.
+	Joystick and CD-ROM functions are not implemented yet.
 
+	Window management buttons don't draw correctly.
+
+	Window may not close when unsetting video mode and resetting.
+
+	Resizeable windows aren't implemented yet.
+
+	Depth switching for windowed mode isn't implemented yet.
+	
 	Palette handling isn't implemented in windowed mode yet.
+	
+	Command-line arguments Dialog is not implemented yet.
 
-	Native sound and video routines are not finished, though Carbon
-	seems to work fairly well.
+	Fullscreen drawing has some artifacts.
+	
+	Fullscreen window covers *all* other windows - even force quit.
+	
+	Fullscreen OpenGL for the software renderer is broken.
 
-	Joysticks and CD-ROM functions are not implemented yet.
+	Some OpenGL parameters are not accounted for, for example color bits customization.
+	
+	Getting OpenGL context parameters is not implemented.
+	
+	Continuous mouse motion perhaps is not as smooth as it should be.
 
-	SDL_WM_GrabInput() is not implemented.
-	Does anyone know how to do this?  SDL_WM_GrabInput() is designed
-	to prevent the user from switching input and mouse focus away from
-	the SDL application.
-
-	Continuous relative mouse motion is not implemented.
+	SDL_WM_GrabInput() is implemented, but it "freezes" the hardware
+	cursor in the center of the window/screen.  Also, mouse moved events
+	are not generated, and the keyboard cannot be grabbed.
 
 	Not all of the keys are properly recognized on the keyboard.
 
@@ -100,6 +115,8 @@ FreeBSD:
 	input translation extension.  I will implement it as requested.
 	Latin-1 keyboard input works fine.
 
+	The keyboard modifiers are not set to the correct state on startup.
+
 Solaris:
 	The joystick functions are not implemented yet.
 
@@ -107,6 +124,8 @@ Solaris:
 	It requires handling of keyboard mapping events and using the XIM
 	input translation extension.  I will implement it as requested.
 	Latin-1 keyboard input works fine.
+
+	The keyboard modifiers are not set to the correct state on startup.
 
 IRIX:
 	The CD-ROM handling doesn't work completely.
@@ -118,6 +137,8 @@ IRIX:
 	input translation extension.  I will implement it as requested.
 	Latin-1 keyboard input works fine.
 
+	The keyboard modifiers are not set to the correct state on startup.
+
 OpenBSD:  -= NOT YET SUPPORTED =-
 	This is reported to work, but I haven't verified this.
 
@@ -125,6 +146,8 @@ OpenBSD:  -= NOT YET SUPPORTED =-
 	It requires handling of keyboard mapping events and using the XIM
 	input translation extension.  I will implement it as requested.
 	Latin-1 keyboard input works fine.
+
+	The keyboard modifiers are not set to the correct state on startup.
 
 OSF/Tru64:  -= NOT YET SUPPORTED =-
 	The audio functions are not implemented yet.
@@ -135,6 +158,8 @@ OSF/Tru64:  -= NOT YET SUPPORTED =-
 	It requires handling of keyboard mapping events and using the XIM
 	input translation extension.  I will implement it as requested.
 	Latin-1 keyboard input works fine.
+
+	The keyboard modifiers are not set to the correct state on startup.
 
 AIX:  -= NOT YET SUPPORTED =-
 	This port has only been tested with AIX 4.3.3
@@ -149,6 +174,8 @@ AIX:  -= NOT YET SUPPORTED =-
 	It requires handling of keyboard mapping events and using the XIM
 	input translation extension.  I will implement it as requested.
 	Latin-1 keyboard input works fine.
+
+	The keyboard modifiers are not set to the correct state on startup.
 
 	The AIX port was done by Carsten.Griwodz@KOM.tu-darmstadt.de
 	More information on this port is available at:
@@ -169,9 +196,6 @@ QNX:  -= NOT YET SUPPORTED =-
  
 	The software surfaces could use some speed up.
  
-	Many of the test apps segment violate on exit, and I'm not sure
-	they're all working either
- 
 	It doesn't look like the OpenGL stuff is there. (did a grep for
 	PdCreateOpenGLContext, nothing found).
  
@@ -186,14 +210,5 @@ AmigaOS:  -= NOT YET SUPPORTED =-
 	the SDL application.
 
 	Continuous relative mouse motion is not implemented.
-
-	Audio can work, but isn't completely integrated in the CVS
-	version of SDL.
-
-	The joystick subsystem isn't implemented yet.
-
-	There's some confusion about the multi-threaded synchronization
-	primitives on AmigaOS, so mutexes and semaphores aren't correctly
-	implemented yet.
 
 	The AmigaOS port was done by Gabriele.Greco@galactica.it
