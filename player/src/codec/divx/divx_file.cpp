@@ -63,7 +63,7 @@ int create_media_for_divx_file (CPlayerSession *psptr,
     try {
       ret = getvolhdr();
       if (ret == 1) {
-	player_debug_message("Found vol in divx file");
+	divx_message(LOG_DEBUG, "Found vol in divx file");
       }
       frame_cnt++;
     } catch (int err) {
@@ -95,8 +95,8 @@ int create_media_for_divx_file (CPlayerSession *psptr,
   }
 
   fbyte->config_for_file(ret <= 0 ? vid->frame_rate : mp4_hdr.fps);
-  player_debug_message("Configuring for frame rate %d", 
-		       ret <= 0 ? vid->frame_rate : mp4_hdr.fps);
+  divx_message(LOG_INFO, "Configuring for frame rate %d", 
+	       ret <= 0 ? vid->frame_rate : mp4_hdr.fps);
   *errmsg = "Couldn't create task";
   mptr->set_codec_type("divx");
   mptr->set_video_info(vid);

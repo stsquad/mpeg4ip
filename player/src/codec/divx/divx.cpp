@@ -30,6 +30,7 @@
 #include "player_util.h"
 #include "divxif.h"
 
+
 static unsigned int c_get (void *ud)
 {
   unsigned int ret;
@@ -101,11 +102,11 @@ CDivxCodec::CDivxCodec(CVideoSync *v,
 
 CDivxCodec::~CDivxCodec()
 {
-  player_debug_message("Divx codec results:");
-  player_debug_message("total frames    : %u", m_total_frames);
-  player_debug_message("dropped b frames: %u", m_dropped_b_frames);
-  player_debug_message("wait for I times: %u", m_num_wait_i);
-  player_debug_message("wait I frames   : %u", m_num_wait_i_frames);
+  divx_message(LOG_NOTICE, "Divx codec results:");
+  divx_message(LOG_NOTICE, "total frames    : %u", m_total_frames);
+  divx_message(LOG_NOTICE, "dropped b frames: %u", m_dropped_b_frames);
+  divx_message(LOG_NOTICE, "wait for I times: %u", m_num_wait_i);
+  divx_message(LOG_NOTICE, "wait I frames   : %u", m_num_wait_i_frames);
 
 }
 
@@ -174,7 +175,7 @@ int CDivxCodec::parse_vovod (const char *vovod,
     try {
       ret = getvolhdr();
       if (ret != 0) {
-	player_debug_message("Found VOL in header");
+	divx_message(LOG_DEBUG, "Found VOL in header");
 	m_video_sync->config(mp4_hdr.width,
 			     mp4_hdr.height,
 			     mp4_hdr.time_increment_resolution);
@@ -182,8 +183,8 @@ int CDivxCodec::parse_vovod (const char *vovod,
       }
 
     } catch (int err) {
-      player_debug_message("Caught exception in VO mem header search %s", 
-			   membytestream->get_throw_error(err));
+      divx_message(LOG_INFO, "Caught exception in VO mem header search %s", 
+		   membytestream->get_throw_error(err));
     }
   } while (ret == 0 && membytestream->eof() == 0);
 
@@ -227,8 +228,8 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
 	return (-1);
       }
     } catch (int err) {
-      player_debug_message("Caught exception in VO search %s", 
-			   m_bytestream->get_throw_error(err));
+      divx_message(LOG_INFO, "Caught exception in VO search %s", 
+		   m_bytestream->get_throw_error(err));
       return (-1);
     }
     //      return(0);
@@ -262,14 +263,14 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
 	//player_debug_message("decode across ts");
 	return (-1);
       }
-      player_debug_message("divx caught %s", 
-			   m_bytestream->get_throw_error(err));
+      divx_message(LOG_DEBUG, "divx caught %s", 
+		   m_bytestream->get_throw_error(err));
       m_decodeState = DIVX_STATE_WAIT_I;
       return (-1);
   } catch (...) {
-    player_debug_message("divx caught exception");
-	  m_decodeState = DIVX_STATE_WAIT_I;
-	  return (-1);
+    divx_message(LOG_DEBUG, "divx caught exception");
+    m_decodeState = DIVX_STATE_WAIT_I;
+    return (-1);
   }
 
   uint64_t rettime;

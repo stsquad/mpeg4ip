@@ -1,7 +1,9 @@
 #ifndef __BYTESTREAM_HPP__
 #define __BYTESTREAM_HPP__ 1
 
-#include "systems.h"
+#ifdef _WIN32
+typedef int ssize_t;
+#endif
 
 class CInByteStreamBase
 {

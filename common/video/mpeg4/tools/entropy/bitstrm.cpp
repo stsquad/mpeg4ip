@@ -43,10 +43,11 @@ Revision History:
 *************************************************************************/
 
 #include <iostream.h>
-#include "typeapi.h"
-#include "bitstrm.hpp"
 #include <stdio.h>
 #include <stdlib.h>
+#include "typeapi.h"
+#include "bitstrm.hpp"
+
 
 #ifdef __MFC_
 #ifdef _DEBUG

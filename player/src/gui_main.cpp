@@ -427,14 +427,8 @@ static void on_play_clicked (GtkWidget *window, gpointer data)
   }
 }
 
-static void on_pause_clicked (GtkWidget *window, gpointer data)
+static void do_pause (void)
 {
-  if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pause_button)) == FALSE) {
-    if (play_state == PAUSED) {
-      toggle_button_adjust(pause_button, TRUE);
-    }
-    return;
-  }
   SDL_mutexP(command_mutex);
   if (psptr != NULL && play_state == PLAYING) {
     play_state = PAUSED;
@@ -445,6 +439,16 @@ static void on_pause_clicked (GtkWidget *window, gpointer data)
     toggle_button_adjust(pause_button, play_state == PAUSED);
   }
   SDL_mutexV(command_mutex);
+}
+static void on_pause_clicked (GtkWidget *window, gpointer data)
+{
+  if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pause_button)) == FALSE) {
+    if (play_state == PAUSED) {
+      toggle_button_adjust(pause_button, TRUE);
+    }
+    return;
+  }
+  do_pause();
 }
 
 static void on_stop_clicked (GtkWidget *window, gpointer data)
@@ -496,20 +500,25 @@ static void on_speaker_clicked (GtkWidget *window, gpointer data)
     psptr->set_audio_volume(vol);
   }
 }
-
-static void on_volume_adjusted (GtkWidget *window, gpointer data)
+static void volume_adjusted (int volume)
 {
-  GtkWidget *vol = (GtkWidget *)window;
-  GtkAdjustment *val = gtk_range_get_adjustment(GTK_RANGE(vol));
-  master_volume = (int)val->value;
+  GtkAdjustment *val = gtk_range_get_adjustment(GTK_RANGE(volume_slider));
+  gtk_adjustment_set_value(val, (gfloat)volume);
+  master_volume = volume;
   config.set_config_value(CONFIG_VOLUME, master_volume);
-  gtk_range_set_adjustment(GTK_RANGE(vol), val);
-  gtk_range_slider_update(GTK_RANGE(vol));
-   gtk_range_clear_background(GTK_RANGE(vol));
-  //gtk_range_draw_background(GTK_RANGE(vol));
+  gtk_range_set_adjustment(GTK_RANGE(volume_slider), val);
+  gtk_range_slider_update(GTK_RANGE(volume_slider));
+  gtk_range_clear_background(GTK_RANGE(volume_slider));
+  //gtk_range_draw_background(GTK_RANGE(volume_slider));
    if (master_muted == 0 && psptr && psptr->session_has_audio()) {
      psptr->set_audio_volume(master_volume);
    }
+}
+
+static void on_volume_adjusted (GtkWidget *window, gpointer data)
+{
+  GtkAdjustment *val = gtk_range_get_adjustment(GTK_RANGE(volume_slider));
+  volume_adjusted((int)val->value);
 }
 
 static void on_debug_mpeg4isoonly (GtkWidget *window, gpointer data)
@@ -639,6 +648,7 @@ static void on_loop_enabled_button (GtkWidget *widget, gpointer *data)
  */
 static gint main_timer (gpointer raw)
 {
+  uint64_t play_time;
   if (play_state == PLAYING) {
     double val = psptr->get_max_time();
     uint64_t pt = psptr->get_playing_time();
@@ -719,8 +729,127 @@ static gint main_timer (gpointer raw)
       }
 
       break;
-    case MSG_NO_FULL_SCREEN:
-      master_fullscreen = 0;
+    case MSG_SDL_KEY_EVENT:
+      sdl_event_msg_t *msg;
+      uint32_t len;
+      msg = (sdl_event_msg_t *)newmsg->get_message(len);
+      if (len != sizeof(*msg)) {
+	player_error_message("key event message is wrong size %d %d", 
+			     len, sizeof(msg));
+	break;
+      }
+      switch (msg->sym) {
+      case SDLK_ESCAPE:
+	player_debug_message("Got escape");
+	master_fullscreen = 0;
+	break;
+      case SDLK_RETURN:
+	if ((msg->sym & (KMOD_LALT | KMOD_RALT)) != 0) {
+	  master_fullscreen = 1;
+	}
+	break;
+      case SDLK_c:
+	if ((msg->sym & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+	  on_main_menu_close(NULL, 0);
+	}
+	break;
+      case SDLK_x:
+	if ((msg->sym & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+	  delete_event(NULL, 0);
+	}
+	break;
+      case SDLK_UP:
+	master_volume += 10;
+	if (master_volume > 100) master_volume = 100;
+	volume_adjusted(master_volume);
+	break;
+      case SDLK_DOWN:
+	if (master_volume > 10) {
+	  master_volume -= 10;
+	} else {
+	  master_volume = 0;
+	}
+	volume_adjusted(master_volume);
+	break;
+	
+      case SDLK_SPACE:
+	if (play_state == PLAYING) {
+	  do_pause();
+	} else if (play_state == PAUSED && psptr) {
+	  SDL_mutexP(command_mutex);
+	  if (psptr->play_all_media(FALSE) == 0) {
+	    adjust_gui_for_play();
+	    SDL_mutexV(command_mutex);
+	  } else {
+	    SDL_mutexV(command_mutex);
+	    close_session();
+	  }
+	}
+	break;
+      case SDLK_HOME:
+	if (psptr && play_state == PLAYING) {
+	  psptr->pause_all_media();
+	  psptr->play_all_media(TRUE, 0.0);
+	}
+	break;
+      case SDLK_RIGHT:
+	if (psptr && psptr->session_is_seekable() && play_state == PLAYING) {
+	  SDL_mutexP(command_mutex);
+	  play_time = psptr->get_playing_time();
+	  double ptime, maxtime;
+	  play_time += 10 * M_LLU;
+	  ptime = (double)play_time;
+	  ptime /= 1000.0;
+	  maxtime = psptr->get_max_time();
+	  if (ptime < maxtime) {
+	    psptr->pause_all_media();
+	    if (psptr->play_all_media(FALSE, ptime) == 0) {
+	      adjust_gui_for_play();
+	    } else {
+	      SDL_mutexV(command_mutex);
+	      close_session();
+	      break;
+	    }
+	  }
+	  SDL_mutexV(command_mutex);
+	}
+	break;
+      case SDLK_LEFT:
+	if (psptr && psptr->session_is_seekable() && play_state == PLAYING) {
+	  SDL_mutexP(command_mutex);
+	  play_time = psptr->get_playing_time();
+	  double ptime;
+	  if (play_time >= 10 * M_LLU) {
+	    play_time -= 10 * M_LLU;
+	    ptime = (double)play_time;
+	    ptime /= 1000.0;
+	    psptr->pause_all_media();
+	    if (psptr->play_all_media(FALSE, ptime) == 0) {
+	      adjust_gui_for_play();
+	    } else {
+	      SDL_mutexV(command_mutex);
+	      close_session();
+	      break;
+	    }
+	  }
+	  SDL_mutexV(command_mutex);
+	}
+	break;
+      case SDLK_PAGEUP:
+	if (master_screen_size < 200) {
+	  master_screen_size *= 2;
+	  psptr->set_screen_size(master_screen_size / 50);
+	}
+	break;
+      case SDLK_PAGEDOWN:
+	if (master_screen_size > 50) {
+	  master_screen_size /= 2;
+	  psptr->set_screen_size(master_screen_size / 50);
+	}
+	break;
+      default:
+	break;
+      }
       break;
     }
   }

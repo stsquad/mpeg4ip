@@ -9,13 +9,21 @@ man_MANS = \
 	MP4AddVideoTrack.3 \
 	MP4BinaryToBase16.3 \
 	MP4BinaryToBase64.3 \
+	MP4ConvertFromMovieDuration.3 \
+	MP4ConvertFromTrackDuration.3 \
+	MP4ConvertFromTrackTimestamp.3 \
+	MP4ConvertToTrackDuration.3 \
+	MP4ConvertToTrackTimestamp.3 \
 	MP4Create.3 \
 	MP4Close.3 \
 	MP4DeleteTrack.3 \
 	MP4Dump.3 \
 	MP4FindTrackId.3 \
 	MP4FindTrackIndex.3 \
+	MP4GetDuration.3 \
 	MP4GetNumberOfTracks.3 \
+	MP4GetSampleDuration.3 \
+	MP4GetSampleSize.3 \
 	MP4GetTrackAudioType.3 \
 	MP4GetTrackDuration.3 \
 	MP4GetTrackESConfiguration.3 \

@@ -26,7 +26,7 @@
 
 #include "codec.h"
 #include "video.h"
-
+#include "player_util.h"
 #define DIVX_STATE_VO_SEARCH 0
 #define DIVX_STATE_NORMAL 1
 #define DIVX_STATE_WAIT_I 2
@@ -57,5 +57,11 @@ class CDivxCodec: public CVideoCodecBase {
   uint32_t m_total_frames;
 };
   
+#ifdef _WIN32
+DEFINE_MESSAGE_MACRO(divx_message, "divx")
+#else
+#define divx_message(loglevel, fmt...) message(loglevel, "divx", fmt)
+#endif
+
 #endif
 /* end file divx.h */

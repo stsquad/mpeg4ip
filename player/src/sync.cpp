@@ -32,11 +32,13 @@
 //#define DEBUG_SYNC_STATE 1
 //#define DEBUG_SYNC_MSGS 1
 //#define DEBUG_SYNC_SDL_EVENTS 1
+
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(sync_message, "avsync")
 #else
 #define sync_message(loglevel, fmt...) message(loglevel, "avsync", fmt)
 #endif
+
 /*
  * get_current_time.  Gets the time of day, subtracts off the start time
  * to get the current play time.
@@ -117,14 +119,20 @@ const char *sync_state[] = {
 int CPlayerSession::process_sdl_events (int state)
 {
     SDL_Event event;
+#ifdef _WIN32
+	int ret;
+#endif
     while (SDL_PollEvent(&event)) {
       switch (event.type) {
       case SDL_QUIT:
-	m_master_msg_queue->send_message(MSG_RECEIVED_QUIT);
+	m_master_msg_queue->send_message(MSG_RECEIVED_QUIT,
+					 NULL, 
+					 0,
+					 m_master_msg_queue_sem);
 #ifdef DEBUG_SYNC_SDL_EVENTS
 	sync_message(LOG_DEBUG, "Quit event detected");
 #endif
-#ifdef _WINDOWS
+#ifdef _WIN32
 	 return (SYNC_STATE_EXIT);
 #endif
 	break;
@@ -132,20 +140,49 @@ int CPlayerSession::process_sdl_events (int state)
 #ifdef DEBUG_SYNC_SDL_EVENTS
 	sync_message(LOG_DEBUG, "Pressed %x %s", event.key.keysym.mod, SDL_GetKeyName(event.key.keysym.sym));
 #endif
-	if (event.key.keysym.sym == SDLK_ESCAPE && 
-	    m_video_sync &&
-	    m_video_sync->get_fullscreen() != 0) {
-	  m_video_sync->set_fullscreen(0);
-	  m_video_sync->do_video_resize();
-	  m_master_msg_queue->send_message(MSG_NO_FULL_SCREEN);
+	switch (event.key.keysym.sym) {
+	case SDLK_ESCAPE:
+	  if (m_video_sync &&
+	      m_video_sync->get_fullscreen() != 0) {
+	    m_video_sync->set_fullscreen(0);
+	    m_video_sync->do_video_resize();
+	  }
+	  break;
+	case SDLK_RETURN:
+	  if ((event.key.keysym.mod & (KMOD_LALT | KMOD_RALT)) != 0) {
+	    // alt-enter - full screen
+	    if (m_video_sync &&
+		m_video_sync->get_fullscreen() == 0) {
+	      m_video_sync->set_fullscreen(1);
+	      m_video_sync->do_video_resize();
+	    }
+	  }
+	  break;
+	default:
+	  break;
 	}
-	  
+	sdl_event_msg_t msg;
+	msg.mod = event.key.keysym.mod;
+	msg.sym = event.key.keysym.sym;
+#ifndef _WIN32
+	m_master_msg_queue->send_message(MSG_SDL_KEY_EVENT,
+					 (unsigned char *)&msg,
+					 sizeof(msg),
+					 m_master_msg_queue_sem);
+#else
+	extern int process_sdl_key_events(CPlayerSession *psptr,
+				   sdl_event_msg_t *msg);
+	ret = process_sdl_key_events(this, &msg);
+	if (ret <= 0) {
+		return (SYNC_STATE_EXIT);
+	}
+#endif
 	break;
       default:
 	break;
       }
     }
-	return (state);
+    return (state);
 }
 
 /*
@@ -259,7 +296,7 @@ int CPlayerSession::sync_thread_wait_sync (void)
   int state;
 
   do {
-	PROCESS_SDL_EVENTS(SYNC_STATE_WAIT_SYNC); 
+    PROCESS_SDL_EVENTS(SYNC_STATE_WAIT_SYNC); 
     state = process_msg_queue(SYNC_STATE_WAIT_SYNC);
     if (state == SYNC_STATE_WAIT_SYNC) {
       
@@ -323,7 +360,7 @@ int CPlayerSession::sync_thread_wait_audio (void)
   int state;
 
   do {
-	PROCESS_SDL_EVENTS(SYNC_STATE_WAIT_AUDIO);
+    PROCESS_SDL_EVENTS(SYNC_STATE_WAIT_AUDIO);
     state = process_msg_queue(SYNC_STATE_WAIT_AUDIO);
     if (state == SYNC_STATE_WAIT_AUDIO) {
       if (m_waiting_for_audio != 0) {
@@ -351,7 +388,7 @@ int CPlayerSession::sync_thread_playing (void)
   int have_audio_eof = 0, have_video_eof = 0;
 
   do {
-	PROCESS_SDL_EVENTS(SYNC_STATE_PLAYING);
+    PROCESS_SDL_EVENTS(SYNC_STATE_PLAYING);
     state = process_msg_queue(SYNC_STATE_PLAYING);
     if (state == SYNC_STATE_PLAYING) {
       get_current_time();
@@ -446,7 +483,7 @@ int CPlayerSession::sync_thread_paused (void)
   int state;
   do {
     SDL_SemWaitTimeout(m_sync_sem, 10);
-	PROCESS_SDL_EVENTS(SYNC_STATE_PAUSED);
+    PROCESS_SDL_EVENTS(SYNC_STATE_PAUSED);
     state = process_msg_queue(SYNC_STATE_PAUSED);
   } while (state == SYNC_STATE_PAUSED);
   return (state);
@@ -460,7 +497,7 @@ int CPlayerSession::sync_thread_done (void)
   int state;
   do {
     SDL_SemWaitTimeout(m_sync_sem, 10);
-	PROCESS_SDL_EVENTS(SYNC_STATE_DONE);
+    PROCESS_SDL_EVENTS(SYNC_STATE_DONE);
     state = process_msg_queue(SYNC_STATE_DONE);
   } while (state == SYNC_STATE_DONE);
   return (state);
@@ -472,32 +509,33 @@ int CPlayerSession::sync_thread_done (void)
  */  
 int CPlayerSession::sync_thread (void)
 {
-  int state = SYNC_STATE_INIT;
+  int state = SYNC_STATE_INIT, newstate = 0;
   m_session_state = SESSION_BUFFERING;
   do {
     switch (state) {
     case SYNC_STATE_INIT:
-      state = sync_thread_init();
+      newstate = sync_thread_init();
       break;
     case SYNC_STATE_WAIT_SYNC:
-      state = sync_thread_wait_sync();
+      newstate = sync_thread_wait_sync();
       break;
     case SYNC_STATE_WAIT_AUDIO:
-      state = sync_thread_wait_audio();
+      newstate = sync_thread_wait_audio();
       break;
     case SYNC_STATE_PLAYING:
-      state = sync_thread_playing();
+      newstate = sync_thread_playing();
       break;
     case SYNC_STATE_PAUSED:
-      state = sync_thread_paused();
+      newstate = sync_thread_paused();
       break;
     case SYNC_STATE_DONE:
-      state = sync_thread_done();
+      newstate = sync_thread_done();
       break;
     }
 #ifdef DEBUG_SYNC_STATE
-    sync_message(LOG_INFO, "sync changed state to %s", sync_state[state]);
+    sync_message(LOG_INFO, "sync changed state to %s", sync_state[newstate]);
 #endif
+    state = newstate;
     switch (state) {
     case SYNC_STATE_WAIT_SYNC:
       m_session_state = SESSION_BUFFERING;

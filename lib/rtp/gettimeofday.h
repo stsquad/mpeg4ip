@@ -1,4 +1,4 @@
-#ifdef NEED_GETTIMEOFDAY
+#if defined(NEED_GETTIMEOFDAY) || defined(_WIN32)
 
 int gettimeofday(struct timeval *tp, void *);
 

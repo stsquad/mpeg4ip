@@ -1,12 +1,12 @@
 .TH "MP4" "3" "Version 0.9" "Cisco Systems Inc." "MP4 File Format Library"
 .SH "NAME"
 .LP 
-\fBMP4GetTrackDuration\fR \- Get the duration of a track
+\fBMP4GetTrackNumberOfSamples\fR \- Get the number of samples in a track
 .SH "SYNTAX"
 .LP 
 #include <mp4.h>
 .LP 
-MP4Duration \fBMP4GetTrackDuration\fR(
+u_int32_t \fBMP4GetTrackNumberOfSamples\fR(
 .br 
 	MP4FileHandle \fIhFile\fP,
 .br 
@@ -20,15 +20,13 @@ MP4Duration \fBMP4GetTrackDuration\fR(
 Specifies the mp4 file to which the operation applies.
 .TP 
 \fItrackId\fP
-Specifies the track for which the duration is desired.
+Specifies the track for which the number of samples is desired.
 .SH "RETURN VALUES"
 .LP 
-Upon success, the duration of the track in the units of the track time scale. Upon error, MP4_INVALID_DURATION is returned.
+Upon success, the number of samples in the track. Upon an error, 0.
 .SH "DESCRIPTION"
 .LP 
-\fBMP4GetTrackDuraton\fR returns the duration of the specified track in the mp4 file in the time scale units of the track. The duration of a track is simply the total of the durations of all the track samples.
-.LP 
-MP4ConvertFromTrackDuration() can be used to convert this value to another time scale.
+\fBMP4GetTrackNumberOfSamples\fR returns the number of samples in the specified track in the mp4 file. Sample id's are the consecutive sequence of numbers from 1 to the total number of samples, i.e. 1\-based indexing, not 0\-based indexing.
 .SH "SEE ALSO"
 .LP 
 MP4(3)

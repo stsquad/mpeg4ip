@@ -29,6 +29,7 @@
 #include <mp3/MPEGaudio.h>
 #include "codec.h"
 #include "audio.h"
+#include "player_util.h"
 
 class COurMp3Loader;
 
@@ -63,5 +64,11 @@ class CMP3Codec : public CAudioCodecBase {
   FILE *m_output_file;
 #endif
 };
+
+#ifdef _WIN32
+DEFINE_MESSAGE_MACRO(mp3_message, "mp3")
+#else
+#define mp3_message(loglevel, fmt...) message(loglevel, "mp3", fmt)
+#endif
 
 #endif

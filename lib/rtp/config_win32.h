@@ -3,8 +3,8 @@
  *
  *  Windows specific definitions and includes.
  *  
- *  $Revision: 1.3 $
- *  $Date: 2001/11/14 00:54:14 $
+ *  $Revision: 1.4 $
+ *  $Date: 2001/11/15 18:43:47 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -108,7 +108,7 @@ typedef unsigned long	in_addr_t;
 #define WORDS_SMALLENDIAN
 #define NEED_INET_ATON
 #define NEED_DRAND48
-#define NEED_GETTIMEOFDAY
+//#define NEED_GETTIMEOFDAY
 
 #ifdef NDEBUG
 #define assert(x) if ((x) == 0) fprintf(stderr, "%s:%u: failed assertion\n", __FILE__, __LINE__)

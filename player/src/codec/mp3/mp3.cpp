@@ -66,7 +66,7 @@ CMP3Codec::CMP3Codec (CAudioSync *a,
   else 
     m_freq = 44100;
 
-  player_debug_message("Setting freq to %d", m_freq);
+  mp3_message(LOG_INFO, "Setting freq to %d", m_freq);
 }
 
 CMP3Codec::~CMP3Codec()
@@ -136,8 +136,8 @@ int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
 	}
       }
       m_samplesperframe = samplesperframe;
-      player_debug_message("chans %d freq %d samples %d", 
-			   m_chans, m_freq, samplesperframe);
+      mp3_message(LOG_DEBUG, "chans %d freq %d samples %d", 
+		  m_chans, m_freq, samplesperframe);
       m_audio_sync->set_config(m_freq, m_chans, AUDIO_S16SYS, samplesperframe);
       have_head = 1;
       m_audio_inited = 1;
@@ -176,23 +176,20 @@ int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
       if (m_resync_with_header == 1) {
 	m_resync_with_header = 0;
 #ifdef DEBUG_SYNC
-	player_debug_message("Back to good at %llu", m_current_time);
+	mp3_message(LOG_DEBUG, "Back to good at %llu", m_current_time);
 #endif
       }
       
     } else {
-      player_debug_message("Bits return is %d", bits);
       m_resync_with_header = 1;
-#ifdef DEBUG_SYNC
-      player_debug_message("Audio decode problem - at %llu", 
-			   m_current_time);
-#endif
+      mp3_message(LOG_DEBUG, "decode problem %d - at %llu", 
+		  bits, m_current_time);
     }
   } catch (int err) {
 #ifdef DEBUG_SYNC
-    player_error_message("Got exception %s at %llu", 
-			 m_bytestrea->get_throw_error(err), 
-			 m_current_time);
+    mp3_message(LOG_ERR, "Got exception %s at %llu", 
+		m_bytestrea->get_throw_error(err), 
+		m_current_time);
 #endif
     m_resync_with_header = 1;
     m_record_sync_time = 1;

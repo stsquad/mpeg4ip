@@ -27,6 +27,7 @@
 #include <mp4.h>
 #include "our_bytestream.h"
 #include "mp4_file.h"
+#include "player_util.h"
 //#define OUTPUT_TO_FILE 1
 
 #define THROW_MP4_END_OF_DATA ((int) 1)
@@ -122,6 +123,12 @@ class CMp4AudioByteStream : public CMp4ByteStream
     CMp4ByteStream(parent, track, "audio", 0) {};
 
 };
+
+#ifdef _WIN32
+DEFINE_MESSAGE_MACRO(mp4f_message, "mp4file")
+#else
+#define mp4f_message(loglevel, fmt...) message(loglevel, "mp4file", fmt)
+#endif
 
 #endif
 

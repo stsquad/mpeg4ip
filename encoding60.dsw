@@ -38,6 +38,12 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name gnugetopt
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libavi_st
+    End Project Dependency
 }}}
 
 ###############################################################################

@@ -47,7 +47,7 @@ class COurInByteStreamFile : public COurInByteStream
   unsigned char peek(void);
   void bookmark(int bSet); 
   void reset(void);
-  int have_no_data(void) { return eof(); };
+  int have_no_data(void) { return m_buffer_size == 0; };
   uint64_t start_next_frame(void);
   double get_max_playtime (void) { return m_max_play_time; };
   void set_start_time(uint64_t start);

@@ -188,12 +188,12 @@ int create_media_for_mp3_file (CPlayerSession *psptr,
   }
   delete mp3;
 
-  player_debug_message("freq %d samples %d fps %d", freq, samplesperframe, 
-		       freq / samplesperframe);
+  mp3_message(LOG_INFO, "freq %d samples %d fps %d", freq, samplesperframe, 
+	      freq / samplesperframe);
   double maxtime;
   maxtime = (double) samplesperframe * (double)framecount;
   maxtime /= (double)freq;
-  player_debug_message("max playtime %g", maxtime);
+  mp3_message(LOG_INFO, "max playtime %g", maxtime);
   fbyte->config_for_file(freq / samplesperframe, maxtime);
 
   *errmsg = "Can't create thread";

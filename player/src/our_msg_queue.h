@@ -33,5 +33,11 @@
 #define MSG_START_DECODING 5
 #define MSG_SYNC_RESIZE_SCREEN 6
 #define MSG_RECEIVED_QUIT 7
-#define MSG_NO_FULL_SCREEN 8
+#define MSG_SDL_KEY_EVENT 8
+
+typedef struct sdl_event_msg_t {
+  SDLKey sym;
+  SDLMod mod;
+} sdl_event_msg_t;
+
 #endif

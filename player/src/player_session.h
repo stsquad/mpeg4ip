@@ -102,6 +102,7 @@ class CPlayerSession {
   int session_has_audio(void);
   int session_has_video(void);
   void set_audio_volume(int volume);
+  int get_audio_volume(void) { return m_audio_volume; };
   void set_screen_location(int x, int y);
   void set_screen_size(int scaletimes2, int fullscreen = 0);
   void session_set_seekable (int seekable) {

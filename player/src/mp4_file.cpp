@@ -61,7 +61,7 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
     *errmsg = "Internal MP4 error";
     return (-1);
   }
-  player_debug_message("create video returned %d", video);
+  mp4f_message(LOG_DEBUG, "create video returned %d", video);
   int audio = 0;
   if (have_audio_driver > 0) {
     audio = Mp4File1->create_audio(psptr);
@@ -69,7 +69,7 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
       *errmsg = "Internal mp4 file error";
       return (-1);
     }
-    player_debug_message("create audio returned %d", audio);
+    mp4f_message(LOG_DEBUG, "create audio returned %d", audio);
   }
   if (audio == 0 && video == 0) {
     *errmsg = "No valid codecs";
@@ -133,20 +133,13 @@ int CMp4File::create_video (CPlayerSession *psptr)
     return (-1);
   }
 
-  /*  
-      vbyte->config(quicktime_video_length(m_qtfile, ix),
-      quicktime_video_frame_rate(m_qtfile, ix),
-      quicktime_video_time_scale(m_qtfile, ix));
-      player_debug_message("Video Max time is %g", vbyte->get_max_playtime());
-  */
-
   int ret = mptr->create_from_file(psptr, vbyte, TRUE);
   if (ret != 0) {
     return (-1);
   }
   
   uint8_t profileID = MP4GetVideoProfileLevel(m_mp4file);
-  player_debug_message("MP4 - got profile ID %d", profileID);
+  mp4f_message(LOG_DEBUG, "MP4 - got profile ID %d", profileID);
   if (profileID >= 1 && profileID <= 3) {
     if (config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY) == 1) {
       mptr->set_codec_type("mp4v");
@@ -159,17 +152,8 @@ int CMp4File::create_video (CPlayerSession *psptr)
   unsigned char *foo;
   u_int32_t bufsize;
   MP4GetTrackESConfiguration(m_mp4file, trackId, &foo, &bufsize);
-#if 0
-  if (ret >= 0) {
-#endif
-    mptr->set_user_data(foo, bufsize);
-    player_debug_message("ES config has %d bytes", bufsize);
-#if 0
-  } else {
-    player_error_message("Can't read video ES config");
-    return (-1);
-  }
-#endif
+  mptr->set_user_data(foo, bufsize);
+  mp4f_message(LOG_DEBUG, "ES config has %d bytes", bufsize);
   m_video_tracks = 1;
   return (1);
 }
@@ -210,7 +194,8 @@ int CMp4File::create_audio (CPlayerSession *psptr)
 
       if (audio_object_type_is_aac(&audio_config) == 0) {
 	// should be unsupported
-	player_error_message("MP4 audio object type %d not supported", audio_config.audio_object_type);
+	mp4f_message(LOG_ERR, "MP4 audio object type %d not supported", 
+		     audio_config.audio_object_type);
 	return (0);
       }
     }
@@ -218,7 +203,7 @@ int CMp4File::create_audio (CPlayerSession *psptr)
   case MP4_PRIVATE_AUDIO_TYPE:
   case MP4_INVALID_AUDIO_TYPE:
   default:
-    player_error_message("Unsupported MP4 audio type %x", audio_type);
+    mp4f_message(LOG_ERR, "Unsupported MP4 audio type %x", audio_type);
     return (0);
   }
 

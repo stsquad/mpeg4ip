@@ -578,6 +578,25 @@ We believe MPEG4IP is interoperable with that organization's 1.0 Technical
 Specification. For more information see http://www.isma.tv
 
 
+MP4Player key shortcuts
+=======================
+
+If you are using mp4player, the following key short cuts can be used, 
+assuming you've got a video window:
+
+HOME - begin video from beginning
+PAGE UP - increase video size (200% max)
+PAGE DOWN - decrease video size (50% min)
+ALT-ENTER - fullscreen
+ESC - return from fullscreen
+LEFT ARROW - go back 10 seconds
+RIGHT ARROW - go forward 10 seconds
+UP ARROW - volume up 1/10th
+DOWN ARROW - volume down 1/10th
+SPACE - pause or continue
+CTRL-C - close video (next if running playlist)
+CTRL-X - close mp4player
+
 Known Problems
 ==============
 
@@ -591,12 +610,7 @@ Known Problems
   Note that the OpenDivx encoder has bitrate control that works.
 
 * The player for windows is sketchy at best.  We have included project
-  files that should build.  We have noticed the following problems:
-  - Only debug version seems to work.  
-  - Release version seems to have problems with exceptions.  Our bytestream
-    class will throw an exception when it has a problem - missing sequence
-    numbers because of dropped packets, for example.  The release version,
-    even though all projects have exception processing enabled, seems to
-    crash when they occur.
+  files that should build, for both Dev Studio 5.0 and 6.0.  With 5.0,
+  the new version of SDL doesn't seem to want to link.
 
 === END OF README ===
