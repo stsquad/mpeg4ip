@@ -149,7 +149,7 @@ public:
 protected:
 	Char* m_pchBuffer;
 	Char* m_pchBufferRun;
-	ostream* m_pstrmTrace;		//stream for trace file
+	std::ostream* m_pstrmTrace;		//stream for trace file
     Void putBitsC (Char cBits, Int iNOfBits);
 	Char m_chEncBuffer;
 	UInt m_uEncNumEmptyBits;

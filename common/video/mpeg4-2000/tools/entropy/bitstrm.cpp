@@ -90,7 +90,7 @@ unsigned int bit_msk[33] =
 };
 
 
-COutBitStream::COutBitStream (Char* pchBuffer, Int iBitPosition, ostream* pstrmTrace) : CIOBitStream()
+COutBitStream::COutBitStream (Char* pchBuffer, Int iBitPosition, std::ostream* pstrmTrace) : CIOBitStream()
 {
   m_pstrmTrace = pstrmTrace;
   m_chEncBuffer = 0;

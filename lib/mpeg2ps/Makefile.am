@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libmpeg2_program.la
 libmpeg2_program_la_SOURCES = \
 	mpeg2ps.c \
+	mpeg2ps_private.h \
 	mpeg2_ps.h \
 	mpeg2ps_util.c
 

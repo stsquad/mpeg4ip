@@ -617,9 +617,7 @@ int parse_name_for_session (CPlayerSession *psptr,
   if (mcast_src != NULL) {
     udp_set_multicast_src(mcast_src);
   } else {
-    char *ourip = get_host_ip_address();
-    udp_set_multicast_src(ourip);
-    free(ourip);
+    udp_set_multicast_src("0.0.0.0");
   }
 #endif
 
