@@ -35,3 +35,24 @@ MP4StblAtom::MP4StblAtom()
 	ExpectChildAtom("stsh", Optional, OnlyOne);
 	ExpectChildAtom("stdp", Optional, OnlyOne);
 }
+
+void MP4StblAtom::Generate()
+{
+	// as usual
+	MP4Atom::Generate();
+
+	// but we also need one of the chunk offset atoms
+	MP4Atom* pChunkOffsetAtom;
+	if (m_pFile->Use64Bits()) {
+		pChunkOffsetAtom = CreateAtom("co64");
+	} else {
+		pChunkOffsetAtom = CreateAtom("stco");
+	}
+	ASSERT(pChunkOffsetAtom);
+
+	AddChildAtom(pChunkOffsetAtom);
+
+	// and ask it to self generate
+	pChunkOffsetAtom->Generate();
+}
+

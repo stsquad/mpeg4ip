@@ -198,6 +198,8 @@ AC_OUTPUT( \
 	lib/gnu/getopt/Makefile \
 	lib/mp4/Makefile \
 	lib/mp4v2/Makefile \
+	lib/mp4v2/test/Makefile \
+	lib/mp4v2/util/Makefile \
 	lib/msg_queue/Makefile \
 	lib/sdp/Makefile \
 	common/Makefile \

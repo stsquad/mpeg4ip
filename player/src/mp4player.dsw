@@ -54,18 +54,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "http"=..\lib\http\http.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
 Project: "libavi"=..\..\lib\avi\libavi.dsp - Package Owner=<4>
 
 Package=<5>
@@ -91,6 +79,18 @@ Package=<4>
 ###############################################################################
 
 Project: "libfaad"=..\lib\audio\faad\libfaad.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libhttp"=..\lib\libhttp\libhttp.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -254,6 +254,24 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name http
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libhttp
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name need_for_win
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "need_for_win"=..\..\lib\win32\need_for_win.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
 }}}
 
 ###############################################################################

@@ -526,7 +526,7 @@ int rtsp_get_response (rtsp_client_t *info)
     } else {
       decode = info->decode_response = malloc(sizeof(rtsp_decode_t));
       if (decode == NULL) {
-	rtsp_debug(LOG_ERR, "Couldn't create decode response");
+	rtsp_debug(LOG_ALERT, "Couldn't create decode response");
 	return (RTSP_RESPONSE_RECV_ERROR);
       }
     }

@@ -1,0 +1,43 @@
+{
+    IBClasses = (
+        {CLASS = FirstResponder; LANGUAGE = ObjC; SUPERCLASS = NSObject; }, 
+        {
+            ACTIONS = {
+                adjustVolume = id; 
+                close = id; 
+                doOpenURL = id; 
+                open = id; 
+                openURL = id; 
+                pause = id; 
+                play = id; 
+                seek = id; 
+                setLooping = id; 
+                setVideoSize = id; 
+                stop = id; 
+            }; 
+            CLASS = MP4PlayerController; 
+            LANGUAGE = ObjC; 
+            OUTLETS = {
+                firstLine = id; 
+                looping = id; 
+                openURLPanel = id; 
+                pauseButton = id; 
+                playButton = id; 
+                secondLine = id; 
+                stopButton = id; 
+                time = id; 
+                urlComboBox = id; 
+                videoSize = id; 
+                volume = id; 
+            }; 
+            SUPERCLASS = NSObject; 
+        }, 
+        {
+            ACTIONS = {makeFullscreen = id; quit = id; }; 
+            CLASS = SDLMain; 
+            LANGUAGE = ObjC; 
+            SUPERCLASS = NSObject; 
+        }
+    ); 
+    IBVersion = 1; 
+}

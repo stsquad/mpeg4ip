@@ -28,22 +28,33 @@
 
 extern "C" MP4FileHandle MP4Read(char* fileName, u_int32_t verbosity)
 {
+	MP4File* pFile = NULL;
 	try {
-		return (MP4FileHandle)(new MP4File(fileName, "r", verbosity));
+		pFile = new MP4File(verbosity);
+		pFile->Read(fileName);
+		return (MP4FileHandle)pFile;
 	}
 	catch (MP4Error* e) {
 		VERBOSE_ERROR(verbosity, e->Print());
+		delete e;
+		delete pFile;
 		return (MP4FileHandle)NULL;
 	}
 }
 
-extern "C" MP4FileHandle MP4Create(char* fileName, u_int32_t verbosity)
+extern "C" MP4FileHandle MP4Create(char* fileName, 
+	u_int32_t verbosity, bool use64bits)
 {
+	MP4File* pFile = NULL;
 	try {
-		return (MP4FileHandle)(new MP4File(fileName, "w", verbosity));
+		pFile = new MP4File(verbosity);
+		pFile->Create(fileName, use64bits);
+		return (MP4FileHandle)pFile;
 	}
 	catch (MP4Error* e) {
 		VERBOSE_ERROR(verbosity, e->Print());
+		delete e;
+		delete pFile;
 		return (MP4FileHandle)NULL;
 	}
 }
@@ -51,12 +62,16 @@ extern "C" MP4FileHandle MP4Create(char* fileName, u_int32_t verbosity)
 extern "C" MP4FileHandle MP4Clone(char* existingFileName, 
 	char* newFileName, u_int32_t verbosity)
 {
+	MP4File* pFile = NULL;
 	try {
-		return (MP4FileHandle)NULL;
-			// TBD (new MP4File(existingFileName, newFileName, "c", verbosity));
+		pFile = new MP4File(verbosity);
+		pFile->Clone(existingFileName, newFileName);
+		return (MP4FileHandle)pFile;
 	}
 	catch (MP4Error* e) {
 		VERBOSE_ERROR(verbosity, e->Print());
+		delete e;
+		delete pFile;
 		return (MP4FileHandle)NULL;
 	}
 }
@@ -70,6 +85,7 @@ extern "C" int MP4Close(MP4FileHandle hFile)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return -1;
 	}
 }
@@ -82,6 +98,7 @@ extern "C" int MP4Dump(MP4FileHandle hFile, FILE* pDumpFile)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return -1;
 	}
 }
@@ -95,6 +112,8 @@ extern "C" u_int32_t MP4GetVerbosity(MP4FileHandle hFile)
 		return ((MP4File*)hFile)->GetVerbosity();
 	}
 	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -107,6 +126,7 @@ extern "C" bool MP4SetVerbosity(MP4FileHandle hFile, u_int32_t verbosity)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -118,6 +138,7 @@ extern "C" MP4Duration MP4GetDuration(MP4FileHandle hFile)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -129,6 +150,7 @@ extern "C" u_int32_t MP4GetTimeScale(MP4FileHandle hFile)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -141,6 +163,7 @@ extern "C" bool MP4SetTimeScale(MP4FileHandle hFile, u_int32_t value)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -152,6 +175,7 @@ extern "C" u_int8_t MP4GetODProfileLevel(MP4FileHandle hFile)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -164,6 +188,7 @@ extern "C" bool MP4SetODProfileLevel(MP4FileHandle hFile, u_int8_t value)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -175,6 +200,7 @@ extern "C" u_int8_t MP4GetSceneProfileLevel(MP4FileHandle hFile)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -187,6 +213,7 @@ extern "C" bool MP4SetSceneProfileLevel(MP4FileHandle hFile, u_int8_t value)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -198,6 +225,7 @@ extern "C" u_int8_t MP4GetVideoProfileLevel(MP4FileHandle hFile)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -210,6 +238,7 @@ extern "C" bool MP4SetVideoProfileLevel(MP4FileHandle hFile, u_int8_t value)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -221,6 +250,7 @@ extern "C" u_int8_t MP4GetAudioProfileLevel(MP4FileHandle hFile)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -233,6 +263,7 @@ extern "C" bool MP4SetAudioProfileLevel(MP4FileHandle hFile, u_int8_t value)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -244,6 +275,7 @@ extern "C" u_int8_t MP4GetGraphicsProfileLevel(MP4FileHandle hFile)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -256,6 +288,7 @@ extern "C" bool MP4SetGraphicsProfileLevel(MP4FileHandle hFile, u_int8_t value)
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -270,6 +303,7 @@ extern "C" u_int64_t MP4GetIntegerProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return (u_int64_t)-1;
 	}
 }
@@ -282,6 +316,7 @@ extern "C" float MP4GetFloatProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return NAN;
 	}
 }
@@ -294,6 +329,7 @@ extern "C" const char* MP4GetStringProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return NULL;
 	}
 }
@@ -307,6 +343,7 @@ extern "C" void MP4GetBytesProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		*ppValue = NULL;
 		*pValueSize = 0;
 	}
@@ -321,6 +358,7 @@ extern "C" bool MP4SetIntegerProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -334,6 +372,7 @@ extern "C" bool MP4SetFloatProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -347,6 +386,7 @@ extern "C" bool MP4SetStringProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -360,6 +400,7 @@ extern "C" bool MP4SetBytesProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -374,6 +415,7 @@ extern "C" MP4TrackId MP4AddTrack(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -386,6 +428,7 @@ extern "C" MP4TrackId MP4AddAudioTrack(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -400,6 +443,7 @@ extern "C" MP4TrackId MP4AddVideoTrack(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -412,6 +456,7 @@ extern "C" MP4TrackId MP4AddHintTrack(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -425,6 +470,7 @@ extern "C" bool MP4DeleteTrack(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -437,6 +483,7 @@ extern "C" u_int32_t MP4GetNumberOfTracks(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -449,6 +496,7 @@ extern "C" MP4TrackId MP4FindTrackId(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -461,6 +509,7 @@ extern "C" u_int16_t MP4FindTrackIndex(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return (u_int16_t)-1;
 	}
 }
@@ -475,6 +524,7 @@ extern "C" const char* MP4GetTrackType(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return NULL;
 	}
 }
@@ -487,6 +537,7 @@ extern "C" MP4Duration MP4GetTrackDuration(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -499,6 +550,7 @@ extern "C" u_int32_t MP4GetTrackTimeScale(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -512,6 +564,7 @@ extern "C" bool MP4SetTrackTimeScale(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -524,6 +577,7 @@ extern "C" MP4Duration MP4GetTrackFixedSampleDuration(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -538,6 +592,7 @@ extern "C" void MP4GetTrackESConfiguration(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		*ppConfig = NULL;
 		*pConfigSize = 0;
 	}
@@ -554,6 +609,7 @@ extern "C" bool MP4SetTrackESConfiguration(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -566,6 +622,7 @@ extern "C" MP4SampleId MP4GetNumberOfTrackSamples(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }
@@ -581,6 +638,7 @@ extern "C" u_int64_t MP4GetTrackIntegerProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return (u_int64_t)-1;
 	}
 }
@@ -594,6 +652,7 @@ extern "C" float MP4GetTrackFloatProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return NAN;
 	}
 }
@@ -607,6 +666,7 @@ extern "C" const char* MP4GetTrackStringProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return NULL;
 	}
 }
@@ -621,6 +681,7 @@ extern "C" void MP4GetTrackBytesProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		*ppValue = NULL;
 		*pValueSize = 0;
 	}
@@ -636,6 +697,7 @@ extern "C" bool MP4SetTrackIntegerProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -650,6 +712,7 @@ extern "C" bool MP4SetTrackFloatProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -664,6 +727,7 @@ extern "C" bool MP4SetTrackStringProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -679,6 +743,7 @@ extern "C" bool MP4SetTrackBytesProperty(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -705,6 +770,7 @@ extern "C" bool MP4ReadSample(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		*ppBytes = NULL;
 		*pNumBytes = 0;
 		return false;
@@ -727,6 +793,7 @@ extern "C" bool MP4WriteSample(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return false;
 	}
 }
@@ -743,6 +810,7 @@ extern "C" MP4SampleId MP4GetSampleIdFromTime(
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
+		delete e;
 		return 0;
 	}
 }

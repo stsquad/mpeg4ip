@@ -128,6 +128,11 @@ MP4ARRAY_DECL(MP4Property, MP4Property*);
 			} \
 			m_values[index] = value; \
 		} \
+		void AddValue(u_int##isize##_t value) { \
+			u_int32_t count = GetCount(); \
+			SetCount(count + 1); \
+			SetValue(value, count); \
+		} \
 		void IncrementValue(u_int32_t index = 0) { \
 			m_values[index] += 1; \
 		} \
@@ -212,6 +217,12 @@ public:
 		m_values[index] = value;
 	}
 
+	void AddValue(float value) {
+		u_int32_t count = GetCount();
+		SetCount(count + 1); 
+		SetValue(value, count);
+	}
+
 	void Read(MP4File* pFile, u_int32_t index = 0) {
 		if (m_implicit) {
 			return;
@@ -276,6 +287,12 @@ public:
 		} else {
 			m_values[index] = NULL;
 		}
+	}
+
+	void AddValue(char* value) {
+		u_int32_t count = GetCount();
+		SetCount(count + 1); 
+		SetValue(value, count);
 	}
 
 	bool IsCountedFormat() {
@@ -362,6 +379,12 @@ public:
 			m_values[index] = NULL;
 			m_valueSizes[index] = 0;
 		}
+	}
+
+	void AddValue(u_int8_t* pValue, u_int32_t valueSize) {
+		u_int32_t count = GetCount();
+		SetCount(count + 1); 
+		SetValue(pValue, valueSize, count);
 	}
 
 	u_int32_t GetValueSize(u_int32_t valueSize, u_int32_t index = 0) {

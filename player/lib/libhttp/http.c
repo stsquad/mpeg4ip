@@ -1,11 +1,51 @@
+/*
+ * The contents of this file are subject to the Mozilla Public
+ * License Version 1.1 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of
+ * the License at http://www.mozilla.org/MPL/
+ * 
+ * Software distributed under the License is distributed on an "AS
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * rights and limitations under the License.
+ * 
+ * The Original Code is MPEG4IP.
+ * 
+ * The Initial Developer of the Original Code is Cisco Systems Inc.
+ * Portions created by Cisco Systems Inc. are
+ * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * 
+ * Contributor(s): 
+ *              Bill May        wmay@cisco.com
+ */
+/*
+ * http.c - public APIs
+ */
 #include "systems.h"
 #include "http_private.h"
 
-
+/*
+ * http_init_connection()
+ * decode url and make connection
+ */
 http_client_t *http_init_connection (const char *name)
 {
   http_client_t *ptr;
-
+#ifdef _WINDOWS
+	WORD wVersionRequested;
+	WSADATA wsaData;
+	int ret;
+ 
+	wVersionRequested = MAKEWORD( 2, 0 );
+ 
+	ret = WSAStartup( wVersionRequested, &wsaData );
+	if ( ret != 0 ) {
+	   /* Tell the user that we couldn't find a usable */
+	   /* WinSock DLL.*/
+		http_debug(LOG_ERR, "Can't initialize http_debug");
+	    return (NULL);
+	}
+#endif
   ptr = (http_client_t *)malloc(sizeof(http_client_t));
   if (ptr == NULL) {
     return (NULL);
@@ -13,6 +53,7 @@ http_client_t *http_init_connection (const char *name)
 
   memset(ptr, 0, sizeof(http_client_t));
   ptr->m_state = HTTP_STATE_INIT;
+  http_debug(LOG_INFO, "Connecting to %s", name);
   if (http_decode_and_connect_url(name, ptr) < 0) {
     http_free_connection(ptr);
     return (NULL);
@@ -20,6 +61,10 @@ http_client_t *http_init_connection (const char *name)
   return (ptr);
 }
 
+/*
+ * http_free_connection - disconnect (if still connected) and free up
+ * everything to do with this session
+ */
 void http_free_connection (http_client_t *ptr)
 {
   if (ptr->m_state == HTTP_STATE_CONNECTED) {
@@ -32,8 +77,14 @@ void http_free_connection (http_client_t *ptr)
   FREE_CHECK(ptr, m_resource);
   FREE_CHECK(ptr, m_redir_location);
   free(ptr);
+#ifdef _WINDOWS
+  WSACleanup();
+#endif
 }
 
+/*
+ * http_get - get from url after client already set up
+ */
 int http_get (http_client_t *cptr,
 	      const char *url,
 	      http_resp_t **resp)
@@ -50,21 +101,27 @@ int http_get (http_client_t *cptr,
     http_resp_clear(*resp);
   }
   buffer_len = 0;
+  /*
+   * build header and send message
+   */
   ret = http_build_header(header_buffer, 4096, &buffer_len, cptr, "GET");
   http_debug(LOG_DEBUG, header_buffer);
   if (send(cptr->m_server_socket,
 	   header_buffer,
 	   buffer_len,
 	   0) < 0) {
-    http_debug(LOG_ERR,"Send failure");
+    http_debug(LOG_CRIT,"Http send failure");
     return (-1);
   }
   cptr->m_redirect_count = 0;
   more = 0;
+  /*
+   * get response - handle redirection here
+   */
   do {
     ret = http_get_response(cptr, resp);
     http_debug(LOG_INFO, "Response %d", (*resp)->ret_code);
-    http_debug(LOG_INFO, (*resp)->body);
+    http_debug(LOG_DEBUG, (*resp)->body);
     if (ret < 0) return (ret);
     switch ((*resp)->ret_code / 100) {
     default:
@@ -79,7 +136,7 @@ int http_get (http_client_t *cptr,
 	return (-1);
       }
       if (http_decode_and_connect_url(cptr->m_redir_location, cptr) < 0) {
-	http_debug(LOG_ERR, "Couldn't reup location %s", cptr->m_redir_location);
+	http_debug(LOG_CRIT, "Couldn't reup location %s", cptr->m_redir_location);
 	return (-1);
       }
       buffer_len = 0;
@@ -89,7 +146,7 @@ int http_get (http_client_t *cptr,
 	       header_buffer,
 	       buffer_len,
 	       0) < 0) {
-	http_debug(LOG_ERR,"Send failure");
+	http_debug(LOG_CRIT,"Send failure");
 	return (-1);
       }
       

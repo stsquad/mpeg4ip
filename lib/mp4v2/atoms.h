@@ -25,8 +25,9 @@
 class MP4RootAtom : public MP4Atom {
 public:
 	MP4RootAtom();
-	void StartWrite();
+	void BeginWrite(bool use64 = false);
 	void Write();
+	void FinishWrite(bool use64 = false);
 };
 
 class MP4FtypAtom : public MP4Atom {
@@ -40,6 +41,7 @@ class MP4MdatAtom : public MP4Atom {
 public:
 	MP4MdatAtom();
 	void Read();
+	void Write();
 };
 
 class MP4MoovAtom : public MP4Atom {
@@ -161,6 +163,7 @@ public:
 class MP4StblAtom : public MP4Atom {
 public:
 	MP4StblAtom();
+	void Generate();
 };
 
 class MP4StsdAtom : public MP4Atom {

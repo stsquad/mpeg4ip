@@ -25,7 +25,7 @@
 #include "systems.h"
 #include "rtsp_private.h"
 
-static int rtsp_debug_level = LOG_INFO;
+static int rtsp_debug_level = LOG_ALERT;
 static error_msg_func_t rtsp_error_msg = NULL;
 /*
  * Ugh - a global variable for the loglevel.
@@ -236,13 +236,13 @@ static int rtsp_setup_url (rtsp_client_t *info, const char *url)
   int err;
   err = rtsp_set_and_decode_url(url, info);
   if (err != 0) {
-    rtsp_debug(LOG_ERR, "Couldn't decode url %d\n", err);
+    rtsp_debug(LOG_ALERT, "Couldn't decode url %d\n", err);
     return (err);
   }
 
   err = rtsp_create_socket(info);
   if (err != 0) {
-    rtsp_debug(LOG_ERR,"Couldn't create socket %d\n", errno);
+    rtsp_debug(LOG_EMERG,"Couldn't create socket %d\n", errno);
   }
   return (err);
 }

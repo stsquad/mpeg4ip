@@ -21,7 +21,7 @@
 
 #include "mp4.h"
 
-main(int argc, char** argv)
+int main(int argc, char** argv)
 {
 	if (argc < 2) {
 		fprintf(stderr, "Usage: %s <file>\n", argv[0]);

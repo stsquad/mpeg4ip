@@ -67,6 +67,8 @@ public:
 		MP4Duration renderingOffset = 0, 
 		bool isSyncSample = true);
 
+	void FinishWrite();
+
 	MP4Duration GetFixedSampleDuration();
 
 	MP4SampleId GetSampleIdFromTime(MP4Timestamp when, 
@@ -83,24 +85,50 @@ protected:
 	bool		IsSyncSample(MP4SampleId sampleId);
 	MP4SampleId	GetNextSyncSample(MP4SampleId sampleId);
 
-	void UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes);
-	void UpdateSyncSamples(MP4SampleId sampleId, bool isSyncSample);
-	void AddSyncSample(MP4SampleId sampleId);
+	void UpdateSampleSizes(MP4SampleId sampleId, 
+		u_int32_t numBytes);
+	bool IsChunkFull(MP4SampleId sampleId);
+	void UpdateSampleToChunk(MP4SampleId sampleId,
+		 u_int32_t chunkId, u_int32_t samplesPerChunk);
+	void UpdateChunkOffsets(u_int64_t chunkOffset);
+	void UpdateSampleTimes(MP4Duration duration);
+	void UpdateRenderingOffsets(MP4SampleId sampleId, 
+		MP4Duration renderingOffset);
+	void UpdateSyncSamples(MP4SampleId sampleId, 
+		bool isSyncSample);
+
+	MP4Atom* AddAtom(char* parentName, char* childName);
+
+	void WriteChunk();
 
 protected:
 	MP4File*	m_pFile;
 	MP4Atom* 	m_pTrakAtom;		// moov.trak[]
 	MP4TrackId	m_trackId;			// moov.trak[].tkhd.trackId
 	char		m_type[5];			// moov.trak[].mdia.hdlr.handlerType
-	MP4SampleId m_writeSampleId;	// used only for writing
 
-	MP4Integer32Property* m_pFixedSampleSizeProperty;
-	MP4Integer32Property* m_pSampleSizeProperty;
+	// for writing
+	MP4SampleId m_writeSampleId;
+	u_int8_t* 	m_pChunkBuffer;
+	u_int32_t	m_chunkBufferSize;
+	u_int32_t	m_chunkSamples;
+	MP4Duration m_chunkDuration;
+
+	// controls for chunking
+	u_int32_t 	m_samplesPerChunk;
+	MP4Duration m_durationPerChunk;
+
+	MP4Integer32Property* m_pStszFixedSampleSizeProperty;
+	MP4Integer32Property* m_pStszSampleCountProperty;
+	MP4Integer32Property* m_pStszSampleSizeProperty;
 
 	MP4Integer32Property* m_pStscCountProperty;
 	MP4Integer32Property* m_pStscFirstChunkProperty;
 	MP4Integer32Property* m_pStscSamplesPerChunkProperty;
+	MP4Integer32Property* m_pStscSampleDescrIndexProperty;
 	MP4Integer32Property* m_pStscFirstSampleProperty;
+
+	MP4Integer32Property* m_pChunkCountProperty;
 	MP4Property* m_pChunkOffsetProperty;	// Integer32 or Integer64
 
 	MP4Integer32Property* m_pSttsCountProperty;

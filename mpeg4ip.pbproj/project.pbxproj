@@ -1,0 +1,1073 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 32;
+	objects = {
+		F5E8C8A601459D8901927C4D = {
+			buildStyles = (
+				F5E8C8B201459E3201927C4D,
+			);
+			isa = PBXProject;
+			mainGroup = F5E8C8A701459D8901927C4D;
+			productRefGroup = F5E8C8A801459DCE01927C4D;
+			projectDirPath = "";
+			targets = (
+				F5E8C8AA01459DCE01927C4D,
+				F5E8D73C0145D63801927C4D,
+				F5E8D73E0145D63801927C4D,
+			);
+		};
+		F5E8C8A701459D8901927C4D = {
+			children = (
+				F5E8D2990145A74801927C4D,
+				F5E8D3DC0145AF7101927C4D,
+				F5E8D2D40145A93C01927C4D,
+				F5E8C8A801459DCE01927C4D,
+				F5E8D7380145D49401927C4D,
+				F5E8D7390145D49401927C4D,
+			);
+			isa = PBXGroup;
+			refType = 4;
+		};
+		F5E8C8A801459DCE01927C4D = {
+			children = (
+				F5E8C8A901459DCE01927C4D,
+				F5E8D73A0145D63801927C4D,
+			);
+			isa = PBXGroup;
+			name = Products;
+			refType = 4;
+		};
+		F5E8C8A901459DCE01927C4D = {
+			isa = PBXApplicationReference;
+			path = "MPEG-4 Player.app";
+			refType = 3;
+		};
+		F5E8C8AA01459DCE01927C4D = {
+			buildPhases = (
+				F5E8C8C80145A23F01927C4D,
+				F5E8C8AB01459DCE01927C4D,
+				F5E8C8AC01459DCE01927C4D,
+				F5E8C8AD01459DCE01927C4D,
+				F5E8C8AE01459DCE01927C4D,
+				F5E8C8AF01459DCE01927C4D,
+			);
+			buildSettings = {
+				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/player/src\" \"$(SRCROOT)/common/video/mpeg4\" \"$(SRCROOT)/player/src/codec\" \"$(SRCROOT)/player/src/codec/mpeg4\" \"$(SRCROOT)/player/lib\" \"$(SRCROOT)/player/lib/audio\" \"$(SRCROOT)/lib/SDL/include\" \"$(SRCROOT)/lib/mp4\" \"$(SRCROOT)/include\" \"$(SRCROOT)/lib/avi\" \"$(SRCROOT)/lib\"";
+				LIBRARY_SEARCH_PATHS = "lib/SDL/src/.libs /Users/sergent/mpeg4ip/player/src/.libs /Users/sergent/mpeg4ip/player/src/codec/aa/.libs /Users/sergent/mpeg4ip/player/src/codec/mp3/.libs /Users/sergent/mpeg4ip/player/src/codec/divx/.libs /Users/sergent/mpeg4ip/player/src/codec/mpeg4/.libs /Users/sergent/mpeg4ip/player/src/codec/wav/.libs /Users/sergent/mpeg4ip/common/video/mpeg4/obj /Users/sergent/mpeg4ip/player/lib/audio/faad/.libs /Users/sergent/mpeg4ip/player/lib/audio/mp3/.libs /Users/sergent/mpeg4ip/player/lib/http/.libs /Users/sergent/mpeg4ip/player/lib/rtsp/.libs /Users/sergent/mpeg4ip/player/lib/video/divx/.libs /Users/sergent/mpeg4ip/lib/bitstream/.libs /Users/sergent/mpeg4ip/lib/config_file/.libs /Users/sergent/mpeg4ip/lib/mp4/.libs /Users/sergent/mpeg4ip/lib/msg_queue/.libs /Users/sergent/mpeg4ip/lib/rtp /Users/sergent/mpeg4ip/lib/sdp/.libs /usr/lib/gcc/darwin/2.95.2 /Users/sergent/mpeg4ip/lib/avi/.libs /Users/sergent/mpeg4ip/lib/SDL/src/.libs";
+				OPTIMIZATION_CFLAGS = "";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = "MPEG-4 Player";
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
+				WRAPPER_EXTENSION = app;
+			};
+			dependencies = (
+			);
+			isa = PBXApplicationTarget;
+			name = player;
+			productInstallPath = "$(USER_APPS_DIR)";
+			productName = player;
+			productReference = F5E8C8A901459DCE01927C4D;
+			productSettingsXML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<!DOCTYPE plist SYSTEM \"file://localhost/System/Library/DTDs/PropertyList.dtd\">
+<plist version=\"0.9\">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleExecutable</key>
+	<string>MPEG-4 Player</string>
+	<key>CFBundleGetInfoString</key>
+	<string>mpeg4ip MPEG-4 Player v0.7</string>
+	<key>CFBundleIconFile</key>
+	<string></string>
+	<key>CFBundleIdentifier</key>
+	<string></string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>MPEG-4 Player</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>mpeg4ip</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>0.0.1d1</string>
+	<key>NSMainNibFile</key>
+	<string>SDLMain</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+</dict>
+</plist>
+";
+			shouldUseHeadermap = 0;
+		};
+		F5E8C8AB01459DCE01927C4D = {
+			buildActionMask = 2147483647;
+			files = (
+				F5E8C8C20145A1E901927C4D,
+				F5E8C8C30145A1E901927C4D,
+				F5E8C8C40145A1E901927C4D,
+			);
+			isa = PBXHeadersBuildPhase;
+			name = Headers;
+		};
+		F5E8C8AC01459DCE01927C4D = {
+			buildActionMask = 2147483647;
+			files = (
+				F5E8C8BB0145A10101927C4D,
+				F5E8D72F0145B57001927C4D,
+			);
+			isa = PBXResourcesBuildPhase;
+			name = "Bundle Resources";
+		};
+		F5E8C8AD01459DCE01927C4D = {
+			buildActionMask = 2147483647;
+			files = (
+				F5E8C8C50145A1E901927C4D,
+				F5E8C8C60145A1E901927C4D,
+				F5E8C8C70145A1E901927C4D,
+			);
+			isa = PBXSourcesBuildPhase;
+			name = Sources;
+		};
+		F5E8C8AE01459DCE01927C4D = {
+			buildActionMask = 2147483647;
+			files = (
+				F5E8D3110145AE2B01927C4D,
+				F5E8D3130145AE3801927C4D,
+				F5E8D3170145AE7401927C4D,
+				F5E8D3CB0145AEE601927C4D,
+				F5E8D3D00145AEE601927C4D,
+				F5E8D3D30145AEE601927C4D,
+				F5E8D3D60145AEE601927C4D,
+				F5E8D3D90145AEE601927C4D,
+				F5E8D43D0145AF7101927C4D,
+				F5E8D6D70145B04301927C4D,
+				F5E8D6EA0145B04301927C4D,
+				F5E8D6F60145B04301927C4D,
+				F5E8D6F80145B04301927C4D,
+				F5E8D6FD0145B04301927C4D,
+				F5E8D7200145B22F01927C4D,
+				F5E8D7210145B22F01927C4D,
+				F5E8D7220145B22F01927C4D,
+				F5E8D7230145B22F01927C4D,
+				F5E8D7240145B22F01927C4D,
+				F5E8D7250145B22F01927C4D,
+				F5E8D7280145B2C001927C4D,
+				F5E8D72B0145B41101927C4D,
+				F5E8D30F0145AE0B01927C4D,
+			);
+			isa = PBXFrameworksBuildPhase;
+			name = "Frameworks & Libraries";
+		};
+		F5E8C8AF01459DCE01927C4D = {
+			buildActionMask = 2147483647;
+			files = (
+			);
+			isa = PBXRezBuildPhase;
+			name = "ResourceManager Resources";
+		};
+		F5E8C8B201459E3201927C4D = {
+			buildRules = (
+			);
+			buildSettings = {
+			};
+			isa = PBXBuildStyle;
+			name = Development;
+		};
+		F5E8C8BA0145A10101927C4D = {
+			isa = PBXFileReference;
+			path = SDLMain.nib;
+			refType = 4;
+		};
+		F5E8C8BB0145A10101927C4D = {
+			fileRef = F5E8C8BA0145A10101927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8C8BC0145A1E901927C4D = {
+			isa = PBXFileReference;
+			path = MP4PlayerController.h;
+			refType = 4;
+		};
+		F5E8C8BD0145A1E901927C4D = {
+			isa = PBXFileReference;
+			path = MP4PlayerController.m;
+			refType = 4;
+		};
+		F5E8C8BE0145A1E901927C4D = {
+			isa = PBXFileReference;
+			path = player_session_wrap.cc;
+			refType = 4;
+		};
+		F5E8C8BF0145A1E901927C4D = {
+			isa = PBXFileReference;
+			path = player_session_wrap.h;
+			refType = 4;
+		};
+		F5E8C8C00145A1E901927C4D = {
+			isa = PBXFileReference;
+			path = SDLMain.h;
+			refType = 4;
+		};
+		F5E8C8C10145A1E901927C4D = {
+			isa = PBXFileReference;
+			path = SDLMain.m;
+			refType = 4;
+		};
+		F5E8C8C20145A1E901927C4D = {
+			fileRef = F5E8C8BC0145A1E901927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8C8C30145A1E901927C4D = {
+			fileRef = F5E8C8BF0145A1E901927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8C8C40145A1E901927C4D = {
+			fileRef = F5E8C8C00145A1E901927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8C8C50145A1E901927C4D = {
+			fileRef = F5E8C8BD0145A1E901927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8C8C60145A1E901927C4D = {
+			fileRef = F5E8C8BE0145A1E901927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8C8C70145A1E901927C4D = {
+			fileRef = F5E8C8C10145A1E901927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8C8C80145A23F01927C4D = {
+			buildActionMask = 2147483647;
+			files = (
+			);
+			generatedFileNames = (
+			);
+			isa = PBXShellScriptBuildPhase;
+			name = "Shell Script";
+			neededFileNames = (
+			);
+			shellPath = /bin/sh;
+			shellScript = "cp lib/avi/.libs/libavi.al lib/avi/.libs/libavi.a\nranlib lib/avi/.libs/libavi.a";
+		};
+		F5E8D2990145A74801927C4D = {
+			children = (
+				F5E8D29A0145A74801927C4D,
+				F5E8D70C0145B22F01927C4D,
+				F5E8D70E0145B22F01927C4D,
+				F5E8D7110145B22F01927C4D,
+				F5E8D7140145B22F01927C4D,
+				F5E8D7170145B22F01927C4D,
+				F5E8D71A0145B22F01927C4D,
+				F5E8D71C0145B22F01927C4D,
+			);
+			isa = PBXGroup;
+			path = lib;
+			refType = 4;
+		};
+		F5E8D29A0145A74801927C4D = {
+			children = (
+				F5E8D2D00145A77A01927C4D,
+			);
+			isa = PBXGroup;
+			path = SDL;
+			refType = 4;
+		};
+		F5E8D2D00145A77A01927C4D = {
+			children = (
+				F5E8D2D10145A8CD01927C4D,
+			);
+			isa = PBXGroup;
+			path = src;
+			refType = 4;
+		};
+		F5E8D2D10145A8CD01927C4D = {
+			children = (
+				F5E8D2D20145A8CD01927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D2D20145A8CD01927C4D = {
+			isa = PBXFileReference;
+			path = libSDL.a;
+			refType = 4;
+		};
+		F5E8D2D40145A93C01927C4D = {
+			children = (
+				F5E8D3140145AE7401927C4D,
+				F5E8D4970145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = player;
+			refType = 2;
+		};
+		F5E8D30F0145AE0B01927C4D = {
+			fileRef = F5E8D2D20145A8CD01927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D3100145AE2B01927C4D = {
+			isa = PBXFrameworkReference;
+			name = Cocoa.framework;
+			path = /System/Library/Frameworks/Cocoa.framework;
+			refType = 0;
+		};
+		F5E8D3110145AE2B01927C4D = {
+			fileRef = F5E8D3100145AE2B01927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D3120145AE3801927C4D = {
+			isa = PBXFrameworkReference;
+			name = AGL.framework;
+			path = /System/Library/Frameworks/AGL.framework;
+			refType = 0;
+		};
+		F5E8D3130145AE3801927C4D = {
+			fileRef = F5E8D3120145AE3801927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D3140145AE7401927C4D = {
+			children = (
+				F5E8D7260145B2C001927C4D,
+				F5E8D3150145AE7401927C4D,
+				F5E8D3180145AEE601927C4D,
+				F5E8D7340145D1BB01927C4D,
+			);
+			isa = PBXGroup;
+			path = src;
+			refType = 4;
+		};
+		F5E8D3150145AE7401927C4D = {
+			children = (
+				F5E8D3160145AE7401927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D3160145AE7401927C4D = {
+			isa = PBXFileReference;
+			path = libmp4player.a;
+			refType = 4;
+		};
+		F5E8D3170145AE7401927C4D = {
+			fileRef = F5E8D3160145AE7401927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D3180145AEE601927C4D = {
+			children = (
+				F5E8D3190145AEE601927C4D,
+				F5E8D3360145AEE601927C4D,
+				F5E8D3490145AEE601927C4D,
+				F5E8D35C0145AEE601927C4D,
+				F5E8D36F0145AEE601927C4D,
+			);
+			isa = PBXGroup;
+			path = codec;
+			refType = 4;
+		};
+		F5E8D3190145AEE601927C4D = {
+			children = (
+				F5E8D32A0145AEE601927C4D,
+			);
+			isa = PBXGroup;
+			path = aa;
+			refType = 4;
+		};
+		F5E8D32A0145AEE601927C4D = {
+			children = (
+				F5E8D32B0145AEE601927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D32B0145AEE601927C4D = {
+			isa = PBXFileReference;
+			path = libaa.a;
+			refType = 4;
+		};
+		F5E8D3360145AEE601927C4D = {
+			children = (
+				F5E8D3410145AEE601927C4D,
+			);
+			isa = PBXGroup;
+			path = mp3;
+			refType = 4;
+		};
+		F5E8D3410145AEE601927C4D = {
+			children = (
+				F5E8D3420145AEE601927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D3420145AEE601927C4D = {
+			isa = PBXFileReference;
+			path = libmp3.a;
+			refType = 4;
+		};
+		F5E8D3490145AEE601927C4D = {
+			children = (
+				F5E8D3540145AEE601927C4D,
+			);
+			isa = PBXGroup;
+			path = divx;
+			refType = 4;
+		};
+		F5E8D3540145AEE601927C4D = {
+			children = (
+				F5E8D3550145AEE601927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D3550145AEE601927C4D = {
+			isa = PBXFileReference;
+			path = libdivx.a;
+			refType = 4;
+		};
+		F5E8D35C0145AEE601927C4D = {
+			children = (
+				F5E8D3670145AEE601927C4D,
+			);
+			isa = PBXGroup;
+			path = mpeg4;
+			refType = 4;
+		};
+		F5E8D3670145AEE601927C4D = {
+			children = (
+				F5E8D3680145AEE601927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D3680145AEE601927C4D = {
+			isa = PBXFileReference;
+			path = libmpeg4.a;
+			refType = 4;
+		};
+		F5E8D36F0145AEE601927C4D = {
+			children = (
+				F5E8D37A0145AEE601927C4D,
+			);
+			isa = PBXGroup;
+			path = wav;
+			refType = 4;
+		};
+		F5E8D37A0145AEE601927C4D = {
+			children = (
+				F5E8D37B0145AEE601927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D37B0145AEE601927C4D = {
+			isa = PBXFileReference;
+			path = libourwav.a;
+			refType = 4;
+		};
+		F5E8D3CB0145AEE601927C4D = {
+			fileRef = F5E8D32B0145AEE601927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D3D00145AEE601927C4D = {
+			fileRef = F5E8D3420145AEE601927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D3D30145AEE601927C4D = {
+			fileRef = F5E8D3550145AEE601927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D3D60145AEE601927C4D = {
+			fileRef = F5E8D3680145AEE601927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D3D90145AEE601927C4D = {
+			fileRef = F5E8D37B0145AEE601927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D3DC0145AF7101927C4D = {
+			children = (
+				F5E8D3DD0145AF7101927C4D,
+			);
+			isa = PBXGroup;
+			path = common;
+			refType = 4;
+		};
+		F5E8D3DD0145AF7101927C4D = {
+			children = (
+				F5E8D3DE0145AF7101927C4D,
+			);
+			isa = PBXGroup;
+			path = video;
+			refType = 4;
+		};
+		F5E8D3DE0145AF7101927C4D = {
+			children = (
+				F5E8D3DF0145AF7101927C4D,
+				F5E8D3E00145AF7101927C4D,
+			);
+			isa = PBXGroup;
+			path = mpeg4;
+			refType = 4;
+		};
+		F5E8D3DF0145AF7101927C4D = {
+			isa = PBXExecutableFileReference;
+			path = cpptocc.sh;
+			refType = 4;
+		};
+		F5E8D3E00145AF7101927C4D = {
+			children = (
+				F5E8D3E20145AF7101927C4D,
+			);
+			isa = PBXGroup;
+			path = obj;
+			refType = 4;
+		};
+		F5E8D3E20145AF7101927C4D = {
+			isa = PBXFileReference;
+			path = libobj.a;
+			refType = 4;
+		};
+		F5E8D43D0145AF7101927C4D = {
+			fileRef = F5E8D3E20145AF7101927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D4970145B04301927C4D = {
+			children = (
+				F5E8D4980145B04301927C4D,
+				F5E8D5420145B04301927C4D,
+				F5E8D5610145B04301927C4D,
+				F5E8D5800145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = lib;
+			refType = 4;
+		};
+		F5E8D4980145B04301927C4D = {
+			children = (
+				F5E8D4990145B04301927C4D,
+				F5E8D5010145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = audio;
+			refType = 4;
+		};
+		F5E8D4990145B04301927C4D = {
+			children = (
+				F5E8D4D60145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = faad;
+			refType = 4;
+		};
+		F5E8D4D60145B04301927C4D = {
+			children = (
+				F5E8D4D70145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D4D70145B04301927C4D = {
+			isa = PBXFileReference;
+			path = libfaad.a;
+			refType = 4;
+		};
+		F5E8D5010145B04301927C4D = {
+			children = (
+				F5E8D5260145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = mp3;
+			refType = 4;
+		};
+		F5E8D5260145B04301927C4D = {
+			children = (
+				F5E8D5270145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D5270145B04301927C4D = {
+			isa = PBXFileReference;
+			path = libourmp3.a;
+			refType = 4;
+		};
+		F5E8D5420145B04301927C4D = {
+			children = (
+				F5E8D5520145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = http;
+			refType = 4;
+		};
+		F5E8D5520145B04301927C4D = {
+			children = (
+				F5E8D5530145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D5530145B04301927C4D = {
+			isa = PBXFileReference;
+			path = libhttp.a;
+			refType = 4;
+		};
+		F5E8D5610145B04301927C4D = {
+			children = (
+				F5E8D5730145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = rtsp;
+			refType = 4;
+		};
+		F5E8D5730145B04301927C4D = {
+			children = (
+				F5E8D5740145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D5740145B04301927C4D = {
+			isa = PBXFileReference;
+			path = librtsp.a;
+			refType = 4;
+		};
+		F5E8D5800145B04301927C4D = {
+			children = (
+				F5E8D5810145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = video;
+			refType = 4;
+		};
+		F5E8D5810145B04301927C4D = {
+			children = (
+				F5E8D5B80145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = divx;
+			refType = 4;
+		};
+		F5E8D5B80145B04301927C4D = {
+			children = (
+				F5E8D5B90145B04301927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D5B90145B04301927C4D = {
+			isa = PBXFileReference;
+			path = libourdivx.a;
+			refType = 4;
+		};
+		F5E8D6D70145B04301927C4D = {
+			fileRef = F5E8D4D70145B04301927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D6EA0145B04301927C4D = {
+			fileRef = F5E8D5270145B04301927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D6F60145B04301927C4D = {
+			fileRef = F5E8D5530145B04301927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D6F80145B04301927C4D = {
+			fileRef = F5E8D5740145B04301927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D6FD0145B04301927C4D = {
+			fileRef = F5E8D5B90145B04301927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D70C0145B22F01927C4D = {
+			children = (
+				F5E8D7290145B3E001927C4D,
+			);
+			isa = PBXGroup;
+			path = avi;
+			refType = 4;
+		};
+		F5E8D70E0145B22F01927C4D = {
+			children = (
+				F5E8D70F0145B22F01927C4D,
+			);
+			isa = PBXGroup;
+			path = bitstream;
+			refType = 4;
+		};
+		F5E8D70F0145B22F01927C4D = {
+			children = (
+				F5E8D7100145B22F01927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D7100145B22F01927C4D = {
+			isa = PBXFileReference;
+			path = libbitstream.a;
+			refType = 4;
+		};
+		F5E8D7110145B22F01927C4D = {
+			children = (
+				F5E8D7120145B22F01927C4D,
+			);
+			isa = PBXGroup;
+			path = config_file;
+			refType = 4;
+		};
+		F5E8D7120145B22F01927C4D = {
+			children = (
+				F5E8D7130145B22F01927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D7130145B22F01927C4D = {
+			isa = PBXFileReference;
+			path = libconfig_file.a;
+			refType = 4;
+		};
+		F5E8D7140145B22F01927C4D = {
+			children = (
+				F5E8D7150145B22F01927C4D,
+			);
+			isa = PBXGroup;
+			path = mp4;
+			refType = 4;
+		};
+		F5E8D7150145B22F01927C4D = {
+			children = (
+				F5E8D7160145B22F01927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D7160145B22F01927C4D = {
+			isa = PBXFileReference;
+			path = libmp4.a;
+			refType = 4;
+		};
+		F5E8D7170145B22F01927C4D = {
+			children = (
+				F5E8D7180145B22F01927C4D,
+			);
+			isa = PBXGroup;
+			path = msg_queue;
+			refType = 4;
+		};
+		F5E8D7180145B22F01927C4D = {
+			children = (
+				F5E8D7190145B22F01927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D7190145B22F01927C4D = {
+			isa = PBXFileReference;
+			path = libmsg_queue.a;
+			refType = 4;
+		};
+		F5E8D71A0145B22F01927C4D = {
+			children = (
+				F5E8D71B0145B22F01927C4D,
+			);
+			isa = PBXGroup;
+			path = rtp;
+			refType = 4;
+		};
+		F5E8D71B0145B22F01927C4D = {
+			isa = PBXFileReference;
+			path = libuclmmbase.a;
+			refType = 4;
+		};
+		F5E8D71C0145B22F01927C4D = {
+			children = (
+				F5E8D71D0145B22F01927C4D,
+			);
+			isa = PBXGroup;
+			path = sdp;
+			refType = 4;
+		};
+		F5E8D71D0145B22F01927C4D = {
+			children = (
+				F5E8D71E0145B22F01927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D71E0145B22F01927C4D = {
+			isa = PBXFileReference;
+			path = libsdp.a;
+			refType = 4;
+		};
+		F5E8D7200145B22F01927C4D = {
+			fileRef = F5E8D7130145B22F01927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D7210145B22F01927C4D = {
+			fileRef = F5E8D7160145B22F01927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D7220145B22F01927C4D = {
+			fileRef = F5E8D71E0145B22F01927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D7230145B22F01927C4D = {
+			fileRef = F5E8D7100145B22F01927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D7240145B22F01927C4D = {
+			fileRef = F5E8D71B0145B22F01927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D7250145B22F01927C4D = {
+			fileRef = F5E8D7190145B22F01927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D7260145B2C001927C4D = {
+			children = (
+				F5E8C8BA0145A10101927C4D,
+				F5E8C8BC0145A1E901927C4D,
+				F5E8C8BD0145A1E901927C4D,
+				F5E8C8BE0145A1E901927C4D,
+				F5E8C8BF0145A1E901927C4D,
+				F5E8C8C00145A1E901927C4D,
+				F5E8C8C10145A1E901927C4D,
+			);
+			isa = PBXGroup;
+			path = osx;
+			refType = 4;
+		};
+		F5E8D7270145B2C001927C4D = {
+			isa = PBXFileReference;
+			name = "libstdc++.a";
+			path = "/usr/lib/gcc/darwin/2.95.2/libstdc++.a";
+			refType = 0;
+		};
+		F5E8D7280145B2C001927C4D = {
+			fileRef = F5E8D7270145B2C001927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D7290145B3E001927C4D = {
+			children = (
+				F5E8D72A0145B41101927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F5E8D72A0145B41101927C4D = {
+			isa = PBXFileReference;
+			path = libavi.a;
+			refType = 4;
+		};
+		F5E8D72B0145B41101927C4D = {
+			fileRef = F5E8D72A0145B41101927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D72D0145B57001927C4D = {
+			children = (
+				F5E8D72E0145B57001927C4D,
+			);
+			isa = PBXVariantGroup;
+			name = InfoPlist.strings;
+			path = player/src/osx/English.lproj;
+			refType = 4;
+		};
+		F5E8D72E0145B57001927C4D = {
+			isa = PBXFileReference;
+			name = English;
+			path = InfoPlist.strings;
+			refType = 4;
+		};
+		F5E8D72F0145B57001927C4D = {
+			fileRef = F5E8D72D0145B57001927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5E8D7340145D1BB01927C4D = {
+			isa = PBXFileReference;
+			path = sync.cpp;
+			refType = 4;
+		};
+		F5E8D7380145D49401927C4D = {
+			children = (
+				F5E8D3100145AE2B01927C4D,
+				F5E8D3120145AE3801927C4D,
+				F5E8D7270145B2C001927C4D,
+			);
+			isa = PBXGroup;
+			name = Frameworks;
+			path = "";
+			refType = 4;
+		};
+		F5E8D7390145D49401927C4D = {
+			children = (
+				F5E8D72D0145B57001927C4D,
+			);
+			isa = PBXGroup;
+			name = Resources;
+			path = "";
+			refType = 4;
+		};
+		F5E8D73A0145D63801927C4D = {
+			isa = PBXExecutableFileReference;
+			path = Untitled;
+			refType = 3;
+		};
+		F5E8D73C0145D63801927C4D = {
+			buildArgumentsString = $ACTION;
+			buildPhases = (
+			);
+			buildSettings = {
+				OPTIMIZATION_CFLAGS = "";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = mpeg4ip;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
+			};
+			buildToolPath = /usr/bin/gnumake;
+			buildWorkingDirectory = "";
+			dependencies = (
+				F5E8D73D0145D63801927C4D,
+			);
+			isa = PBXLegacyTarget;
+			name = mpeg4ip;
+			productName = mpeg4ip;
+			settingsToExpand = 6;
+			settingsToPassInEnvironment = 287;
+			settingsToPassOnCommandLine = 280;
+			shouldUseHeadermap = 0;
+		};
+		F5E8D73D0145D63801927C4D = {
+			isa = PBXTargetDependency;
+			target = F5E8D73E0145D63801927C4D;
+		};
+		F5E8D73E0145D63801927C4D = {
+			buildPhases = (
+				F5E8D73F0145D63801927C4D,
+			);
+			buildSettings = {
+				OPTIMIZATION_CFLAGS = "";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = Untitled;
+				REZ_EXECUTABLE = YES;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
+			};
+			dependencies = (
+			);
+			isa = PBXToolTarget;
+			name = bootstrap;
+			productInstallPath = /usr/local/bin;
+			productName = Untitled;
+			productReference = F5E8D73A0145D63801927C4D;
+			shouldUseHeadermap = 0;
+		};
+		F5E8D73F0145D63801927C4D = {
+			buildActionMask = 2147483647;
+			files = (
+			);
+			generatedFileNames = (
+			);
+			isa = PBXShellScriptBuildPhase;
+			name = "Shell Script";
+			neededFileNames = (
+			);
+			shellPath = /bin/sh;
+			shellScript = "[ -f .bootstrapped ] || ./bootstrap || exit 1";
+		};
+	};
+	rootObject = F5E8C8A601459D8901927C4D;
+}

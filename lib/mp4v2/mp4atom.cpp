@@ -171,8 +171,7 @@ void MP4Atom::Generate()
 			MP4Atom* pChildAtom = 
 				CreateAtom(m_pChildAtomInfos[i]->m_name);
 			ASSERT(pChildAtom);
-			pChildAtom->SetFile(m_pFile);
-			pChildAtom->SetParentAtom(this);
+
 			AddChildAtom(pChildAtom);
 
 			// and ask it to self generate
@@ -416,6 +415,8 @@ bool MP4Atom::FindContainedProperty(char *name,
 		}
 	}
 
+	VERBOSE_FIND(m_pFile->GetVerbosity(),
+		printf("FindProperty: no match for %s\n", name));
 	return false;
 }
 
@@ -510,18 +511,15 @@ MP4AtomInfo* MP4Atom::FindAtomInfo(const char* name)
 // generic write
 void MP4Atom::Write()
 {
-	// TBD use of 64 bit write
-	bool use64 = false;
-
 	ASSERT(m_pFile);
 
-	BeginWrite(use64);
+	BeginWrite();
 
 	WriteProperties();
 
 	WriteChildAtoms();
 
-	EndWrite(use64);
+	FinishWrite();
 }
 
 void MP4Atom::BeginWrite(bool use64)
@@ -539,7 +537,7 @@ void MP4Atom::BeginWrite(bool use64)
 	}
 }
 
-void MP4Atom::EndWrite(bool use64)
+void MP4Atom::FinishWrite(bool use64)
 {
 	m_end = m_pFile->GetPosition();
 	m_size = (m_end - m_start);

@@ -232,8 +232,6 @@ Note: libtool is frequently not installed on Linux systems (autoconf,
 and automake generally are). You can download libtool from a GNU mirror
 site, or http://download.sourceforge.net/mpegip/libtool-1.3.5.tar.gz
 
-To date we've built on Red Hat Linux 6.1, 6.2, 7.0, and 7.1.
-
 In general, the code should be portable, but as someone once said 
 "There's no such thing as portable code, just code that has been ported." 
 When you find problems please be sure to use the SourceForge site to tell 
@@ -284,7 +282,6 @@ for your environment.
 
 Note the default content directory is /usr/local/movies.
 
-
 There is a short "home video" sample file in mpeg4ip/samples that can 
 be used to check that the build and install have succeeded.  First, 
 try opening the file with gmp4player. If that works, then try copying 
@@ -304,6 +301,10 @@ OS Supported
 Currently, we have compiled and tested on the following platforms:
 linux, freeBSD, BSD/OS, Mac OS X and windows.  For all varieties
 of *nux, X11 is required.
+
+To date we've built on Red Hat Linux 6.1, 6.2, 7.0, and 7.1 with
+the native compilers, and on 7.1 with gcc 3.0.  We've built on 
+freeBSD 4.3, and BSD/OS.
 
 For BSD/OS, you may need a semaphore shim.  Contact Steven Schultz
 for help on that (contact information in Authors).

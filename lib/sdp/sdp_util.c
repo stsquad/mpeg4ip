@@ -214,7 +214,7 @@ void smpte_to_str (double value, uint16_t fps, char *buffer)
   if (value > 0.0) sprintf(buffer + index, ":%02g", value);
 }
 
-static int sdp_debug_level = LOG_ERR;
+static int sdp_debug_level = LOG_ALERT;
 
 static error_msg_func_t error_msg_func = NULL;
 

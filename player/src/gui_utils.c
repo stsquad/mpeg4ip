@@ -34,6 +34,7 @@
 #include <string.h>
 #include "gui_utils.h"
 #include <stdio.h>
+#include <syslog.h>
 /*
  * CreateWidgetFromXpm
  *
@@ -157,14 +158,17 @@ GtkWidget *CreateMenuItem (GtkWidget *menu,
 GtkWidget *CreateMenuCheck (GtkWidget *menu, 
                             char *szName, 
                             GtkSignalFunc func, 
-                            gpointer data)
+                            gpointer data,
+			    gboolean initial_data)
 {
     GtkWidget *menuitem;
 
     /* --- Create menu item --- */
     menuitem = gtk_check_menu_item_new_with_label (szName);
 
-    /* --- Add it to the menu --- */
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menuitem),
+				   initial_data);
+    /* --- Add it to the menu 2--- */
     gtk_menu_append (GTK_MENU (menu), menuitem);
     gtk_widget_show (menuitem);
 
@@ -290,4 +294,36 @@ void FreeChild (GtkWidget *widget)
                (GtkCallback) gtk_widget_destroy,
                NULL);
 
+}
+
+static char *logs[] = {
+  "Emerg",
+  "Alert",
+  "Critical",
+  "Error",
+  "Warning",
+  "Notice",
+  "Info",
+  "Debug"
+};
+
+void CreateLogLevelSubmenu (GtkWidget *menu,
+			    char *szName,
+			    int active,
+			    GtkSignalFunc func)
+{
+  int ix;
+  GtkWidget *submenu, *this;
+  GSList *radiolist = NULL;
+  submenu = CreateSubMenu(menu, szName);
+  for (ix = LOG_EMERG; ix <= LOG_DEBUG; ix++) {
+    this = CreateMenuRadio(submenu,
+			   logs[ix],
+			   &radiolist,
+			   func,
+			   GINT_TO_POINTER(ix));
+    if (active == ix) {
+      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(this), TRUE);
+    }
+  }
 }

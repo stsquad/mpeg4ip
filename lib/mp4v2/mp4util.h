@@ -54,6 +54,12 @@
 #define VERBOSE_READ_SAMPLE(verbosity, expr)	\
 	VERBOSE((MP4_DETAILS_READ | MP4_DETAILS_SAMPLE), verbosity, expr)
 
+#define VERBOSE_WRITE(verbosity, expr)		\
+	VERBOSE(MP4_DETAILS_WRITE, verbosity, expr)
+
+#define VERBOSE_WRITE_SAMPLE(verbosity, expr)	\
+	VERBOSE((MP4_DETAILS_WRITE | MP4_DETAILS_SAMPLE), verbosity, expr)
+
 #define VERBOSE_FIND(verbosity, expr)		\
 	VERBOSE(MP4_DETAILS_FIND, verbosity, expr)
 

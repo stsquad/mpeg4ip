@@ -42,11 +42,13 @@ MP4FtypAtom::MP4FtypAtom()
 		new MP4Integer32Property("brand"));
 }
 
-void MP4FtypAtom::Generate() {
+void MP4FtypAtom::Generate() 
+{
 	((MP4Integer32Property*)m_pProperties[0])->SetValue(STRTOINT32("isom"));
 }
 
-void MP4FtypAtom::Read() {
+void MP4FtypAtom::Read() 
+{
 	// table entry count computed from atom size
 	((MP4Integer32Property*)m_pProperties[2])->SetReadOnly(false);
 	((MP4Integer32Property*)m_pProperties[2])->SetValue((m_size - 8) / 4);

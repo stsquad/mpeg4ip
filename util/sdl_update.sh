@@ -1,5 +1,6 @@
 #! /bin/sh
 
+export CVS_RSH=cvsssh
 CVS_N=
 
 #
@@ -65,9 +66,6 @@ NEW_DIR_CNT=0
 NEW_FILE_CNT=0
 for orig_dir_on in `cat $temp_dir/orig_dirs`
 do
-  if test $orig_dir_on = "."; then
-     continue;
-  fi
   dest_dir_on=$dest_dir/$orig_dir_on
   #
   # check if origin directory exists on destination
@@ -130,9 +128,6 @@ echo Checking for removed files from origin >&6
 #
 for dest_dir_on in `cat $temp_dir/dest_dirs`
 do
-   if test $dest_dir_on = "."; then 
-      continue;
-   fi
    cd $dest_dir/$dest_dir_on
 
    if test ! -d $origin_dir/$dest_dir_on; then
@@ -151,8 +146,7 @@ do
       for file in `cat $temp_dir/dest_files`
       do
          if test ! -e $origin_dir/$dest_dir_on/$file; then
-            echo $origin_dir/$dest_dir_on/$file no longer exists >&5
-            echo $origin_dir/$dest_dir_on/$file no longer exists >&6
+            echo $origin_dir/$dest_dir_on/$file no longer exists
 #	    rm -f $file
 #	    cvs $CVS_N remove $file 1>&5 2>&5
 	 fi

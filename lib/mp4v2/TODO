@@ -1,0 +1,22 @@
+Generate appropriate default values esp. for reserved fields
+
+AddTrack
+	AddVideoTrack
+	AddAudioTrack
+	AddHintTrack
+
+MP4Clone 
+	Interleaving of existing and new samples on writing
+	Rewriting of chunk offset atom to reflect moves
+
+Effects of edit lists on reading samples
+
+Adapt mp4player to new library
+
+Add isma od and bifs helpers
+
+Add rtp hint helpers
+
+Finish adapting mp4live to new library
+
+Write mp4broadcaster & mp4creator

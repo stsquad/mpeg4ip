@@ -68,9 +68,12 @@ extern "C" {
 
 /* file operations */
 
-MP4FileHandle MP4Read(char* fileName, u_int32_t verbosity DEFAULT(0));
+MP4FileHandle MP4Read(char* fileName, 
+	u_int32_t verbosity DEFAULT(0));
 
-MP4FileHandle MP4Create(char* fileName, u_int32_t verbosity DEFAULT(0));
+MP4FileHandle MP4Create(char* fileName, 
+	u_int32_t verbosity DEFAULT(0),
+	bool use64bits DEFAULT(0));
 
 MP4FileHandle MP4Clone(char* existingFileName, char* newFileName, 
 	u_int32_t verbosity DEFAULT(0));

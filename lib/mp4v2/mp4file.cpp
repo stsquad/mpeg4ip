@@ -21,38 +21,19 @@
 
 #include "mp4common.h"
 
-MP4File::MP4File(char* fileName, char* mode, u_int32_t verbosity)
+MP4File::MP4File(u_int32_t verbosity)
 {
-	m_fileName = MP4Stralloc(fileName);
+	m_fileName = NULL;
 	m_pFile = NULL;
+	m_pRootAtom = NULL;
 	m_verbosity = verbosity;
+	m_mode = 0;
+	m_use64bits = false;
 
 	m_numReadBits = 0;
 	m_bufReadBits = 0;
 	m_numWriteBits = 0;
 	m_bufWriteBits = 0;
-
-	Open(fileName, mode);
-
-	if (strchr(mode, 'r')) {
-		// read the file info into memory
-		Read();
-	} else {
-		// generate a skeletal atom tree
-		m_pRootAtom = MP4Atom::CreateAtom(NULL);
-		m_pRootAtom->SetFile(this);
-		m_pRootAtom->Generate();
-
-		// create mdat, write it's header (64-bit?)
-		AddAtom("", "mdat");
-
-		/*
-		bool use64 = false;
-		StartWrite(use64);
-		ftyp->Write()
-		mdat->Write()
-		 */
-	}
 }
 
 MP4File::~MP4File()
@@ -61,16 +42,67 @@ MP4File::~MP4File()
 	MP4Free(m_fileName);
 }
 
-void MP4File::Open(char* fileName, char* mode)
+void MP4File::Read(char* fileName)
+{
+	m_fileName = MP4Stralloc(fileName);
+	m_mode = 'r';
+
+	Open();
+	ReadFromFile();
+}
+
+void MP4File::Create(char* fileName, bool use64bits)
+{
+	m_fileName = MP4Stralloc(fileName);
+	m_mode = 'w';
+	m_use64bits = use64bits;
+
+	Open();
+
+	// generate a skeletal atom tree
+	m_pRootAtom = MP4Atom::CreateAtom(NULL);
+	m_pRootAtom->SetFile(this);
+	m_pRootAtom->Generate();
+
+	// create mdat, write it's header
+	AddAtom("", "mdat");
+
+	BeginWrite();
+}
+
+void MP4File::Clone(char* existingFileName, char* newFileName)
+{
+	m_fileName = MP4Stralloc(existingFileName);
+	m_mode = 'r';
+
+	Open();
+	ReadFromFile();
+
+	m_mdatFileName = m_fileName;
+	m_pMdatFile = m_pFile;
+	m_fileName = NULL;
+	m_pFile = NULL;
+
+	m_fileName = MP4Stralloc(newFileName);
+	m_mode = 'w';
+
+	Open();
+
+	// TBD create a moov and mdat atoms if there isn't one already
+
+	BeginWrite();
+}
+
+void MP4File::Open()
 {
 	ASSERT(m_pFile == NULL);
-	m_pFile = fopen(fileName, mode);
+	m_pFile = fopen(m_fileName, m_mode == 'r' ? "r" : "w");
 	if (m_pFile == NULL) {
-		throw MP4Error(errno, "failed" "MP4Open");
+		throw new MP4Error(errno, "failed", "MP4Open");
 	}
 }
 
-void MP4File::Read()
+void MP4File::ReadFromFile()
 {
 	// destroy any old information
 	delete m_pRootAtom;
@@ -105,20 +137,35 @@ void MP4File::Read()
 			break;
 		}
 
-		// TBD catch errors and ignore trak?
-		m_pTracks.Add(new MP4Track(this, pTrakAtom));
-
+		MP4Track* pTrack;
+		try {
+			pTrack = new MP4Track(this, pTrakAtom);
+		}
+		catch (MP4Error* e) {
+			VERBOSE_ERROR(m_verbosity, e->Print());
+			delete e;
+			// TBD need to fix api calls to handle this case
+			pTrack = NULL;
+		}
+		m_pTracks.Add(pTrack);
 		trackIndex++;
 	}
 }
 
-void MP4File::StartWrite()
+void MP4File::BeginWrite()
 {
-	// TBD ((MP4RootAtom*)m_pRootAtom)->StartWrite();
+	m_pRootAtom->BeginWrite();
 }
 
-void MP4File::EndWrite()
+void MP4File::FinishWrite()
 {
+	// for all tracks, flush chunking buffers
+	for (u_int32_t i = 0; i < m_pTracks.Size(); i++) {
+		ASSERT(m_pTracks[i]);
+		m_pTracks[i]->FinishWrite();
+	}
+
+	// ask root atom to write
 	m_pRootAtom->Write();
 }
 
@@ -134,8 +181,12 @@ void MP4File::Dump(FILE* pDumpFile)
 
 void MP4File::Close()
 {
-	// TBD Write();
+	if (m_mode == 'w') {
+		FinishWrite();
+	}
+
 	fclose(m_pFile);
+	m_pFile = NULL;
 }
 
 u_int64_t MP4File::GetPosition()
@@ -166,17 +217,21 @@ u_int64_t MP4File::GetSize()
 }
 
 
-u_int32_t MP4File::ReadBytes(u_int8_t* pBytes, u_int32_t numBytes)
+u_int32_t MP4File::ReadBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
 {
-	ASSERT(m_pFile);
 	ASSERT(pBytes);
 	ASSERT(numBytes > 0);
 	WARNING(m_numReadBits > 0);
 
+	if (pFile == NULL) {
+		pFile = m_pFile;
+	}
+	ASSERT(pFile);
+
 	u_int32_t rc;
-	rc = fread(pBytes, 1, numBytes, m_pFile);
+	rc = fread(pBytes, 1, numBytes, pFile);
 	if (rc != numBytes) {
-		if (feof(m_pFile)) {
+		if (feof(pFile)) {
 			throw new MP4Error(
 				"not enough bytes, reached end-of-file",
 				"MP4ReadBytes");
@@ -564,17 +619,16 @@ void MP4File::WriteMpegLength(u_int32_t value, bool compact)
 
 MP4Atom* MP4File::AddAtom(char* parentName, char* childName)
 {
+// TBD check that FindAtom "", finds the root atom
 	MP4Atom* pParentAtom = m_pRootAtom->FindAtom(parentName);
 	ASSERT(pParentAtom);
 
 	MP4Atom* pChildAtom = MP4Atom::CreateAtom(childName);
 	ASSERT(pChildAtom);
 
-	pChildAtom->SetFile(this);
-	pChildAtom->SetParentAtom(pParentAtom);
-	pChildAtom->Generate();
-
 	pParentAtom->AddChildAtom(pChildAtom);
+
+	pChildAtom->Generate();
 
 	return pChildAtom;
 }

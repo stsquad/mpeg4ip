@@ -437,7 +437,7 @@ static int sdp_decode_parse_a_fmtp (int arg,
   fptr = find_format_in_line(mptr->fmt,lptr) ;
 
   if (fptr == NULL) {
-    sdp_debug(LOG_ERR, "Can't find fmtp format %s in media format list", lptr);
+    sdp_debug(LOG_ALERT, "Can't find fmtp format %s in media format list", lptr);
     return (-1);
   }
 
@@ -475,7 +475,7 @@ static int sdp_decode_parse_a_rtpmap (int arg,
   fptr = find_format_in_line(mptr->fmt,lptr) ;
 
   if (fptr == NULL) {
-    sdp_debug(LOG_ERR, "Can't find rtpmap format %s in media list", lptr);
+    sdp_debug(LOG_ALERT, "Can't find rtpmap format %s in media list", lptr);
     return (-1);
   }
 
@@ -1280,7 +1280,7 @@ static media_desc_t *sdp_decode_parse_media (char *lptr,
   // m=<media> <port> <transport> <fmt list>
   mdesc = strsep(&lptr, SPACES);
   if (mdesc == NULL || lptr == NULL) {
-    sdp_debug(LOG_ERR, "No media type");
+    sdp_debug(LOG_CRIT, "No media type");
     *err = ESDP_MEDIA;
     return (NULL);
   }
@@ -1900,6 +1900,7 @@ int sdp_decode (sdp_decode_info_t *decode,
       }
       free_session_desc(sptr);
     }
+    sdp_debug(LOG_ALERT, "SDP decode failure %d", errret);
     return (errret);
   }
   return (0);

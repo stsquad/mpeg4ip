@@ -1,3 +1,26 @@
+/*
+ * The contents of this file are subject to the Mozilla Public
+ * License Version 1.1 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of
+ * the License at http://www.mozilla.org/MPL/
+ * 
+ * Software distributed under the License is distributed on an "AS
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * rights and limitations under the License.
+ * 
+ * The Original Code is MPEG4IP.
+ * 
+ * The Initial Developer of the Original Code is Cisco Systems Inc.
+ * Portions created by Cisco Systems Inc. are
+ * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * 
+ * Contributor(s): 
+ *              Bill May        wmay@cisco.com
+ */
+/*
+ * http_util.c - http utilities.
+ */
 #include "systems.h"
 #ifndef _WINDOWS
 #include <time.h>
@@ -6,6 +29,13 @@
 
 #include "http_private.h"
 
+/*
+ * http_disect_url
+ * Carve URL up into portions that we can use - store them in the
+ * client structure.  url points after http:://
+ * We're looking for m_host (destination name), m_port (destination port)
+ * and m_resource (location of file on m_host - also called path)
+ */
 static int http_disect_url (const char *name,
 			    http_client_t *cptr)
 {
@@ -14,7 +44,8 @@ static int http_disect_url (const char *name,
   char *host;
   size_t len;
   uint16_t port;
-  
+
+  // skip ahead after host
   while (*p != '\0' && *p != ':' && *p != '/') p++;
 
   if (p == name) return (-1);
@@ -23,6 +54,7 @@ static int http_disect_url (const char *name,
   memcpy(host, name, len);
   host[len] = '\0';
 
+  // read port number, if it exists
   cptr->m_port = 80;
   if (*p == ':') {
     // port number
@@ -30,6 +62,7 @@ static int http_disect_url (const char *name,
     port = 0;
     while (*p != '/' && *p != '\0') {
       if (!(isdigit(*p))) {
+	free(host);
 	return (-1);
       }
       port *= 10;
@@ -47,6 +80,7 @@ static int http_disect_url (const char *name,
   cptr->m_host = host;
 
   FREE_CHECK(cptr, m_resource);
+  // if we have http://foo - make sure the resource is "/".
   if (*p == '\0') {
     cptr->m_resource = strdup("/");
   } else {
@@ -55,7 +89,11 @@ static int http_disect_url (const char *name,
   return (0);
 }
   
-
+/*
+ * http_decode_and_connect_url
+ * decode the url, and connect it.  If we were already connected,
+ * disconnect the socket and move forward
+ */
 int http_decode_and_connect_url (const char *name,
 				 http_client_t *cptr)
 {
@@ -87,7 +125,9 @@ int http_decode_and_connect_url (const char *name,
   }
 
   if (check_open) {
+    // See if the existing host matches the new one
     int match = 0;
+    // Compare strings, first
     if (strcasecmp(old_host, cptr->m_host) == 0) {
       // match
       if (port == cptr->m_port) {
@@ -119,6 +159,7 @@ int http_decode_and_connect_url (const char *name,
     }
     
   } else {
+    // No existing connection - get the new address.
     host = gethostbyname(cptr->m_host);
     if (host == NULL) {
       return (h_errno);
@@ -126,6 +167,7 @@ int http_decode_and_connect_url (const char *name,
     cptr->m_server_addr = *(struct in_addr *)host->h_addr;
   }
 
+  // Create and connect the socket
   cptr->m_server_socket = socket(AF_INET, SOCK_STREAM, 0);
   if (cptr->m_server_socket == -1) {
     return (-1);
@@ -147,6 +189,11 @@ int http_decode_and_connect_url (const char *name,
 
 static const char *user_agent = "Mpeg4ip http library 0.1";
 
+/*
+ * http_build_header - create a header string
+ * Will eventually want to expand this if we want to specify
+ * content type, etc.
+ */
 int http_build_header (char *buffer,
 		       uint32_t maxlen,
 		       uint32_t *at,
@@ -175,6 +222,9 @@ int http_build_header (char *buffer,
   return (ret);
 }
 
+/*
+ * Logging code
+ */
 static int http_debug_level = LOG_ERR;
 static error_msg_func_t error_msg_func = NULL;
 
@@ -196,7 +246,14 @@ void http_debug (int loglevel, const char *fmt, ...)
     if (error_msg_func != NULL) {
       (error_msg_func)(loglevel, "libhttp", fmt, ap);
     } else {
-      struct timeval thistime;
+ #if _WIN32 && _DEBUG
+	  char msg[1024];
+
+      _vsnprintf(msg, 1024, fmt, ap);
+      OutputDebugString(msg);
+      OutputDebugString("\n");
+#else
+	  struct timeval thistime;
       char buffer[80];
 
       gettimeofday(&thistime, NULL);
@@ -206,7 +263,9 @@ void http_debug (int loglevel, const char *fmt, ...)
 	     buffer, thistime.tv_usec / 1000, loglevel);
       vprintf(fmt, ap);
       printf("\n");
+#endif
     }
     va_end(ap);
   }
 }
+

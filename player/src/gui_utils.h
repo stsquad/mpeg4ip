@@ -39,7 +39,8 @@ GtkWidget *CreateMenuItem (GtkWidget *menu,
 GtkWidget *CreateMenuCheck (GtkWidget *menu, 
                             char *szName, 
                             GtkSignalFunc func, 
-                            gpointer data);
+                            gpointer data,
+			    gboolean initial_data);
 
 GtkWidget *CreateSubMenu (GtkWidget *menubar, char *szName);
 
@@ -55,6 +56,11 @@ void FreeChild(GtkWidget *widget);
   // from gui_showmsg.c
 void ShowMessage (const char *szTitle, const char *szMessage);
 #define CreateMenuItemSeperator(menu) CreateMenuItem(menu, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+void CreateLogLevelSubmenu(GtkWidget *menu,
+			   char *szName,
+			   int active,
+			   GtkSignalFunc func);
 
 #ifdef __cplusplus
 }

@@ -37,7 +37,7 @@ int main(int argc, char** argv)
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "v:",
+		c = getopt_long_only(argc, argv, "v::",
 			long_options, &option_index);
 
 		if (c == -1)

@@ -221,8 +221,8 @@ int rtsp_send_setup (rtsp_client_t *info,
     return (RTSP_RESPONSE_BAD_URL);
   }
   if (strncmp(url, info->url, temp - url) != 0) {
-    rtsp_debug(LOG_ERR, "Bad url %s", url);
-    rtsp_debug(LOG_ERR, "Should be %s", info->url);
+    rtsp_debug(LOG_ALERT, "Bad url %s", url);
+    rtsp_debug(LOG_ALERT, "Should be %s", info->url);
     return (RTSP_RESPONSE_BAD_URL);
   }
 
@@ -265,7 +265,7 @@ int rtsp_send_setup (rtsp_client_t *info,
 #endif
     if (is_aggregate && info->session != NULL) {
       if (strcmp(info->session, (*decode_result)->session) != 0) {
-	rtsp_debug(LOG_ERR, "Session for %s returned different %s %s",
+	rtsp_debug(LOG_ALERT, "Session for %s returned different %s %s",
 		   url, info->session, (*decode_result)->session);
 	return (RTSP_RESPONSE_BAD);
       }
@@ -321,21 +321,21 @@ static bool check_session (rtsp_session_t *session,
 
   info = session->parent;
   if (info == NULL) {
-    rtsp_debug(LOG_ERR, "Session doesn't point to parent");
+    rtsp_debug(LOG_ALERT, "Session doesn't point to parent");
     return (FALSE);
   }
   
   sptr = info->session_list;
   while (sptr != session && sptr != NULL) sptr = sptr->next;
   if (sptr == NULL) {
-    rtsp_debug(LOG_ERR, "session not found in info list");
+    rtsp_debug(LOG_ALERT, "session not found in info list");
     return (FALSE);
   }
   
   if ((cmd != NULL) &&
       (cmd->session != NULL) &&
       (strcmp(cmd->session, session->session) != 0)) {
-    rtsp_debug(LOG_ERR, "Have cmd->session set wrong");
+    rtsp_debug(LOG_ALERT, "Have cmd->session set wrong");
     return (FALSE);
   }
   return (TRUE);

@@ -31,3 +31,8 @@ void MP4MdatAtom::Read()
 	Skip();
 }
 
+void MP4MdatAtom::Write()
+{
+	// should never get here
+	ASSERT(false);
+}

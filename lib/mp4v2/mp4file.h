@@ -31,15 +31,13 @@ class MP4BytesProperty;
 
 class MP4File {
 public:
-	MP4File(char* fileName, char* mode, u_int32_t verbosity = 0);
-	MP4File(char* parentfileName, char* cloneFileName, 
-		char* mode, u_int32_t verbosity = 0);
+	MP4File(u_int32_t verbosity = 0);
 	~MP4File();
 
 	/* file operations */
-	void Read();
-	void StartWrite();
-	void EndWrite();
+	void Read(char* fileName);
+	void Create(char* fileName, bool use64bits);
+	void Clone(char* existingFileName, char* newFileName);
 	void Dump(FILE* pDumpFile = NULL);
 	void Close();
 
@@ -50,6 +48,10 @@ public:
 	}
 	void SetVerbosity(u_int32_t verbosity) {
 		m_verbosity = verbosity;
+	}
+
+	bool Use64Bits() {
+		return m_use64bits;
 	}
 
 	/* file properties */
@@ -176,7 +178,8 @@ public:
 	void SetPosition(u_int64_t pos);
 	u_int64_t GetSize();
 
-	u_int32_t ReadBytes(u_int8_t* pBytes, u_int32_t numBytes);
+	u_int32_t ReadBytes(u_int8_t* pBytes, u_int32_t numBytes, 
+		FILE* pFile = NULL);
 	u_int64_t ReadUInt(u_int8_t size);
 	u_int8_t ReadUInt8();
 	u_int16_t ReadUInt16();
@@ -211,10 +214,11 @@ public:
 	void FlushWriteBits();
 	void WriteMpegLength(u_int32_t value, bool compact = false);
 
-	MP4Atom* AddAtom(char* parentName, char* childName);
-
 protected:
-	void Open(char* fileName, char* mode);
+	void Open();
+	void ReadFromFile();
+	void BeginWrite();
+	void FinishWrite();
 
 	void FindIntegerProperty(char* name, 
 		MP4Property** ppProperty, u_int32_t* pIndex);
@@ -228,6 +232,8 @@ protected:
 	bool FindProperty(char* name,
 		MP4Property** ppProperty, u_int32_t* pIndex);
 
+	MP4Atom* AddAtom(char* parentName, char* childName);
+
 	char* MakeTrackName(MP4TrackId trackId, char* name);
 
 protected:
@@ -236,7 +242,14 @@ protected:
 	MP4Atom*		m_pRootAtom;
 	MP4TrackArray	m_pTracks;
 	u_int32_t		m_verbosity;
+	char			m_mode;
+	bool			m_use64bits;
 
+	// used when cloning
+	char*			m_mdatFileName;
+	FILE*			m_pMdatFile;
+
+	// bit read/write buffering
 	u_int8_t	m_numReadBits;
 	u_int8_t	m_bufReadBits;
 	u_int8_t	m_numWriteBits;

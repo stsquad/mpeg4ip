@@ -136,6 +136,8 @@ public:
 	}
 
 	void AddChildAtom(MP4Atom* pChildAtom) {
+		pChildAtom->SetFile(m_pFile);
+		pChildAtom->SetParentAtom(this);
 		m_pChildAtoms.Add(pChildAtom);
 	}
 
@@ -159,7 +161,9 @@ public:
 
 	virtual void Generate();
 	virtual void Read();
+	virtual void BeginWrite(bool use64 = false);
 	virtual void Write();
+	virtual void FinishWrite(bool use64 = false);
 	virtual void Dump(FILE* pFile);
 
 protected:
@@ -196,9 +200,6 @@ protected:
 	void ReadProperties(
 		u_int32_t startIndex = 0, u_int32_t count = 0xFFFFFFFF);
 	void ReadChildAtoms();
-
-	void BeginWrite(bool use64 = false);
-	void EndWrite(bool use64 = false);
 
 	void WriteProperties(
 		u_int32_t startIndex = 0, u_int32_t count = 0xFFFFFFFF);

@@ -219,16 +219,15 @@ bool MP4TableProperty::FindProperty(char *name,
 		return false;
 	}
 
-	// check if the specific table entry exists
+	// check if the specified table entry exists
 	u_int32_t index;
-	if (!MP4NameFirstIndex(name, &index)) {
-		return false;
-	}
-	if (index >= GetCount()) {
-		return false;
-	}
-	if (pIndex) {
-		*pIndex = index;
+	if (MP4NameFirstIndex(name, &index)) {
+		if (index >= GetCount()) {
+			return false;
+		}
+		if (pIndex) {
+			*pIndex = index;
+		}
 	}
 
 	VERBOSE_FIND(m_pParentAtom->GetFile()->GetVerbosity(),
@@ -445,6 +444,7 @@ void MP4DescriptorProperty::Read(MP4File* pFile, u_int32_t index)
 		catch (MP4Error* e) {
 			if (pFile->GetPosition() >= pFile->GetSize()) {
 				// EOF
+				delete e;
 				break;
 			}
 			throw e;

@@ -301,10 +301,6 @@ static void on_main_menu_about (GtkWidget *window, gpointer data)
   ShowMessage("About gmp4player",buffer);
 }
 
-static void on_main_menu_debug (GtkWidget *window, gpointer data)
-{
-}
-
 /*
  * on_drag_data_received - copied from gtv, who copied from someone else
  */
@@ -513,6 +509,40 @@ static void on_volume_adjusted (GtkWidget *window, gpointer data)
    }
 }
 
+static void on_debug_mpeg4isoonly (GtkWidget *window, gpointer data)
+{
+  GtkCheckMenuItem *checkmenu;
+
+  checkmenu = GTK_CHECK_MENU_ITEM(window);
+
+  config.set_config_value(CONFIG_USE_MPEG4_ISO_ONLY,
+			  checkmenu->active == FALSE ? 0 : 1);
+}
+
+static void on_debug_http (GtkWidget *window, gpointer data)
+{
+  int loglevel = GPOINTER_TO_INT(data);
+
+  http_set_loglevel(LOG_PRI(loglevel));
+  config.set_config_value(CONFIG_HTTP_DEBUG, LOG_PRI(loglevel));
+}
+
+static void on_debug_rtsp (GtkWidget *window, gpointer data)
+{
+  int loglevel = GPOINTER_TO_INT(data);
+
+  rtsp_set_loglevel(LOG_PRI(loglevel));
+  config.set_config_value(CONFIG_RTSP_DEBUG, LOG_PRI(loglevel));
+}
+  
+static void on_debug_sdp (GtkWidget *window, gpointer data)
+{
+  int loglevel = GPOINTER_TO_INT(data);
+
+  sdp_set_loglevel(LOG_PRI(loglevel));
+  config.set_config_value(CONFIG_SDP_DEBUG, LOG_PRI(loglevel));
+}
+
 static void on_video_radio (GtkWidget *window, gpointer data)
 {
   int newsize = GPOINTER_TO_INT(data);
@@ -701,12 +731,12 @@ int main (int argc, char **argv)
   master_looped = config.get_config_value(CONFIG_LOOPED);
   master_muted = config.get_config_value(CONFIG_MUTED);
   master_volume = config.get_config_value(CONFIG_VOLUME);
-  rtsp_set_loglevel(LOG_DEBUG);
   rtsp_set_error_func(player_library_message);
+  rtsp_set_loglevel(config.get_config_value(CONFIG_RTSP_DEBUG));
   sdp_set_error_func(player_library_message);
-  sdp_set_loglevel(LOG_DEBUG);
+  sdp_set_loglevel(config.get_config_value(CONFIG_SDP_DEBUG));
   http_set_error_func(player_library_message);
-  http_set_loglevel(LOG_DEBUG);
+  http_set_loglevel(config.get_config_value(CONFIG_HTTP_DEBUG));
   /*
    * Set up main window
    */
@@ -817,14 +847,27 @@ int main (int argc, char **argv)
 			    GTK_SIGNAL_FUNC(on_main_menu_help),
 			    NULL);
   CreateMenuItemSeperator(menu);
-  menuitem = CreateMenuItem(menu,
-			    accel_group,
-			    tooltips, 
-			    "Debug",
-			    NULL,
-			    "Display Debug/Message Window",
-			    GTK_SIGNAL_FUNC(on_main_menu_debug),
-			    NULL);
+  GtkWidget *debugsub;
+  debugsub = CreateSubMenu(menu, "Debug");
+  menuitem = CreateMenuCheck(debugsub, 
+			     "Mpeg4ISOOnly",
+			     GTK_SIGNAL_FUNC(on_debug_mpeg4isoonly),
+			     NULL,
+			     config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY) == 0 ? FALSE : TRUE);
+
+  CreateLogLevelSubmenu(debugsub, 
+			"HTTP library", 
+			config.get_config_value(CONFIG_HTTP_DEBUG),
+			GTK_SIGNAL_FUNC(on_debug_http));
+  CreateLogLevelSubmenu(debugsub, 
+			"RTSP library", 
+			config.get_config_value(CONFIG_RTSP_DEBUG),
+			GTK_SIGNAL_FUNC(on_debug_rtsp));
+  CreateLogLevelSubmenu(debugsub, 
+			"SDP library", 
+			config.get_config_value(CONFIG_SDP_DEBUG),
+			GTK_SIGNAL_FUNC(on_debug_sdp));
+
   CreateMenuItemSeperator(menu);
   menuitem = CreateMenuItem(menu,
 			    accel_group,

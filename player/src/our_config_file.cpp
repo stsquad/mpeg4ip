@@ -45,6 +45,9 @@ static config_variable_t configs[] = {
   { CONFIG_LOOPED, "Looped", CONFIG_INT, 0, NULL },
   { CONFIG_VOLUME, "Volume", CONFIG_INT, 75, NULL },
   { CONFIG_MUTED, "AudioMuted", CONFIG_INT, 0, NULL},
+  { CONFIG_HTTP_DEBUG, "HttpDebug", CONFIG_INT, LOG_ALERT, NULL},
+  { CONFIG_RTSP_DEBUG, "RtspDebug", CONFIG_INT, LOG_ALERT, NULL},
+  { CONFIG_SDP_DEBUG, "SdpDebug", CONFIG_INT, LOG_ALERT, NULL},
 };
 
 CConfig config(configs, CONFIG_MAX);

@@ -32,7 +32,10 @@
 #define CONFIG_LOOPED 6
 #define CONFIG_VOLUME 7
 #define CONFIG_MUTED 8
-#define CONFIG_MAX 9
+#define CONFIG_HTTP_DEBUG 9
+#define CONFIG_RTSP_DEBUG 10
+#define CONFIG_SDP_DEBUG 11
+#define CONFIG_MAX 12
 
 extern CConfig config;
 

@@ -88,7 +88,7 @@ static char BASED_CODE THIS_FILE[] = __FILE__;
 
 #define _FOR_GSSP_
 #undef assert
-#define assert(a) if (!(a)) throw(#a);
+#define assert(a) if (!(a)) throw((int)0);
 CVideoObjectDecoder::~CVideoObjectDecoder ()
 {
 //	delete m_pistrm;
