@@ -25,11 +25,7 @@
  */
 
 #include <mp4creator.h>
-
-#define VOSH_START	0xB0
-#define VOL_START	0x20
-#define GOV_START	0xB3
-#define VOP_START	0xB6
+#include <mp4v.h>
 
 /*
  * Load the next syntatic object from the file
@@ -362,7 +358,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	MP4Timestamp refVopTime = 0;
 
 	// track configuration info
-	u_int8_t profileLevel = 1;
+	u_int8_t profileLevel = 0x03;
 	u_int8_t timeBits = 15;
 	u_int16_t timeTicks = 30000;
 	u_int16_t frameDuration = 3000;
@@ -407,13 +403,18 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	u_int32_t mp4FrameDuration;
 	bool isFixedFrameRate;
 
-	if (frameDuration) {
-		mp4FrameDuration = 
-			(mp4TimeScale * frameDuration) / timeTicks;
+	if (VideoFrameRate) {
+		mp4FrameDuration = mp4TimeScale / VideoFrameRate;
 		isFixedFrameRate = true;
 	} else {
-		mp4FrameDuration = 0;
-		isFixedFrameRate = false;
+		if (frameDuration) {
+			mp4FrameDuration = 
+				(mp4TimeScale * frameDuration) / timeTicks;
+			isFixedFrameRate = true;
+		} else {
+			mp4FrameDuration = 0;
+			isFixedFrameRate = false;
+		}
 	}
 
 	// create the new video track
@@ -491,7 +492,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 			// that can occur when B frames are being used 
 			// which is the case for all profiles except Simple Profile
 			if (vopType != 'B') {
-				if (profileLevel >= 3 && refVopId != MP4_INVALID_SAMPLE_ID) {
+				if (profileLevel > 3 && refVopId != MP4_INVALID_SAMPLE_ID) {
 					MP4SetSampleRenderingOffset(
 						mp4File, trackId, refVopId,
 						currentSampleTime - refVopTime);
@@ -518,7 +519,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 		pPreviousSample, previousSampleSize,
 		0, 0, previousIsSyncSample);
 
-	// LATER final rendering offset?
+	// TBD final rendering offset?
 
 	return trackId;
 }

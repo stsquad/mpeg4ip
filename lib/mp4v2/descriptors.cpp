@@ -228,6 +228,11 @@ MP4DecConfigDescriptor::MP4DecConfigDescriptor()
 			MP4ExtProfileLevelDescrTag, 0, Optional, Many));
 }
 
+void MP4DecConfigDescriptor::Generate()
+{
+	((MP4BitfieldProperty*)m_pProperties[3])->SetValue(1);
+}
+
 MP4DecSpecificDescriptor::MP4DecSpecificDescriptor()
 	: MP4Descriptor(MP4DecSpecificDescrTag)
 {

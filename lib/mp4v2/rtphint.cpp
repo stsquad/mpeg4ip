@@ -472,7 +472,7 @@ void MP4RtpPacket::SetTimestampOffset(u_int32_t timestampOffset)
 	AddProperty( /* 14 */
 		new MP4Integer32Property("tlvLength"));
 	AddProperty( /* 15 */
-		new MP4Integer32Property("tlvType"));
+		new MP4StringProperty("tlvType"));
 	AddProperty( /* 16 */
 		new MP4Integer32Property("timestampOffset"));
 

@@ -9,10 +9,7 @@ else
 LDADD_E1 = 
 endif
 
-bin_PROGRAMS = mp4broadcaster mp4dump mp4extract
-
-mp4broadcaster_SOURCES = mp4broadcaster.cpp
-mp4broadcaster_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la $(LDADD_E1)
+bin_PROGRAMS = mp4dump mp4extract
 
 mp4dump_SOURCES = mp4dump.cpp
 mp4dump_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la $(LDADD_E1)

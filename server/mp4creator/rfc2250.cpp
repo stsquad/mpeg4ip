@@ -35,7 +35,7 @@ void Rfc2250Hinter(
 		"MPA", &payloadNumber, 0);
 
 	u_int32_t numSamples = 
-		MP4GetNumberOfTrackSamples(mp4File, mediaTrackId);
+		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
 
 	MP4Duration sampleDuration = 
 		MP4GetTrackFixedSampleDuration(mp4File, mediaTrackId);

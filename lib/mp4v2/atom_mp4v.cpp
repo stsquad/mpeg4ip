@@ -41,6 +41,7 @@ MP4Mp4vAtom::MP4Mp4vAtom()
 	MP4StringProperty* pProp = 
 		new MP4StringProperty("compressorName");
 	pProp->SetFixedLength(32);
+	pProp->SetValue("");
 	AddProperty(pProp); /* 6 */
 
 	AddReserved("reserved4", 4); /* 7 */
@@ -65,8 +66,6 @@ void MP4Mp4vAtom::Generate()
 	((MP4BytesProperty*)m_pProperties[5])->
 		SetValue(reserved3, sizeof(reserved3));
 	m_pProperties[5]->SetReadOnly(true);
-
-	((MP4StringProperty*)m_pProperties[6])->SetValue("mp4v");
 
 	// property reserved4 has non-zero fixed values
 	static u_int8_t reserved4[4] = {

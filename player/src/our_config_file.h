@@ -40,7 +40,8 @@
 #define CONFIG_USE_OLD_MP4_LIB 14
 #define CONFIG_USE_RTP_OVER_RTSP 15
 #define CONFIG_SEND_RTCP_IN_RTP_OVER_RTSP 16
-#define CONFIG_MAX 17
+#define CONFIG_PREV_DIRECTORY 17
+#define CONFIG_MAX 18
 
 extern CConfig config;
 

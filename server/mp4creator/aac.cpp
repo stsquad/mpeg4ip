@@ -339,7 +339,7 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 	}
 
 	if (MP4GetNumberOfTracks(mp4File, MP4_AUDIO_TRACK_TYPE) == 1) {
-		MP4SetAudioProfileLevel(mp4File, 1);
+		MP4SetAudioProfileLevel(mp4File, 0x0F);
 	}
 
 	/* create the appropriate MP4 decoder config */

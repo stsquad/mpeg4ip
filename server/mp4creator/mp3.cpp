@@ -25,6 +25,7 @@
  */
 
 #include <mp4creator.h>
+#include <mp3.h>
 
 static bool LoadNextMp3Header(FILE* inFile, u_int32_t* pHdr, bool allowLayer4)
 {
@@ -117,24 +118,24 @@ static u_int16_t Mp3SampleRates[4][3] = {
 	{ 44100, 48000, 32000 }		/* MPEG-1 */
 };
 
-static u_int8_t GetMp3HdrVersion(u_int32_t hdr)
+u_int8_t Mp3GetHdrVersion(u_int32_t hdr)
 {
 	/* extract the necessary field from the MP3 header */
 	return ((hdr >> 19) & 0x3); 
 }
 
-static u_int16_t GetMp3HdrSamplingRate(u_int32_t hdr)
+u_int16_t Mp3GetHdrSamplingRate(u_int32_t hdr)
 {
 	/* extract the necessary fields from the MP3 header */
-	u_int8_t version = GetMp3HdrVersion(hdr);
+	u_int8_t version = Mp3GetHdrVersion(hdr);
 	u_int8_t sampleRateIndex = (hdr >> 10) & 0x3;
 
 	return Mp3SampleRates[version][sampleRateIndex];
 }
 
-static u_int16_t GetMp3HdrSamplingWindow(u_int32_t hdr)
+u_int16_t Mp3GetHdrSamplingWindow(u_int32_t hdr)
 {
-	u_int8_t version = GetMp3HdrVersion(hdr);
+	u_int8_t version = Mp3GetHdrVersion(hdr);
 	u_int8_t layer = (hdr >> 17) & 0x3; 
 	u_int16_t samplingWindow;
 
@@ -156,10 +157,10 @@ static u_int16_t GetMp3HdrSamplingWindow(u_int32_t hdr)
 /*
  * compute MP3 frame size
  */
-static u_int16_t GetMp3FrameSize(u_int32_t hdr)
+u_int16_t Mp3GetFrameSize(u_int32_t hdr)
 {
 	/* extract the necessary fields from the MP3 header */
-	u_int8_t version = GetMp3HdrVersion(hdr);
+	u_int8_t version = Mp3GetHdrVersion(hdr);
 	u_int8_t layer = (hdr >> 17) & 0x3; 
 	u_int8_t bitRateIndex1;
 	u_int8_t bitRateIndex2 = (hdr >> 12) & 0xF;
@@ -212,7 +213,7 @@ static bool LoadNextMp3Frame(FILE* inFile, u_int8_t* pBuf, u_int32_t* pBufSize)
 	}
 	
 	/* get frame size from header */
-	frameSize = GetMp3FrameSize(header);
+	frameSize = Mp3GetFrameSize(header);
 
 	// guard against buffer overflow
 	if (frameSize > (*pBufSize)) {
@@ -249,9 +250,9 @@ static bool GetMp3SamplingParams(FILE* inFile,
 		return false;
 	}
 
-	(*pSamplingRate) = GetMp3HdrSamplingRate(header);
-	(*pSamplingWindow) = GetMp3HdrSamplingWindow(header);
-	(*pVersion) = GetMp3HdrVersion(header);
+	(*pSamplingRate) = Mp3GetHdrSamplingRate(header);
+	(*pSamplingWindow) = Mp3GetHdrSamplingWindow(header);
+	(*pVersion) = Mp3GetHdrVersion(header);
 
 	/* rewind the file to where we were */
 	fsetpos(inFile, &curPos);
@@ -286,6 +287,26 @@ static bool GetMpegLayer(FILE* inFile, u_int8_t* pLayer)
 	return true;
 }
 
+u_int8_t Mp3ToMp4AudioType(u_int8_t mpegVersion)
+{
+	u_int8_t audioType = MP4_INVALID_AUDIO_TYPE;
+
+	switch (mpegVersion) {
+	case 3:
+		audioType = MP4_MPEG1_AUDIO_TYPE;
+		break;
+	case 2:
+	case 0:
+		audioType = MP4_MPEG2_AUDIO_TYPE;
+		break;
+	case 1:
+		break;
+	default:
+		ASSERT(false);
+	}
+	return audioType;
+}
+
 MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile)
 {
 	u_int8_t mpegLayer;
@@ -314,22 +335,13 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile)
 		exit(EXIT_MP3_CREATOR);
 	}
 
-	u_int8_t audioType = MP4_INVALID_AUDIO_TYPE;
-	switch (mpegVersion) {
-	case 3:
-		audioType = MP4_MPEG1_AUDIO_TYPE;
-		break;
-	case 2:
-	case 0:
-		audioType = MP4_MPEG2_AUDIO_TYPE;
-		break;
-	case 1:
+	u_int8_t audioType = Mp3ToMp4AudioType(mpegVersion);
+
+	if (audioType == MP4_INVALID_AUDIO_TYPE) {
 		fprintf(stderr,	
 			"%s: data in file doesn't appear to be valid audio\n",
 			 ProgName);
 		exit(EXIT_MP3_CREATOR);
-	default:
-		ASSERT(false);
 	}
 
 	MP4TrackId trackId = 

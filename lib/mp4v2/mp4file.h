@@ -38,7 +38,7 @@ public: /* equivalent to MP4 library API */
 	/* file operations */
 	void Read(const char* fileName);
 	void Create(const char* fileName, bool use64bits);
-	void Append(const char* fileName);
+	void Modify(const char* fileName);
 	void Optimize(const char* orgFileName, const char* newFileName);
 	void Dump(FILE* pDumpFile = NULL, bool dumpImplicits = false);
 	void Close();
@@ -135,7 +135,7 @@ public: /* equivalent to MP4 library API */
 
 	u_int32_t GetSampleSize(MP4TrackId trackId, MP4SampleId sampleId);
 
-	u_int32_t GetMaxSampleSize(MP4TrackId trackId);
+	u_int32_t GetTrackMaxSampleSize(MP4TrackId trackId);
 
 	MP4SampleId GetSampleIdFromTime(MP4TrackId trackId, 
 		MP4Timestamp when, bool wantSyncSample = false);
@@ -181,7 +181,7 @@ public: /* equivalent to MP4 library API */
 
 	MP4TrackId AddHintTrack(MP4TrackId refTrackId);
 
-	MP4SampleId GetNumberOfTrackSamples(MP4TrackId trackId);
+	MP4SampleId GetTrackNumberOfSamples(MP4TrackId trackId);
 
 	const char* GetTrackType(MP4TrackId trackId);
 
@@ -271,13 +271,13 @@ public: /* equivalent to MP4 library API */
 
 	/* "protected" interface to be used only by friends in library */
 
-	u_int64_t GetPosition();
-	void SetPosition(u_int64_t pos);
+	u_int64_t GetPosition(FILE* pFile = NULL);
+	void SetPosition(u_int64_t pos, FILE* pFile = NULL);
 
 	u_int64_t GetSize();
 
-	u_int32_t ReadBytes(u_int8_t* pBytes, u_int32_t numBytes, 
-		FILE* pFile = NULL);
+	u_int32_t ReadBytes(
+		u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile = NULL);
 	u_int64_t ReadUInt(u_int8_t size);
 	u_int8_t ReadUInt8();
 	u_int16_t ReadUInt16();
@@ -294,7 +294,8 @@ public: /* equivalent to MP4 library API */
 	void FlushReadBits();
 	u_int32_t ReadMpegLength();
 
-	u_int32_t PeekBytes(u_int8_t* pBytes, u_int32_t numBytes);
+	u_int32_t PeekBytes(
+		u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile = NULL);
 
 	char GetMode() {
 		return m_mode;
@@ -304,7 +305,7 @@ public: /* equivalent to MP4 library API */
 	void GetWriteBuffer(u_int8_t** ppBytes, u_int64_t* pNumBytes);
 	void DisableWriteBuffer();
 
-	void WriteBytes(u_int8_t* pBytes, u_int32_t numBytes);
+	void WriteBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile = NULL);
 	void WriteUInt(u_int64_t value, u_int8_t size);
 	void WriteUInt8(u_int8_t value);
 	void WriteUInt16(u_int16_t value);
@@ -361,7 +362,11 @@ protected:
 
 	void AddTrackToIod(MP4TrackId trackId);
 
+	void RemoveTrackFromIod(MP4TrackId trackId);
+
 	void AddTrackToOd(MP4TrackId trackId);
+
+	void RemoveTrackFromOd(MP4TrackId trackId);
 
 	void GetTrackReferenceProperties(const char* trefName,
 		MP4Property** ppCountProperty, MP4Property** ppTrackIdProperty);
@@ -369,6 +374,8 @@ protected:
 	void AddTrackReference(const char* trefName, MP4TrackId refTrackId);
 
 	u_int32_t FindTrackReference(const char* trefName, MP4TrackId refTrackId);
+
+	void RemoveTrackReference(const char* trefName, MP4TrackId refTrackId);
 
 	void AddDataReference(MP4TrackId trackId, const char* url);
 

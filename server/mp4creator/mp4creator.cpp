@@ -71,6 +71,7 @@ int main(int argc, char** argv)
 		"  -list                   List tracks in mp4 file\n"
 		"  -mtu=<size>             MTU for hint track\n"
 		"  -optimize               Optimize mp4 file layout\n"
+		"  -rate=[1-30]            Video frame rate\n"
 		"  -verbose[=[1-5]]        Enable debug messages\n"
 		;
 
@@ -89,6 +90,7 @@ int main(int argc, char** argv)
 
 	// begin processing command line
 	ProgName = argv[0];
+	VideoFrameRate = 0;		// determine from input file
 	MaxPayloadSize = 1460;
 
 	while (true) {
@@ -98,17 +100,18 @@ int main(int argc, char** argv)
 			{ "create", 1, 0, 'c' },
 			{ "delete", 1, 0, 'd' },
 			{ "help", 0, 0, '?' },
-			{ "hint", 2, 0, 'h' },
+			{ "hint", 2, 0, 'H' },
 			{ "interleave", 0, 0, 'I' },
 			{ "list", 0, 0, 'l' },
 			{ "mtu", 1, 0, 'm' },
 			{ "optimize", 0, 0, 'O' },
 			{ "payload", 1, 0, 'p' },
+			{ "rate", 1, 0, 'r' },
 			{ "verbose", 2, 0, 'v' },
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "c:d:h::Ilm:o:Op:v::",
+		c = getopt_long_only(argc, argv, "c:d:H::Ilm:o:Op:v::",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -128,7 +131,7 @@ int main(int argc, char** argv)
 			}
 			doDelete = true;
 			break;
-		case 'h':
+		case 'H':
 			doHint = true;
 			if (optarg) {
 				if (sscanf(optarg, "%u", &hintTrackId) != 1) {
@@ -160,6 +163,14 @@ int main(int argc, char** argv)
 			break;
 		case 'p':
 			payloadName = optarg;
+			break;
+		case 'r':
+			if (sscanf(optarg, "%u", &VideoFrameRate) != 1) {
+				fprintf(stderr, 
+					"%s: bad rate specified: %s\n",
+					 ProgName, optarg);
+				exit(EXIT_COMMAND_LINE);
+			}
 			break;
 		case 'v':
 			verbosity |= (MP4_DETAILS_READ | MP4_DETAILS_WRITE);
@@ -248,7 +259,7 @@ int main(int argc, char** argv)
 				exit(EXIT_CREATE_FILE);
 			}
 		} else {
-			mp4File = MP4Append(mp4FileName, verbosity);
+			mp4File = MP4Modify(mp4FileName, verbosity);
 		}
 
 		if (!mp4File) {
@@ -284,7 +295,7 @@ int main(int argc, char** argv)
 			exit(EXIT_CREATE_FILE);
 		}
 
-		mp4File = MP4Append(mp4FileName, verbosity);
+		mp4File = MP4Modify(mp4FileName, verbosity);
 		if (!mp4File) {
 			// mp4 library should have printed a message
 			exit(EXIT_CREATE_FILE);
@@ -338,6 +349,8 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 
 	if (!strcasecmp(extension, ".avi")) {
 		fclose(inFile);
+		inFile = NULL;
+
 		pTrackIds = AviCreator(mp4File, inputFileName);
 
 	} else if (!strcasecmp(extension, ".aac")) {
@@ -358,7 +371,9 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 		exit(EXIT_CREATE_MEDIA);
 	}
 
-	fclose(inFile);
+	if (inFile) {
+		fclose(inFile);
+	}
 
 	return pTrackIds;
 }
@@ -366,7 +381,7 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 MP4TrackId CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 	const char* payloadName, bool interleave)
 {
-	if (MP4GetNumberOfTrackSamples(mp4File, mediaTrackId) == 0) {
+	if (MP4GetTrackNumberOfSamples(mp4File, mediaTrackId) == 0) {
 		fprintf(stderr, 
 			"%s: couldn't create hint track, no media samples\n", ProgName);
 		return MP4_INVALID_TRACK_ID;

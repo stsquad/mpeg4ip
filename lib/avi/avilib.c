@@ -967,6 +967,8 @@ int AVI_seek_start(avi_t *AVI)
 
    lseek(AVI->fdes,AVI->movi_start,SEEK_SET);
    AVI->video_pos = 0;
+   AVI->audio_posc = 0;
+   AVI->audio_posb = 0;
    return 0;
 }
 

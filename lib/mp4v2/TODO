@@ -1,20 +1,17 @@
 
-Effects of edit lists on reading samples
-
-Option to use dref to separate meta info file from media data file
-	Modify ReadSample to pay attention to dref's
-
 API and INTERNALS documentation
 
+---
+
 Write mp4broadcaster & RTP packet reader
+
+file URL support for data read
 
 Extended format support
 
 ---
 
 Wrap printf's for verbosity - see example is player/lib/http/http_util.c
-
-Unclear if stsd.mp4?.esds.ESID should be set in file - email singer
 
 Distinguish cases of no ES Config and error parsing esds
 

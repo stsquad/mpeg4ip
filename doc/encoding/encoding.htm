@@ -294,8 +294,8 @@ per second, default value is 30<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>-b &lt;uint&gt;<span
 style='mso-tab-count:1'>   </span>--bitrate &lt;uint&gt;<span style='mso-tab-count:
-2'>         </span>Use the given number as desired bitrate in Kbps, default value
-is 500<o:p></o:p></span></p>
+2'>         </span>Use the given number as desired bitrate in Kbps, default
+value is 500<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>-i &lt;uint&gt;<span
 style='mso-tab-count:1'>   </span>--ifrequency &lt;uint&gt;<span
@@ -318,39 +318,32 @@ file, 'mp4venc_template.par', is installed into the /usr/local/share directory.
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4venc myvideo.par<o:p></o:p></span></p>
 
-<p><b><span style='font-family:Arial'>4) Packetize audio-only<o:p></o:p></span></b></p>
+<p><b><span style='font-family:Arial'>4) Create an audio only mp4 file <o:p></o:p></span></b></p>
 
-<p><span style='font-family:Arial'>Use the provided mp4apkt tool to generate an
-MP4 file from the MP3 or AAC encoded file. There are two required parameters
-the first is the input file name, the second is the output file name.<o:p></o:p></span></p>
+<p><span style='font-family:Arial'>Use the provided mp4creator tool to generate
+an MP4 file from the MP3 or AAC encoded file. There are two required parameters
+the first is the input file name, the second is the output file name. The -H
+option instructs mp4creator to add a hint track needed by the Darwin Streaming
+Server.<o:p></o:p></span></p>
 
 <p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4apkt myaudio.mp3
-myaudio.mp4<o:p></o:p></span></p>
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4creator -c
+myaudio.mp3 -H myaudio.mp4<o:p></o:p></span></p>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4apkt myaudio.aac
-myaudio.mp4<o:p></o:p></span></p>
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4creator -c
+myaudio.aac -H myaudio.mp4<o:p></o:p></span></p>
 
-<p><b><span style='font-family:Arial'>5) Packetize video-only<o:p></o:p></span></b></p>
+<p><b><span style='font-family:Arial'>5) Create a video only mp4 file<o:p></o:p></span></b></p>
 
-<p><span style='font-family:Arial'>Use the provided mp4vpkt tool to generate an
-MP4 file from the MPEG-4 Video encoded file. There are two required parameters
-the first is the input file name, the second is the output file name.<o:p></o:p></span></p>
+<p><span style='font-family:Arial'>Use the provided mp4creator tool to generate
+an MP4 file from the MPEG-4 Video encoded file. There are two required
+parameters the first is the input file name, the second is the output file
+name. The -H option instructs mp4creator to add a hint track needed by the
+Darwin Streaming Server.<o:p></o:p></span></p>
 
-<p><span style='font-family:Arial'>The following options should be used to
-inform the packetizer of the configuration parameters of the compressed video
-bitstream.<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-h &lt;uint&gt;<span
-style='mso-tab-count:1'>   </span>--height &lt;uint&gt;<span style='mso-tab-count:
-2'>          </span>Use the given number as the video frame height in pixels,
-default value is 240<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-w &lt;uint&gt;<span
-style='mso-tab-count:1'>   </span>--width &lt;uint&gt;<span style='mso-tab-count:
-2'>            </span>Use the given number as the video frame width in pixels,
-default value is 320<o:p></o:p></span></p>
+<p><span style='font-family:Arial'>The following option should be used to
+inform the packetizer of the frame rate of the compressed video bitstream. <o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>-r &lt;uint&gt;<span
 style='mso-tab-count:1'>   </span>--rate &lt;uint&gt;<span style='mso-tab-count:
@@ -359,58 +352,36 @@ per second, default value is 30<o:p></o:p></span></p>
 
 <p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4vpkt
-myvideo.divx myvideo.mp4<o:p></o:p></span></p>
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4creator -c
+myvideo.divx -H -r=15 myvideo.mp4</span><span style='font-family:Arial'><o:p></o:p></span></p>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4vpkt -h 160 -w
-120 -r 15 myvideo.cmp myvideo.mp4&nbsp;<o:p></o:p></span></p>
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4creator –c
+myvideo.cmp -H myvideo.mp4<o:p></o:p></span></p>
 
-<p><span style='font-family:Arial'>If you use the ISO encoder, the video frames
-can be encoded to use bi-directional motion vectors, aka B-frames. If this is
-the case, then you will also need to specify how many B-frames occur between non-B-frames
-(I-frames or P-frames). Note: the answer is often 2. This parameter can be
-specified via the ‘bfrequency’ command line argument. It is expected that in a
-future version of the tool, this parameter will be detected automatically. <o:p></o:p></span></p>
+<p><b><span style='font-family:Arial'>6) Create an audio and video mp4 file <o:p></o:p></span></b></p>
 
-<p><span style='font-family:Arial'>Also if you use B-frames or other advanced
-coding tools of MPEG-4 you should designate which video profile you are
-complying with. By default all streams are marked as &quot;Simple@L3&quot;. If
-you are using advanced tools, &quot;Main@L2&quot; is probably what you want.<o:p></o:p></span></p>
+<p><span style='font-family:Arial'>Use the provided mp4creator tool to first generate
+an MP4 file for one of the media. Then use the mp4creator tool to add the
+second media. The resulting MP4 file will contain both media tracks and any
+associated hint tracks.<o:p></o:p></span></p>
 
 <p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4vpkt –bfrequency=2
--profile=&quot;Main@L2&quot; myvideo.cmp myvideo.mp4<o:p></o:p></span></p>
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4creator -c
+myaudio.aac -H mymedia.mp4<o:p></o:p></span></p>
 
-<p><b><span style='font-family:Arial'>6) Packetize both audio and video<o:p></o:p></span></b></p>
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4creator -c
+myvideo.divx -H mymedia.mp4<o:p></o:p></span></p>
 
-<p><span style='font-family:Arial'>Use the provided mp4apkt or mp4vpkt tool to
-first generate an MP4 file for one of the media. Then use the '--merge' option
-when packetizing the second media. The resulting MP4 file will contain both
-media tracks and their associated hint tracks.<o:p></o:p></span></p>
+<p><b><span style='font-family:Arial'>7) Useful options <o:p></o:p></span></b></p>
 
-<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-mtu=&lt;uint&gt;<span
+style='mso-tab-count:3'>               </span>Use the given number as the MTU
+size for hinting, the default value is 1500 bytes<o:p></o:p></span></p>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4apkt myaudio.aac
-mymedia.mp4<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4vpkt --merge
-myvideo.cmp mymedia.mp4<o:p></o:p></span></p>
-
-<p><b><span style='font-family:Arial'>7) Useful options to both packetizers<o:p></o:p></span></b></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-s &lt;uint&gt;<span
-style='mso-tab-count:1'>   </span>--payloadsize &lt;uint&gt;<span
-style='mso-tab-count:1'>    </span>Use the given number as the RTP payload
-size, the default value is 1460 bytes<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-d<span
-style='mso-tab-count:1'>     </span>--dump<span style='mso-tab-count:1'>       </span>Dumps
-MP4 file structure to stdout<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-t<span
-style='mso-tab-count:1'>     </span>--trace<span style='mso-tab-count:1'>      </span>Dumps
-RTP packetization information to stdout<o:p></o:p></span></p>
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-verbosity=&lt;uint&gt;<span
+style='mso-tab-count:2'>        </span>Emits increasing levels about what is
+happening to stdout<o:p></o:p></span></p>
 
 <p><b><span style='font-family:Arial'>8) Make content available<o:p></o:p></span></b></p>
 

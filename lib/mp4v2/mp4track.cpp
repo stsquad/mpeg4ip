@@ -26,6 +26,9 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 	m_pFile = pFile;
 	m_pTrakAtom = pTrakAtom;
 
+	m_lastStsdIndex = 0;
+	m_lastSampleFile = NULL;
+
 	m_writeSampleId = 1;
 	m_fixedSampleDuration = 0;
 	m_pChunkBuffer = NULL;
@@ -203,7 +206,7 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 	MP4Timestamp* pStartTime, MP4Duration* pDuration,
 	MP4Duration* pRenderingOffset, bool* pIsSyncSample)
 {
-	if (sampleId == 0) {
+	if (sampleId == MP4_INVALID_SAMPLE_ID) {
 		throw new MP4Error("sample id can't be zero", 
 			"MP4Track::ReadSample");
 	}
@@ -212,6 +215,14 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 	// that is still sitting in the write chunk buffer
 	if (m_pChunkBuffer && sampleId >= m_writeSampleId - m_chunkSamples) {
 		WriteChunkBuffer();
+	}
+
+	FILE* pFile = GetSampleFile(sampleId);
+
+	// currently we only handle self-contained files
+	if (pFile != NULL) {
+		throw new MP4Error("sample is not in this file",
+			"MP4Track::ReadSample");
 	}
 
 	u_int64_t fileOffset = GetSampleFileOffset(sampleId);
@@ -227,7 +238,7 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 		printf("ReadSample: track %u id %u offset 0x"LLX" size %u (0x%x)\n",
 			m_trackId, sampleId, fileOffset, *pNumBytes, *pNumBytes));
 
-	// TBD good check would be to see if sample is in an mdat atom
+	// LATER good check would be to see if sample is in an mdat atom
 
 	bool bufferMalloc = false;
 	if (*ppBytes == NULL) {
@@ -235,10 +246,10 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 		bufferMalloc = true;
 	}
 
-	u_int64_t oldPos = m_pFile->GetPosition(); // only used in mode == 'w'
+	u_int64_t oldPos = m_pFile->GetPosition(pFile); // only used in mode == 'w'
 	try { 
-		m_pFile->SetPosition(fileOffset);
-		m_pFile->ReadBytes(*ppBytes, *pNumBytes);
+		m_pFile->SetPosition(fileOffset, pFile);
+		m_pFile->ReadBytes(*ppBytes, *pNumBytes, pFile);
 
 		if (pStartTime || pDuration) {
 			GetSampleTimes(sampleId, pStartTime, pDuration);
@@ -271,13 +282,13 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 			*ppBytes = NULL;
 		}
 		if (m_pFile->GetMode() == 'w') {
-			m_pFile->SetPosition(oldPos);
+			m_pFile->SetPosition(oldPos, pFile);
 		}
 		throw e;
 	}
 
 	if (m_pFile->GetMode() == 'w') {
-		m_pFile->SetPosition(oldPos);
+		m_pFile->SetPosition(oldPos, pFile);
 	}
 }
 
@@ -366,7 +377,15 @@ void MP4Track::FinishWrite()
 	// write out any remaining samples in chunk buffer
 	WriteChunkBuffer();
 
-	// record bitrates
+	// record buffer size and bitrates
+	MP4BitfieldProperty* pBufferSizeProperty;
+
+	if (m_pTrakAtom->FindProperty(
+	  "trak.mdia.minf.stbl.stsd.*.esds.decConfigDescr.bufferSizeDB",
+	  (MP4Property**)&pBufferSizeProperty)) {
+		pBufferSizeProperty->SetValue(GetMaxSampleSize());
+	}
+
 	MP4Integer32Property* pBitrateProperty;
 
 	if (m_pTrakAtom->FindProperty(
@@ -394,20 +413,7 @@ bool MP4Track::IsChunkFull(MP4SampleId sampleId)
 
 u_int32_t MP4Track::GetNumberOfSamples()
 {
-	// if samples are variable size, we have the answer at hand in stsz
-	if (m_pStszFixedSampleSizeProperty->GetValue() == 0) {
-		return m_pStszSampleSizeProperty->GetCount();
-	}
-
-	// else samples are fixed size, 
-	// we need to count up samples in stts
-	u_int32_t numSamples = 0;
-	u_int32_t numStts = m_pSttsCountProperty->GetValue();
-
-	for (u_int32_t sttsIndex = 0; sttsIndex < numStts; sttsIndex++) {
-		numSamples += m_pSttsSampleCountProperty->GetValue(sttsIndex);
-	}
-	return numSamples;
+	return m_pStszSampleCountProperty->GetValue();
 }
 
 u_int32_t MP4Track::GetSampleSize(MP4SampleId sampleId)
@@ -484,15 +490,15 @@ void MP4Track::UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes)
 				// and create sizes for all previous samples
 				for (MP4SampleId sid = 1; sid < sampleId; sid++) {
 					m_pStszSampleSizeProperty->AddValue(fixedSampleSize);
-					m_pStszSampleCountProperty->IncrementValue();
 				}
 			}
 
 			// add size value for this sample
 			m_pStszSampleSizeProperty->AddValue(numBytes);
-			m_pStszSampleCountProperty->IncrementValue();
 		}
 	}
+
+	m_pStszSampleCountProperty->IncrementValue();
 }
 
 u_int32_t MP4Track::GetAvgBitrate()
@@ -548,13 +554,13 @@ u_int32_t MP4Track::GetMaxBitrate()
 	return maxBytesPerSec * 8;
 }
 
-u_int64_t MP4Track::GetSampleFileOffset(MP4SampleId sampleId)
+u_int32_t MP4Track::GetSampleStscIndex(MP4SampleId sampleId)
 {
 	u_int32_t stscIndex;
 	u_int32_t numStscs = m_pStscCountProperty->GetValue();
 
 	if (numStscs == 0) {
-		throw new MP4Error("No data chunks exist", "GetSampleFileOffset");
+		throw new MP4Error("No data chunks exist", "GetSampleStscIndex");
 	}
 
 	for (stscIndex = 0; stscIndex < numStscs; stscIndex++) {
@@ -568,6 +574,86 @@ u_int64_t MP4Track::GetSampleFileOffset(MP4SampleId sampleId)
 		ASSERT(stscIndex != 0);
 		stscIndex -= 1;
 	}
+
+	return stscIndex;
+}
+
+FILE* MP4Track::GetSampleFile(MP4SampleId sampleId)
+{
+	u_int32_t stscIndex =
+		GetSampleStscIndex(sampleId);
+
+	u_int32_t stsdIndex = 
+		m_pStscSampleDescrIndexProperty->GetValue(stscIndex);
+
+	// check if the answer will be the same as last time
+	if (m_lastStsdIndex && stsdIndex == m_lastStsdIndex) {
+		return m_lastSampleFile;
+	}
+
+	MP4Atom* pStsdAtom = 
+		m_pTrakAtom->FindAtom("trak.mdia.minf.stbl.stsd");
+	ASSERT(pStsdAtom);
+
+	MP4Atom* pStsdEntryAtom = 
+		pStsdAtom->GetChildAtom(stsdIndex - 1);
+	ASSERT(pStsdEntryAtom);
+
+	MP4Integer16Property* pDrefIndexProperty = NULL;
+	pStsdEntryAtom->FindProperty(
+		"*.dataReferenceIndex",
+		(MP4Property**)&pDrefIndexProperty);
+	
+	if (pDrefIndexProperty == NULL) {
+		throw new MP4Error("invalid stsd entry", "GetSampleFile");
+	}
+
+	u_int32_t drefIndex =
+		pDrefIndexProperty->GetValue();
+
+	MP4Atom* pDrefAtom =
+		m_pTrakAtom->FindAtom("trak.mdia.minf.dinf.dref");
+	ASSERT(pDrefAtom);
+
+	MP4Atom* pUrlAtom =
+		pDrefAtom->GetChildAtom(drefIndex - 1);
+	ASSERT(pUrlAtom);
+
+	FILE* pFile;
+
+	if (pUrlAtom->GetFlags() & 1) {
+		pFile = NULL;	// self-contained
+	} else {
+		MP4StringProperty* pLocationProperty = NULL;
+		pUrlAtom->FindProperty(
+			"*.location", 
+			(MP4Property**)&pLocationProperty);
+		ASSERT(pLocationProperty);
+
+		const char* url = pLocationProperty->GetValue();
+
+		VERBOSE_READ_SAMPLE(m_pFile->GetVerbosity(),
+			printf("dref url = %s\n", url));
+
+		// LATER attempt to open url 
+		pFile = (FILE*)-1;
+	}
+
+	if (m_lastSampleFile) {
+		fclose(m_lastSampleFile);
+	}
+
+	// cache the answer
+	m_lastStsdIndex = stsdIndex;
+	m_lastSampleFile = pFile;
+
+	return pFile;
+}
+
+u_int64_t MP4Track::GetSampleFileOffset(MP4SampleId sampleId)
+{
+	u_int32_t stscIndex =
+		GetSampleStscIndex(sampleId);
 
 	u_int32_t firstChunk = 
 		m_pStscFirstChunkProperty->GetValue(stscIndex);
@@ -767,7 +853,7 @@ u_int32_t MP4Track::GetSampleCttsIndex(MP4SampleId sampleId,
 	}
 
 	throw new MP4Error("sample id out of range", 
-		"MP4Track::GetCttsIndex");
+		"MP4Track::GetSampleCttsIndex");
 	return 0; // satisfy MS compiler
 }
 

@@ -160,6 +160,9 @@ public:
 	bool FindProperty(const char* name, 
 		MP4Property** ppProperty, u_int32_t* pIndex = NULL);
 
+	u_int32_t GetFlags();
+	void SetFlags(u_int32_t flags);
+
 	u_int8_t GetDepth();
 
 	void Skip();
@@ -200,9 +203,6 @@ protected:
 
 	u_int8_t GetVersion();
 	void SetVersion(u_int8_t version);
-
-	u_int32_t GetFlags();
-	void SetFlags(u_int32_t flags);
 
 	/* debugging aid */
 	u_int32_t GetVerbosity();

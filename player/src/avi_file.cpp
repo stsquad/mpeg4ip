@@ -107,8 +107,8 @@ int CAviFile::create_video (CPlayerSession *psptr)
   CPlayerMedia *mptr;
   
   const char *codec_name = AVI_video_compressor(m_file);
-  if (lookup_video_codec_by_name(codec_name) != 0) {
-    player_debug_message("Couldn't find video codec %s", codec_name);
+  if (lookup_video_codec_by_name(codec_name) < 0) {
+    player_debug_message("Couldn't find video codec `%s\'", codec_name);
     return (-1);
   }
   mptr = new CPlayerMedia;
@@ -165,7 +165,7 @@ int CAviFile::create_audio (CPlayerSession *psptr)
 #if 0
 
     const char *codec = "mp3 ";
-    if (lookup_audio_codec_by_name(codec) != 0) {
+    if (lookup_audio_codec_by_name(codec) < 0) {
       player_debug_message("Couldn't find audio codec %s", codec);
       return (0);
     }

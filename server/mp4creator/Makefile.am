@@ -18,7 +18,9 @@ mp4creator_SOURCES = \
 	mp4creator.h \
 	mp4creator.cpp \
 	aac.cpp \
+	mp3.h \
 	mp3.cpp \
+	mp4v.h \
 	mp4v.cpp \
 	avi.cpp \
 	rfc2250.cpp \

@@ -92,7 +92,7 @@ void MP4File::Create(const char* fileName, bool use64bits)
 	m_pRootAtom->BeginWrite();
 }
 
-void MP4File::Append(const char* fileName)
+void MP4File::Modify(const char* fileName)
 {
 	m_fileName = MP4Stralloc(fileName);
 	m_mode = 'r';
@@ -141,7 +141,7 @@ void MP4File::Append(const char* fileName)
 			if (pAtom != pMoovAtom) {
 				throw new MP4Error(
 					"Badly formed mp4 file, multiple moov atoms", 
-					"MP4Append");
+					"MP4Modify");
 			}
 
 			if (lastAtomIsMoov) {
@@ -253,10 +253,20 @@ void MP4File::RewriteMdat(FILE* pReadFile, FILE* pWriteFile)
 					m_pTracks[i]->GetTimeScale(), GetTimeScale());
 			}
 
-			if (nextChunkTimes[i] < nextTime) {
-				nextTime = nextChunkTimes[i];
-				nextTrackIndex = i;
+			// time is not earliest so far
+			if (nextChunkTimes[i] > nextTime) {
+				continue;
 			}
+
+			// prefer hint tracks to media tracks if times are equal
+			if (nextChunkTimes[i] == nextTime 
+			  && strcmp(m_pTracks[i]->GetType(), MP4_HINT_TRACK_TYPE)) {
+				continue;
+			}
+
+			// this is our current choice of tracks
+			nextTime = nextChunkTimes[i];
+			nextTrackIndex = i;
 		}
 
 		if (nextTrackIndex == (u_int32_t)-1) {
@@ -733,12 +743,35 @@ void MP4File::AddTrackToIod(MP4TrackId trackId)
 		pDescriptorProperty->AddDescriptor(MP4ESIDIncDescrTag);
 	ASSERT(pDescriptor);
 
-	MP4Integer32Property* pProperty = NULL;
+	MP4Integer32Property* pIdProperty = NULL;
 	pDescriptor->FindProperty("id", 
-		(MP4Property**)&pProperty);
-	ASSERT(pProperty);
+		(MP4Property**)&pIdProperty);
+	ASSERT(pIdProperty);
 
-	pProperty->SetValue(trackId);
+	pIdProperty->SetValue(trackId);
+}
+
+void MP4File::RemoveTrackFromIod(MP4TrackId trackId)
+{
+	MP4DescriptorProperty* pDescriptorProperty = NULL;
+	m_pRootAtom->FindProperty("moov.iods.esIds",
+		(MP4Property**)&pDescriptorProperty);
+	ASSERT(pDescriptorProperty);
+
+	for (u_int32_t i = 0; i < pDescriptorProperty->GetCount(); i++) {
+		static char name[32];
+		snprintf(name, sizeof(name), "esIds[%u].id", i);
+
+		MP4Integer32Property* pIdProperty = NULL;
+		pDescriptorProperty->FindProperty(name, 
+			(MP4Property**)&pIdProperty);
+		ASSERT(pIdProperty);
+
+		if (pIdProperty->GetValue() == trackId) {
+			pDescriptorProperty->DeleteDescriptor(i);
+			break;
+		}
+	}
 }
 
 void MP4File::AddTrackToOd(MP4TrackId trackId)
@@ -748,6 +781,15 @@ void MP4File::AddTrackToOd(MP4TrackId trackId)
 	}
 
 	AddTrackReference(MakeTrackName(m_odTrackId, "tref.mpod"), trackId);
+}
+
+void MP4File::RemoveTrackFromOd(MP4TrackId trackId)
+{
+	if (!m_odTrackId) {
+		return;
+	}
+
+	RemoveTrackReference(MakeTrackName(m_odTrackId, "tref.mpod"), trackId);
 }
 
 void MP4File::GetTrackReferenceProperties(const char* trefName,
@@ -795,6 +837,23 @@ u_int32_t MP4File::FindTrackReference(const char* trefName,
 	return 0;
 }
 
+void MP4File::RemoveTrackReference(const char* trefName, MP4TrackId refTrackId)
+{
+	MP4Integer32Property* pCountProperty = NULL;
+	MP4Integer32Property* pTrackIdProperty = NULL;
+
+	GetTrackReferenceProperties(trefName,
+		(MP4Property**)&pCountProperty, 
+		(MP4Property**)&pTrackIdProperty);
+
+	for (u_int32_t i = 0; i < pCountProperty->GetValue(); i++) {
+		if (refTrackId == pTrackIdProperty->GetValue(i)) {
+			pTrackIdProperty->DeleteValue(i);
+			pCountProperty->SetValue(pCountProperty->GetValue() - 1);
+		}
+	}
+}
+
 void MP4File::AddDataReference(MP4TrackId trackId, const char* url)
 {
 	MP4Atom* pDrefAtom = 
@@ -810,11 +869,15 @@ void MP4File::AddDataReference(MP4TrackId trackId, const char* url)
 	MP4Atom* pUrlAtom = AddAtom(pDrefAtom, "url ");
 
 	if (url && url[0] != '\0') {
+		pUrlAtom->SetFlags(pUrlAtom->GetFlags() & 0xFFFFFE);
+
 		MP4StringProperty* pUrlProperty = NULL;
 		pUrlAtom->FindProperty("url .location",
 			(MP4Property**)&pUrlProperty);
 		ASSERT(pUrlProperty);
 		pUrlProperty->SetValue(url);
+	} else {
+		pUrlAtom->SetFlags(pUrlAtom->GetFlags() | 1);
 	}
 }
 
@@ -841,7 +904,7 @@ MP4TrackId MP4File::AddSystemsTrack(const char* type)
 
 	SetTrackIntegerProperty(trackId, 
 		"mdia.minf.stbl.stsd.mp4s.esds.decConfigDescr.objectTypeId", 
-		MP4SystemsObjectType);
+		MP4SystemsV1ObjectType);
 
 	SetTrackIntegerProperty(trackId, 
 		"mdia.minf.stbl.stsd.mp4s.esds.decConfigDescr.streamType", 
@@ -1030,7 +1093,8 @@ void MP4File::DeleteTrack(MP4TrackId trackId)
 	MP4Atom* pMoovAtom = FindAtom("moov");
 	ASSERT(pMoovAtom);
 
-	// TBD DeleteTrack - remove track from iod and od?
+	RemoveTrackFromIod(trackId);
+	RemoveTrackFromOd(trackId);
 
 	if (trackId == m_odTrackId) {
 		m_odTrackId = 0;
@@ -1141,7 +1205,7 @@ u_int32_t MP4File::GetSampleSize(MP4TrackId trackId, MP4SampleId sampleId)
 	return m_pTracks[FindTrackIndex(trackId)]->GetSampleSize(sampleId);
 }
 
-u_int32_t MP4File::GetMaxSampleSize(MP4TrackId trackId)
+u_int32_t MP4File::GetTrackMaxSampleSize(MP4TrackId trackId)
 {
 	return m_pTracks[FindTrackIndex(trackId)]->GetMaxSampleSize();
 }
@@ -1367,7 +1431,7 @@ void MP4File::AppendSessionSdp(const char* sdpFragment)
 
 // track level convenience functions
 
-MP4SampleId MP4File::GetNumberOfTrackSamples(MP4TrackId trackId)
+MP4SampleId MP4File::GetTrackNumberOfSamples(MP4TrackId trackId)
 {
 	return m_pTracks[FindTrackIndex(trackId)]->GetNumberOfSamples();
 }

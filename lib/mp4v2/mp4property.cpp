@@ -37,7 +37,6 @@ bool MP4Property::FindProperty(const char* name,
 	}
 
 	if (!strcasecmp(m_name, name)) {
-		// TBD how to trace free floating odcommands
 		if (m_pParentAtom) {
 			VERBOSE_FIND(m_pParentAtom->GetFile()->GetVerbosity(),
 				printf("FindProperty: matched %s\n", name));
@@ -612,7 +611,8 @@ void MP4TableProperty::Dump(FILE* pFile, u_int8_t indent,
 {
 	ASSERT(index == 0);
 
-	if (m_implicit && !dumpImplicits) {
+	// implicit tables just can't be dumped
+	if (m_implicit) {
 		return;
 	}
 
@@ -670,6 +670,12 @@ MP4Descriptor* MP4DescriptorProperty::AddDescriptor(u_int8_t tag)
 	pDescriptor->SetParentAtom(m_pParentAtom);
 
 	return pDescriptor;
+}
+
+void MP4DescriptorProperty::DeleteDescriptor(u_int32_t index)
+{
+	delete m_pDescriptors[index];
+	m_pDescriptors.Delete(index);
 }
 
 void MP4DescriptorProperty::Generate()

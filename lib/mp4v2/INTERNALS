@@ -1,0 +1,75 @@
+
+Three layers
+
+Layer 0 - Infrastructure
+	mp4array.h mp4util mp4file_io
+	Avoidance of templates
+
+Layer 1 - Atoms, Properties, and Descriptors
+	Vast majority of the code
+	Syntax & local semantics
+
+	mp4atom is the base class of all atoms and has generic code that works
+	90% of the time, the atom specific code handles the other 10% 
+
+	Essentially each atom has it's own source file atom_xxxx.cpp
+	with it's own class derived from MP4Atom
+	Average size of the source code to describe an atom, 
+	i.e. it's properties and child atoms, how to construct, read, and write it
+	is 20 lines.
+
+	Properties are the atomic pieces of information associated with atoms.
+	4 Property types - Integer, Float, String, Bytes
+	Get/Set
+	Theoretically this is all one needs, however that's painful and slow
+	mp4property.cpp
+
+	Property names, "moov.mvhd.duration"
+	Need for speed, FindProperty() and save MP4<type>Property*
+	"moov.trak[2].tkhd.duration"
+	Magic tables "moov.trak[3].minf.mdia.stbl.stsz[101].sampleSize"
+	MP4Integer32Property* ->GetValue(101);
+
+	Probably will never use this part of API, but it's there in case the higher
+	level API is missing something you need.
+
+	mp4descriptor.cpp, descriptors.cpp, ocidescriptors.cpp, qosqualifiers.cpp
+	Shift gears to MPEG conventions
+	More use of bitfields and conditional existence 
+	Emphasis on bit efficiency - few explicit counters
+	Similar to atoms in that they contain properties
+
+	Caveats: Internal 0 based indices, Externally (API) 1 based indices
+	Avoid piling too many classes into 1 file, SLOOOOWWW compiles
+	Once upon a time all 60+ atom classes were in 1 file, now they're not!
+
+	Few error returns internally, throw if there's a problem
+
+Layer 2 - File and Tracks
+	mp4file.cpp and mp4track.cpp
+
+	The two entities at this level are the mp4 file as a whole and the tracks which are contained with it.
+
+	Track time line, samples & durations
+
+Layer 3 - Specific Track Type Helpers 
+	OD
+	Scene
+	Hint
+	mp4file.cpp odcommands.cpp rtphint.cpp
+
+Layer 4 - API
+	API allows use of all layers 1, 2, and 3
+	C linkage 
+	All calls protected by try catch blocks
+	pass thru to mp4file, ensures that library has internal access 
+	to same functions as API does
+
+	mp4.cpp
+
+Debugging
+	Verbosity
+	mp4dump or MP4Dump()
+	mp4extract
+	od -t x1z -A x [-j 0xXXXXXX]
+

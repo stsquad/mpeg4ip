@@ -76,6 +76,7 @@ protected:
 class MP4DecConfigDescriptor : public MP4Descriptor {
 public:
 	MP4DecConfigDescriptor();
+	void Generate();
 };
 
 class MP4DecSpecificDescriptor : public MP4Descriptor {
@@ -142,7 +143,8 @@ public:
 // associated values in descriptors
 
 // ES objectTypeId
-const u_int8_t MP4SystemsObjectType				= 0x01; 
+const u_int8_t MP4SystemsV1ObjectType			= 0x01; 
+const u_int8_t MP4SystemsV2ObjectType			= 0x02; 
 
 // ES streamType
 const u_int8_t MP4ObjectDescriptionStreamType	= 0x01; 

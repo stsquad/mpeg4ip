@@ -81,9 +81,10 @@ void MP4File::MakeIsmaCompliant()
 	sceneTrackId = AddSceneTrack();
 	SetSceneProfileLevel(0xFF);
 	SetGraphicsProfileLevel(0xFF);
-	static u_int8_t bifsv2Config[5] = {
-		0x05, 	// tag
-		0x03,	// size
+	SetTrackIntegerProperty(sceneTrackId, 
+		"mdia.minf.stbl.stsd.mp4s.esds.decConfigDescr.objectTypeId", 
+		MP4SystemsV2ObjectType);
+	static u_int8_t bifsv2Config[3] = {
 		0x00, 0x00, 0x40 // IsCommandStream
 	};
 	SetTrackESConfiguration(sceneTrackId, 
@@ -107,7 +108,7 @@ void MP4File::MakeIsmaCompliant()
 		sceneTrackId, audioTrackId, videoTrackId,
 		&pBytes, &numBytes);
 
-	WriteSample(m_odTrackId, pBytes, numBytes, 1);
+	WriteSample(sceneTrackId, pBytes, numBytes, 1);
 
 	MP4Free(pBytes);
 	pBytes = NULL;

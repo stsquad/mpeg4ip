@@ -178,7 +178,7 @@ void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, bool sampleMode)
 	}
 
 	MP4SampleId numSamples = 
-		MP4GetNumberOfTrackSamples(mp4File, trackId);
+		MP4GetTrackNumberOfSamples(mp4File, trackId);
 
 	u_int8_t* pSample;
 	u_int32_t sampleSize;

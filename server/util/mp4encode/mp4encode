@@ -170,18 +170,14 @@ fi
 rm -f ${mp4file}
 
 echo "Creating mp4 file with video"
-if [ $use_iso -eq 0 ]; then
-	mp4vpkt -height=${videoHeight} -width=${videoWidth} -rate=${fps} -profile="simple@L3" ${vfile} ${mp4file}
-else
-	mp4vpkt -bfrequency=${bfrequency} -height=${videoHeight} -width=${videoWidth} -rate=${fps} -profile="main@L2" ${vfile} ${mp4file}
-fi
+mp4creator -c ${vfile} -rate=${fps} -H ${mp4file}
 
 if [ $debug = 0 ]; then
 	rm -f ${vfile}
 fi
 
 echo "Merging audio with video in mp4 file"
-mp4apkt -merge ${afile} ${mp4file}
+mp4creator -c ${afile} -H -O ${mp4file}
 
 if [ $debug = 0 ]; then
 	rm -f ${afile}

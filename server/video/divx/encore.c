@@ -338,6 +338,12 @@ int PutVoVolHeader(int vol_width, int vol_height, int time_increment_resolution,
 	int written = 0;
 	int bits, fixed_vop_time_increment;
 
+	Bitstream_PutBits(32, SESSION_START_CODE);
+	Bitstream_PutBits(8, 0x03); // Simple Profile @ L3
+
+	Bitstream_PutBits(32, VISUAL_OBJ_START_CODE);
+	Bitstream_PutBits(8, 0x09); // video object type
+
 	Bitstream_PutBits(VO_START_CODE_LENGTH, VO_START_CODE);
 	Bitstream_PutBits(5, 0);				/* vo_id = 0								*/
 	written += VO_START_CODE_LENGTH + 5;

@@ -25,6 +25,8 @@
 #define SESSION_START_CODE 	0x01B0	
 #define SESSION_END_CODE 	0x01B1
 
+#define VISUAL_OBJ_START_CODE 0x01B5
+
 #define VO_START_CODE 		0x8      
 #define VO_START_CODE_LENGTH	27
                                          

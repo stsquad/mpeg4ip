@@ -25,9 +25,7 @@
  */
 
 #include <mp4creator.h>
-
-// over in mp4v.cpp
-extern u_char Mp4vGetVopType(u_int8_t* pVopBuf, u_int32_t vopSize);
+#include <mp4v.h>
 
 void Rfc3016Hinter(
 	MP4FileHandle mp4File, MP4TrackId mediaTrackId, MP4TrackId hintTrackId)
@@ -57,7 +55,7 @@ void Rfc3016Hinter(
 		char* sdpBuf = (char*)malloc(strlen(sConfig) + 128);
 
 		sprintf(sdpBuf,
-			"a=fmtp:%u profile-level-id=%u; config=%s;\n",
+			"a=fmtp:%u profile-level-id=%u; config=%s;\015\012",
 				payloadNumber,
 				profileLevel,
 				sConfig); 
@@ -69,8 +67,8 @@ void Rfc3016Hinter(
 		free(sdpBuf);
 	}
 
-	u_int32_t numSamples = MP4GetNumberOfTrackSamples(mp4File, mediaTrackId);
-	u_int32_t maxSampleSize = MP4GetMaxSampleSize(mp4File, mediaTrackId);
+	u_int32_t numSamples = MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
+	u_int32_t maxSampleSize = MP4GetTrackMaxSampleSize(mp4File, mediaTrackId);
 	u_int8_t* pSampleBuffer = (u_int8_t*)malloc(maxSampleSize);
 	ASSERT(pSampleBuffer);
 

@@ -56,7 +56,7 @@ extern "C" MP4FileHandle MP4Create(const char* fileName,
 	MP4File* pFile = NULL;
 	try {
 		pFile = new MP4File(verbosity);
-		// TBD useExtensibleFormat, moov first, then mvex's
+		// LATER useExtensibleFormat, moov first, then mvex's
 		pFile->Create(fileName, use64bits);
 		return (MP4FileHandle)pFile;
 	}
@@ -68,14 +68,14 @@ extern "C" MP4FileHandle MP4Create(const char* fileName,
 	}
 }
 
-extern "C" MP4FileHandle MP4Append(const char* fileName, 
+extern "C" MP4FileHandle MP4Modify(const char* fileName, 
 	u_int32_t verbosity, bool useExtensibleFormat)
 {
 	MP4File* pFile = NULL;
 	try {
 		pFile = new MP4File(verbosity);
-		// TBD useExtensibleFormat, moov first, then mvex's
-		pFile->Append(fileName);
+		// LATER useExtensibleFormat, moov first, then mvex's
+		pFile->Modify(fileName);
 		return (MP4FileHandle)pFile;
 	}
 	catch (MP4Error* e) {
@@ -800,12 +800,12 @@ extern "C" bool MP4SetTrackESConfiguration(
 	return false;
 }
 
-extern "C" MP4SampleId MP4GetNumberOfTrackSamples(
+extern "C" MP4SampleId MP4GetTrackNumberOfSamples(
 	MP4FileHandle hFile, MP4TrackId trackId)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
-			return ((MP4File*)hFile)->GetNumberOfTrackSamples(trackId);
+			return ((MP4File*)hFile)->GetTrackNumberOfSamples(trackId);
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);
@@ -1028,13 +1028,13 @@ extern "C" u_int32_t MP4GetSampleSize(
 	return 0;
 }
 
-extern "C" u_int32_t MP4GetMaxSampleSize(
+extern "C" u_int32_t MP4GetTrackMaxSampleSize(
 	MP4FileHandle hFile,
 	MP4TrackId trackId)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
-			return ((MP4File*)hFile)->GetMaxSampleSize(trackId);
+			return ((MP4File*)hFile)->GetTrackMaxSampleSize(trackId);
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);

@@ -200,6 +200,7 @@ static void start_session_from_name (const char *name)
       last_file = NULL;
     }
     last_file = g_strdup(name);
+    config.set_config_string(CONFIG_PREV_DIRECTORY, strdup(last_file));
   }
 
   // See if entry is already in the list.
@@ -751,6 +752,7 @@ int main (int argc, char **argv)
     playlist = g_list_append(playlist, newone);
   }
   
+  last_file = g_strdup(config.get_config_string(CONFIG_PREV_DIRECTORY));
   master_looped = config.get_config_value(CONFIG_LOOPED);
   master_muted = config.get_config_value(CONFIG_MUTED);
   master_volume = config.get_config_value(CONFIG_VOLUME);

@@ -49,8 +49,13 @@ void MP4UrlAtom::Write()
 
 	// if no url location has been set
 	// then set self-contained flag
+	// and don't attempt to write anything
 	if (pLocationProp->GetValue() == NULL) {
 		SetFlags(GetFlags() | 1);
+		pLocationProp->SetImplicit(true);
+	} else {
+		SetFlags(GetFlags() & 0xFFFFFE);
+		pLocationProp->SetImplicit(false);
 	}
 
 	// write atom as usual

@@ -37,9 +37,17 @@ EXTRA_libdivxencore_la_SOURCES = \
 	text_idct_mmx.asm \
 	interpolate_mmx.asm \
 	sad_mb_mmx.asm
+libdivxencore_la_LIBADD = \
+	text_dct.lo \
+	text_fdct_mmx.lo \
+	text_idct_mmx.lo \
+	interpolate_mmx.lo \
+	sad_mb_mmx.lo
 else
 EXTRA_libdivxencore_la_SOURCES = \
 	text_dct.c
+libdivxencore_la_LIBADD = \
+	text_dct.lo
 endif
 
 libdivxencore_la_SOURCES = \
@@ -80,6 +88,5 @@ libdivxencore_la_SOURCES = \
 	vm_enc_defs.h \
 	vop_code.c \
 	vop_code.h \
-	zigzag.h \
-	$(EXTRA_libdivxencore_la_SOURCES)
+	zigzag.h 
 

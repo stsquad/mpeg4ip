@@ -48,9 +48,9 @@ main(int argc, char** argv)
 
 	MP4Duration trackDuration = MP4GetTrackDuration(mp4File, trackId);
 
-	MP4SampleId numSamples = MP4GetNumberOfTrackSamples(mp4File, trackId);
+	MP4SampleId numSamples = MP4GetTrackNumberOfSamples(mp4File, trackId);
 
-	u_int32_t maxSampleSize = MP4GetMaxSampleSize(mp4File, trackId);
+	u_int32_t maxSampleSize = MP4GetTrackMaxSampleSize(mp4File, trackId);
 
 	u_int8_t* pConfig;
 	u_int32_t configSize = 0;

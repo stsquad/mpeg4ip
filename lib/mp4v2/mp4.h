@@ -139,7 +139,7 @@ MP4FileHandle MP4Create(const char* fileName,
 	bool use64bits DEFAULT(0),
 	bool useExtensibleFormat DEFAULT(0));
 
-MP4FileHandle MP4Append(const char* fileName, 
+MP4FileHandle MP4Modify(const char* fileName, 
 	u_int32_t verbosity DEFAULT(0),
 	bool useExtensibleFormat DEFAULT(0));
 
@@ -287,7 +287,7 @@ bool MP4SetTrackESConfiguration(
 	MP4FileHandle hFile, MP4TrackId trackId, 
 	const u_int8_t* pConfig, u_int32_t configSize);
 
-MP4SampleId MP4GetNumberOfTrackSamples(
+MP4SampleId MP4GetTrackNumberOfSamples(
 	MP4FileHandle hFile, MP4TrackId trackId);
 
 /* generic track properties */
@@ -354,7 +354,7 @@ u_int32_t MP4GetSampleSize(
 	MP4TrackId trackId, 
 	MP4SampleId sampleId);
 
-u_int32_t MP4GetMaxSampleSize(
+u_int32_t MP4GetTrackMaxSampleSize(
 	MP4FileHandle hFile,
 	MP4TrackId trackId); 
 

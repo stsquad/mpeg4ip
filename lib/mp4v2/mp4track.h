@@ -109,7 +109,9 @@ public:
 		u_int8_t* pChunk, u_int32_t chunkSize);
 
 protected:
+	FILE*		GetSampleFile(MP4SampleId sampleId);
 	u_int64_t	GetSampleFileOffset(MP4SampleId sampleId);
+	u_int32_t	GetSampleStscIndex(MP4SampleId sampleId);
 	u_int32_t	GetChunkStscIndex(MP4ChunkId chunkId);
 	u_int32_t	GetChunkSize(MP4ChunkId chunkId);
 	u_int32_t	GetSampleRenderingOffset(MP4SampleId sampleId);
@@ -143,6 +145,9 @@ protected:
 	MP4Atom* 	m_pTrakAtom;		// moov.trak[]
 	MP4TrackId	m_trackId;			// moov.trak[].tkhd.trackId
 	MP4StringProperty* m_pTypeProperty;	// moov.trak[].mdia.hdlr.handlerType
+
+	u_int32_t	m_lastStsdIndex;
+	FILE*	 	m_lastSampleFile;
 
 	// for writing
 	MP4SampleId m_writeSampleId;

@@ -48,8 +48,8 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
   m_parent = parent;
   m_eof = 0;
   MP4FileHandle fh = parent->get_file();
-  m_frames_max = MP4GetNumberOfTrackSamples(fh, m_track);
-  m_max_frame_size = MP4GetMaxSampleSize(fh, m_track);
+  m_frames_max = MP4GetTrackNumberOfSamples(fh, m_track);
+  m_max_frame_size = MP4GetTrackMaxSampleSize(fh, m_track);
   m_buffer = (u_int8_t *) malloc(m_max_frame_size * sizeof(u_int8_t));
   m_bookmark_buffer = (u_int8_t *)malloc(m_max_frame_size * sizeof(char));
   m_buffer_on = m_buffer;

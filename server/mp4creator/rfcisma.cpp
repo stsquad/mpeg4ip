@@ -123,7 +123,7 @@ static void ConsecutiveHinter(
 	MP4Duration sampleDuration, u_int8_t maxSamplesPerPacket)
 {
 	u_int32_t numSamples = 
-		MP4GetNumberOfTrackSamples(mp4File, mediaTrackId);
+		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
 
 	u_int16_t bytesThisHint = 2;
 	u_int16_t samplesThisHint = 0;
@@ -175,7 +175,7 @@ static void InterleaveHinter(
 	MP4Duration sampleDuration, u_int8_t stride, u_int8_t bundle)
 {
 	u_int32_t numSamples = 
-		MP4GetNumberOfTrackSamples(mp4File, mediaTrackId);
+		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
 
 	MP4SampleId* pSampleIds = new MP4SampleId[bundle];
 
@@ -250,7 +250,8 @@ void RfcIsmaHinter(
 		sprintf(sdpBuf,
 			"a=fmtp:%u "
 			"streamtype=5; profile-level-id=15; mode=AAC-hbr; config=%s; "
-			"SizeLength=13; IndexLength=3; IndexDeltaLength=3; Profile=1;\n",
+			"SizeLength=13; IndexLength=3; IndexDeltaLength=3; Profile=1;"
+			"\015\012",
 				payloadNumber,
 				sConfig); 
 
@@ -268,14 +269,22 @@ void RfcIsmaHinter(
 
 	MP4Duration sampleDuration = 
 		MP4GetTrackFixedSampleDuration(mp4File, mediaTrackId);
-	// TBD Philips uses variable duration for AAC
-	ASSERT(sampleDuration != MP4_INVALID_DURATION);
+
+	if (sampleDuration == MP4_INVALID_DURATION) {
+		u_int8_t* pSample = NULL;
+		u_int32_t sampleSize = 0;
+
+		MP4ReadSample(mp4File, mediaTrackId, 1,
+			&pSample, &sampleSize, NULL, &sampleDuration);
+
+		free(pSample);
+	}
 
 	u_int32_t samplesPerPacket = 0;
  
 	if (interleave) {
 		u_int32_t maxSampleSize =
-			MP4GetMaxSampleSize(mp4File, mediaTrackId);
+			MP4GetTrackMaxSampleSize(mp4File, mediaTrackId);
 
 		// compute how many maximum size samples would fit in a packet
 		samplesPerPacket = 

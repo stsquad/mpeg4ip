@@ -31,11 +31,16 @@
 
 // MP4File low level IO support
 
-u_int64_t MP4File::GetPosition()
+u_int64_t MP4File::GetPosition(FILE* pFile)
 {
 	if (m_writeBuffer == NULL) {
+		if (pFile == NULL) {
+			ASSERT(m_pFile);
+			pFile = m_pFile;
+		}
+
 		fpos_t fpos;
-		if (fgetpos(m_pFile, &fpos) < 0) {
+		if (fgetpos(pFile, &fpos) < 0) {
 			throw new MP4Error(errno, "MP4GetPosition");
 		}
 		return FPOS_TO_UINT64(fpos);
@@ -44,12 +49,17 @@ u_int64_t MP4File::GetPosition()
 	}
 }
 
-void MP4File::SetPosition(u_int64_t pos)
+void MP4File::SetPosition(u_int64_t pos, FILE* pFile)
 {
 	if (m_writeBuffer == NULL) {
+		if (pFile == NULL) {
+			ASSERT(m_pFile);
+			pFile = m_pFile;
+		}
+
 		fpos_t fpos;
 		VAR_TO_FPOS(fpos, pos);
-		if (fsetpos(m_pFile, &fpos) < 0) {
+		if (fsetpos(pFile, &fpos) < 0) {
 			throw new MP4Error(errno, "MP4SetPosition");
 		}
 	} else {
@@ -95,11 +105,11 @@ u_int32_t MP4File::ReadBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
 	return rc;
 }
 
-u_int32_t MP4File::PeekBytes(u_int8_t* pBytes, u_int32_t numBytes)
+u_int32_t MP4File::PeekBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
 {
-	u_int64_t pos = GetPosition();
-	ReadBytes(pBytes, numBytes);
-	SetPosition(pos);
+	u_int64_t pos = GetPosition(pFile);
+	ReadBytes(pBytes, numBytes, pFile);
+	SetPosition(pos, pFile);
 	return numBytes;
 }
 
@@ -122,9 +132,8 @@ void MP4File::DisableWriteBuffer() {
 	m_writeBufferMaxSize = 0;
 }
 
-void MP4File::WriteBytes(u_int8_t* pBytes, u_int32_t numBytes)
+void MP4File::WriteBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
 {
-	ASSERT(m_pFile);
 	WARNING(pBytes == NULL);
 	WARNING(numBytes == 0);
 	ASSERT(m_numWriteBits == 0 || m_numWriteBits >= 8);
@@ -132,9 +141,13 @@ void MP4File::WriteBytes(u_int8_t* pBytes, u_int32_t numBytes)
 	if (pBytes == NULL || numBytes == 0) {
 		return;
 	}
+	if (pFile == NULL) {
+		ASSERT(m_pFile);
+		pFile = m_pFile;
+	}
 
 	if (m_writeBuffer == NULL) {
-		u_int32_t rc = fwrite(pBytes, 1, numBytes, m_pFile);
+		u_int32_t rc = fwrite(pBytes, 1, numBytes, pFile);
 		if (rc != numBytes) {
 			throw new MP4Error(errno, "MP4WriteBytes");
 		}

@@ -147,6 +147,9 @@ public:
 		void InsertValue(u_int##isize##_t value, u_int32_t index) { \
 			m_values.Insert(value, index); \
 		} \
+		void DeleteValue(u_int32_t index) { \
+			m_values.Delete(index); \
+		} \
 		void IncrementValue(u_int32_t increment = 1, u_int32_t index = 0) { \
 			m_values[index] += increment; \
 		} \
@@ -491,6 +494,8 @@ public:
 	}
 
 	MP4Descriptor* AddDescriptor(u_int8_t tag);
+
+	void DeleteDescriptor(u_int32_t index);
 
 	void Generate();
 	void Read(MP4File* pFile, u_int32_t index = 0);
