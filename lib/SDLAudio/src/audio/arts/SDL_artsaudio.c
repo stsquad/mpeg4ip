@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_artsaudio.c,v 1.1 2004/02/25 18:10:25 wmaycisco Exp $";
+ "@(#) $Id: SDL_artsaudio.c,v 1.2 2004/02/26 17:45:44 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -38,13 +38,12 @@ static char rcsid =
 #include "Our_SDL_audio.h"
 #include "SDL_audiomem.h"
 #include "SDL_audio_c.h"
-#include "SDL_timer.h"
 #include "SDL_audiodev_c.h"
 #include "SDL_artsaudio.h"
 
 #ifdef ARTSC_DYNAMIC
-#include "SDL_name.h"
-#include "SDL_loadso.h"
+#include <SDL/SDL_name.h>
+#include <SDL/SDL_loadso.h>
 #else
 #define SDL_NAME(X)	X
 #endif

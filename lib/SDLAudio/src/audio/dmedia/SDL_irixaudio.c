@@ -24,15 +24,13 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_irixaudio.c,v 1.1 2004/02/25 18:10:26 wmaycisco Exp $";
+ "@(#) $Id: SDL_irixaudio.c,v 1.2 2004/02/26 17:45:44 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer (For IRIX 6.5 and higher) */
 
 #include <stdlib.h>
 
-#include "SDL_endian.h"
-#include "SDL_timer.h"
 #include "Our_SDL_audio.h"
 #include "SDL_audiomem.h"
 #include "SDL_audio_c.h"

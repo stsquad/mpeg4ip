@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_esdaudio.c,v 1.1 2004/02/25 01:18:50 wmaycisco Exp $";
+ "@(#) $Id: SDL_esdaudio.c,v 1.2 2004/02/26 17:45:45 wmaycisco Exp $";
 #endif
 
 /* Allow access to an ESD network stream mixing buffer */
@@ -45,8 +45,8 @@ static char rcsid =
 #include "SDL_esdaudio.h"
 
 #ifdef ESD_DYNAMIC
-#include "SDL_name.h"
-#include "SDL_loadso.h"
+#include <SDL/SDL_name.h>
+#include <SDL/SDL_loadso.h>
 #else
 #define SDL_NAME(X)	X
 #endif

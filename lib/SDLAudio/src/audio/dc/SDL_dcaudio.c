@@ -23,7 +23,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dcaudio.c,v 1.1 2004/02/25 01:18:49 wmaycisco Exp $";
+ "@(#) $Id: SDL_dcaudio.c,v 1.2 2004/02/26 17:45:44 wmaycisco Exp $";
 #endif
 
 /* Output dreamcast aica */
@@ -42,7 +42,6 @@ static char rcsid =
 #include "Our_SDL_audio.h"
 #include "SDL_audiomem.h"
 #include "SDL_audio_c.h"
-#include "SDL_timer.h"
 #include "SDL_audiodev_c.h"
 #include "SDL_dcaudio.h"
 
