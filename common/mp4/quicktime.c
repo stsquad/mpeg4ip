@@ -172,9 +172,19 @@ char* quicktime_get_info(quicktime_t *file)
 	return file->moov.udta.info;
 }
 
+int quicktime_get_iod_audio_profile_level(quicktime_t *file)
+{
+	return file->moov.iods.audioProfileId;
+}
+
 int quicktime_set_iod_audio_profile_level(quicktime_t *file, int id)
 {
 	quicktime_iods_set_audio_profile(&file->moov.iods, id);
+}
+
+int quicktime_get_iod_video_profile_level(quicktime_t *file)
+{
+	return file->moov.iods.videoProfileId;
 }
 
 int quicktime_set_iod_video_profile_level(quicktime_t *file, int id)

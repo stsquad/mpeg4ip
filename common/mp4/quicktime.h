@@ -152,7 +152,9 @@ float quicktime_video_frame_rate(quicktime_t *file, int track);
 char* quicktime_video_compressor(quicktime_t *file, int track);
 int quicktime_video_time_scale(quicktime_t *file, int track);
 
+int quicktime_get_iod_audio_profile_level(quicktime_t *file);
 int quicktime_set_iod_audio_profile_level(quicktime_t *file, int id);
+int quicktime_get_iod_video_profile_level(quicktime_t *file);
 int quicktime_set_iod_video_profile_level(quicktime_t *file, int id);
 
 int quicktime_get_mp4_video_decoder_config(quicktime_t *file, int track, u_char** ppBuf, int* pBufSize);
