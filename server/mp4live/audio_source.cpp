@@ -97,8 +97,8 @@ void CAudioSource::DoStopCapture()
 	}
 
 	if (m_pConfig->m_audioEncode) {
-		// lame can be holding onto a few MP3 frames
-		// get them and forward them to sinks
+		// flush remaining output from encoders
+		// and forward it to sinks
 
 		m_encoder->EncodeSamples(NULL, 0);
 
@@ -120,10 +120,6 @@ void CAudioSource::DoStopCapture()
 
 bool CAudioSource::Init(void)
 {
-	if (!InitDevice()) {
-		return false;
-	}
-
 	m_startTimestamp = 0;
 	m_frameNumber = 0;
 
@@ -133,22 +129,27 @@ bool CAudioSource::Init(void)
 		}
 
 		if (m_frameType == CMediaFrame::Mp3AudioFrame) {
+			// TBD this may no longer be needed
 			m_rawSamplesPerFrame = (u_int16_t)
 				((((float)m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE) 
-				/ (float)m_pConfig->m_audioMp3SampleRate)
-				* m_pConfig->m_audioMp3SamplesPerFrame) 
+				/ (float)m_pConfig->m_audioEncodedSampleRate)
+				* m_pConfig->m_audioEncodedSamplesPerFrame) 
 				+ 0.5);
-
-			m_encodedFrameDuration = 
-				(m_pConfig->m_audioMp3SamplesPerFrame * TimestampTicks) 
-				/ m_pConfig->m_audioMp3SampleRate;
-
-		} else if (m_frameType == CMediaFrame::AacAudioFrame) {
-			// TBD AAC
+		} else {
+			m_rawSamplesPerFrame = m_pConfig->m_audioEncodedSamplesPerFrame;
 		}
+
+		m_encodedFrameDuration = 
+			(m_pConfig->m_audioEncodedSamplesPerFrame * TimestampTicks) 
+			/ m_pConfig->m_audioEncodedSampleRate;
+
 	} else {
 		m_rawSamplesPerFrame = 
 			m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+	}
+
+	if (!InitDevice()) {
+		return false;
 	}
 
 	m_rawFrameSize = m_rawSamplesPerFrame
@@ -336,3 +337,51 @@ u_int16_t CAudioSource::ForwardEncodedFrames(void)
 	return numForwarded;
 }
 
+bool CAudioCapabilities::ProbeDevice()
+{
+	int rc;
+
+	// open the audio device
+	int audioDevice = open(m_deviceName, O_RDONLY);
+	if (audioDevice < 0) {
+		return false;
+	}
+	m_canOpen = true;
+
+	// union of valid sampling rates for MP3 and AAC
+	static const u_int32_t allSamplingRates[] = {
+		7350, 8000, 11025, 12000, 16000, 22050, 
+		24000, 32000, 44100, 48000, 64000, 88200, 96000
+	};
+	static const u_int8_t numAllSamplingRates =
+		sizeof(allSamplingRates) / sizeof(u_int32_t);
+
+	// for all possible sampling rates
+	u_int8_t i;
+	for (i = 0; i < numAllSamplingRates; i++) {
+		u_int32_t targetRate = allSamplingRates[i];
+		u_int32_t samplingRate = targetRate;
+
+		// attempt to set sound card to this sampling rate
+		rc = ioctl(audioDevice, SNDCTL_DSP_SPEED, &samplingRate);
+
+		// invalid sampling rate, allow deviation of up to 1 sample/sec
+		if (rc < 0 || abs(samplingRate - targetRate) > 1) {
+			debug_message("audio device %s doesn't support sampling rate %u",
+				m_deviceName, targetRate);
+			continue;
+		}
+
+		// valid sampling rate
+		m_samplingRates[m_numSamplingRates++] = samplingRate;
+	}
+
+	// zero out remaining sampling rate entries
+	for (i = m_numSamplingRates; i < numAllSamplingRates; i++) {
+		m_samplingRates[i] = 0;
+	}
+
+	close(audioDevice);
+
+	return true;
+}

@@ -28,13 +28,6 @@
 	
 	Written By: Denis Serenyi
 			
-	$Log: QTSSSocket.h,v $
-	Revision 1.1  2002/02/27 19:49:04  wmaycisco
-	Adding Darwin server
-	
-	Revision 1.1  2002/02/25 23:04:25  wmay
-	DSS 4.0 commit
-	
 	Revision 1.4  2001/07/16 08:09:55  mythili
 	added newline to fix warnings for solaris compile
 	

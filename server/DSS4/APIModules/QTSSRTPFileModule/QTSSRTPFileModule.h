@@ -27,13 +27,6 @@
 	Contains:	Content source module that uses the QTFileLib to serve Hinted QuickTime
 				files to clients. 
 					
-	$Log: QTSSRTPFileModule.h,v $
-	Revision 1.1  2002/02/27 19:48:57  wmaycisco
-	Adding Darwin server
-	
-	Revision 1.1  2002/02/25 23:04:19  wmay
-	DSS 4.0 commit
-	
 	Revision 1.3  2001/07/16 08:09:53  mythili
 	added newline to fix warnings for solaris compile
 	

@@ -41,7 +41,9 @@ bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
 	m_avctx.bit_rate = 
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
-	m_avctx.gop_size = m_avctx.rate * 2;
+	m_avctx.gop_size = (int)
+		(m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE)
+		* m_pConfig->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
 	m_avctx.want_key_frame = 0;
 	m_avctx.flags = 0;
 	m_avctx.codec = &divx_encoder;

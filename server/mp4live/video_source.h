@@ -83,7 +83,10 @@ protected:
 	void DoGenerateKeyFrame(void);
 
 	bool Init(void);
+
 	bool InitDevice(void);
+	void ReleaseDevice(void);
+
 	void InitSampleFrames(u_int16_t targetFps, u_int16_t rawFps);
 	void InitSizes(void);
 
@@ -97,6 +100,8 @@ protected:
 		return (ioctl(m_videoDevice, VIDIOCMCAPTURE, 
 			&m_videoFrameMap[frameNumber]) == 0);
 	}
+
+	void SetVideoAudioMute(bool mute);
 
 protected:
 	bool				m_capture;
@@ -144,12 +149,15 @@ class CVideoCapabilities {
 public:
 	CVideoCapabilities(char* deviceName) {
 		m_deviceName = stralloc(deviceName);
+		m_canOpen = false;
+		m_canCapture = false;
 		m_driverName = NULL;
 		m_numInputs = 0;
 		m_inputNames = NULL;
 		m_inputSignalTypes = NULL;
 		m_inputHasTuners = NULL;
 		m_inputTunerSignalTypes = NULL;
+		m_hasAudio = false;
 
 		ProbeDevice();
 	}
@@ -191,6 +199,8 @@ public:
 	u_int8_t*	m_inputSignalTypes;			// current signal type of input
 	bool*		m_inputHasTuners;
 	u_int8_t*	m_inputTunerSignalTypes;	// possible signal types from tuner
+
+	bool		m_hasAudio;
 
 protected:
 	bool ProbeDevice(void);

@@ -24,28 +24,94 @@
 
 CFaacAudioEncoder::CFaacAudioEncoder()
 {
+	m_faacHandle = NULL;
+	m_aacFrameBuffer = NULL;
+	m_aacFrameBufferLength = 0;
+	m_aacFrameMaxSize = 0;
 }
 
 bool CFaacAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 {
 	m_pConfig = pConfig;
 
-	return false;
+	m_pConfig->m_audioEncodedSampleRate =
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+
+	u_int32_t inputSamples;
+
+	m_faacHandle = faacEncOpen(
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE),
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS),
+		(unsigned long*)&inputSamples,
+		(unsigned long*)&m_aacFrameMaxSize);
+
+	m_pConfig->m_audioEncodedSamplesPerFrame = 
+		inputSamples / m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
+
+	if (m_faacHandle == NULL) {
+		return false;
+	}
+
+	m_faacConfig = faacEncGetCurrentConfiguration(m_faacHandle);
+
+	m_faacConfig->mpegVersion = MPEG4;
+	m_faacConfig->aacObjectType = LOW;
+	m_faacConfig->useAdts = false;
+
+	m_faacConfig->bitRate = 
+		(m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE) * 1000)
+		/ m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
+
+	faacEncSetConfiguration(m_faacHandle, m_faacConfig);
+
+	return true;
 }
 
 bool CFaacAudioEncoder::EncodeSamples(
 	u_int16_t* pBuffer, u_int32_t bufferLength)
 {
-	return false;
+	int rc = 0;
+
+	// just in case, should be NULL
+	free(m_aacFrameBuffer);
+
+	m_aacFrameBuffer = (u_int8_t*)malloc(m_aacFrameMaxSize);
+
+	if (m_aacFrameBuffer == NULL) {
+		return false;
+	}
+
+	rc = faacEncEncode(
+		m_faacHandle,
+		(short*)pBuffer,
+		bufferLength / 2,
+		m_aacFrameBuffer,
+		m_aacFrameMaxSize);
+
+	if (rc < 0) {
+		return false;
+	}
+
+	m_aacFrameBufferLength = rc;
+
+	return true;
 }
 
 bool CFaacAudioEncoder::GetEncodedFrame(
 	u_int8_t** ppBuffer, u_int32_t* pBufferLength)
 {
-	return false;
+	*ppBuffer = m_aacFrameBuffer;
+	*pBufferLength = m_aacFrameBufferLength;
+
+	m_aacFrameBuffer = NULL;
+	m_aacFrameBufferLength = 0;
+
+	return true;
 }
 
 void CFaacAudioEncoder::Stop()
 {
+	faacEncClose(m_faacHandle);
+	m_faacHandle = NULL;
 }
 

@@ -28,13 +28,6 @@
 	
 	Written By: Denis Serenyi
 
-	$Log: QTSSPosixFileSysModule.h,v $
-	Revision 1.1  2002/02/27 19:48:57  wmaycisco
-	Adding Darwin server
-	
-	Revision 1.1  2002/02/25 23:04:19  wmay
-	DSS 4.0 commit
-	
 	Revision 1.3  2001/03/13 22:24:06  murata
 	Replace copyright notice for license 1.0 with license 1.2 and update the copyright year.
 	Bug #:

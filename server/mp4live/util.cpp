@@ -18,9 +18,6 @@
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
  */
-/*
- * player_util.c - utility routines for output
- */
 
 #include "systems.h"
 #ifndef _WINDOWS

@@ -63,7 +63,7 @@ void CRtpTransmitter::DoStartTransmit()
 
 	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
 		m_audioTimeScale = 
-			m_pConfig->m_audioMp3SampleRate;
+			m_pConfig->m_audioEncodedSampleRate;
 
 		m_audioDestAddress = 
 			m_pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS); 
@@ -87,8 +87,19 @@ void CRtpTransmitter::DoStartTransmit()
 			m_rtcpBandwidth, 
 			RtpCallback, (uint8_t *)this);
 
-		m_mp3QueueCount = 0;
-		m_mp3QueueSize = 0;
+		m_audioQueueCount = 0;
+		m_audioQueueSize = 0;
+
+		if (!strcasecmp(m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
+		  AUDIO_ENCODING_MP3)) {
+			m_audioFrameType = CMediaFrame::Mp3AudioFrame;
+			m_audioPayloadBytesPerPacket = 4;
+			m_audioPayloadBytesPerFrame = 0;
+		} else { // AAC
+			m_audioFrameType = CMediaFrame::AacAudioFrame;
+			m_audioPayloadBytesPerPacket = 2;
+			m_audioPayloadBytesPerFrame = 2;
+		}
 	}
 
 	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
@@ -131,7 +142,7 @@ void CRtpTransmitter::DoStopTransmit()
 
 	if (m_audioRtpSession) {
 		// send any pending frames
-		SendMp3QueuedFrames();
+		SendQueuedAudioFrames();
 
 		rtp_done(m_audioRtpSession);
 		m_audioRtpSession = NULL;
@@ -154,91 +165,117 @@ void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 		return;
 	}
 
-	if (pFrame->GetType() == CMediaFrame::Mp3AudioFrame 
-	  && m_audioRtpSession) {
-		SendMp3AudioWith2250(pFrame);
+	if (pFrame->GetType() == m_audioFrameType && m_audioRtpSession) {
+		SendAudioFrame(pFrame);
 
 	} else if (pFrame->GetType() == CMediaFrame::Mpeg4VideoFrame 
 	  && m_videoRtpSession) {
 		SendMpeg4VideoWith3016(pFrame);
-	} else {
-		// debug_message("RTP transmitter received unknown frame type %u",
-		// 	pFrame->GetType());
 
+	} else {
 		delete pFrame;
 	}
 }
 
-void CRtpTransmitter::SendMp3AudioWith2250(CMediaFrame* pFrame)
+void CRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
 {
-	if (m_mp3QueueCount > 0) {
-		if (m_mp3QueueSize + pFrame->GetDataLength() <=
+	u_int16_t newAudioQueueSize;
+
+	if (m_audioQueueCount > 0) {
+		newAudioQueueSize =
+			m_audioQueueSize 
+			+ m_audioPayloadBytesPerFrame
+			+ pFrame->GetDataLength();
+
+		if (newAudioQueueSize <= 
 		  m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) {
 
-			m_mp3Queue[m_mp3QueueCount++] = pFrame;
-			m_mp3QueueSize += pFrame->GetDataLength();
+			m_audioQueue[m_audioQueueCount++] = pFrame;
+			m_audioQueueSize = newAudioQueueSize;
 
 			// if we fill the last slot in the queue
 			// send the packet
-			if (m_mp3QueueCount == mp3QueueMaxCount) {
-				SendMp3QueuedFrames();
+			if (m_audioQueueCount == audioQueueMaxCount) {
+				SendQueuedAudioFrames();
 			}
 
 			return;
 
 		} else {
 			// send queued frames
-			SendMp3QueuedFrames();
+			SendQueuedAudioFrames();
 
 			// fall thru
 		}
 	}
 
-	// by here m_mp3QueueCount == 0
+	// by here m_audioQueueCount == 0
 
-	if (pFrame->GetDataLength() + mp3PayloadHeaderSize 
+	newAudioQueueSize =
+		m_audioPayloadBytesPerPacket
+		+ m_audioPayloadBytesPerFrame
+		+ pFrame->GetDataLength();
+
+	if (newAudioQueueSize 
 	  <= m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) {
 
-		m_mp3Queue[m_mp3QueueCount++] = pFrame;
-		m_mp3QueueSize += pFrame->GetDataLength() + mp3PayloadHeaderSize;
+		m_audioQueue[m_audioQueueCount++] = pFrame;
+		m_audioQueueSize = newAudioQueueSize;
 
-		// if we fill the last slot in the queue
-		// send the packet
-		if (m_mp3QueueCount == mp3QueueMaxCount) {
-			SendMp3QueuedFrames();
-		}
 	} else {
 		// highly unusual case 
-		// we need to fragment MP3 frame
+		// we need to fragment audio frame
 		// over multiple packets
-		SendMp3JumboFrame(pFrame);
+		SendAudioJumboFrame(pFrame);
 	}
 }
 
-void CRtpTransmitter::SendMp3QueuedFrames(void)
+void CRtpTransmitter::SendQueuedAudioFrames(void)
 {
-	struct iovec iov[mp3QueueMaxCount + 1];
 	static u_int32_t zero32 = 0;
+	u_int8_t aacHeader[2 + (audioQueueMaxCount * 2)];
+	struct iovec iov[audioQueueMaxCount + 1];
 
-	if (m_mp3QueueCount == 0) {
+	if (m_audioQueueCount == 0) {
 		return;
 	}
 
 	u_int32_t rtpTimestamp =
-		AudioTimestampToRtp(m_mp3Queue[0]->GetTimestamp());
+		AudioTimestampToRtp(m_audioQueue[0]->GetTimestamp());
 	u_int64_t ntpTimestamp =
-		TimestampToNtp(m_mp3Queue[0]->GetTimestamp());
+		TimestampToNtp(m_audioQueue[0]->GetTimestamp());
 
 	// check if RTCP SR needs to be sent
 	rtp_send_ctrl_2(m_audioRtpSession, rtpTimestamp, ntpTimestamp, NULL);
 	rtp_update(m_audioRtpSession);
 
 	// create the iovec list
-	iov[0].iov_base = &zero32;
-	iov[0].iov_len = 4;
-	for (int i = 0; i < m_mp3QueueCount; i++) {
-		iov[i+1].iov_base = m_mp3Queue[i]->GetData();
-		iov[i+1].iov_len = m_mp3Queue[i]->GetDataLength();
+	u_int8_t i;
+
+	// audio payload headers
+	if (m_audioQueue[0]->GetType() == CMediaFrame::Mp3AudioFrame) {
+		iov[0].iov_base = &zero32;
+		iov[0].iov_len = 4;
+	} else { // AAC
+		u_int16_t numHdrBits = 16 * m_audioQueueCount;
+		aacHeader[0] = numHdrBits >> 8;
+		aacHeader[1] = numHdrBits & 0xFF;
+
+		for (i = 0; i < m_audioQueueCount; i++) {
+			aacHeader[2 + (i * 2)] = 
+				m_audioQueue[i]->GetDataLength() >> 5;
+			aacHeader[2 + (i * 2) + 1] = 
+				(m_audioQueue[i]->GetDataLength() & 0x1F) << 3;
+		}
+
+		iov[0].iov_base = aacHeader;
+		iov[0].iov_len = 2 + (m_audioQueueCount * 2);
+	}
+
+	// audio payload data
+	for (i = 0; i < m_audioQueueCount; i++) {
+		iov[i+1].iov_base = m_audioQueue[i]->GetData();
+		iov[i+1].iov_len = m_audioQueue[i]->GetDataLength();
 	}
 
 	// send packet
@@ -246,20 +283,20 @@ void CRtpTransmitter::SendMp3QueuedFrames(void)
 		m_audioRtpSession,
 		rtpTimestamp,
 		m_audioPayloadNumber, 1, 0, NULL,
-		iov, m_mp3QueueCount + 1,
+		iov, m_audioQueueCount + 1,
 		NULL, 0, 0);
 
 	// delete all the pending media frames
-	for (int i = 0; i < m_mp3QueueCount; i++) {
-		delete m_mp3Queue[i];
-		m_mp3Queue[i] = NULL;
+	for (int i = 0; i < m_audioQueueCount; i++) {
+		delete m_audioQueue[i];
+		m_audioQueue[i] = NULL;
 	}
 
-	m_mp3QueueCount = 0;
-	m_mp3QueueSize = 0;
+	m_audioQueueCount = 0;
+	m_audioQueueSize = 0;
 }
 
-void CRtpTransmitter::SendMp3JumboFrame(CMediaFrame* pFrame)
+void CRtpTransmitter::SendAudioJumboFrame(CMediaFrame* pFrame)
 {
 	u_int32_t rtpTimestamp = 
 		AudioTimestampToRtp(pFrame->GetTimestamp());
@@ -267,45 +304,96 @@ void CRtpTransmitter::SendMp3JumboFrame(CMediaFrame* pFrame)
 		TimestampToNtp(pFrame->GetTimestamp());
 
 	// check if RTCP SR needs to be sent
-	rtp_send_ctrl_2(m_videoRtpSession, rtpTimestamp, ntpTimestamp, NULL);
+	rtp_send_ctrl_2(m_audioRtpSession, rtpTimestamp, ntpTimestamp, NULL);
 	rtp_update(m_audioRtpSession);
 
 	u_int32_t dataOffset = 0;
 	u_int32_t spaceAvailable = 
 		m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)
-		- mp3PayloadHeaderSize;
-	bool firstPacket = true;
+		- (m_audioPayloadBytesPerPacket + m_audioPayloadBytesPerFrame);
 
+	bool firstPacket = true;
 	u_int8_t payloadHeader[4];
-	payloadHeader[0] = payloadHeader[1] = 0;
 
 	struct iovec iov[2];
 	iov[0].iov_base = &payloadHeader;
 	iov[0].iov_len = 4;
 
-	do {
-		// update MP3 payload header
-		payloadHeader[2] = (dataOffset >> 8);
-		payloadHeader[3] = (dataOffset & 0xFF);
+	if (pFrame->GetType() == CMediaFrame::Mp3AudioFrame) {
+		payloadHeader[0] = 0;
+		payloadHeader[1] = 0;
 
-		iov[1].iov_base = (u_int8_t*)pFrame->GetData() + dataOffset;
+		do {
+			// update MP3 payload header
+			payloadHeader[2] = (dataOffset >> 8);
+			payloadHeader[3] = (dataOffset & 0xFF);
 
-		// figure out how much data we're sending
-		u_int32_t dataPending = pFrame->GetDataLength() - dataOffset;
-		iov[1].iov_len = MIN(dataPending, spaceAvailable); 
+			iov[1].iov_base = (u_int8_t*)pFrame->GetData() + dataOffset;
 
-		// send packet
-		rtp_send_data_iov(
-			m_audioRtpSession,
-			rtpTimestamp,
-			m_audioPayloadNumber, firstPacket, 0, NULL,
-			iov, 2,
-		 	NULL, 0, 0);
+			// figure out how much data we're sending
+			u_int32_t dataPending = pFrame->GetDataLength() - dataOffset;
+			iov[1].iov_len = MIN(dataPending, spaceAvailable); 
 
-		dataOffset += iov[1].iov_len;
-		firstPacket = false;
+			// send packet
+			rtp_send_data_iov(
+				m_audioRtpSession,
+				rtpTimestamp,
+				m_audioPayloadNumber, firstPacket, 0, NULL,
+				iov, 2,
+				NULL, 0, 0);
 
-	} while (dataOffset < pFrame->GetDataLength());
+			dataOffset += iov[1].iov_len;
+			firstPacket = false;
+
+		} while (dataOffset < pFrame->GetDataLength());
+
+	} else { // AAC
+		bool lastPacket = false;
+
+		payloadHeader[0] = 0;
+		payloadHeader[1] = 16;
+		payloadHeader[2] = pFrame->GetDataLength() >> 5;
+		payloadHeader[3] = (pFrame->GetDataLength() & 0x1F) << 3;
+
+		do {
+			iov[1].iov_base = (u_int8_t*)pFrame->GetData() + dataOffset;
+
+			// figure out how much data we're sending
+			u_int32_t dataPending = pFrame->GetDataLength() - dataOffset;
+			if (dataPending <= spaceAvailable) {
+				iov[1].iov_len = dataPending;
+				lastPacket = true;
+			} else {
+				iov[1].iov_len = spaceAvailable;
+			}
+
+			// send packet
+			if (firstPacket) {
+				rtp_send_data_iov(
+					m_audioRtpSession,
+					rtpTimestamp,
+					m_audioPayloadNumber, false, 0, NULL,
+					&iov[0], 2,
+					NULL, 0, 0);
+
+				firstPacket = false;
+				spaceAvailable += 
+					m_audioPayloadBytesPerPacket 
+					+ m_audioPayloadBytesPerFrame;
+
+			} else {
+				rtp_send_data_iov(
+					m_audioRtpSession,
+					rtpTimestamp,
+					m_audioPayloadNumber, lastPacket, 0, NULL,
+					&iov[1], 1,
+					NULL, 0, 0);
+			}
+
+			dataOffset += iov[1].iov_len;
+
+		} while (dataOffset < pFrame->GetDataLength());
+	}
 
 	delete pFrame;
 }

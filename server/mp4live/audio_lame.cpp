@@ -48,21 +48,26 @@ bool CLameAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 
 	lame_init_params(&m_lameParams);
 
-	m_pConfig->m_audioMp3SampleRate = 
+	m_pConfig->m_audioEncodedSampleRate = 
 		m_lameParams.out_samplerate;
 
-	if (m_pConfig->m_audioMp3SampleRate > 24000) {
-		m_pConfig->m_audioMp3SamplesPerFrame = 
+	if (m_pConfig->m_audioEncodedSampleRate > 24000) {
+		m_pConfig->m_audioEncodedSamplesPerFrame = 
 			MP3_MPEG1_SAMPLES_PER_FRAME;
 	} else {
-		m_pConfig->m_audioMp3SamplesPerFrame = 
+		m_pConfig->m_audioEncodedSamplesPerFrame = 
 			MP3_MPEG2_SAMPLES_PER_FRAME;
+	}
+
+	// sanity check
+	if (m_lameParams.in_samplerate < m_lameParams.out_samplerate) {
+		return false;
 	}
 
 	u_int16_t rawSamplesPerFrame = (u_int16_t)
 		((((float)m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE) 
-		/ (float)m_pConfig->m_audioMp3SampleRate)
-		* m_pConfig->m_audioMp3SamplesPerFrame) 
+		/ (float)m_pConfig->m_audioEncodedSampleRate)
+		* m_pConfig->m_audioEncodedSamplesPerFrame) 
 		+ 0.5);
 
 	u_int32_t rawFrameSize = rawSamplesPerFrame
@@ -70,7 +75,7 @@ bool CLameAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 		* sizeof(u_int16_t);
 
 	m_mp3FrameMaxSize = 
-		(u_int)(1.25 * m_pConfig->m_audioMp3SamplesPerFrame) + 7200;
+		(u_int)(1.25 * m_pConfig->m_audioEncodedSamplesPerFrame) + 7200;
 
 	m_mp3FrameBufferSize = 2 * m_mp3FrameMaxSize;
 
@@ -111,7 +116,7 @@ bool CLameAudioEncoder::EncodeSamples(
 		if (m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 2) {
 			// de-interleave raw frame buffer
 			u_int16_t* s = pBuffer;
-			for (int i = 0; i < m_pConfig->m_audioMp3SamplesPerFrame; i++) {
+			for (int i = 0; i < m_pConfig->m_audioEncodedSamplesPerFrame; i++) {
 				m_leftBuffer[i] = *s++;
 				m_rightBuffer[i] = *s++;
 			}
@@ -124,7 +129,7 @@ bool CLameAudioEncoder::EncodeSamples(
 		mp3DataLength = lame_encode_buffer(
 			&m_lameParams,
 			(short*)leftBuffer, (short*)m_rightBuffer, 
-			m_pConfig->m_audioMp3SamplesPerFrame,
+			m_pConfig->m_audioEncodedSamplesPerFrame,
 			(char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
 			m_mp3FrameBufferSize - m_mp3FrameBufferLength);
 

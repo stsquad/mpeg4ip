@@ -100,7 +100,7 @@ if test ! -d $origin_rep; then
     echo Checking out origin cvs repository $origin_CVSROOT >&6
     cd $origin_dir
     origin_dir=`pwd`
-    cvs -d $origin_CVSROOT checkout -kk $repository 1>&5 2>&5
+    cvs -d $origin_CVSROOT checkout -P -kk $repository 1>&5 2>&5
     cd $repository
     origin_rep=`pwd`
 else
@@ -109,7 +109,7 @@ else
     cd $repository
     origin_rep=`pwd`
     echo Updating origin cvs repository $origin_rep >&6
-    cvs update -kk -d 1>&5 2>&5
+    cvs update -P -kk -d 1>&5 2>&5
 fi
 
 #
@@ -133,6 +133,8 @@ if [ $skipversion = 0 ]; then
    #
    # Update version file for windows
    #
+   echo New version number is `cat VERSION` >&5
+   echo New version number is `cat VERSION` >&6
    echo \#define PACKAGE \"mpeg4ip\" > include/win32_ver.h
    echo \#define VERSION \"`cat VERSION`\" >> include/win32_ver.h
    #
@@ -160,7 +162,7 @@ if test ! -d $dest_rep; then
     echo Checking out destination cvs repository $dest_CVSROOT >&6
     cd $dest_dir
     dest_dir=`pwd`
-    cvs -d $dest_CVSROOT checkout -kk $repository 1>&5 2>&5
+    cvs -d $dest_CVSROOT checkout -P -kk $repository 1>&5 2>&5
     cd $repository
     dest_rep=`pwd`
 else
@@ -169,7 +171,7 @@ else
     cd $repository
     dest_rep=`pwd`
     echo Updating dest cvs repository $dest_rep >&6
-    cvs update -kk -d 1>&5 2>&5
+    cvs update -P -kk -d 1>&5 2>&5
 fi
 
 echo "Creating directory lists" >&5

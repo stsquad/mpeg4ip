@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: frame.h,v 1.3 2001/06/28 23:54:23 wmaycisco Exp $
+ * $Id: frame.h,v 1.4 2002/02/27 20:05:25 wmaycisco Exp $
  */
 
 #ifndef FRAME_H
@@ -66,6 +66,10 @@ typedef struct faacEncConfiguration
 
 	/* AAC file frequency bandwidth */
 	unsigned int bandWidth;
+
+#ifdef MPEG4IP
+	unsigned int useAdts;
+#endif
 
 } faacEncConfiguration, *faacEncConfigurationPtr;
 

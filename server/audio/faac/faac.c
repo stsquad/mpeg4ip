@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: faac.c,v 1.8 2001/11/09 20:18:25 wmaycisco Exp $
+ * $Id: faac.c,v 1.9 2002/02/27 20:05:25 wmaycisco Exp $
  */
 #include "systems.h"
 
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
 				case 'r':
 					rawInput = 1;
 					if (isdigit(argv[i][2])) {
-						rawSampleRate = atol(&argv[i][3]);
+						rawSampleRate = atol(&argv[i][2]);
 					} else {
 						rawSampleRate = 44100;
 					}

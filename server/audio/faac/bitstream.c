@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: bitstream.c,v 1.4 2001/06/28 23:54:23 wmaycisco Exp $
+ * $Id: bitstream.c,v 1.5 2002/02/27 20:05:25 wmaycisco Exp $
  */
 
 #include <stdlib.h>
@@ -204,6 +204,12 @@ static int WriteADTSHeader(faacEncHandle hEncoder,
 						   int writeFlag)
 {
 	int bits = 56;
+
+#ifdef MPEG4IP
+	if (hEncoder->config.useAdts == 0) {
+		return 0;
+	}
+#endif
 
 	if (writeFlag) {
 		/* Fixed ADTS header */

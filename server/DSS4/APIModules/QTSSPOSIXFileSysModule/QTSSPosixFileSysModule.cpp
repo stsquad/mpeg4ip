@@ -28,13 +28,6 @@
 
 	Written By: Denis Serenyi
 
-	$Log: QTSSPosixFileSysModule.cpp,v $
-	Revision 1.1  2002/02/27 19:48:57  wmaycisco
-	Adding Darwin server
-	
-	Revision 1.1  2002/02/25 23:04:19  wmay
-	DSS 4.0 commit
-	
 	Revision 1.10  2001/10/18 02:00:53  lecroy
 	removed "pragma mark"s
 	Bug #:

@@ -108,9 +108,9 @@ protected:
 	void DoStopTransmit(void);
 	void DoSendFrame(CMediaFrame* pFrame);
 
-	void SendMp3AudioWith2250(CMediaFrame* pFrame);
-	void SendMp3QueuedFrames(void);
-	void SendMp3JumboFrame(CMediaFrame* pFrame);
+	void SendAudioFrame(CMediaFrame* pFrame);
+	void SendAudioJumboFrame(CMediaFrame* pFrame);
+	void SendQueuedAudioFrames(void);
 
 	void SendMpeg4VideoWith3016(CMediaFrame* pFrame);
 
@@ -148,13 +148,6 @@ protected:
 	Timestamp		m_startTimestamp;
 	float			m_rtcpBandwidth;
 
-	char*			m_audioDestAddress;
-	struct rtp*		m_audioRtpSession;
-	u_int8_t		m_audioPayloadNumber;
-	u_int32_t		m_audioTimeScale;
-	u_int32_t		m_audioRtpTimestampOffset;
-	u_int16_t		m_audioSrcPort;
-
 	char*			m_videoDestAddress;
 	struct rtp*		m_videoRtpSession;
 	u_int8_t		m_videoPayloadNumber;
@@ -162,14 +155,23 @@ protected:
 	u_int32_t		m_videoRtpTimestampOffset;
 	u_int16_t		m_videoSrcPort;
 
+	u_int16_t		m_audioFrameType;
+	char*			m_audioDestAddress;
+	struct rtp*		m_audioRtpSession;
+	u_int8_t		m_audioPayloadNumber;
+	u_int32_t		m_audioTimeScale;
+	u_int32_t		m_audioRtpTimestampOffset;
+	u_int16_t		m_audioSrcPort;
+	u_int8_t		m_audioPayloadBytesPerPacket;
+	u_int8_t		m_audioPayloadBytesPerFrame;
+
 	// this value chosen to keep queuing latency reasonable
 	// i.e. on the order of 100's of ms
-	static const u_int8_t mp3QueueMaxCount = 8;
-	static const u_int16_t mp3PayloadHeaderSize = 4;
+	static const u_int8_t audioQueueMaxCount = 8;
 
-	CMediaFrame*	m_mp3Queue[mp3QueueMaxCount];
-	u_int8_t		m_mp3QueueCount;
-	u_int16_t		m_mp3QueueSize;
+	CMediaFrame*	m_audioQueue[audioQueueMaxCount];
+	u_int8_t		m_audioQueueCount;
+	u_int16_t		m_audioQueueSize;
 };
 
 #endif /* __RTP_TRANSMITTER_H__ */

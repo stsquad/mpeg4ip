@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: frame.c,v 1.3 2001/06/28 23:54:23 wmaycisco Exp $
+ * $Id: frame.c,v 1.4 2002/02/27 20:05:25 wmaycisco Exp $
  */
 
 /*
@@ -116,6 +116,9 @@ faacEncHandle FAACAPI faacEncOpen(unsigned long sampleRate,
 	hEncoder->config.useTns = 0;
 	hEncoder->config.bitRate = 64000; /* default bitrate / channel */
 	hEncoder->config.bandWidth = 18000; /* default bandwidth */
+#ifdef MPEG4IP
+	hEncoder->config.useAdts = 1;
+#endif
 
 	/* find correct sampling rate depending parameters */
 	hEncoder->srInfo = &srInfo[hEncoder->sampleRateIdx];

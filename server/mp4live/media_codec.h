@@ -19,15 +19,15 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#ifndef __ENCODER_H__
-#define __ENCODER_H__
+#ifndef __MEDIA_CODEC_H__
+#define __MEDIA_CODEC_H__
 
 // forward declarations
 class CLiveConfig;
 
-class CEncoder {
+class CMediaCodec {
 public:
-	CEncoder() { 
+	CMediaCodec() { 
 		m_pConfig = NULL;
 	}
 
@@ -39,5 +39,5 @@ protected:
 	CLiveConfig*	m_pConfig;
 };
 
-#endif /* __ENCODER_H__ */
+#endif /* __MEDIA_CODEC_H__ */
 

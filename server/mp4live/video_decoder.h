@@ -19,35 +19,21 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#ifndef __AUDIO_FAAC_H__
-#define __AUDIO_FAAC_H__
+#ifndef __VIDEO_DECODER_H__
+#define __VIDEO_DECODER_H__
 
-#include "audio_encoder.h"
-#include <faac.h>
+#include "media_codec.h"
 
-class CFaacAudioEncoder : public CAudioEncoder {
+class CVideoDecoder : public CMediaCodec {
 public:
-	CFaacAudioEncoder();
+	CVideoDecoder() { };
 
-	bool Init(
-		CLiveConfig* pConfig, bool realTime = true);
+	virtual bool DecodeImage(
+		u_int8_t* pBuffer, u_int32_t bufferLength) = NULL;
 
-	bool EncodeSamples(
-		u_int16_t* pBuffer, u_int32_t bufferLength);
-
-	bool GetEncodedFrame(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength);
-
-	void Stop();
-
-protected:
-	faacEncHandle			m_faacHandle;
-	faacEncConfigurationPtr	m_faacConfig;
-
-	u_int8_t*				m_aacFrameBuffer;
-	u_int32_t				m_aacFrameBufferLength;
-	u_int32_t				m_aacFrameMaxSize;
+	virtual bool GetDecodedFrame(
+		u_int8_t** ppY, u_int8_t** ppU, u_int8_t** ppV) = NULL;
 };
 
-#endif /* __AUDIO_FAAC_H__ */
+#endif /* __VIDEO_DECODER_H__ */
 

@@ -26,13 +26,6 @@
 
 	Contains:	Implements Admin module
 
-	$Log: QTSSAdminModule.cpp,v $
-	Revision 1.1  2002/02/27 19:48:51  wmaycisco
-	Adding Darwin server
-	
-	Revision 1.1  2002/02/25 23:04:19  wmay
-	DSS 4.0 commit
-	
 	Revision 1.28  2001/10/12 22:13:22  sussery
 	add HTML body to auth failed message.
 	Bug #:

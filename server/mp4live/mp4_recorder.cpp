@@ -24,6 +24,7 @@
 #include "mp4_recorder.h"
 #include "video_source.h"
 #include "mp3.h"
+#include "transcoder.h"
 
 
 int CMp4Recorder::ThreadMain(void) 
@@ -80,9 +81,8 @@ void CMp4Recorder::DoStartRecord()
 		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
 
 	m_encodedAudioTimeScale = 
-		m_pConfig->m_audioMp3SampleRate;
-	m_encodedAudioFrameDuration = 
-		m_pConfig->m_audioMp3SamplesPerFrame;
+		m_pConfig->m_audioEncodedSampleRate;
+	m_encodedAudioFrameDuration = MP4_INVALID_DURATION;
 
 	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
 	  && (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_VIDEO)
@@ -211,18 +211,30 @@ void CMp4Recorder::DoStartRecord()
 		if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
 			m_encodedAudioFrameNum = 1;
 
+			u_int8_t audioType;
+			char* audioPayloadName;
+
+			if (!strcasecmp(m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
+			  AUDIO_ENCODING_AAC)) {
+				audioType = MP4_MPEG4_AUDIO_TYPE;
+				MP4SetAudioProfileLevel(m_mp4File, 0x0F);
+				audioPayloadName = "mpeg4-generic"; 
+			} else {
+				audioType = MP4_MP3_AUDIO_TYPE;
+				MP4SetAudioProfileLevel(m_mp4File, 0xFE);
+				audioPayloadName = "MPA"; 
+			}
+
 			m_encodedAudioTrackId = MP4AddAudioTrack(
 				m_mp4File, 
 				m_encodedAudioTimeScale, 
 				m_encodedAudioFrameDuration,
-				MP4_MP3_AUDIO_TYPE);
+				audioType);
 
 			if (m_encodedAudioTrackId == MP4_INVALID_TRACK_ID) {
 				error_message("can't create encoded audio track");
 				goto start_failure;
 			}
-
-			MP4SetAudioProfileLevel(m_mp4File, 0xFE);
 
 			if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
 				m_audioPayloadNumber = 0;	// dynamic payload
@@ -238,7 +250,7 @@ void CMp4Recorder::DoStartRecord()
 				MP4SetHintTrackRtpPayload(
 					m_mp4File, 
 					m_audioHintTrackId,
-					"MPA", 
+					audioPayloadName,
 					&m_audioPayloadNumber,  
 					m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
 
@@ -283,9 +295,29 @@ void CMp4Recorder::DoStopRecord()
 	if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO)
 	  || m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
 
+		bool useIsmaTag = true;
+
+	  	if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)
+		  && !strcasecmp(m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
+		    AUDIO_ENCODING_MP3)) {
+
+			useIsmaTag = false;
+		}
+
 		MP4MakeIsmaCompliant(
 			m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
-			0, false);
+			0, useIsmaTag);
+	}
+
+	// TEMP solution to AAC hint tracks
+	if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)
+	  && m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)
+	  && !strcasecmp(m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
+		 AUDIO_ENCODING_AAC)) {
+
+			CTranscoder::HintTrack(
+				m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
+				m_encodedAudioTrackId);
 	}
 
 	m_record = false;
@@ -315,18 +347,31 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 			m_rawAudioFrameNum++;
 		}
 
-	} else if (pFrame->GetType() == CMediaFrame::Mp3AudioFrame
+	} else if ((pFrame->GetType() == CMediaFrame::Mp3AudioFrame
+	    || pFrame->GetType() == CMediaFrame::AacAudioFrame)
 	  && m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
 
 		if (m_canRecordAudio) {
+
+			if (m_encodedAudioFrameDuration == MP4_INVALID_DURATION) {
+				m_encodedAudioFrameDuration = 
+					m_pConfig->m_audioEncodedSamplesPerFrame;
+			}
+
 			MP4WriteSample(
 				m_mp4File,
 				m_encodedAudioTrackId,
 				(u_int8_t*)pFrame->GetData(), 
-				pFrame->GetDataLength());
+				pFrame->GetDataLength(),
+				m_encodedAudioFrameDuration);
 
 			if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
-				Write2250Hints(pFrame);
+				if (!strcasecmp(m_pConfig->GetStringValue(
+				  CONFIG_AUDIO_ENCODING), AUDIO_ENCODING_AAC)) {
+					// TBD AAC
+				} else {
+					Write2250Hints(pFrame);
+				}
 			}
 
 			m_encodedAudioFrameNum++;

@@ -79,9 +79,6 @@ int CTranscoder::ThreadMain(void)
 
 void CTranscoder::DoStartTranscode()
 {
-	u_int32_t numVideoTracks;
-	u_int32_t numAudioTracks;
-
 	if (m_transcode) {
 		return;
 	}
@@ -202,7 +199,7 @@ void CTranscoder::DoTranscode()
 	if (m_srcVideoSampleId >= m_srcVideoNumSamples) {
 		DoStopTranscode();
 
-		HintTrack(m_dstVideoTrackId);
+		HintTrack(m_dstMp4FileName, m_dstVideoTrackId);
 	}
 }
 
@@ -224,13 +221,17 @@ void CTranscoder::DoStopTranscode()
 	if (m_videoEncoder) {
 		m_videoEncoder->Stop();
 	}
+	if (m_audioEncoder) {
+		m_audioEncoder->Stop();
+	}
 
 	m_transcode = false;
 }
 
 bool CTranscoder::InitVideoEncoder()
 {
-	char* encoderName = "ffmpeg";	// TBD TEMP
+	const char* encoderName = 
+		m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER);
 
 	if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
 #ifdef ADD_FFMPEG_ENCODER
@@ -266,7 +267,8 @@ bool CTranscoder::DoVideoTrack(
 	  sampleId < startSampleId + numSamples; sampleId++) {
 		bool rc;
 
-		// signals to ReadSample() that it should malloc a buffer for us
+		// signals to ReadSample() 
+		// that it should malloc a buffer for us
 		pSample = NULL;
 		sampleSize = 0;
 
@@ -280,7 +282,7 @@ bool CTranscoder::DoVideoTrack(
 			&sampleDuration);
 
 		if (rc == false) {
-			error_message("failed to read sample %u\n", sampleId);
+			error_message("failed to read video sample %u\n", sampleId);
 			return false;
 		}
 
@@ -314,7 +316,7 @@ bool CTranscoder::DoVideoTrack(
 			isIFrame);
 
 		if (rc == false) {
-			error_message("failed to write sample %u\n", sampleId);
+			error_message("failed to write video sample %u\n", sampleId);
 			return false;
 		}
 
@@ -361,6 +363,63 @@ bool CTranscoder::DoAudioTrack(
 	MP4SampleId startSampleId, 
 	u_int32_t numSamples)
 {
+	u_int8_t* pSample;
+	u_int32_t sampleSize;
+	MP4Duration sampleDuration;
+
+	for (MP4SampleId sampleId = startSampleId; 
+	  sampleId < startSampleId + numSamples; sampleId++) {
+		bool rc;
+
+		// signals to ReadSample() 
+		// that it should malloc a buffer for us
+		pSample = NULL;
+		sampleSize = 0;
+
+		rc = MP4ReadSample(
+			m_srcMp4File, 
+			m_srcAudioTrackId, 
+			sampleId, 
+			&pSample, 
+			&sampleSize,
+			NULL,
+			&sampleDuration);
+
+		if (rc == false) {
+			error_message("failed to read audio sample %u\n", sampleId);
+			return false;
+		}
+
+#ifdef TBD
+		// call encoder
+		rc = m_audioEncoder->EncodeSamples(
+			pSample, xxx);
+
+		if (rc == false) {
+			debug_message("Can't encode audio samples!");
+			return false;
+		}
+
+		u_int8_t* frameBuf;
+		u_int32_t frameBufLength;
+
+		m_audioEncoder->GetEncodedFrame(&frameBuf, &frameBufLength);
+
+		// write out encoded frame
+		rc = MP4WriteSample(
+			m_dstMp4File, 
+			m_dstAudioTrackId,
+			frameBuf,
+			frameBufLength,
+			xxxDuration);
+#endif /* TBD */
+
+		if (rc == false) {
+			error_message("failed to write audio sample %u\n", sampleId);
+			return false;
+		}
+	}
+
 	return true;
 }
 
@@ -403,7 +462,7 @@ u_int64_t CTranscoder::GetEstSize()
 		((double)((videoBytesPerSec + audioBytesPerSec) * seconds) * 1.025);
 }
 
-bool CTranscoder::HintTrack(MP4TrackId trackId)
+bool CTranscoder::HintTrack(const char* dstMp4FileName, MP4TrackId trackId)
 {
 	// TEMP use external mp4creator executable
 	// to do the hinting. Longer term solution is
@@ -420,7 +479,7 @@ bool CTranscoder::HintTrack(MP4TrackId trackId)
 		snprintf(arg1, sizeof(arg1), "-hint=%u", trackId);
 
 		execlp("mp4creator", 
-			"mp4creator", arg1, m_dstMp4FileName, NULL);
+			"mp4creator", arg1, dstMp4FileName, NULL);
 
 	} else { // parent, wait for child
 		int status;

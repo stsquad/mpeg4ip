@@ -111,7 +111,7 @@ protected:
 
 	u_int32_t		m_rawAudioFrameNum;
 	u_int32_t		m_encodedAudioFrameNum;
-	u_int32_t		m_encodedAudioFrameDuration;	// in audioTimeScale ticks
+	MP4Duration		m_encodedAudioFrameDuration;	// in audioTimeScale ticks
 
 	u_int8_t		m_audioPayloadNumber;
 	u_int8_t		m_videoPayloadNumber;

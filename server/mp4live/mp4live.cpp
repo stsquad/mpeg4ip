@@ -31,6 +31,7 @@ int main(int argc, char** argv)
 	char* configFileName = NULL;
 	bool automatic = false;
 	bool headless = false;
+	bool sdpOnly = false;
 	extern int nogui_main(CLiveConfig* pConfig);
 	extern int gui_main(int argc, char**argv, CLiveConfig* pConfig);
 
@@ -42,11 +43,12 @@ int main(int argc, char** argv)
 			{ "automatic", 0, 0, 'a' },
 			{ "file", 1, 0, 'f' },
 			{ "headless", 0, 0, 'h' },
+			{ "sdp", 0, 0, 's' }, 
 			{ "version", 0, 0, 'v' },
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "af:hv",
+		c = getopt_long_only(argc, argv, "af:hsv",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -61,6 +63,9 @@ int main(int argc, char** argv)
 			break;
 		case 'h':
 			headless = true;
+			break;
+		case 's':
+			sdpOnly = true;
 			break;
 		case 'v':
 			fprintf(stderr, "%s version %s\n", argv[0], VERSION);
@@ -102,7 +107,21 @@ int main(int argc, char** argv)
 
 	CVideoSource::InitialVideoProbe(pConfig);
 
+	pConfig->m_audioCapabilities = new CAudioCapabilities(
+		pConfig->GetStringValue(CONFIG_AUDIO_DEVICE_NAME));
+
 	pConfig->Update();
+
+	// initialization done, time to execute
+
+	// first case: just want to generate the SDP file
+	if (sdpOnly) {
+		rc = GenerateSdpFile(pConfig);
+		delete pConfig;
+		exit(rc);
+	}
+
+	// other cases:
 
 	// attempt to exploit any real time features of the OS
 	// will probably only succeed if user has root privileges

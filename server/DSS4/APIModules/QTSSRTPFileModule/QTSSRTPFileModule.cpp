@@ -26,13 +26,6 @@
 
 	Contains:	Implementation of module described in QTSSFileModule.h. 
 					
-	$Log: QTSSRTPFileModule.cpp,v $
-	Revision 1.1  2002/02/27 19:48:57  wmaycisco
-	Adding Darwin server
-	
-	Revision 1.1  2002/02/25 23:04:19  wmay
-	DSS 4.0 commit
-	
 	Revision 1.7  2001/10/08 18:05:29  mythili
 	changed QTSSModuleUtils calls from Get***Pref*** to Get***Attribute***
 	

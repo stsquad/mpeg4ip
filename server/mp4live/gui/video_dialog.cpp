@@ -401,6 +401,11 @@ static bool ValidateAndSave(void)
 	MyConfig->SetStringValue(CONFIG_VIDEO_DEVICE_NAME,
 		gtk_entry_get_text(GTK_ENTRY(device_entry)));
 
+	if (MyConfig->m_videoCapabilities != pVideoCaps) {
+		delete MyConfig->m_videoCapabilities;
+		MyConfig->m_videoCapabilities = pVideoCaps;
+	}
+
 	MyConfig->SetIntegerValue(CONFIG_VIDEO_INPUT,
 		inputIndex);
 

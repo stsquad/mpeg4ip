@@ -22,9 +22,9 @@
 #ifndef __VIDEO_ENCODER_H__
 #define __VIDEO_ENCODER_H__
 
-#include "media_encoder.h"
+#include "media_codec.h"
 
-class CVideoEncoder : public CEncoder {
+class CVideoEncoder : public CMediaCodec {
 public:
 	CVideoEncoder() { };
 

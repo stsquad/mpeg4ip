@@ -23,20 +23,25 @@
 #define __STDC_LIMIT_MACROS
 #include "mp4live.h"
 #include "mp4live_gui.h"
+#include "audio_lame.h"
 
 static GtkWidget *dialog;
 
 static GtkWidget *device_entry;
+static bool device_modified;
 static GtkWidget *input_menu;
 static GtkWidget *channel_menu;
+static GtkWidget *encoding_menu;
 static GtkWidget *sampling_rate_menu;
 static GtkWidget *bit_rate_menu;
 
+static CAudioCapabilities* pAudioCaps;
+
 static char* inputValues[] = {
-	"cd", "line", "mic"
+	"cd", "line", "mic", "mix"
 };
 static char* inputNames[] = {
-	"CD", "Line In", "Microphone"
+	"CD", "Line In", "Microphone", "Via Mixer"
 };
 static u_int8_t inputIndex;
 
@@ -48,29 +53,38 @@ static char* channelNames[] = {
 };
 static u_int8_t channelIndex;
 
-// from mp3.cpp
+static u_int8_t encodingValues[] = {
+	1, 2
+};
+static char* encodingNames[] = {
+	"MP3", "AAC"
+};
+static u_int8_t encodingIndex;
 
-static u_int16_t bitRateValues[] = {
+static char** samplingRateNames = NULL;
+static u_int32_t* samplingRateValues = NULL;
+static u_int8_t samplingRateIndex;
+static u_int8_t samplingRateNumber = 0;	// how many sampling rates
+
+// from mp3.cpp (OK for AAC too)
+static const u_int16_t bitRateAllValues[] = {
 	8, 16, 24, 32, 40, 48, 
 	56, 64, 80, 96, 112, 128, 
 	144, 160, 192, 224, 256, 320
 };
-static char* bitRateNames[] = {
-	"8", "16", "24", "32", "40", "48", 
-	"56", "64", "80", "96", "112", "128", 
-	"144", "160", "192", "224", "256", "320"
-};
-static u_int8_t bitRateIndex;
+static const u_int8_t bitRateAllNumber =
+	sizeof(bitRateAllValues) / sizeof(u_int16_t);
 
-static u_int32_t samplingRateValues[] = {
-	8000, 11025, 12000, 16000, 22050, 
-	24000, 32000, 44100, 48000
-};
-static char* samplingRateNames[] = {
-	"8000", "11025", "12000", "16000", "22050", 
-	"24000", "32000", "44100", "48000"
-};
-static u_int8_t samplingRateIndex;
+static u_int16_t bitRateValues[bitRateAllNumber];
+static char* bitRateNames[bitRateAllNumber];
+static u_int8_t bitRateIndex;
+static u_int8_t bitRateNumber = 0; // how many bit rates
+
+// forward function declarations
+static void CreateSamplingRateMenu(CAudioCapabilities* pNewAudioCaps);
+static void CreateBitRateMenu();
+static void SetSamplingRate(u_int32_t samplingRate);
+
 
 static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 {
@@ -78,6 +92,42 @@ static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 	gtk_widget_destroy(dialog);
 	dialog = NULL;
 } 
+
+static void on_changed(GtkWidget *widget, gpointer *data)
+{
+	if (widget == device_entry) {
+		device_modified = true;
+	}
+}
+
+static void on_device_leave(GtkWidget *widget, gpointer *data)
+{
+	if (!device_modified) {
+		return;
+	}
+
+	// probe new device
+	CAudioCapabilities* pNewAudioCaps = new CAudioCapabilities(
+		gtk_entry_get_text(GTK_ENTRY(device_entry)));
+	
+	// check for errors
+	if (!pNewAudioCaps->IsValid()) {
+		ShowMessage("Change Audio Device",
+			"Specified audio device can't be opened, check name");
+		delete pNewAudioCaps;
+		return;
+	}
+
+	// change sampling rate menu
+	CreateSamplingRateMenu(pNewAudioCaps);
+
+	// change bit rate menu
+	CreateBitRateMenu();
+
+	pAudioCaps = pNewAudioCaps;
+
+	device_modified = false;
+}
 
 static void on_input_menu_activate (GtkWidget *widget, gpointer data)
 {
@@ -89,84 +139,230 @@ static void on_channel_menu_activate (GtkWidget *widget, gpointer data)
 	channelIndex = (unsigned int)data & 0xFF;
 }
 
+static void on_encoding_menu_activate (GtkWidget *widget, gpointer data)
+{
+	encodingIndex = (unsigned int)data & 0xFF;
+
+	CreateSamplingRateMenu(pAudioCaps);
+	CreateBitRateMenu();
+}
+
 static void on_sampling_rate_menu_activate (GtkWidget *widget, gpointer data)
 {
-	u_int8_t newIndex = (unsigned int)data & 0xFF;
+	samplingRateIndex = (unsigned int)data & 0xFF;
 
-	if (samplingRateIndex == newIndex) {
-		return;
-	}
-	samplingRateIndex = newIndex;
-
-	// ensure that bit rate is consistent with new sampling rate
-	if (samplingRateIndex < 6) {
-		// MPEG 2 or 2.5 mode only goes up to 160 kbps
-		if (bitRateIndex >= 14) {
-			ShowMessage("Change Sampling Rate",
-				"New sampling rate requires that bit rate be lowered");
-			bitRateIndex = 13;
-			gtk_option_menu_set_history(GTK_OPTION_MENU(bit_rate_menu),
-				 bitRateIndex);
-		}
-	} else {
-		// MPEG 1
-		if (bitRateIndex < 3) {
-			ShowMessage("Change Sampling Rate",
-				"New sampling rate requires that bit rate be raised");
-			bitRateIndex = 3;
-			gtk_option_menu_set_history(GTK_OPTION_MENU(bit_rate_menu),
-				 bitRateIndex);
-		} else if (bitRateIndex == 12) {
-			ShowMessage("Change Sampling Rate",
-				"New sampling rate requires that bit rate be changed");
-			bitRateIndex = 13;
-			gtk_option_menu_set_history(GTK_OPTION_MENU(bit_rate_menu),
-				 bitRateIndex);
-		}
-	}
+	CreateBitRateMenu();
 }
 
 static void on_bit_rate_menu_activate (GtkWidget *widget, gpointer data)
 {
-	u_int8_t newIndex = (unsigned int)data & 0xFF;
+	bitRateIndex = (unsigned int)data & 0xFF;
+}
 
-	if (bitRateIndex == newIndex) {
-		return;
+void CreateSamplingRateMenu(CAudioCapabilities* pNewAudioCaps)
+{
+	u_int32_t oldSamplingRate = 0;
+	if (samplingRateValues) {
+		oldSamplingRate = samplingRateValues[samplingRateIndex];
 	}
-	bitRateIndex = newIndex;
 
-	// ensure that sampling rate is consistent with new bit rate
-	if (bitRateIndex < 3 || bitRateIndex == 12) {
-		if (samplingRateIndex > 5) {
-			ShowMessage("Change Bit Rate",
-				"New bit rate requires that sampling rate be lowered");
-			samplingRateIndex = 5;
-			gtk_option_menu_set_history(GTK_OPTION_MENU(sampling_rate_menu),
-				 samplingRateIndex);
+	// invalidate index, will fix up below
+	samplingRateIndex = 255;
+
+	u_int8_t maxSamplingRateNumber;
+	if (pNewAudioCaps) {
+		maxSamplingRateNumber = pNewAudioCaps->m_numSamplingRates;
+	} else {
+		maxSamplingRateNumber = 0;
+	}
+
+	// create new menu item names and values
+	char** newSamplingRateNames = 
+		(char**)malloc(sizeof(char*) * maxSamplingRateNumber);
+	u_int32_t* newSamplingRateValues =
+		(u_int32_t*)malloc(sizeof(u_int32_t) * maxSamplingRateNumber);
+
+	u_int8_t i;
+	u_int8_t newSamplingRateNumber = 0;
+
+	for (i = 0; i < maxSamplingRateNumber; i++) {
+
+		// MP3 can't use all the possible sampling rates
+		if (encodingIndex == 0) {
+			// skip the ones it can't handle
+			// MP3 can't handle anything less than 8000
+			// LAME MP3 encoder has additional lower bound at 16000
+			if (pNewAudioCaps->m_samplingRates[i] < 16000
+			  || pNewAudioCaps->m_samplingRates[i] > 48000) {
+				continue;
+			}
 		}
-	} else if (bitRateIndex > 13) {
-		if (samplingRateIndex < 6) {
-			ShowMessage("Change Bit Rate",
-				"New bit rate requires that sampling rate be raised");
-			samplingRateIndex = 6;
-			gtk_option_menu_set_history(GTK_OPTION_MENU(sampling_rate_menu),
-				 samplingRateIndex);
+
+		char buf[64];
+		snprintf(buf, sizeof(buf), "%u",
+			pNewAudioCaps->m_samplingRates[i]);
+		newSamplingRateNames[newSamplingRateNumber] = 
+			stralloc(buf);
+
+		newSamplingRateValues[newSamplingRateNumber] = 
+			pNewAudioCaps->m_samplingRates[i];
+
+		if (oldSamplingRate == newSamplingRateValues[newSamplingRateNumber]) {
+			samplingRateIndex = newSamplingRateNumber;
+		}
+
+		newSamplingRateNumber++;
+	}
+
+	if (samplingRateIndex >= newSamplingRateNumber) {
+		samplingRateIndex = newSamplingRateNumber - 1; 
+	}
+
+	// (re)create the menu
+	sampling_rate_menu = CreateOptionMenu(
+		sampling_rate_menu,
+		newSamplingRateNames, 
+		newSamplingRateNumber,
+		samplingRateIndex,
+		GTK_SIGNAL_FUNC(on_sampling_rate_menu_activate));
+
+	// free up old names
+	for (i = 0; i < samplingRateNumber; i++) {
+		free(samplingRateNames[i]);
+	}
+	free(samplingRateNames);
+	samplingRateNames = newSamplingRateNames;
+	samplingRateValues = newSamplingRateValues;
+	samplingRateNumber = newSamplingRateNumber;
+}
+
+static void SetSamplingRate(u_int32_t samplingRate)
+{
+	u_int8_t i;
+	for (i = 0; i < samplingRateNumber; i++) {
+		if (samplingRate == samplingRateValues[i]) {
+			samplingRateIndex = i;
+			break;
 		}
 	}
+	if (i == samplingRateNumber) {
+		debug_message("invalid sampling rate %u\n", samplingRate);
+	}
+
+	gtk_option_menu_set_history(
+		GTK_OPTION_MENU(sampling_rate_menu), samplingRateIndex);
+}
+
+void CreateBitRateMenu()
+{
+	u_int8_t i;
+	u_int16_t oldBitRate = bitRateValues[bitRateIndex];
+	u_int32_t samplingRate = samplingRateValues[samplingRateIndex];
+
+	// free up old names
+	for (i = 0; i < bitRateNumber; i++) {
+		free(bitRateNames[i]);
+		bitRateNames[i] = NULL;
+	}
+	bitRateNumber = 0;
+	
+	// make current bitrate index invalid, will fixup below
+	bitRateIndex = 255;
+
+	// for all possible bitrates
+	for (i = 0; i < bitRateAllNumber; i++) {
+
+		// MP3 can't use all the possible bit rates
+		// LAME imposes additional constraints
+		if (encodingIndex == 0) {
+			if (samplingRate >= 32000) {
+				// MPEG-1
+
+				if (bitRateAllValues[i] < 40
+				  || bitRateAllValues[i] == 144) {
+					continue;
+				}
+				if (samplingRate >= 44100 && bitRateAllValues[i] < 56) {
+					continue;
+				}
+				if (samplingRate >= 48000 && bitRateAllValues[i] < 64) {
+					continue;
+				}
+
+			} else {
+				// MPEG-2 or MPEG-2.5
+
+				if (samplingRate > 16000) {
+					if (bitRateAllValues[i] < 32) {
+						continue;
+					}
+				}
+
+				if (bitRateAllValues[i] > 160) {
+					continue;
+				}
+			}
+		}
+
+		char buf[64];
+		snprintf(buf, sizeof(buf), "%u",
+			bitRateAllValues[i]);
+		bitRateNames[bitRateNumber] = stralloc(buf);
+
+		bitRateValues[bitRateNumber] = bitRateAllValues[i];
+
+		// preserve user's current choice if we can
+		if (oldBitRate == bitRateValues[bitRateNumber]) {
+			bitRateIndex = bitRateNumber;
+		}
+
+		bitRateNumber++;
+	}
+
+	if (bitRateIndex >= bitRateNumber) {
+		bitRateIndex = bitRateNumber - 1; 
+	}
+
+	// (re)create the menu
+	bit_rate_menu = CreateOptionMenu(
+		bit_rate_menu,
+		bitRateNames, 
+		bitRateNumber,
+		bitRateIndex,
+		GTK_SIGNAL_FUNC(on_bit_rate_menu_activate));
 }
 
 static bool ValidateAndSave(void)
 {
+	// if device has been modified
+	// and isn't validated, then don't proceed
+	if (device_modified) {
+		return false;
+	}
+
 	// copy new values to config
 
 	MyConfig->SetStringValue(CONFIG_AUDIO_DEVICE_NAME,
 		gtk_entry_get_text(GTK_ENTRY(device_entry)));
+
+	if (MyConfig->m_audioCapabilities != pAudioCaps) {
+		delete MyConfig->m_audioCapabilities;
+		MyConfig->m_audioCapabilities = pAudioCaps;
+	}
 
 	MyConfig->SetStringValue(CONFIG_AUDIO_INPUT_NAME,
 		inputValues[inputIndex]);
 
 	MyConfig->SetIntegerValue(CONFIG_AUDIO_CHANNELS, 
 		channelValues[channelIndex]);
+
+	if (encodingIndex == 1) {
+		MyConfig->SetStringValue(CONFIG_AUDIO_ENCODING, AUDIO_ENCODING_AAC);
+		MyConfig->SetStringValue(CONFIG_AUDIO_ENCODER, AUDIO_ENCODER_FAAC);
+	} else {
+		MyConfig->SetStringValue(CONFIG_AUDIO_ENCODING, AUDIO_ENCODING_MP3);
+		MyConfig->SetStringValue(CONFIG_AUDIO_ENCODER, AUDIO_ENCODER_LAME);
+	}
 
 	MyConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE, 
 		samplingRateValues[samplingRateIndex]);
@@ -202,6 +398,8 @@ void CreateAudioDialog (void)
 	GtkWidget* label;
 	GtkWidget* button;
 
+	pAudioCaps = MyConfig->m_audioCapabilities;
+
 	dialog = gtk_dialog_new();
 	gtk_signal_connect(GTK_OBJECT(dialog),
 		"destroy",
@@ -234,6 +432,11 @@ void CreateAudioDialog (void)
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
+	label = gtk_label_new(" Encoding :");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
+
 	label = gtk_label_new(" Sampling Rate (Hz):");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_widget_show(label);
@@ -252,6 +455,10 @@ void CreateAudioDialog (void)
 	device_entry = gtk_entry_new_with_max_length(128);
 	gtk_entry_set_text(GTK_ENTRY(device_entry), 
 		MyConfig->GetStringValue(CONFIG_AUDIO_DEVICE_NAME));
+	device_modified = false;
+	SetEntryValidator(GTK_OBJECT(device_entry),
+		GTK_SIGNAL_FUNC(on_changed),
+		GTK_SIGNAL_FUNC(on_device_leave));
 	gtk_widget_show(device_entry);
 	gtk_box_pack_start(GTK_BOX(vbox), device_entry, TRUE, TRUE, 0);
 
@@ -285,36 +492,40 @@ void CreateAudioDialog (void)
 		GTK_SIGNAL_FUNC(on_channel_menu_activate));
 	gtk_box_pack_start(GTK_BOX(vbox), channel_menu, TRUE, TRUE, 0);
 
-	samplingRateIndex = 0; 
-	for (u_int8_t i = 0; i < sizeof(samplingRateValues) / sizeof(u_int32_t); i++) {
-		if (MyConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE)
-		  == samplingRateValues[i]) {
-			samplingRateIndex = i;
-			break;
-		}
+	if (!strcasecmp(MyConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
+	  AUDIO_ENCODING_AAC)) {
+		encodingIndex = 1;
+	} else {
+		encodingIndex = 0;
 	}
-	sampling_rate_menu = CreateOptionMenu (NULL,
-		samplingRateNames, 
-		sizeof(samplingRateNames) / sizeof(char*),
-		samplingRateIndex,
-		GTK_SIGNAL_FUNC(on_sampling_rate_menu_activate));
+	encoding_menu = CreateOptionMenu (NULL,
+		encodingNames, 
+		sizeof(encodingNames) / sizeof(char*),
+		encodingIndex,
+		GTK_SIGNAL_FUNC(on_encoding_menu_activate));
+	gtk_box_pack_start(GTK_BOX(vbox), encoding_menu, TRUE, TRUE, 0);
+
+	sampling_rate_menu = NULL;
+	CreateSamplingRateMenu(pAudioCaps);
 	gtk_box_pack_start(GTK_BOX(vbox), sampling_rate_menu, TRUE, TRUE, 0);
 
-	bitRateIndex = 0; 
-	for (u_int8_t i = 0; i < sizeof(bitRateValues) / sizeof(u_int16_t); i++) {
+	// set sampling rate value based on MyConfig
+	SetSamplingRate(MyConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
+
+	bit_rate_menu = NULL;
+	CreateBitRateMenu();
+	gtk_box_pack_start(GTK_BOX(vbox), bit_rate_menu, TRUE, TRUE, 0);
+
+	// set bit rate value based on MyConfig
+	for (u_int8_t i = 0; i < bitRateNumber; i++) {
 		if (MyConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE)
 		  == bitRateValues[i]) {
 			bitRateIndex = i;
 			break;
 		}
 	}
-	bit_rate_menu = CreateOptionMenu (NULL,
-		bitRateNames, 
-		sizeof(bitRateNames) / sizeof(char*),
-		bitRateIndex,
-		GTK_SIGNAL_FUNC(on_bit_rate_menu_activate));
-	gtk_box_pack_start(GTK_BOX(vbox), bit_rate_menu, TRUE, TRUE, 0);
-
+	gtk_option_menu_set_history(
+		GTK_OPTION_MENU(bit_rate_menu), bitRateIndex);
 
 	// Add standard buttons at bottom
 	button = AddButtonToDialog(dialog,

@@ -1,4 +1,4 @@
-November 7, 2001
+February 26, 2002
 
 MP4LIVE 
 =======
@@ -12,6 +12,30 @@ Simple Profile which is OpenDivx compatible.
 Please use the MPEG4IP SourceForge site to report problems, suggest 
 enhancements, ask questions, etc. The URL is 
 http://www.sourceforge.net/projects/mpeg4ip
+
+Changes in version 0.9.3
+========================
+Improved audio/video synchronization over long recording periods.
+
+Easy switching between raw and encoded video preview modes.
+
+A fix to the TV frequency tuning code that corrects a problem with using
+some frequencies.
+
+The AAC audio format can now be used instead of MP3 for audio encoding.
+
+The UI now takes greater care to ensure that only valid combinations of
+audio sampling rates and bit rates can be selected for MP3 encoding.
+
+Control over the audio input source (I.e. mixer/cd/microphone/line).
+
+Raw audio and video, i.e. PCM16 and YUV12 formats, can now be recorded into
+an mp4 file. With the next, upcoming version of mp4live will enable this
+to be used to do offline encoding and generate multiple encodings or 
+multiple bitrates of the audio and video tracks. 
+
+A new command line option, --sdp, is added that causes mp4live to just
+generate the .sdp file associated with a configuration.
 
 
 Hardware Requirements
@@ -42,12 +66,12 @@ Known to work are:
 Software Requirements
 =====================
 Linux with a 2.4 or later kernel
-	(My development was done on RedHat 7.1)
+	(My development was done on RedHat 7.1 and 7.2)
 
 Drivers for sound and video devices
 
-	bttv video capture driver
-		Included with RedHat 7.1, I don't know about other Linux distributions
+	bttv 0.7 video capture driver
+		(Included with RedHat 7.1 and later)
 	qce webcam driver
 
 
@@ -190,10 +214,11 @@ mp4live instead.
 Advanced Usage
 ==============
 
-There are currently three command line options to mp4live:
+There are currently four command line options to mp4live:
 --file <config-file>
 --automatic
 --headless
+--sdp
 
 --file <config-file> allows specification of the mp4live configuration file
 to something other than ~/.mp4live_rc. Perhaps you have a several frequently
@@ -207,6 +232,9 @@ with the 'cron' utlity to do scheduled recording and/or transmission.
 
 --headless causes mp4live to behave in the --automatic mode AND not display
 any user interface.
+
+--sdp causes mp4live to just generate the sdp file based on its configuration
+file and then exit.
 
 
 Known Issues

@@ -234,6 +234,17 @@ void CAVLiveMediaFlow::StopVideoPreview(void)
 
 void CAVLiveMediaFlow::SetAudioInput(void)
 {
+	// if mixer is specified, then user takes responsibility for
+	// configuring mixer to set the appropriate input sources
+	// this allows multiple inputs to be used, for example
+
+	if (!strcasecmp(m_pConfig->GetStringValue(CONFIG_AUDIO_INPUT_NAME),
+	  "mix")) {
+		return;
+	}
+
+	// else set the mixer input source to the one specified
+
 	static char* inputNames[] = SOUND_DEVICE_NAMES;
 
 	char* mixerName = 

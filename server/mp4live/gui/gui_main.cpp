@@ -44,6 +44,7 @@ static GtkWidget *video_preview;
 
 static GtkWidget *video_enabled_button;
 static GSList	 *video_preview_radio_group;
+static GtkWidget *video_none_preview_button;
 static GtkWidget *video_raw_preview_button;
 static GtkWidget *video_encoded_preview_button;
 static GtkWidget *video_settings_label1;
@@ -182,7 +183,16 @@ void DisplayAudioSettings(void)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(audio_enabled_button),
 		MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE));
   
-	snprintf(buffer, sizeof(buffer), " MP3 at %u kbps",
+	char* encoding;
+	if (!strcasecmp(MyConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
+	  AUDIO_ENCODING_AAC)) {
+		encoding = "AAC";
+	} else {
+		encoding = "MP3";
+	}
+
+	snprintf(buffer, sizeof(buffer), " %s at %u kbps",
+		encoding,
 		MyConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE));
 	gtk_label_set_text(GTK_LABEL(audio_settings_label), buffer);
 	gtk_widget_show(audio_settings_label);
@@ -248,12 +258,20 @@ static void on_video_enabled_button (GtkWidget *widget, gpointer *data)
 	}
 }
 
-static void on_video_raw_preview_button (GtkWidget *widget, gpointer *data)
+static void on_video_preview_button (GtkWidget *widget, gpointer *data)
 {
+	MyConfig->SetBoolValue(CONFIG_VIDEO_PREVIEW,
+		!gtk_toggle_button_get_active(
+			GTK_TOGGLE_BUTTON(video_none_preview_button)));
+
 	MyConfig->SetBoolValue(CONFIG_VIDEO_RAW_PREVIEW,
-		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+		gtk_toggle_button_get_active(
+			GTK_TOGGLE_BUTTON(video_raw_preview_button)));
+
 	MyConfig->SetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW,
-		!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+		gtk_toggle_button_get_active(
+			GTK_TOGGLE_BUTTON(video_encoded_preview_button)));
+
 	MyConfig->UpdateVideo();
 }
 
@@ -328,8 +346,10 @@ static void LockoutChanges(bool lockout)
 	gtk_widget_set_sensitive(GTK_WIDGET(record_settings_button), !lockout);
 	gtk_widget_set_sensitive(GTK_WIDGET(transmit_enabled_button), !lockout);
 	gtk_widget_set_sensitive(GTK_WIDGET(transmit_settings_button), !lockout);
+#ifdef TRANSCODER
 	gtk_widget_set_sensitive(GTK_WIDGET(transcode_enabled_button), !lockout);
 	gtk_widget_set_sensitive(GTK_WIDGET(transcode_settings_button), !lockout);
+#endif
 	gtk_widget_set_sensitive(GTK_WIDGET(duration_spinner), !lockout);
 	gtk_widget_set_sensitive(GTK_WIDGET(duration_units_menu), !lockout);
 }
@@ -700,31 +720,55 @@ static void LayoutVideoFrame(GtkWidget* box)
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
 
+	// none preview radio button
+	video_none_preview_button = gtk_radio_button_new_with_label(NULL, "None");
+	gtk_widget_show(video_none_preview_button);
+	gtk_box_pack_start(GTK_BOX(hbox), video_none_preview_button,
+		FALSE, FALSE, 0);
+
 	// raw preview radio button
-	video_raw_preview_button = gtk_radio_button_new_with_label(NULL, "Raw");
+	video_preview_radio_group = 
+		gtk_radio_button_group(GTK_RADIO_BUTTON(video_none_preview_button));
+	video_raw_preview_button = 
+		gtk_radio_button_new_with_label(video_preview_radio_group, "Raw");
 	gtk_widget_show(video_raw_preview_button);
-	gtk_signal_connect(GTK_OBJECT(video_raw_preview_button), 
-		"toggled",
-		 GTK_SIGNAL_FUNC(on_video_raw_preview_button),
-		 NULL);
 	gtk_box_pack_start(GTK_BOX(hbox), video_raw_preview_button,
 		FALSE, FALSE, 0);
 
 	// encoded preview radio button
 	video_preview_radio_group = 
-		gtk_radio_button_group(GTK_RADIO_BUTTON(video_raw_preview_button));
+		gtk_radio_button_group(GTK_RADIO_BUTTON(video_none_preview_button));
 	video_encoded_preview_button = 
 		gtk_radio_button_new_with_label(video_preview_radio_group, "Encoded");
 	gtk_widget_show(video_encoded_preview_button);
 	gtk_box_pack_start(GTK_BOX(hbox), video_encoded_preview_button,
 		FALSE, FALSE, 0);
 
+	// set states
+	gtk_toggle_button_set_active(
+		GTK_TOGGLE_BUTTON(video_none_preview_button), 
+		!MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW));
 	gtk_toggle_button_set_active(
 		GTK_TOGGLE_BUTTON(video_raw_preview_button), 
-		MyConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW));
+		MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)
+		&& MyConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW));
 	gtk_toggle_button_set_active(
 		GTK_TOGGLE_BUTTON(video_encoded_preview_button), 
-		!MyConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW));
+		MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)
+		&& MyConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW));
+
+	gtk_signal_connect(GTK_OBJECT(video_none_preview_button), 
+		"toggled",
+		 GTK_SIGNAL_FUNC(on_video_preview_button),
+		 NULL);
+	gtk_signal_connect(GTK_OBJECT(video_raw_preview_button), 
+		"toggled",
+		 GTK_SIGNAL_FUNC(on_video_preview_button),
+		 NULL);
+	gtk_signal_connect(GTK_OBJECT(video_encoded_preview_button), 
+		"toggled",
+		 GTK_SIGNAL_FUNC(on_video_preview_button),
+		 NULL);
 
 	// create third row
 	hbox = gtk_hbox_new(FALSE, 1);
@@ -1126,7 +1170,7 @@ void LayoutStatusFrame(GtkWidget* box)
 	// vbox for time values
 	vbox = gtk_vbox_new(FALSE, 1);
 	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
 
 	start_time = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(start_time), 1.0, 0.5);
@@ -1151,7 +1195,7 @@ void LayoutStatusFrame(GtkWidget* box)
 	// vbox for time units
 	vbox = gtk_vbox_new(FALSE, 1);
 	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 5);
 
 	start_time_units = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(start_time_units), 1.0, 0.5);
@@ -1202,7 +1246,7 @@ void LayoutStatusFrame(GtkWidget* box)
 	// vbox for size values
 	vbox = gtk_vbox_new(FALSE, 1);
 	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
 
 	current_size = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(current_size), 1.0, 0.5);
@@ -1217,7 +1261,7 @@ void LayoutStatusFrame(GtkWidget* box)
 	// vbox for size units
 	vbox = gtk_vbox_new(FALSE, 1);
 	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 5);
 
 	current_size_units = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(current_size_units), 1.0, 0.5);
@@ -1248,12 +1292,12 @@ void LayoutStatusFrame(GtkWidget* box)
 	actual_fps = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(actual_fps), 1.0, 0.5);
 	gtk_widget_show(actual_fps);
-	gtk_box_pack_start(GTK_BOX(hbox), actual_fps, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), actual_fps, FALSE, FALSE, 0);
 
 	actual_fps_units = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(actual_fps_units), 1.0, 0.5);
 	gtk_widget_show(actual_fps_units);
-	gtk_box_pack_start(GTK_BOX(hbox), actual_fps_units, TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(hbox), actual_fps_units, FALSE, FALSE, 5);
 
 	gtk_widget_show(frame); // show control frame
 }
@@ -1319,9 +1363,11 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 	LayoutTransmitFrame(main_vbox2);
 	DisplayTransmitSettings();
 
+#ifdef TRANSCODER
 	// Transcoding Frame
 	LayoutTranscodingFrame(main_vbox2);
 	DisplayTranscodingSettings();
+#endif /* TRANSCODER */
 
 	// Status frame
 	LayoutStatusFrame(main_vbox1);

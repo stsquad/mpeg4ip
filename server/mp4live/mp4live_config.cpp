@@ -21,6 +21,8 @@
  */
 
 #include "mp4live.h"
+#include "video_source.h"
+#include "audio_source.h"
 
 CLiveConfig::CLiveConfig(
 	SConfigVariable* variables, 
@@ -38,10 +40,17 @@ CLiveConfig::CLiveConfig(
 	m_videoMpeg4ConfigLength = 0;
 	m_videoMpeg4Config = NULL;
 	m_videoMaxVopSize = 128 * 1024;
+	m_audioCapabilities = NULL;
 	m_audioEncode = true;
-	m_audioMp3SampleRate = 44100;
-	m_audioMp3SamplesPerFrame = 1152;
+	m_audioEncodedSampleRate = 44100;
+	m_audioEncodedSamplesPerFrame = 1152;
 	m_recordEstFileSize = 0;
+}
+
+CLiveConfig::~CLiveConfig()
+{
+	delete m_videoCapabilities;
+	delete m_audioCapabilities;
 }
 
 // recalculate derived values

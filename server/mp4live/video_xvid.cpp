@@ -60,8 +60,9 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	xvidEncParams.rc_reaction_ratio = 20;
 	xvidEncParams.max_quantizer = 31;
 	xvidEncParams.min_quantizer = 1;
-	xvidEncParams.max_key_interval = 
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE) * 2;
+	xvidEncParams.max_key_interval = (int) 
+		(m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE) 
+		 * m_pConfig->GetIntegerValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
 	xvidEncParams.motion_search = (realTime ? 1 : 5);
 	xvidEncParams.quant_type = 1;
 	xvidEncParams.lum_masking = 0;

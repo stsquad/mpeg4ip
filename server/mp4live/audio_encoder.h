@@ -22,9 +22,9 @@
 #ifndef __AUDIO_ENCODER_H__
 #define __AUDIO_ENCODER_H__
 
-#include "media_encoder.h"
+#include "media_codec.h"
 
-class CAudioEncoder : public CEncoder {
+class CAudioEncoder : public CMediaCodec {
 public:
 	CAudioEncoder() { };
 

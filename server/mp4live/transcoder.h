@@ -25,6 +25,7 @@
 #include <mp4.h>
 #include "media_node.h"
 #include "video_encoder.h"
+#include "audio_encoder.h"
 
 class CTranscoder : public CMediaSource {
 public:
@@ -67,6 +68,8 @@ public:
 
 	u_int64_t GetEstSize();
 
+	static bool HintTrack(const char* dstMp4FileName, MP4TrackId trackId);
+
 protected:
 	static const int MSG_START_TRANSCODE	= 1;
 	static const int MSG_STOP_TRANSCODE		= 2;
@@ -82,8 +85,6 @@ protected:
 
 	bool InitVideoEncoder(void);
 
-	bool HintTrack(MP4TrackId trackId);
-
 protected:
 	bool			m_transcode;
 
@@ -91,10 +92,10 @@ protected:
 	const char*		m_dstMp4FileName;
 	MP4FileHandle	m_srcMp4File;
 	MP4FileHandle	m_dstMp4File;
-	MP4TrackId		m_srcAudioTrackId;
-	MP4TrackId		m_dstAudioTrackId;
 	MP4TrackId		m_srcVideoTrackId;
 	MP4TrackId		m_dstVideoTrackId;
+	MP4TrackId		m_srcAudioTrackId;
+	MP4TrackId		m_dstAudioTrackId;
 
 	CVideoEncoder*	m_videoEncoder;
 	u_int32_t		m_srcVideoNumSamples;
@@ -105,6 +106,7 @@ protected:
 	u_int32_t		m_videoUVSize;
 	u_int32_t		m_videoYUVSize;
 
+	CAudioEncoder*	m_audioEncoder;
 	u_int32_t		m_srcAudioNumSamples;
 	MP4SampleId		m_srcAudioSampleId;
 };

@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: faac.h,v 1.1 2001/06/01 20:52:37 wmaycisco Exp $
+ * $Id: faac.h,v 1.2 2002/02/27 20:05:25 wmaycisco Exp $
  */
 
 #ifndef FAACLIB_H
@@ -72,6 +72,8 @@ typedef struct faacEncConfiguration
 
 	/* AAC file frequency bandwidth */
 	unsigned int bandWidth;
+
+	unsigned int useAdts;
 
 } faacEncConfiguration, *faacEncConfigurationPtr;
 

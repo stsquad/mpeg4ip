@@ -26,13 +26,6 @@
 
 	Contains:	
 					
-	$Log: RTPFileSession.h,v $
-	Revision 1.1  2002/02/27 19:48:57  wmaycisco
-	Adding Darwin server
-	
-	Revision 1.1  2002/02/25 23:04:19  wmay
-	DSS 4.0 commit
-	
 	Revision 1.4  2001/11/22 00:48:29  murata
 	Expand 'hinf' atom support to include 8 byte atom values used by some mpeg4 files.
 	Bug #:

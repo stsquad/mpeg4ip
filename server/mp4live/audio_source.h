@@ -86,4 +86,38 @@ protected:
 	Duration			m_encodedFrameDuration;
 };
 
+class CAudioCapabilities {
+public:
+	CAudioCapabilities(char* deviceName) {
+		m_deviceName = stralloc(deviceName);
+		m_canOpen = false;
+		m_numSamplingRates = 0;
+
+		ProbeDevice();
+	}
+
+	~CAudioCapabilities() {
+		free(m_deviceName);
+	}
+
+	inline bool IsValid() {
+		return m_canOpen;
+	}
+
+public:
+	char*		m_deviceName; 
+	bool		m_canOpen;
+
+	// N.B. the rest of the fields are only valid 
+	// if m_canOpen is true
+
+	char*		m_driverName; 
+
+	u_int16_t	m_numSamplingRates;
+	u_int32_t	m_samplingRates[16];
+
+protected:
+	bool ProbeDevice(void);
+};
+
 #endif /* __AUDIO_SOURCE_H__ */

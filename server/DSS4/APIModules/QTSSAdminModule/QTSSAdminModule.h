@@ -28,13 +28,6 @@
 				to present a web page containing that information. Uses the Filter
 				module feature of QTSS API.
 
-	$Log: QTSSAdminModule.h,v $
-	Revision 1.1  2002/02/27 19:48:51  wmaycisco
-	Adding Darwin server
-	
-	Revision 1.1  2002/02/25 23:04:19  wmay
-	DSS 4.0 commit
-	
 	Revision 1.3  2001/03/13 22:24:03  murata
 	Replace copyright notice for license 1.0 with license 1.2 and update the copyright year.
 	Bug #:

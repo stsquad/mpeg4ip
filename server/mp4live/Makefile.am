@@ -15,7 +15,7 @@ mp4live_SOURCES = \
 	mp4live.h \
 	mp4live_config.h \
 	mp4live_config.cpp \
-	media_encoder.h \
+	media_codec.h \
 	media_flow.h \
 	media_flow.cpp \
 	media_frame.h \
@@ -35,8 +35,8 @@ mp4live_SOURCES = \
 	transcoder.cpp \
 	tv_frequencies.cpp \
 	tv_frequencies.h \
-	util.c \
 	util.h \
+	util.cpp \
 	video_encoder.h \
 	video_ffmpeg.h \
 	video_ffmpeg.cpp \
@@ -65,12 +65,9 @@ INCLUDES=\
 	-I$(top_srcdir)/common/video/xvid \
 	-I$(top_srcdir)/player/lib
 
-AM_CFLAGS= -DADD_FFMPEG_ENCODER -DADD_XVID_ENCODER \
-	-DADD_LAME_ENCODER \
-	-D_REENTRANT -Wall -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
-
 AM_CXXFLAGS = -DADD_FFMPEG_ENCODER -DADD_XVID_ENCODER \
-	-DADD_LAME_ENCODER \
+	-DADD_LAME_ENCODER -DADD_FAAC_ENCODER \
+	-DTRANSCODER \
 	-D_REENTRANT -DNOCONTROLS -fexceptions -Wall
 
 LDADD = \

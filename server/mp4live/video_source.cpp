@@ -107,12 +107,7 @@ void CVideoSource::DoStopCapture(void)
 	delete m_encoder;
 	m_encoder = NULL;
 
-	// release device resources
-	munmap(m_videoMap, m_videoMbuf.size);
-	m_videoMap = NULL;
-
-	close(m_videoDevice);
-	m_videoDevice = -1;
+	ReleaseDevice();
 
 	m_capture = false;
 }
@@ -243,7 +238,7 @@ bool CVideoSource::InitDevice(void)
 			m_pConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX)].freq;
 		unsigned long videoFrequencyTuner =
 			((videoFrequencyKHz / 1000) << 4) 
-			| ((videoFrequencyKHz % 1000) >> 4);
+			| ((videoFrequencyKHz % 1000) >> 6);
 
 		rc = ioctl(m_videoDevice, VIDIOCSFREQ, &videoFrequencyTuner);
 		if (rc < 0) {
@@ -310,6 +305,10 @@ bool CVideoSource::InitDevice(void)
 		m_pConfig->m_videoNeedRgbToYuv = true;
 	}
 
+	if (videoCapability.audios) {
+		SetVideoAudioMute(false);
+	}
+
 	return true;
 
 failure:
@@ -321,6 +320,45 @@ failure:
 	close(m_videoDevice);
 	m_videoDevice = -1;
 	return false;
+}
+
+void CVideoSource::ReleaseDevice()
+{
+	SetVideoAudioMute(true);
+
+	// release device resources
+	munmap(m_videoMap, m_videoMbuf.size);
+	m_videoMap = NULL;
+
+	close(m_videoDevice);
+	m_videoDevice = -1;
+}
+	
+void CVideoSource::SetVideoAudioMute(bool mute)
+{
+	if (!m_pConfig->m_videoCapabilities->m_hasAudio) {
+		return;
+	}
+
+	int rc;
+	struct video_audio videoAudio;
+
+	rc = ioctl(m_videoDevice, VIDIOCGAUDIO, &videoAudio);
+
+	if (rc == 0 && (videoAudio.flags & VIDEO_AUDIO_MUTABLE)) {
+		if (mute) {
+			videoAudio.flags |= VIDEO_AUDIO_MUTE;
+		} else {
+			videoAudio.flags &= ~VIDEO_AUDIO_MUTE;
+		}
+
+		rc = ioctl(m_videoDevice, VIDIOCSAUDIO, &videoAudio);
+
+		if (rc < 0) {
+			debug_message("Can't set video audio for %s",
+				m_pConfig->m_videoCapabilities->m_deviceName);
+		}
+	}
 }
 
 void CVideoSource::InitSampleFrames(u_int16_t targetFps, u_int16_t rawFps)
@@ -738,7 +776,6 @@ bool CVideoCapabilities::ProbeDevice()
 
 	int videoDevice = open(m_deviceName, O_RDWR);
 	if (videoDevice < 0) {
-		m_canOpen = false;
 		return false;
 	}
 	m_canOpen = true;
@@ -769,6 +806,8 @@ bool CVideoCapabilities::ProbeDevice()
 	m_minHeight = videoCapability.minheight;
 	m_maxWidth = videoCapability.maxwidth;
 	m_maxHeight = videoCapability.maxheight;
+
+	m_hasAudio = videoCapability.audios;
 
 	m_inputNames = (char**)malloc(m_numInputs * sizeof(char*));
 	memset(m_inputNames, 0, m_numInputs * sizeof(char*));

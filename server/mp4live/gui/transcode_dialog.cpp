@@ -42,10 +42,10 @@ static char* videoSrcNames[] = {
 static u_int8_t videoSrcIndex;
 
 static int videoDstValues[] = {
-	0, 1
+	0, 1, 2
 }; 
 static char* videoDstNames[] = {
-	"MPEG-4", "H.26L "
+	"Nothing", "MPEG-4 ", "H.26L  "
 };
 static u_int8_t videoDstIndex;
 
@@ -58,10 +58,10 @@ static char* audioSrcNames[] = {
 static u_int8_t audioSrcIndex;
 
 static int audioDstValues[] = {
-	0, 1
+	0, 1, 2
 }; 
 static char* audioDstNames[] = {
-	"AAC   ", "MP3   "
+	"Nothing", "AAC    ", "MP3    "
 };
 static u_int8_t audioDstIndex;
 

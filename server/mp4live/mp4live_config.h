@@ -35,9 +35,19 @@
 #define AUDIO_ENCODER_FAAC		"faac"
 #define AUDIO_ENCODER_LAME		"lame"
 
+#define AUDIO_ENCODING_NONE		"none"
+#define AUDIO_ENCODING_PCM16	"pcm16"
+#define AUDIO_ENCODING_MP3		"mp3"
+#define AUDIO_ENCODING_AAC		"aac"
+
 #define VIDEO_ENCODER_FFMPEG	"ffmpeg"
 #define VIDEO_ENCODER_DIVX		"divx"
 #define VIDEO_ENCODER_XVID		"xvid"
+
+#define VIDEO_ENCODING_NONE		"none"
+#define VIDEO_ENCODING_YUV12	"yuv12"
+#define VIDEO_ENCODING_MPEG4	"mpeg-4"
+#define VIDEO_ENCODING_H26L		"h26l"
 
 #define VIDEO_STD_ASPECT_RATIO 	((float)1.33)	// standard 4:3
 #define VIDEO_LB1_ASPECT_RATIO 	((float)2.35)	// typical "widescreen" format
@@ -46,6 +56,7 @@
 
 // forward declarations
 class CVideoCapabilities;
+class CAudioCapabilities;
 class CLiveConfig;
 
 // some configuration utility routines
@@ -66,6 +77,7 @@ enum {
 	CONFIG_AUDIO_CHANNELS,
 	CONFIG_AUDIO_SAMPLE_RATE,
 	CONFIG_AUDIO_BIT_RATE,
+	CONFIG_AUDIO_ENCODING,
 	CONFIG_AUDIO_ENCODER,
 
 	CONFIG_VIDEO_ENABLE,
@@ -83,6 +95,7 @@ enum {
 	CONFIG_VIDEO_RAW_HEIGHT,
 	CONFIG_VIDEO_ASPECT_RATIO,
 	CONFIG_VIDEO_FRAME_RATE,
+	CONFIG_VIDEO_KEY_FRAME_INTERVAL,
 	CONFIG_VIDEO_BIT_RATE,
 	CONFIG_VIDEO_PROFILE_ID,
 	CONFIG_VIDEO_PROFILE_LEVEL_ID,
@@ -143,7 +156,7 @@ static SConfigVariable MyConfigVariables[] = {
 		CONFIG_TYPE_STRING, "/dev/mixer", },
 
 	{ CONFIG_AUDIO_INPUT_NAME, "audioInput", 
-		CONFIG_TYPE_STRING, "line", },
+		CONFIG_TYPE_STRING, "mix", },
 
 	{ CONFIG_AUDIO_CHANNELS, "audioChannels", 
 		CONFIG_TYPE_INTEGER, (config_integer_t)2, },
@@ -154,8 +167,11 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_AUDIO_BIT_RATE, "audioBitRate", 
 		CONFIG_TYPE_INTEGER, (config_integer_t)128, },
 
-	{ CONFIG_VIDEO_ENCODER, "audioEncoder",
-		CONFIG_TYPE_STRING, "lame", },
+	{ CONFIG_AUDIO_ENCODING, "audioEncoding",
+		CONFIG_TYPE_STRING, AUDIO_ENCODING_MP3, },
+
+	{ CONFIG_AUDIO_ENCODER, "audioEncoder",
+		CONFIG_TYPE_STRING, AUDIO_ENCODER_LAME, },
 
 	// VIDEO
 
@@ -203,6 +219,9 @@ static SConfigVariable MyConfigVariables[] = {
 
 	{ CONFIG_VIDEO_FRAME_RATE, "videoFrameRate", 
 		CONFIG_TYPE_INTEGER, (config_integer_t)15, },
+
+	{ CONFIG_VIDEO_KEY_FRAME_INTERVAL, "videoKeyFrameInterval", 
+		CONFIG_TYPE_FLOAT, (float)2.0, },
 
 	{ CONFIG_VIDEO_BIT_RATE, "videoBitRate",
 		CONFIG_TYPE_INTEGER, (config_integer_t)500, },
@@ -277,16 +296,16 @@ static SConfigVariable MyConfigVariables[] = {
 		CONFIG_TYPE_STRING, "", },
 
 	{ CONFIG_TRANSCODE_SRC_AUDIO_ENCODING, "transcodeSrcAudioEncoding",
-		CONFIG_TYPE_STRING, "raw", },
+		CONFIG_TYPE_STRING, AUDIO_ENCODING_PCM16, },
 
 	{ CONFIG_TRANSCODE_DST_AUDIO_ENCODING, "transcodeDstAudioEncoding",
-		CONFIG_TYPE_STRING, "aac", },
+		CONFIG_TYPE_STRING, AUDIO_ENCODING_AAC, },
 
 	{ CONFIG_TRANSCODE_SRC_VIDEO_ENCODING, "transcodeSrcVideoEncoding",
-		CONFIG_TYPE_STRING, "raw", },
+		CONFIG_TYPE_STRING, VIDEO_ENCODING_YUV12, },
 
 	{ CONFIG_TRANSCODE_DST_VIDEO_ENCODING, "transcodeDstVideoEncoding",
-		CONFIG_TYPE_STRING, "mpeg4", },
+		CONFIG_TYPE_STRING, VIDEO_ENCODING_MPEG4, },
 
 };
 #endif /* DECLARE_CONFIG_VARIABLES */
@@ -296,6 +315,8 @@ class CLiveConfig : public CConfigSet {
 public:
 	CLiveConfig(SConfigVariable* variables, 
 		config_index_t numVariables, const char* defaultFileName);
+
+	~CLiveConfig();
 
 	// recalculate derived values
 	void Update();
@@ -323,9 +344,10 @@ public:
 	u_int32_t	m_videoMaxVopSize;
 
 	// derived, shared audio configuration
+	CAudioCapabilities* m_audioCapabilities;
 	bool		m_audioEncode;
-	u_int32_t	m_audioMp3SampleRate;
-	u_int16_t	m_audioMp3SamplesPerFrame;
+	u_int32_t	m_audioEncodedSampleRate;
+	u_int16_t	m_audioEncodedSamplesPerFrame;
 
 	// derived, shared file configuration
 	u_int64_t	m_recordEstFileSize;
