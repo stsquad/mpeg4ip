@@ -102,6 +102,8 @@ int quicktime_read_char32(quicktime_t *file, char *string);
 int quicktime_write_char32(quicktime_t *file, char *string);
 int quicktime_copy_char32(char *output, char *input);
 long quicktime_position(quicktime_t *file);
+int quicktime_read_mp4_descr_length(quicktime_t *file);
+int quicktime_write_mp4_descr_length(quicktime_t *file, int length);
 
 /* Most codecs don't specify the actual number of bits on disk in the stbl. */
 /* Convert the samples to the number of bytes for reading depending on the codec. */

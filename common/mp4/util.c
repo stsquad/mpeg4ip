@@ -378,3 +378,36 @@ int quicktime_match_32(char *input, char *output)
 	else 
 		return 0;
 }
+
+int quicktime_read_mp4_descr_length(quicktime_t *file)
+{
+	u_int8_t b;
+	u_int8_t numBytes = 0;
+	u_int32_t length;
+
+	do {
+		b = quicktime_read_char(file);
+		numBytes++;
+		length = (length << 7) | (b & 0x7F);
+	} while ((b & 0x80) && numBytes <= 4);
+
+	return length;
+}
+
+int quicktime_write_mp4_descr_length(quicktime_t *file, int length)
+{
+	u_int8_t b;
+	u_int8_t numBytes = 0;
+	
+	do {
+		b = length & 0x7F;
+		length >>= 7;
+		if (length) {
+			b |= 0x80;
+		}
+		numBytes += quicktime_write_char(file, b);
+	} while (length);
+
+	return numBytes; 
+}
+
