@@ -21,7 +21,7 @@
 
 #include "mp4common.h"
 
-void MP4File::MakeIsmaCompliant()
+void MP4File::MakeIsmaCompliant(bool addIsmaComplianceSdp)
 {
 	ProtectWriteOperation("MP4MakeIsmaCompliant");
 
@@ -118,10 +118,13 @@ void MP4File::MakeIsmaCompliant()
 		m_odTrackId, sceneTrackId, audioTrackId, videoTrackId,
 		&pBytes, &numBytes);
 
-	char* sdpBuf = (char*)MP4Malloc(numBytes + 256);
+	char* sdpBuf = (char*)MP4Calloc(numBytes + 256);
 
-	sprintf(sdpBuf, 
-		"a=isma-compliance:1,1.0,1\015\012"
+	if (addIsmaComplianceSdp) {
+		strcpy(sdpBuf, "a=isma-compliance:1,1.0,1\015\012");
+	}
+
+	sprintf(&sdpBuf[strlen(sdpBuf)], 
 		"a=mpeg4-iod: \042data:application/mpeg4-iod;base64,%s\042\015\012",
 		MP4ToBase64(pBytes, numBytes));
 

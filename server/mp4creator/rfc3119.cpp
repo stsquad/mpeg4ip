@@ -53,6 +53,13 @@ static void GetFrameInfo(
 		ASSERT(*ppFrameHeaders);
 	};
 
+	// The side info can be:
+	//  32 bytes for MPEG-1 stereo
+	//  17 bytes for MPEG-1 mono
+	//  9 bytes for MPEG-2 mono
+	// Typically a stream contains only one type of audio frames,
+	// but it is allowed to mix frame types, so we allow each audio frame
+	// to have it's own side info size
 	*ppSideInfoSizes = 
 		(u_int8_t*)calloc((numSamples + 2), sizeof(u_int8_t));
 	ASSERT(*ppSideInfoSizes);
@@ -147,7 +154,7 @@ static u_int16_t GetAduDataSize(
 		- GetFrameHeaderSize(sampleId);
 }
 
-static void AddAdu(
+static void AddFrameHeader(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
 	MP4TrackId hintTrackId,
@@ -183,59 +190,54 @@ static void AddAdu(
 		MP4AddRtpSampleData(mp4File, hintTrackId,
 			sampleId, 0, GetFrameHeaderSize(sampleId));
 	}
+}
 
-	// now go back from sampleId until 
+static void CollectAduDataBlocks(
+	MP4FileHandle mp4File, 
+	MP4TrackId mediaTrackId, 
+	MP4TrackId hintTrackId,
+	MP4SampleId sampleId,
+	u_int8_t* pNumBlocks,
+	u_int32_t** ppOffsets,
+	u_int32_t** ppSizes)
+{
+	// go back from sampleId until 
 	// accumulated data bytes can fill sample's ADU
-
 	MP4SampleId sid = sampleId;
-	u_int8_t numSamples = 1;
+	u_int8_t numBlocks = 1;
 	u_int32_t prevDataBytes = 0;
-	const u_int8_t maxSamples = 8;
-	u_int32_t offsets[maxSamples];
-	u_int32_t sizes[maxSamples];
+	const u_int8_t maxBlocks = 8;
 
-	offsets[0] = GetFrameHeaderSize(sampleId);
-	sizes[0] = GetFrameDataSize(mp4File, mediaTrackId, sid);
+	*ppOffsets = new u_int32_t[maxBlocks];
+	*ppSizes = new u_int32_t[maxBlocks];
+
+	(*ppOffsets)[0] = GetFrameHeaderSize(sampleId);
+	(*ppSizes)[0] = GetFrameDataSize(mp4File, mediaTrackId, sid);
 
 	while (true) {
 		if (prevDataBytes >= pAduOffsets[sampleId]) {
 			u_int32_t adjust =
 				prevDataBytes - pAduOffsets[sampleId];
 
-			offsets[numSamples-1] += adjust; 
-			sizes[numSamples-1] -= adjust;
+			(*ppOffsets)[numBlocks-1] += adjust; 
+			(*ppSizes)[numBlocks-1] -= adjust;
 
 			break;
 		}
 		
 		sid--;
-		numSamples++;
+		numBlocks++;
 
-		if (sid == 0 || numSamples > maxSamples) {
+		if (sid == 0 || numBlocks > maxBlocks) {
 			throw;	// media bitstream error
 		}
 
-		offsets[numSamples-1] = GetFrameHeaderSize(sid);
-		sizes[numSamples-1] = GetFrameDataSize(mp4File, mediaTrackId, sid);
-		prevDataBytes += sizes[numSamples-1]; 
+		(*ppOffsets)[numBlocks-1] = GetFrameHeaderSize(sid);
+		(*ppSizes)[numBlocks-1] = GetFrameDataSize(mp4File, mediaTrackId, sid);
+		prevDataBytes += (*ppSizes)[numBlocks-1]; 
 	}
 
-	// now go forward, collecting the needed blocks of data
-	u_int16_t dataSize = 0;
-	u_int16_t aduDataSize = GetAduDataSize(mp4File, mediaTrackId, sampleId);
-
-	for (int8_t i = numSamples - 1; i >= 0 && dataSize < aduDataSize; i--) {
-		u_int32_t blockSize = sizes[i];
-
-		if ((u_int32_t)(aduDataSize - dataSize) < blockSize) {
-			blockSize = (u_int32_t)(aduDataSize - dataSize);
-		}
-
-		MP4AddRtpSampleData(mp4File, hintTrackId,
-			sampleId - i, offsets[i], blockSize);
-
-		dataSize += blockSize;
-	}
+	*pNumBlocks = numBlocks;
 }
 
 void Rfc3119Concatenator(
@@ -265,13 +267,48 @@ void Rfc3119Concatenator(
 		u_int16_t aduSize = 
 			Rfc3119GetAduSize(mp4File, mediaTrackId, sampleId);
 
+		// add the per ADU payload header
 		payloadHeader[0] = 0x40 | ((aduSize >> 8) & 0x3F);
 		payloadHeader[1] = aduSize & 0xFF;
 
 		MP4AddRtpImmediateData(mp4File, hintTrackId,
 			(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
+printf("sampleId %u aduSize %u sideInfoSize %u\n",
+sampleId, aduSize, pSideInfoSizes[sampleId]);
+		// add the mp3 frame header and side info
+		AddFrameHeader(mp4File, mediaTrackId, hintTrackId, sampleId);
 
-		AddAdu(mp4File, mediaTrackId, hintTrackId, sampleId);
+		// collect the info on the adu main data fragments
+		u_int8_t numDataBlocks;
+		u_int32_t* pDataOffsets;
+		u_int32_t* pDataSizes;
+
+		CollectAduDataBlocks(mp4File, mediaTrackId, hintTrackId, sampleId,
+			&numDataBlocks, &pDataOffsets, &pDataSizes);
+
+		// collect the needed blocks of data
+		u_int16_t dataSize = 0;
+		u_int16_t aduDataSize = 
+			GetAduDataSize(mp4File, mediaTrackId, sampleId);
+
+		for (int8_t i = numDataBlocks - 1;
+		  i >= 0 && dataSize < aduDataSize; i--) {
+			u_int32_t blockSize = pDataSizes[i];
+
+			if ((u_int32_t)(aduDataSize - dataSize) < blockSize) {
+				blockSize = (u_int32_t)(aduDataSize - dataSize);
+			}
+
+			MP4AddRtpSampleData(mp4File, hintTrackId,
+				sampleId - i, pDataOffsets[i], blockSize);
+
+printf("\t-%d offset %u size %u\n", 
+i, pDataOffsets[i], blockSize);
+			dataSize += blockSize;
+		}
+
+		delete [] pDataOffsets;
+		delete [] pDataSizes;
 	}
 
 	// write the hint
@@ -286,16 +323,23 @@ void Rfc3119Fragmenter(
 	u_int32_t aduSize, 
 	MP4Duration sampleDuration)
 {
-	printf("Error: Fragmentation not support for this payload yet\n");
-	throw;
-
-#ifdef NOTDEF
 	MP4AddRtpHint(mp4File, hintTrackId);
 	MP4AddRtpPacket(mp4File, hintTrackId, false);
 
 	// rfc 3119 payload header
 	u_int8_t payloadHeader[2];
 
+	u_int16_t payloadSize = 
+		sizeof(payloadHeader) + GetFrameHeaderSize(sampleId);
+
+	// guard against ridiculous payload sizes
+	if (payloadSize > MaxPayloadSize) {
+		fprintf(stderr,
+			"%s: MTU is too small\n", ProgName); 
+		exit(EXIT_RFC3119_HINTER);
+	}
+
+	// add the per ADU fragment payload header
 	payloadHeader[0] = 0x40 | ((aduSize >> 8) & 0x3F);
 	payloadHeader[1] = aduSize & 0xFF;
 
@@ -304,29 +348,71 @@ void Rfc3119Fragmenter(
 
 	payloadHeader[0] |= 0x80;	// mark future packets as continuations
 
-	u_int16_t sampleOffset = 0;
-	u_int16_t fragLength = MaxPayloadSize - 2;
+	// add the mp3 frame header and side info
+	AddFrameHeader(mp4File, mediaTrackId, hintTrackId, sampleId);
 
-	do {
-		MP4AddRtpSampleData(mp4File, hintTrackId,
-			sampleId, sampleOffset, fragLength);
+	// collect the info on the adu main data fragments
+	u_int8_t numDataBlocks;
+	u_int32_t* pDataOffsets;
+	u_int32_t* pDataSizes;
 
-		sampleOffset += fragLength;
+	CollectAduDataBlocks(mp4File, mediaTrackId, hintTrackId, sampleId,
+		&numDataBlocks, &pDataOffsets, &pDataSizes);
 
-		if (sampleSize - sampleOffset > MaxPayloadSize) {
-			fragLength = MaxPayloadSize; 
-			MP4AddRtpPacket(mp4File, hintTrackId, false);
-		} else {
-			fragLength = sampleSize - sampleOffset; 
-			if (fragLength) {
-				MP4AddRtpPacket(mp4File, hintTrackId, true);
+	u_int16_t dataSize = 0;
+	u_int16_t aduDataSize = 
+		GetAduDataSize(mp4File, mediaTrackId, sampleId);
+
+	// for each data block
+	for (int8_t i = numDataBlocks - 1; i >= 0 && dataSize < aduDataSize; i--) {
+		u_int32_t blockSize = pDataSizes[i];
+		u_int32_t blockOffset = pDataOffsets[i];
+
+		// we may not need all of a block
+		if ((u_int32_t)(aduDataSize - dataSize) < blockSize) {
+			blockSize = (u_int32_t)(aduDataSize - dataSize);
+		}
+
+		dataSize += blockSize;
+
+		// while data left in this block
+		while (blockSize > 0) {
+			u_int16_t payloadRemaining = MaxPayloadSize - payloadSize;
+
+			if (blockSize < payloadRemaining) {
+				// the entire block fits in this packet
+				MP4AddRtpSampleData(mp4File, hintTrackId,
+					sampleId - i, blockOffset, blockSize);
+
+				payloadSize += blockSize;
+				blockSize = 0;
+
+			} else {
+				// the block fills this packet
+				MP4AddRtpSampleData(mp4File, hintTrackId,
+					sampleId - i, blockOffset, payloadRemaining);
+
+				blockOffset += payloadRemaining;
+				blockSize -= payloadRemaining;
+
+				// start a new RTP packet
+				MP4AddRtpPacket(mp4File, hintTrackId, false);
+
+				// add the fragment payload header
+				MP4AddRtpImmediateData(mp4File, hintTrackId,
+					(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
+
+				payloadSize = sizeof(payloadHeader);
 			}
 		}
-	} while (sampleOffset < sampleSize);
+	}
 
 	// write the hint
 	MP4WriteRtpHint(mp4File, hintTrackId, sampleDuration);
-#endif
+
+	// cleanup
+	delete [] pDataOffsets;
+	delete [] pDataSizes;
 }
 
 void Rfc3119Hinter(
@@ -374,7 +460,12 @@ void Rfc3119Hinter(
 	}
 
 	if (doInterleave) {
+		// initial estimate of samplesPerGroup
 		samplesPerGroup = maxLatency / sampleDuration;
+		// use that to compute an integral stride
+		u_int8_t stride = samplesPerGroup / samplesPerPacket;
+		// and then recompute samples per group to deal with rounding
+		samplesPerGroup = stride * samplesPerPacket;
 
 		AudioInterleaveHinter(
 			mp4File, 

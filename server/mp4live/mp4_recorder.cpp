@@ -178,8 +178,6 @@ void CMp4Recorder::DoStartRecord()
 		}
 	}
 
-	// LATER? MP4MakeIsmaCompliant(m_mp4File);
-
 	m_record = true;
 }
 
@@ -203,6 +201,10 @@ void CMp4Recorder::DoStopRecord()
 
 	debug_message("MP4 recorder wrote %u audio frames", m_audioFrameNum);
 	debug_message("MP4 recorder wrote %u video frames", m_videoFrameNum);
+
+	MP4MakeIsmaCompliant(
+		m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
+		0, false);
 
 	m_record = false;
 }

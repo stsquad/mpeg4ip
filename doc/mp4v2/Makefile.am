@@ -13,6 +13,8 @@ man_MANS = \
 	MP4AddSystemsTrack.3 \
 	MP4AddTrack.3 \
 	MP4AddVideoTrack.3 \
+	MP4AppendHintTrackSdp.3 \
+	MP4AppendSessionSdp.3 \
 	MP4BinaryToBase16.3 \
 	MP4BinaryToBase64.3 \
 	MP4ConvertFromMovieDuration.3 \
@@ -28,16 +30,19 @@ man_MANS = \
 	MP4FindTrackIndex.3 \
 	MP4GetDuration.3 \
 	MP4GetHintTrackReferenceTrackId.3 \
+	MP4GetHintTrackSdp.3 \
 	MP4GetNumberOfTracks.3 \
 	MP4GetRtpHintNumberOfPackets.3 \
 	MP4GetRtpPacketBFrame.3 \
 	MP4GetRtpPacketTransmitOffset.3 \
+	MP4GetRtpTimestampStart.3 \
 	MP4GetSampleDuration.3 \
 	MP4GetSampleIdFromTime.3 \
 	MP4GetSampleRenderingOffset.3 \
 	MP4GetSampleSize.3 \
 	MP4GetSampleSync.3 \
 	MP4GetSampleTime.3 \
+	MP4GetSessionSdp.3 \
 	MP4GetTimeScale.3 \
 	MP4GetTrackAudioType.3 \
 	MP4GetTrackDuration.3 \
@@ -56,7 +61,10 @@ man_MANS = \
 	MP4ReadRtpHint.3 \
 	MP4ReadRtpPacket.3 \
 	MP4ReadSample.3 \
+	MP4SetHintTrackSdp.3 \
+	MP4SetRtpTimestampStart.3 \
 	MP4SetSampleRenderingOffset.3 \
+	MP4SetSessionSdp.3 \
 	MP4SetTimeScale.3 \
 	MP4SetTrackESConfiguration.3 \
 	MP4SetTrackTimeScale.3 \

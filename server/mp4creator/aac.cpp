@@ -252,6 +252,9 @@ static bool GetAacSamplingRate(FILE* inFile, u_int32_t* pSamplingRate)
 		return false;
 	}
 	(*pSamplingRate) = AacSamplingRates[(firstHeader[2] & 0x3c) >> 2];
+	if (*pSamplingRate == 0) {
+		return false;
+	}
 	return true;
 }
 

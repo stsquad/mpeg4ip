@@ -1671,12 +1671,13 @@ extern "C" bool MP4WriteRtpHint(
 
 extern "C" bool MP4MakeIsmaCompliant(
 	const char* fileName, 
-	u_int32_t verbosity)
+	u_int32_t verbosity,
+	bool addIsmaComplianceSdp)
 {
 	try {
 		MP4File* pFile = new MP4File(verbosity);
 		pFile->Modify(fileName);
-		pFile->MakeIsmaCompliant();
+		pFile->MakeIsmaCompliant(addIsmaComplianceSdp);
 		pFile->Close();
 		delete pFile;
 		return true;

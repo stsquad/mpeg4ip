@@ -41,7 +41,7 @@ public: /* equivalent to MP4 library API */
 	void Modify(const char* fileName);
 	void Optimize(const char* orgFileName, 
 		const char* newFileName);
-	void MakeIsmaCompliant();
+	void MakeIsmaCompliant(bool addIsmaComplianceSdp = true);
 	void Dump(FILE* pDumpFile = NULL, bool dumpImplicits = false);
 	void Close();
 
