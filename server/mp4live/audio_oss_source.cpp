@@ -32,6 +32,9 @@ COSSAudioSource::COSSAudioSource(CLiveConfig *pConfig) : CMediaSource()
   m_audioDevice = -1;
   m_pcmFrameBuffer = NULL;
   m_prevTimestamp = 0;
+  m_timestampOverflowArray = NULL;
+  m_timestampOverflowArrayIndex = 0;
+  m_audioOssMaxBufferSize = 0;
 
   // NOTE: This used to be CAVMediaFlow::SetAudioInput();
   // if mixer is specified, then user takes responsibility for
@@ -149,6 +152,7 @@ void COSSAudioSource::DoStopCapture()
   close(m_audioDevice);
   m_audioDevice = -1;
 
+  CHECK_AND_FREE(m_timestampOverflowArray);
   free(m_pcmFrameBuffer);
   m_pcmFrameBuffer = NULL;
 
@@ -180,7 +184,14 @@ bool COSSAudioSource::Init(void)
   m_pcmFrameSize = 
     m_audioSrcSamplesPerFrame * m_audioSrcChannels * sizeof(u_int16_t);
 
-
+  if (m_audioOssMaxBufferSize > 0) {
+    size_t array_size;
+    m_audioOssMaxBufferFrames = m_audioOssMaxBufferSize / m_pcmFrameSize;
+    array_size = m_audioOssMaxBufferFrames * sizeof(*m_timestampOverflowArray);
+    m_timestampOverflowArray = (Timestamp *)Malloc(array_size);
+    memset(m_timestampOverflowArray, 0, array_size);
+  }
+    
   m_pcmFrameBuffer = (u_int8_t*)malloc(m_pcmFrameSize);
   if (!m_pcmFrameBuffer) {
     goto init_failure;
@@ -350,13 +361,34 @@ void COSSAudioSource::ProcessAudio(void)
     if (info.bytes == m_audioOssMaxBufferSize) {
       // means the audio buffer is full, and not capturing
       // we want to make the timestamp based on the previous one
-      timestamp = m_prevTimestamp + SrcSamplesToTicks(m_audioSrcSamplesPerFrame);
+      // When we hit this case, we start using the m_timestampOverflowArray
+      // This will give us a timestamp for when the array is full.
+      // 
+      // In other words, if we have a full audio buffer (ie: it's not loading
+      // any more), we start storing the current timestamp into the array.
+      // This will let us "catch up", and have a somewhat accurate timestamp
+      // when we loop around
+      // 
+      // wmay - I'm not convinced that this actually works - if the buffer
+      // cleans up, we'll ignore m_timestampOverflowArray
+      if (m_timestampOverflowArray != NULL && 
+	  m_timestampOverflowArray[m_timestampOverflowArrayIndex] != 0) {
+	timestamp = m_timestampOverflowArray[m_timestampOverflowArrayIndex];
+      } else {
+	timestamp = m_prevTimestamp + SrcSamplesToTicks(m_audioSrcSamplesPerFrame);
+      }
+
+      if (m_timestampOverflowArray != NULL)
+	m_timestampOverflowArray[m_timestampOverflowArrayIndex] = currentTime;
+
       debug_message("audio buffer full !");
 
     } else {
       // buffer is not full - so, we make the timestamp based on the number
       // of bytes in the buffer that we read.
       timestamp = currentTime - SrcSamplesToTicks(SrcBytesToSamples(info.bytes));
+      if (m_timestampOverflowArray != NULL)
+	m_timestampOverflowArray[m_timestampOverflowArrayIndex] = 0;
     }
 
 #ifdef DEBUG_TIMESTAMPS
@@ -365,6 +397,10 @@ void COSSAudioSource::ProcessAudio(void)
 #endif
 
     m_prevTimestamp = timestamp;
+    if (m_timestampOverflowArray != NULL) {
+      m_timestampOverflowArrayIndex = (m_timestampOverflowArrayIndex + 1) % 
+	m_audioOssMaxBufferFrames;
+    }
 
     ProcessAudioFrame(m_pcmFrameBuffer, m_pcmFrameSize, timestamp, false);
 

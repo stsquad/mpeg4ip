@@ -30,7 +30,7 @@
 static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEncrypt)
 {
 	char* videoType = AVI_video_compressor(aviFile);
-	u_int8_t videoProfileLevel = 0x03;
+	u_int8_t videoProfileLevel = MPEG4_SP_L3;
 
 	if (strcasecmp(videoType, "divx")
 	  && strcasecmp(videoType, "dx50")

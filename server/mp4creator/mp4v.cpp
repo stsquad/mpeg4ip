@@ -196,7 +196,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 	MP4Timestamp refVopTime = 0;
 
 	// track configuration info
-	u_int8_t videoProfileLevel = 0x03;
+	u_int8_t videoProfileLevel = MPEG4_SP_L3;
 	u_int8_t timeBits = 15;
 	u_int16_t timeTicks = 30000;
 	u_int16_t frameDuration = 3000;
@@ -382,21 +382,27 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 			// that can occur when B frames are being used 
 			// which is the case for all profiles except Simple Profile
 			if (vopType != 'B') {
-				if (videoProfileLevel > 3) {
+			  switch (videoProfileLevel) {
+			  case MPEG4_SP_L0:
+			  case MPEG4_SP_L1:
+			  case MPEG4_SP_L2:
+			  case MPEG4_SP_L3:
+			    break;
+			  default:
 #ifdef MP4V_DEBUG
-					printf("sample %u %c renderingOffset %llu\n",
-						refVopId, vopType, currentSampleTime - refVopTime);
+			    printf("sample %u %c renderingOffset %llu\n",
+				   refVopId, vopType, currentSampleTime - refVopTime);
 #endif
 
-					// Note - this writes to the previous
-					// I or P frame
-					MP4SetSampleRenderingOffset(
+			    // Note - this writes to the previous
+			    // I or P frame
+			    MP4SetSampleRenderingOffset(
 						mp4File, trackId, refVopId,
 						currentSampleTime - refVopTime);
-				}
+			  }
 
-				refVopId = sampleId;
-				refVopTime = currentSampleTime;
+			  refVopId = sampleId;
+			  refVopTime = currentSampleTime;
 			}
 
 			sampleId++;
@@ -425,7 +431,13 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 	}
 	// Left over at end - make sure we set the last P or I frame
 	// with the last time
-	if (videoProfileLevel > 3) {
+	switch (videoProfileLevel) {
+	case MPEG4_SP_L0:
+	case MPEG4_SP_L1:
+	case MPEG4_SP_L2:
+	case MPEG4_SP_L3:
+	  break;
+	default:
 #ifdef MP4V_DEBUG
 	  printf("sample %u %c renderingOffset %llu\n",
 		 refVopId, vopType, currentSampleTime - refVopTime);
