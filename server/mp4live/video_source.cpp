@@ -337,10 +337,13 @@ bool CVideoSource::InitDevice(void)
 			m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL)];
 		struct CHANNEL* pChannel = pChannelList[
 			m_pConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_LIST_INDEX)].list;
-		unsigned long videoFrequency = pChannel[
+		unsigned long videoFrequencyKHz = pChannel[
 			m_pConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX)].freq;
+		unsigned long videoFrequencyTuner =
+			((videoFrequencyKHz / 1000) << 4) 
+			| ((videoFrequencyKHz % 1000) >> 4);
 
-		rc = ioctl(m_videoDevice, VIDIOCSFREQ, &videoFrequency);
+		rc = ioctl(m_videoDevice, VIDIOCSFREQ, &videoFrequencyTuner);
 		if (rc < 0) {
 			error_message("Failed to set video tuner frequency for %s",
 				deviceName);

@@ -982,7 +982,6 @@ extern "C" bool MP4ReadSample(
 			delete e;
 		}
 	}
-	*ppBytes = NULL;
 	*pNumBytes = 0;
 	return false;
 }

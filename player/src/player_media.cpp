@@ -377,7 +377,7 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
     return (-1);
   }
 
-  if (use_rtsp == 0) {
+  if (ondemand == 0 || use_rtsp == 0) {
     m_rtp_inited = 0;
     m_recv_thread = SDL_CreateThread(c_recv_thread, this);
     if (m_recv_thread == NULL) {
@@ -388,6 +388,11 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
     }
     while (m_rtp_inited == 0) {
       SDL_Delay(10);
+    }
+    if (m_rtp_session == NULL) {
+      *errmsg = "Couldn't start RTP";
+      player_error_message("Could not start RTP - check debug log");
+      return (-1);
     }
   } else {
     int ret;
@@ -1127,8 +1132,10 @@ int CPlayerMedia::recv_thread (void)
 			   5000.0, // rtcp bandwidth ?
 			   c_recv_callback,
 			   (uint8_t *)this);
-  rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
-  rtp_set_option(m_rtp_session, RTP_OPT_PROMISC, TRUE);
+  if (m_rtp_session != NULL) {
+    rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
+    rtp_set_option(m_rtp_session, RTP_OPT_PROMISC, TRUE);
+  }
   m_rtp_inited = 1;
   
   while (recv_thread_stop == 0) {

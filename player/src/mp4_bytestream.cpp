@@ -70,7 +70,7 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
   m_max_time = max_ts;
 #endif
   m_max_time /= 1000.0;
-  player_debug_message("MP4 %s max time is %llu %g", type, max_ts, m_max_time);
+  player_debug_message("MP4 %s max time is "LLU" %g", type, max_ts, m_max_time);
   read_frame(1);
 }
 
@@ -288,23 +288,32 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
   MP4Timestamp sampleTime;
   MP4Duration sampleDuration, sampleRenderingOffset;
   bool isSyncSample = FALSE;
-
+  bool ret;
+  u_int8_t *temp;
   m_this_frame_size = m_max_frame_size;
-  MP4ReadSample(m_parent->get_file(),
-		m_track,
-		frame_to_read,
-		&m_buffer_on,
-		&m_this_frame_size,
-		&sampleTime,
-		&sampleDuration,
-		&sampleRenderingOffset,
-		&isSyncSample);
+  temp = m_buffer_on;
+  ret = MP4ReadSample(m_parent->get_file(),
+		      m_track,
+		      frame_to_read,
+		      &temp,
+		      &m_this_frame_size,
+		      &sampleTime,
+		      &sampleDuration,
+		      &sampleRenderingOffset,
+		      &isSyncSample);
+  if (ret == FALSE) {
+    player_error_message("Couldn't read frame from mp4 file - frame %d", 
+			 frame_to_read);
+    m_eof = 1;
+    m_parent->unlock_file_mutex();
+    return;
+  }
 #ifdef OUTPUT_TO_FILE
   fwrite(m_buffer_on, m_this_frame_size, 1, m_output_file);
 #endif
 #ifdef DEBUG_MP4_FRAME
     player_debug_message("reading into buffer %u %u", frame_to_read, m_this_frame_size);
-    player_debug_message("Sample time %llu", sampleTime);
+    player_debug_message("Sample time "LLU, sampleTime);
     player_debug_message("values %x %x %x %x", m_buffer_on[0], 
 			 m_buffer_on[1], m_buffer_on[2], m_buffer_on[3]);
 #endif
@@ -317,7 +326,7 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
 				    MP4_MSECS_TIME_SCALE);
   //if (isSyncSample == TRUE && m_has_video != 0 ) player_debug_message("%s has sync sample %llu", m_type, ts);
 #ifdef DEBUG_MP4_FRAME
-  player_debug_message("Converts to time %llu", ts);
+  player_debug_message("Converts to time "LLU, ts);
 #endif
   if (m_bookmark == 0) {
     m_frame_in_buffer_ts = ts;
@@ -351,7 +360,7 @@ void CMp4ByteStream::set_start_time (uint64_t start)
 					TRUE);
   m_parent->unlock_file_mutex();
 #ifdef DEBUG_MP4_FRAME
-  player_debug_message("Timestamp %llu converts to %llu sample %d", 
+  player_debug_message("Timestamp "LLU" converts to "LLU" sample %d", 
 		       start, mp4_ts, mp4_sampleId);
 #endif
   set_timebase(mp4_sampleId);

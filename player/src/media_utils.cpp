@@ -100,7 +100,7 @@ static struct codec_list_t {
 static int do_we_have_audio (void) 
 {
   char buffer[80];
-  if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+  if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_NOPARACHUTE) < 0) {
     return (0);
   } 
   if (SDL_AudioDriverName(buffer, sizeof(buffer)) == NULL) {

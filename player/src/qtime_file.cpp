@@ -117,7 +117,7 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
     if (codec_name == NULL) 
       continue;
 
-    if (lookup_video_codec_by_name(codec_name) != 0) {
+    if (lookup_video_codec_by_name(codec_name) < 0) {
       player_debug_message("Couldn't find video codec %s", codec_name);
       continue;
     }
@@ -217,7 +217,7 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
     if (codec == NULL)
       return (0);
 
-    if (lookup_audio_codec_by_name(codec) != 0) {
+    if (lookup_audio_codec_by_name(codec) < 0) {
       player_debug_message("Couldn't find audio codec %s", codec);
       return (0);
     }

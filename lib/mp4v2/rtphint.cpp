@@ -432,13 +432,15 @@ void MP4RtpHint::Write(MP4File* pFile)
 
 	u_int64_t packetStartPos = pFile->GetPosition();
 
+	u_int32_t i;
+
 	// first write out packet (and data) entries
-	for (u_int32_t i = 0; i < m_rtpPackets.Size(); i++) {
+	for (i = 0; i < m_rtpPackets.Size(); i++) {
 		m_rtpPackets[i]->Write(pFile);
 	}
 
 	// now let packets write their extra data into the hint sample
-	for (u_int32_t i = 0; i < m_rtpPackets.Size(); i++) {
+	for (i = 0; i < m_rtpPackets.Size(); i++) {
 		m_rtpPackets[i]->WriteEmbeddedData(pFile, hintStartPos);
 	}
 
@@ -448,7 +450,7 @@ void MP4RtpHint::Write(MP4File* pFile)
 
 	// finally rewrite the packet and data entries
 	// which now contain the correct offsets for the embedded data
-	for (u_int32_t i = 0; i < m_rtpPackets.Size(); i++) {
+	for (i = 0; i < m_rtpPackets.Size(); i++) {
 		m_rtpPackets[i]->Write(pFile);
 	}
 

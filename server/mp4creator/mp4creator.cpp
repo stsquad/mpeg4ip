@@ -67,11 +67,12 @@ int main(int argc, char** argv)
 		"  -create <input-file>    Create track from <input-file>\n"
 		"    input files can be of type: .aac .mp3 .divx .mp4v\n"
 		"  -delete=<track-id>      Delete a track\n"
-		"  -hint[=<track-id>]      Create hint track\n"
+		"  -hint[=<track-id>]      Create hint track, also -H\n"
+		"  -interleave             Use interleaved audio payload format, also -I\n"
 		"  -list                   List tracks in mp4 file\n"
 		"  -mtu=<size>             MTU for hint track\n"
 		"  -optimize               Optimize mp4 file layout\n"
-		"  -rate=[1-30]            Video frame rate\n"
+		"  -rate=<fps>             Video frame rate, e.g. 30 or 29.97\n"
 		"  -verbose[=[1-5]]        Enable debug messages\n"
 		;
 

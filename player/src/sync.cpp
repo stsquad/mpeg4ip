@@ -223,9 +223,17 @@ int CPlayerSession::sync_thread_init (void)
       init_done = 1; 
     else {
       CMsg *newmsg;
+#ifdef _WINDOWS
+      int state;
+#endif
+
+      PROCESS_SDL_EVENTS(SYNC_STATE_INIT);
       newmsg = m_sync_thread_msg_queue.get_message();
       if (newmsg && newmsg->get_value() == MSG_STOP_THREAD) {
 	return (SYNC_STATE_EXIT);
+      }
+      if (newmsg && newmsg->get_value() == MSG_PAUSE_SESSION) {
+	m_sync_pause_done = 1;
       }
       SDL_Delay(100);
     }

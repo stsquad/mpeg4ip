@@ -6,7 +6,7 @@
 
 # Check that we can find libtool
 # Frequently it hasn't been installed
-if glibtool --version > /dev/null
+if glibtool --version > /dev/null 2> /dev/null
 then 
     libtool=glibtool
     if libtoolize --version > /dev/null
@@ -78,15 +78,13 @@ else
    fi
 fi
 
-if test -e /usr/local/share/aclocal
-then
-ACLOCAL_FLAGS="-I /usr/local/share/aclocal $ACLOCAL_FLAGS"
-fi
-
-if test -e /usr/contrib/share/aclocal
-then
-ACLOCAL_FLAGS="-I /usr/contrib/share/aclocal $ACLOCAL_FLAGS"
-fi
+for dir in /usr/local /usr/contrib /opt/gnome
+do
+   if test -e $dir/share/aclocal -a `which aclocal` != $dir/bin/aclocal
+   then
+     ACLOCAL_FLAGS="-I $dir/share/aclocal $ACLOCAL_FLAGS"
+   fi
+done
 
 pwd=`pwd`
 for	dir \

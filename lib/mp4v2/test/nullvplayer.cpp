@@ -56,7 +56,6 @@ main(int argc, char** argv)
 	u_int32_t configSize = 0;
 
 	MP4GetTrackESConfiguration(mp4File, trackId, &pConfig, &configSize);
-printf("ES config size %u\n", configSize);
 
 	// initialize decoder with Elementary Stream (ES) configuration
 

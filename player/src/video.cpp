@@ -34,7 +34,7 @@ CVideoSync::CVideoSync (CPlayerSession *psptr)
 {
   char buf[32];
   m_psptr = psptr;
-  if (SDL_Init(SDL_INIT_VIDEO) < 0 || !SDL_VideoDriverName(buf, 1)) {
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) < 0 || !SDL_VideoDriverName(buf, 1)) {
     player_error_message("Could not init SDL video: %s", SDL_GetError());
   }
   m_screen = NULL;

@@ -174,22 +174,22 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
   }
   // player_debug_message("AA at " LLD, m_current_time);
 
-  if (m_faad_inited == 0) {
-    /*
-     * If not initialized, do so.  
-     */
-    unsigned long freq, chans;
-
-    faacDecInit(m_info,
-		NULL,
-		&freq,
-		&chans);
-    m_freq = freq;
-    m_chans = chans;
-    m_faad_inited = 1;
-  }
-
   try {
+    if (m_faad_inited == 0) {
+      /*
+       * If not initialized, do so.  
+     */
+      unsigned long freq, chans;
+
+      faacDecInit(m_info,
+		  NULL,
+		  &freq,
+		  &chans);
+      m_freq = freq;
+      m_chans = chans;
+      m_faad_inited = 1;
+    }
+
     unsigned char *buff;
 
     /* 
