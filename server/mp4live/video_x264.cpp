@@ -24,6 +24,7 @@
 #include "video_x264.h"
 #include "mp4av.h"
 #include "mp4av_h264.h"
+#include "encoder_gui_options.h"
 
 //#define DEBUG_H264 1
 #define USE_OUR_YUV 1
@@ -35,6 +36,16 @@ static SConfigVariable X264EncoderVariables[] = {
   CONFIG_BOOL(CFG_X264_USE_CABAC, "x264UseCabac", true),
   CONFIG_BOOL(CFG_X264_USE_CBR, "x264UseCbr", true),
 };
+
+GUI_BOOL(gui_cabac, CFG_X264_USE_CABAC, "Use Cabac");
+GUI_BOOL(gui_cbr, CFG_X264_USE_CBR, "Use CBR");
+
+DECLARE_TABLE(x264_gui_options) = {
+  TABLE_GUI(gui_cabac),
+  TABLE_GUI(gui_cbr),
+};
+DECLARE_TABLE_COUNT(x264_gui_options);
+DECLARE_TABLE_FUNC(x264_gui_options);
 
 void AddX264ConfigVariables (CVideoProfile *pConfig)
 {
@@ -56,9 +67,10 @@ static void x264_log (void *p_unused, int ilevel, const char *fmt, va_list arg)
 }
 
 CX264VideoEncoder::CX264VideoEncoder(CVideoProfile *vp, 
-					 CVideoEncoder *next, 
-					 bool realTime) :
-  CVideoEncoder(vp, next, realTime)
+				     uint16_t mtu,
+				     CVideoEncoder *next, 
+				     bool realTime) :
+  CVideoEncoder(vp, mtu, next, realTime)
 {
   m_vopBuffer = NULL;
   m_vopBufferLength = 0;
@@ -268,6 +280,7 @@ static void free_x264_frame (void *ifptr)
   h264_media_frame_t *mf = (h264_media_frame_t *)ifptr;
 
   if (mf != NULL) {
+    CHECK_AND_FREE(mf->buffer);
     CHECK_AND_FREE(mf->nal_bufs);
     free(mf);
   }
@@ -345,6 +358,7 @@ void CX264VideoEncoder::StopEncoder (void)
 
   CHECK_AND_FREE(m_vopBuffer);
   CHECK_AND_FREE(m_YUV);
+  CHECK_AND_FREE(m_nal_info);
 #ifdef OUTPUT_RAW
   if (m_outfile) {
     fclose(m_outfile);
@@ -371,6 +385,7 @@ bool CX264VideoEncoder::GetEsConfig (uint8_t **ppEsConfig,
   error_message("Look at using x264_encoder_headers");
   if (yuvbuf == NULL) {
     error_message("xvid - Can't malloc memory for YUV for VOL");
+    StopEncoder();
     return false;
   }
   // Create a dummy frame, and encode it, requesting an I frame
@@ -387,6 +402,7 @@ bool CX264VideoEncoder::GetEsConfig (uint8_t **ppEsConfig,
       m_vopBufferLength > 0) {
     error_message("x264 - encode image for param sets didn't work");
     free(yuvbuf);
+    StopEncoder();
     return false;
   }
   free(yuvbuf);
@@ -413,6 +429,7 @@ bool CX264VideoEncoder::GetEsConfig (uint8_t **ppEsConfig,
   } while (found_seq == false && left > 0);
   if (found_seq == false) {
     error_message("Couldn't find seq pointer in x264 frame");
+    StopEncoder();
     return false;
   }
 
@@ -434,6 +451,7 @@ bool CX264VideoEncoder::GetEsConfig (uint8_t **ppEsConfig,
 
   if (found_pic == false) {
     error_message("Couldn't find pic pointer in x264 frame");
+    StopEncoder();
     return false;
   }
 
@@ -464,6 +482,7 @@ bool CX264VideoEncoder::GetEsConfig (uint8_t **ppEsConfig,
   debug_message("sprop %s", sprop);
   Profile()->m_videoMpeg4Config = (uint8_t *)sprop;
   Profile()->m_videoMpeg4ConfigLength = strlen(sprop) + 1;
+  StopEncoder();
   return true;
 }
 

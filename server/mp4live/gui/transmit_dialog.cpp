@@ -257,21 +257,21 @@ void create_IpAddrDialog (CMediaStream *ms,
   in_port_t port;
   char buffer[128];
   if (do_audio) {
-    sprintf(buffer, "Stream %s Audio Destination Address", 
+    sprintf(buffer, "Stream \"%s\" Audio Destination Address", 
 	    media_stream->GetName());
     addr_type = DO_AUDIO;
     addr = media_stream->GetStringValue(STREAM_AUDIO_DEST_ADDR);
     port = media_stream->GetIntegerValue(STREAM_AUDIO_DEST_PORT);
     fixed = media_stream->GetBoolValue(STREAM_AUDIO_ADDR_FIXED);
   } else if (do_video) {
-    sprintf(buffer, "Stream %s Video Destination Address", 
+    sprintf(buffer, "Stream \"%s\" Video Destination Address", 
 	    media_stream->GetName());
     addr_type = DO_VIDEO;
     addr = media_stream->GetStringValue(STREAM_VIDEO_DEST_ADDR);
     port = media_stream->GetIntegerValue(STREAM_VIDEO_DEST_PORT);
     fixed = media_stream->GetBoolValue(STREAM_VIDEO_ADDR_FIXED);
   } else {
-    sprintf(buffer, "Stream %s Text Destination Address", 
+    sprintf(buffer, "Stream \"%s\" Text Destination Address", 
 	    media_stream->GetName());
     addr_type = DO_TEXT;
     addr = media_stream->GetStringValue(STREAM_TEXT_DEST_ADDR);

@@ -2,6 +2,7 @@ noinst_LTLIBRARIES = libmp4livegui.la
 
 libmp4livegui_la_SOURCES = \
 	audio_dialog.cpp \
+	encoder_dialog.cpp \
 	file_utils.cpp \
 	file_utils.h \
 	gui_main.cpp \

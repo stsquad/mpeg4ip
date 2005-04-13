@@ -27,6 +27,7 @@
 void GenerateMpeg4VideoConfig(CVideoProfile *pConfig)
 {
   CVideoEncoder *pVidEncoder = VideoEncoderCreate(pConfig, 
+						  1460,
 						  NULL, 
 						  false);
 

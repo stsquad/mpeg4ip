@@ -105,9 +105,9 @@ void CMp4Recorder::DoStartRecord()
     filename = m_stream->GetStringValue(STREAM_RECORD_MP4_FILE_NAME);
   } else {
     // recording raw file
-    m_recordVideo = m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) ||
+    m_recordVideo = m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) &&
       m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_VIDEO);
-    m_recordAudio = m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE) ||
+    m_recordAudio = m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE) &&
       m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_AUDIO);
     m_recordText = false;
     m_audioTimeScale = m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
@@ -1008,7 +1008,7 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
     
     // the first raw video frame is stretched to the begining
     // of the first raw audio frame
-    if (m_videoFrameNumber == 2) {
+    if (m_videoFrameNumber == 2 && m_recordAudio) {
       videoDurationInTicks =
         pFrame->GetTimestamp() - m_audioStartTimestamp;
     } else {
@@ -1018,16 +1018,34 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 
     m_prevVideoFrame->SetDuration(videoDurationInTicks);
     yuv_media_frame_t *pYUV = (yuv_media_frame_t *)m_prevVideoFrame->GetData();
-    if (pYUV->y_stride != m_pConfig->m_videoWidth) {
-      error_message("Need to handle different strides in record raw");
-    } else {
+    if (pYUV->y + m_pConfig->m_ySize == pYUV->u) {
       MP4WriteSample(
 		     m_mp4File,
 		     m_videoTrackId,
 		     pYUV->y,
 		     m_pConfig->m_yuvSize,
 		     m_prevVideoFrame->ConvertDuration(m_videoTimeScale));
+    } else {
+      if (m_rawYUV == NULL) {
+	debug_message("Mallocing %u", m_pConfig->m_yuvSize);
+	m_rawYUV = (uint8_t *)malloc(m_pConfig->m_yuvSize);
+      }
+      CopyYuv(pYUV->y, pYUV->u, pYUV->v,
+	      pYUV->y_stride, pYUV->uv_stride, pYUV->uv_stride,
+	      m_rawYUV, 
+	      m_rawYUV + m_pConfig->m_ySize, 
+	      m_rawYUV + m_pConfig->m_ySize + m_pConfig->m_uvSize,
+	      m_pConfig->m_videoWidth, 
+	      m_pConfig->m_videoWidth / 2, 
+	      m_pConfig->m_videoWidth / 2,
+	      m_pConfig->m_videoWidth, m_pConfig->m_videoHeight);
+      MP4WriteSample(m_mp4File, 
+		     m_videoTrackId, 
+		     m_rawYUV,
+		     m_pConfig->m_yuvSize,
+		     m_prevVideoFrame->ConvertDuration(m_videoTimeScale));
     }
+	      
 
     m_videoFrameNumber++;
     if (m_prevVideoFrame->RemoveReference()) {
@@ -1091,6 +1109,7 @@ void CMp4Recorder::DoStopRecord()
       if (m_prevVideoFrame->RemoveReference()) {
 	delete m_prevVideoFrame;
       }
+      CHECK_AND_FREE(m_rawYUV);
     } else {
       bool isIFrame;
       Duration rend_offset = 0;

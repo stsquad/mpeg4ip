@@ -32,6 +32,7 @@
 class CFfmpegVideoEncoder : public CVideoEncoder {
  public:
 	CFfmpegVideoEncoder(CVideoProfile *vp, 
+			    uint16_t mtu,
 			    CVideoEncoder *next, 
 			    bool realTime = true);
 

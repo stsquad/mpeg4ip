@@ -28,9 +28,10 @@
 //#include <mpegvideo.h>
 
 CFfmpegVideoEncoder::CFfmpegVideoEncoder(CVideoProfile *vp, 
+					 uint16_t mtu,
 					 CVideoEncoder *next, 
 					 bool realTime) :
-  CVideoEncoder(vp, next, realTime)
+  CVideoEncoder(vp, mtu, next, realTime)
 {
   m_codec = NULL;
   m_avctx = NULL;

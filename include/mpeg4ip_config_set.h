@@ -238,7 +238,7 @@ SConfigVariableDeclare SConfigVariable {
 
 struct SUnknownConfigVariable {
   struct SUnknownConfigVariable *next;
-  char *value;
+  SConfigVariable *value;
 };
 
 class CConfigSet {
@@ -270,6 +270,8 @@ public:
 		SUnknownConfigVariable *ptr = m_unknown_head;
 		while (ptr != NULL) {
 		  m_unknown_head = ptr->next;
+		  CHECK_AND_FREE(ptr->value->m_sName);
+		  CHECK_AND_FREE(ptr->value->m_value.m_svalue);
 		  free(ptr->value);
 		  free(ptr);
 		  ptr = m_unknown_head;
@@ -467,23 +469,30 @@ public:
 	  if (line[0] == '#') {
 	    return;
 	  }
-	  char* s = line;
+	  char* s = line, *name;
 	  while (*s != '\0') s++;
 	  s--;
 	  while (isspace(*s)) {
 	    *s = '\0';
 	    s--;
 	  }
-	  s = line;
+	  s = name = line;
 
 	  var = FindByName(strsep(&s, "="));
 	  if (var == NULL || s == NULL) {
 	    if (s != NULL) {
-	      *(s - 1) = '='; // restore seperation character
+	      SConfigVariable *svar;
+	      svar = MALLOC_STRUCTURE(SConfigVariable);
+	      memset(svar, 0, sizeof(*svar));
+	      svar->m_sName = strdup(name);
+	      svar->m_type = CONFIG_TYPE_STRING;
+	      if (!svar->FromAscii(s)) {
+		fprintf(stderr, "bad config value in line %s\n", s);
+	      }
 	      SUnknownConfigVariable *ptr;
 	      ptr = MALLOC_STRUCTURE(SUnknownConfigVariable);
 	      ptr->next = m_unknown_head;
-	      ptr->value = strdup(line);
+	      ptr->value = svar;
 	      m_unknown_head = ptr;
 	    }
 	    if (m_debug) {
@@ -551,7 +560,8 @@ public:
 		}
 		ptr = m_unknown_head;
 		while (ptr != NULL) {
-		  fprintf(pFile, "%s\n", ptr->value);
+		  fprintf(pFile, "%s=%s\n", ptr->value->m_sName, 
+			  ptr->value->ToAscii());
 		  ptr = ptr->next;
 		}
 		fclose(pFile);
@@ -612,7 +622,19 @@ public:
 		    m_variables[ix].ToAscii());
 	  }
 	};
-
+	const char* GetUnknownStringValue (const char *var_name) {
+	  SUnknownConfigVariable *svar = m_unknown_head;
+	  while (svar != NULL) {
+	    if (strcasecmp(var_name, svar->value->m_sName) == 0) {
+	      return svar->value->m_value.m_svalue;
+	    }
+	    svar = svar->next;
+	  }
+	  config_index_t ix = FindIndexByName(var_name);
+	  if (ix == UINT32_MAX) return NULL;
+	  return m_variables[ix].m_value.m_svalue;
+	};
+	
 protected:
 	SConfigVariable* FindByName(const char* sName) {
 	  config_index_t ix = FindIndexByName(sName);

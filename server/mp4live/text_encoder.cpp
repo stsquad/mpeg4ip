@@ -38,9 +38,9 @@ uint32_t text_encoder_table_size = NUM_ELEMENTS_IN_ARRAY(text_encoder_table);
 class CPlainTextEncoder : public CTextEncoder 
 {
  public:
-  CPlainTextEncoder(CTextProfile *profile, CTextEncoder *next, 
+  CPlainTextEncoder(CTextProfile *profile, uint16_t mtu, CTextEncoder *next, 
 		    bool realTime = true) :
-    CTextEncoder(profile, next, realTime) { };
+    CTextEncoder(profile, mtu, next, realTime) { };
   bool Init(void) { 
     m_encodedFrame = NULL;
     return true; 
@@ -71,9 +71,9 @@ class CPlainTextEncoder : public CTextEncoder
 class CHrefTextEncoder : public CTextEncoder
 {
  public:
-  CHrefTextEncoder(CTextProfile *profile, CTextEncoder *next, 
+  CHrefTextEncoder(CTextProfile *profile, uint16_t mtu, CTextEncoder *next, 
 		    bool realTime = true) :
-    CTextEncoder(profile, next, realTime) { };
+    CTextEncoder(profile, mtu, next, realTime) { };
   bool Init(void) { 
     m_encodedFrame = NULL;
     return true; 
@@ -135,14 +135,15 @@ class CHrefTextEncoder : public CTextEncoder
 };
 
 CTextEncoder* TextEncoderCreate(CTextProfile *tp, 
+				uint16_t mtu,
 				CTextEncoder *next, 
 				bool realTime)
 {
   const char *encoding = tp->GetStringValue(CFG_TEXT_ENCODING);
   if (strcmp(encoding, TEXT_ENCODING_PLAIN) == 0) {
-    return new CPlainTextEncoder(tp, next, realTime);
+    return new CPlainTextEncoder(tp, mtu, next, realTime);
   } else if (strcmp(encoding, TEXT_ENCODING_HREF) == 0) {
-    return new CHrefTextEncoder(tp, next, realTime);
+    return new CHrefTextEncoder(tp, mtu, next, realTime);
   }
 
   return NULL;
@@ -306,9 +307,10 @@ rtp_transmitter_f GetTextRtpTransmitRoutine (CTextProfile *pConfig,
 }
 
 CTextEncoder::CTextEncoder (CTextProfile *tp,
+			    uint16_t mtu,
 			    CTextEncoder *next,
 			    bool realTime) :
-  CMediaCodec(tp, next, realTime)
+  CMediaCodec(tp, mtu, next, realTime)
 {
   
 }

@@ -21,6 +21,11 @@
 #include "mp4live.h"
 #include "video_encoder.h"
 #include "mp4live_config.h"
+#ifdef HAVE_XVID10
+#include "video_xvid10.h"
+#endif
+#include "video_x264.h"
+#include "encoder-h261.h"
 
 static uint16_t h261SizeWidthValues[] = {
   176, 352
@@ -75,6 +80,10 @@ static const char *h263SizeNames[] = {
 #define H263_SIZES (NUM_ELEMENTS_IN_ARRAY(h263SizeWidthValues))
 #endif
 
+static bool dummy_opts (encoder_gui_options_base_t ***value, uint *count)
+{
+  return false;
+}
 
 const video_encoder_table_t video_encoder_table[] = {
 #if defined(HAVE_XVID_H) || defined(HAVE_XVID10)
@@ -97,7 +106,12 @@ const video_encoder_table_t video_encoder_table[] = {
     mpeg4SizeHeightValues,
     mpeg4SizeNames,
     mpeg4SizeNames,
-    mpeg4SizeNames
+    mpeg4SizeNames,
+#ifdef HAVE_XVID10
+    xvid_gui_options_f,
+#else
+    dummy_opts,
+#endif
   },
 #endif
 #ifdef HAVE_FFMPEG
@@ -116,7 +130,8 @@ const video_encoder_table_t video_encoder_table[] = {
     mpeg4SizeHeightValues,
     mpeg4SizeNames,
     mpeg4SizeNames,
-    mpeg4SizeNames
+    mpeg4SizeNames,
+    dummy_opts,
   },
   {
     "Mpeg2 - ffmpeg", 
@@ -133,7 +148,8 @@ const video_encoder_table_t video_encoder_table[] = {
     mpeg4SizeHeightValues,
     mpeg4SizeNames,
     mpeg4SizeNames,
-    mpeg4SizeNames
+    mpeg4SizeNames,
+    dummy_opts,
   },
   {
     "H263 - ffmpeg", 
@@ -150,9 +166,11 @@ const video_encoder_table_t video_encoder_table[] = {
     h263SizeHeightValues,
     h263SizeNames,
     h263SizeNames,
-    h263SizeNames
+    h263SizeNames,
+    dummy_opts,
   },
 #endif
+#ifdef HAVE_X264
   { 
     "H264 - x264",
     VIDEO_ENCODING_H264,
@@ -168,8 +186,10 @@ const video_encoder_table_t video_encoder_table[] = {
     mpeg4SizeHeightValues,
     mpeg4SizeNames,
     mpeg4SizeNames,
-    mpeg4SizeNames
+    mpeg4SizeNames,
+    x264_gui_options_f,
   },
+#endif
   {
     "H261",
     VIDEO_ENCODING_H261,
@@ -186,6 +206,7 @@ const video_encoder_table_t video_encoder_table[] = {
     h261SizeNames, 
     h261SizeNames, 
     h261SizeNames, 
+    h261_gui_options_f,
   },
 };
 

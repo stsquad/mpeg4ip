@@ -29,6 +29,7 @@
 #include "video_encoder.h"
 
 CVideoEncoder* VideoEncoderCreateBase(CVideoProfile *vp, 
+				      uint16_t mtu,
 				      CVideoEncoder *next, 
 				      bool realTime = true);
 

@@ -61,8 +61,9 @@ public:
 	CFfmpegAudioEncoder(CAudioProfile *ap, 
 			    CAudioEncoder *next, 
 			    u_int8_t srcChannels,
-		u_int32_t srcSampleRate,
-		bool realTime = true);
+			    u_int32_t srcSampleRate,
+			    uint16_t mtu,
+			    bool realTime = true);
 
 	bool Init(void);
 

@@ -28,6 +28,7 @@
 class CXvidVideoEncoder : public CVideoEncoder {
  public:
 	CXvidVideoEncoder(CVideoProfile *vp, 
+			  uint16_t mtu,
 			  CVideoEncoder *next, 
 			  bool realTime = true);
 

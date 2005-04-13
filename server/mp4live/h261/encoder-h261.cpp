@@ -42,6 +42,29 @@
 #include "util.h"
 #include "encoder-h261.h"
 #include "mp4live_config.h"
+#include "video_util_resize.h"
+
+static config_index_t CFG_VIDEO_H261_QUALITY;
+static config_index_t CFG_VIDEO_H261_QUALITY_ADJ_FRAMES;
+static SConfigVariable H261ConfigVariables[] = {
+  CONFIG_INT(CFG_VIDEO_H261_QUALITY, "videoH261Quality", 10),
+  CONFIG_INT(CFG_VIDEO_H261_QUALITY_ADJ_FRAMES, "videoH261QualityAdjFrames", 8),
+};
+
+GUI_INT_RANGE(gui_q, CFG_VIDEO_H261_QUALITY, "H.261 Quality", 1, 32);
+GUI_INT_RANGE(gui_qf, CFG_VIDEO_H261_QUALITY_ADJ_FRAMES, "Frames before Adjusting Quality", 1, 100);
+DECLARE_TABLE(h261_gui_options) = {
+  TABLE_GUI(gui_q),
+  TABLE_GUI(gui_qf),
+};
+DECLARE_TABLE_COUNT(h261_gui_options);
+DECLARE_TABLE_FUNC(h261_gui_options);
+
+void AddH261ConfigVariables (CVideoProfile *pConfig)
+{
+  pConfig->AddConfigVariables(H261ConfigVariables, 
+			      NUM_ELEMENTS_IN_ARRAY(H261ConfigVariables));
+}
 
 //#define DEBUG_QUALITY_ADJUSTMENT 1
 
@@ -105,9 +128,10 @@
 
 
 CH261Encoder::CH261Encoder(CVideoProfile *vp,
+			   uint16_t mtu,
 			   CVideoEncoder *next, 
 			   bool realTime) :
-  CVideoEncoder(vp, next, realTime), m_encoded_frame_buffer(0), m_pBufferCurrent(0), ngob_(12)
+  CVideoEncoder(vp, mtu, next, realTime), m_encoded_frame_buffer(0), m_pBufferCurrent(0), ngob_(12)
 {
   m_head = NULL;
   frame_data_ = NULL;
@@ -128,9 +152,10 @@ void CH261Encoder::StopEncoder (void)
 }
 
 CH261PixelEncoder::CH261PixelEncoder(CVideoProfile *vp,
+				     uint16_t mtu,
 				     CVideoEncoder *next,
 				     bool realTime) : 
-  CH261Encoder(vp, next, realTime), 
+  CH261Encoder(vp, mtu, next, realTime), 
   ConditionalReplenisher()
 {
 	quant_required_ = 0;
@@ -664,23 +689,18 @@ CH261PixelEncoder::EncodeImage(const uint8_t *pY,
   // check if everything is all together
   m_srcFrameTimestamp = srcTimestamp;
   pFrame = pY;
-  if (yStride != width_ ||
-      uvStride != (width_ / 2) ||
-      pY + framesize_ != pU ||
-      pU + (framesize_ / 4) != pV) {
-    // for now... later - just copy
-    if (m_localbuffer == NULL) {
-      m_localbuffer = (uint8_t *)malloc(framesize_ + (framesize_ / 2));
-    }
-    if (yStride == width_) {
-      memcpy(m_localbuffer, pY, framesize_);
-      memcpy(m_localbuffer + framesize_, pU, framesize_ / 4);
-      memcpy(m_localbuffer + framesize_ + framesize_ / 4, pV, framesize_ / 4);
-    } else {
-      abort();
-    }
-    pFrame = m_localbuffer;
+  if (m_localbuffer == NULL) {
+    m_localbuffer = (uint8_t *)malloc(framesize_ + (framesize_ / 2));
   }
+  CopyYuv(pY, pU, pV, yStride, uvStride, uvStride,
+	  m_localbuffer, m_localbuffer + framesize_, 
+	  m_localbuffer + framesize_ + (framesize_ / 4),
+	  width_, width_ / 2, width_ / 2, 
+	  width_, height_);
+  pFrame = m_localbuffer;
+  pY = m_localbuffer;
+  pU = m_localbuffer + framesize_;
+  pV = pU + framesize_ / 4;
 
   // check if we should adjust quality
   if (m_framesEncoded == 0) {
@@ -980,6 +1000,7 @@ bool CH261Encoder::Init(void)
   m_bitsPerFrame = m_bitRate / m_framerate;
   m_framesForQualityCheck = Profile()->GetIntegerValue(CFG_VIDEO_H261_QUALITY_ADJ_FRAMES);
   size(Profile()->m_videoWidth, Profile()->m_videoHeight);
-  //  mtu_ = Profile()->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
+  mtu_ = m_mtu;
+  //  mtu_ = m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
   return true;
 }

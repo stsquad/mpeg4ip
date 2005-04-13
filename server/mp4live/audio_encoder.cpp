@@ -38,13 +38,14 @@ const uint32_t allSampleRateTableSize = NUM_ELEMENTS_IN_ARRAY(allSampleRateTable
 
 CAudioEncoder* AudioEncoderCreate(CAudioProfile *ap, 
 				  CAudioEncoder *next, 
-				      u_int8_t srcChannels,
-				      u_int32_t srcSampleRate,
-				      bool realTime)
+				  u_int8_t srcChannels,
+				  u_int32_t srcSampleRate,
+				  uint16_t mtu,
+				  bool realTime)
 {
   // add codecs here
   return AudioEncoderBaseCreate(ap, next, 
-				srcChannels, srcSampleRate, realTime);
+				srcChannels, srcSampleRate, mtu, realTime);
 }
 
 MediaType get_audio_mp4_fileinfo (CAudioProfile *pConfig,
@@ -112,8 +113,9 @@ CAudioEncoder::CAudioEncoder(CAudioProfile *profile,
 			     CAudioEncoder *next, 
 			     u_int8_t srcChannels,
 			     u_int32_t srcSampleRate,
+			     uint16_t mtu,
 			     bool realTime) :
-  CMediaCodec(profile, next, realTime) 
+  CMediaCodec(profile, mtu, next, realTime) 
 {
     m_audioSrcChannels = srcChannels;
     m_audioSrcSampleRate = srcSampleRate;

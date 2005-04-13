@@ -35,6 +35,7 @@ class CAudioEncoder : public CMediaCodec {
 		CAudioEncoder *next, 
 		u_int8_t srcChannels,
 		u_int32_t srcSampleRate,
+		uint16_t mtu,
 		bool realTime = true);
 
   virtual u_int32_t GetSamplesPerFrame() = 0;
@@ -42,11 +43,10 @@ class CAudioEncoder : public CMediaCodec {
   virtual bool Init(void) = 0;
 
   void AddRtpDestination (CMediaStream *stream,
-			  uint16_t mtu,
 			  bool disable_ts_offset,
 			  uint16_t max_ttl,
 			  in_port_t srcPort = 0) {
-    AddRtpDestInt(mtu, disable_ts_offset, max_ttl,
+    AddRtpDestInt(disable_ts_offset, max_ttl,
 		  stream->GetStringValue(STREAM_AUDIO_DEST_ADDR),
 		  stream->GetIntegerValue(STREAM_AUDIO_DEST_PORT),
 		  srcPort);
@@ -83,8 +83,8 @@ class CAudioEncoder : public CMediaCodec {
 			       u_int32_t* pBufferLength,
 			       u_int32_t* pNumSamplesPerChannel) = 0;
 
-  CRtpTransmitter *CreateRtpTransmitter(uint16_t mtu, bool disable_ts) {
-    return new CAudioRtpTransmitter(Profile(), mtu, disable_ts);
+  CRtpTransmitter *CreateRtpTransmitter(bool disable_ts) {
+    return new CAudioRtpTransmitter(Profile(), m_mtu, disable_ts);
   };
 
   void ProcessAudioFrame(CMediaFrame *frame);
@@ -168,6 +168,7 @@ CAudioEncoder* AudioEncoderCreate(CAudioProfile *ap,
 				  CAudioEncoder *next,
 				  u_int8_t srcChannels,
 				  u_int32_t srcSampleRate,
+				  uint16_t mtu,
 				  bool realTime = true);
 media_desc_t *create_audio_sdp(CAudioProfile *pConfig,
 			       bool *mpeg4,
@@ -208,6 +209,7 @@ CAudioEncoder* AudioEncoderBaseCreate(CAudioProfile *ap,
 				      CAudioEncoder *next, 
 				      u_int8_t srcChannels,
 				      u_int32_t srcSampleRate,
+				      uint16_t mtu,
 				      bool realTime = true);
 
 media_desc_t *create_base_audio_sdp(CAudioProfile *pConfig,

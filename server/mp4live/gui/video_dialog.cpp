@@ -116,13 +116,14 @@ static bool ValidateAndSave(void)
     wid = lookup_widget(VideoSourceDialog, "VideoSourceSignal");
     MyConfig->SetIntegerValue(CONFIG_VIDEO_SIGNAL,
 			      gtk_option_menu_get_history(GTK_OPTION_MENU(wid)));
-    wid = lookup_widget(VideoSourceDialog, "VideoSourceChannelList");
+    wid = lookup_widget(VideoSourceDialog, "VideoSourceChannelType");
     uint channelListIndex = 
       gtk_option_menu_get_history(GTK_OPTION_MENU(wid));
     MyConfig->SetIntegerValue(CONFIG_VIDEO_CHANNEL_LIST_INDEX,
 			      channelListIndex);
     // extract channel index out of combo (not so simple)
-    GtkWidget* entry = lookup_widget(VideoSourceDialog, "VideoSourceChannelEntry");
+    GtkWidget* combo = lookup_widget(VideoSourceDialog, "VideoSourceChannel");
+    GtkWidget* entry = GTK_COMBO(combo)->entry;
     const char* channelName = gtk_entry_get_text(GTK_ENTRY(entry));
     uint channelIndex = MyConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX);
     struct CHANLISTS* pChannelList = chanlists;
@@ -245,7 +246,7 @@ static void EnableChannels()
 	}
 	
 	temp = lookup_widget(VideoSourceDialog, 
-			     "VideoSourceChannelList");
+			     "VideoSourceChannelType");
 	gtk_widget_set_sensitive(temp, hasTuner);
 	temp = lookup_widget(VideoSourceDialog,
 			     "VideoSourceChannel");
@@ -446,16 +447,18 @@ static void CreateChannelCombo(uint list_index, uint chan_index)
 		    (gpointer)chanlists[list_index].list[ix].name);
   }
 
+  debug_message("channel list has %d", chanlists[list_index].count);
   GtkWidget *channel_combo = lookup_widget(VideoSourceDialog,
 					   "VideoSourceChannel");
   gtk_combo_set_popdown_strings(GTK_COMBO(channel_combo), 
 				VideoSourceChannel_items);
+  //gtk_combo_set_use_arrows_always(GTK_COMBO(channel_combo), 1);
   g_list_free(VideoSourceChannel_items);
 
-  GtkWidget *entry = lookup_widget(VideoSourceDialog, 
-				   "VideoSourceChannelEntry");
+  GtkWidget *entry = GTK_COMBO(channel_combo)->entry;
   gtk_entry_set_text(GTK_ENTRY(entry), 
 		     chanlists[list_index].list[chan_index].name);
+  gtk_widget_show(channel_combo);
 }
 
 void ChangeChannelList(u_int8_t newIndex)
@@ -488,7 +491,7 @@ static void CreateChannelListMenu (void)
   for (index = 0; chanlists[index].name != NULL; index++) {
   }
   GtkWidget *channel_list_menu = lookup_widget(VideoSourceDialog, 
-					       "VideoSourceChannelList");
+					       "VideoSourceChannelType");
   CreateOptionMenu(channel_list_menu,
 		   GetChannelListName,
 		   (void*)pChannelList,
@@ -532,13 +535,12 @@ void create_VideoSourceDialog (void)
   GtkWidget *signalpal;
   GtkWidget *signalntsc;
   GtkWidget *signalsecam;
-  GtkWidget *VideoSourceChannelList;
+  GtkWidget *VideoSourceChannelType;
   GtkWidget *VideoSourceFilter;
   GtkWidget *menu11;
   GtkWidget *none1;
   GtkWidget *decimate1;
   GtkWidget *VideoSourceChannel;
-  GtkWidget *VideoSourceChannelEntry;
 
   GtkWidget *dialog_action_area6;
   GtkWidget *VideoSourceCancel;
@@ -665,16 +667,16 @@ void create_VideoSourceDialog (void)
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (VideoSourceSignal), menu15);
 
-  VideoSourceChannelList = gtk_option_menu_new ();
-  gtk_widget_show (VideoSourceChannelList);
-  gtk_table_attach (GTK_TABLE (VideoSourceTable), VideoSourceChannelList, 1, 2, 3, 4,
+  VideoSourceChannelType = gtk_option_menu_new ();
+  gtk_widget_show (VideoSourceChannelType);
+  gtk_table_attach (GTK_TABLE (VideoSourceTable), VideoSourceChannelType, 1, 2, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_sensitive (VideoSourceChannelList, FALSE);
-  gtk_tooltips_set_tip (tooltips, VideoSourceChannelList, _("Channel List for TV input"), NULL);
+  gtk_widget_set_sensitive (VideoSourceChannelType, FALSE);
+  gtk_tooltips_set_tip (tooltips, VideoSourceChannelType, _("Channel Type for TV input"), NULL);
 
-
-  VideoSourceChannel = gtk_option_menu_new ();
+  VideoSourceChannel = gtk_combo_new();
+  gtk_combo_set_value_in_list(GTK_COMBO(VideoSourceChannel), true, false);
   gtk_widget_show (VideoSourceChannel);
   gtk_table_attach (GTK_TABLE (VideoSourceTable), VideoSourceChannel, 1, 2, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
@@ -700,23 +702,6 @@ void create_VideoSourceDialog (void)
   gtk_container_add (GTK_CONTAINER (menu11), decimate1);
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (VideoSourceFilter), menu11);
-
-  VideoSourceChannel = gtk_combo_new ();
-  g_object_set_data (G_OBJECT (GTK_COMBO (VideoSourceChannel)->popwin),
-                     "GladeParentKey", VideoSourceChannel);
-  gtk_widget_show (VideoSourceChannel);
-  gtk_table_attach (GTK_TABLE (VideoSourceTable), VideoSourceChannel, 1, 2, 4, 5,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  //gtk_combo_set_value_in_list (GTK_COMBO (VideoSourceChannel), TRUE, TRUE);
-  //gtk_combo_set_use_arrows_always (GTK_COMBO (VideoSourceChannel), TRUE);
-
-  VideoSourceChannelEntry = GTK_COMBO (VideoSourceChannel)->entry;
-  gtk_widget_show (VideoSourceChannelEntry);
-  gtk_tooltips_set_tip (tooltips, VideoSourceChannelEntry, _("Channel number to tune"), NULL);
-  //  gtk_entry_set_text (GTK_ENTRY (VideoSourceChannelEntry), _("2"));
-
-
 
   dialog_action_area6 = GTK_DIALOG (VideoSourceDialog)->action_area;
   gtk_widget_show (dialog_action_area6);
@@ -745,7 +730,7 @@ void create_VideoSourceDialog (void)
   g_signal_connect((gpointer)VideoSourceBrowse, "clicked",
 		   G_CALLBACK(on_source_browse_button),
 		   NULL);
-  g_signal_connect((gpointer) VideoSourceChannelList, "changed",
+  g_signal_connect((gpointer) VideoSourceChannelType, "changed",
 		   G_CALLBACK(on_channel_list_menu_activate),
 		   NULL);
 		   
@@ -773,14 +758,13 @@ void create_VideoSourceDialog (void)
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, signalntsc, "signalntsc");
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, signalsecam, "signalsecam");
 
-  GLADE_HOOKUP_OBJECT (VideoSourceDialog, VideoSourceChannelList, "VideoSourceChannelList");
+  GLADE_HOOKUP_OBJECT (VideoSourceDialog, VideoSourceChannelType, "VideoSourceChannelType");
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, VideoSourceChannel, "VideoSourceChannel");
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, VideoSourceFilter, "VideoSourceFilter");
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, menu11, "menu11");
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, none1, "none1");
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, decimate1, "decimate1");
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, VideoSourceChannel, "VideoSourceChannel");
-  GLADE_HOOKUP_OBJECT (VideoSourceDialog, VideoSourceChannelEntry, "VideoSourceChannelEntry");
 
   GLADE_HOOKUP_OBJECT_NO_REF (VideoSourceDialog, dialog_action_area6, "dialog_action_area6");
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, VideoSourceCancel, "VideoSourceCancel");
@@ -865,8 +849,31 @@ static void CreateSizeMenu(uint16_t width, uint16_t height)
 		   names, 
 		   sizeMaxIndex,
 		   sizeIndex);
+  temp = lookup_widget(VideoProfileDialog, "VideoEncoderSettingsButton");
+  gtk_widget_set_sensitive(temp,
+			   (video_encoder_table[encoderIndex].get_gui_options)(NULL, NULL));
 }
 
+void
+on_VideoEncoderSettingsButton          (GtkButton *button,
+					gpointer user_data)
+{
+  CVideoProfile *profile = (CVideoProfile *)user_data;
+  GtkWidget *temp;
+  temp = lookup_widget(VideoProfileDialog, "VideoProfileEncoder");
+  encoder_gui_options_base_t **settings_array;
+  uint settings_array_count;
+  uint index = gtk_option_menu_get_history(GTK_OPTION_MENU(temp));
+  
+  if ((video_encoder_table[index].get_gui_options)(&settings_array, &settings_array_count) == false) {
+    return;
+  }
+  
+  CreateEncoderSettingsDialog(profile, VideoProfileDialog,
+			      video_encoder_table[index].encoding_name,
+			      settings_array,
+			      settings_array_count);
+}
 
 void
 on_VideoProfileEncoder_changed         (GtkOptionMenu   *optionmenu,
@@ -966,7 +973,7 @@ void CreateVideoProfileDialog(CVideoProfile *profile)
   GtkWidget *label93;
   GtkWidget *VideoProfileName;
   GtkWidget *label92;
-  GtkWidget *button15;
+  GtkWidget *VideoEncoderSettingsButton;
   GtkWidget *alignment11;
   GtkWidget *hbox59;
   GtkWidget *image11;
@@ -1107,17 +1114,17 @@ void CreateVideoProfileDialog(CVideoProfile *profile)
                    (GtkAttachOptions)(0), 0, 0);
   gtk_misc_set_alignment(GTK_MISC(label92), 0, 0.5);
 
-  button15 = gtk_button_new();
-  gtk_widget_show(button15);
-  gtk_table_attach(GTK_TABLE(VideoProfileTable), button15, 1, 2, 7, 8,
+  VideoEncoderSettingsButton = gtk_button_new();
+  gtk_widget_show(VideoEncoderSettingsButton);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), VideoEncoderSettingsButton, 1, 2, 7, 8,
                    (GtkAttachOptions)(GTK_FILL),
                    (GtkAttachOptions)(0), 0, 0);
-  gtk_widget_set_sensitive(button15, FALSE);
-  gtk_tooltips_set_tip(tooltips, button15, _("Configure Encoder Specific Settings"), NULL);
+  gtk_widget_set_sensitive(VideoEncoderSettingsButton, FALSE);
+  gtk_tooltips_set_tip(tooltips, VideoEncoderSettingsButton, _("Configure Encoder Specific Settings"), NULL);
 
   alignment11 = gtk_alignment_new(0.5, 0.5, 0, 0);
   gtk_widget_show(alignment11);
-  gtk_container_add(GTK_CONTAINER(button15), alignment11);
+  gtk_container_add(GTK_CONTAINER(VideoEncoderSettingsButton), alignment11);
 
   hbox59 = gtk_hbox_new(FALSE, 2);
   gtk_widget_show(hbox59);
@@ -1213,6 +1220,9 @@ void CreateVideoProfileDialog(CVideoProfile *profile)
   g_signal_connect((gpointer) VideoProfileEncoder, "changed",
                     G_CALLBACK(on_VideoProfileEncoder_changed),
                     NULL);
+  g_signal_connect((gpointer) VideoEncoderSettingsButton, "clicked", 
+		   G_CALLBACK(on_VideoEncoderSettingsButton),
+		   profile);
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF(VideoProfileDialog, VideoProfileDialog, "VideoProfileDialog");
   GLADE_HOOKUP_OBJECT_NO_REF(VideoProfileDialog, dialog_vbox4, "dialog_vbox4");
@@ -1226,7 +1236,7 @@ void CreateVideoProfileDialog(CVideoProfile *profile)
   GLADE_HOOKUP_OBJECT(VideoProfileDialog, label93, "label93");
   GLADE_HOOKUP_OBJECT(VideoProfileDialog, VideoProfileName, "VideoProfileName");
   GLADE_HOOKUP_OBJECT(VideoProfileDialog, label92, "label92");
-  GLADE_HOOKUP_OBJECT(VideoProfileDialog, button15, "button15");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, VideoEncoderSettingsButton, "VideoEncoderSettingsButton");
   GLADE_HOOKUP_OBJECT(VideoProfileDialog, alignment11, "alignment11");
   GLADE_HOOKUP_OBJECT(VideoProfileDialog, hbox59, "hbox59");
   GLADE_HOOKUP_OBJECT(VideoProfileDialog, image11, "image11");

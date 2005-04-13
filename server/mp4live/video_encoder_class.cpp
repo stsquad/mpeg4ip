@@ -27,9 +27,10 @@
 // Video encoder initialization
 
 CVideoEncoder::CVideoEncoder(CVideoProfile *vp,
+			     uint16_t mtu,
 			     CVideoEncoder *next,
 			     bool realTime) : 
-  CMediaCodec(vp, next, realTime)
+  CMediaCodec(vp, mtu, next, realTime)
 {
   m_videoSrcYImage = NULL;
   m_videoDstYImage = NULL;

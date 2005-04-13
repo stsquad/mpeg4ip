@@ -40,6 +40,22 @@ static SConfigVariable XvidEncoderVariables[] = {
   CONFIG_BOOL(CFG_XVID10_USE_INTERLACING, "xvid10UseInterlacing", false),
 };
 
+GUI_BOOL(gui_gmc, CFG_XVID10_USE_GMC, "Use GMC");
+GUI_BOOL(gui_qpel, CFG_XVID10_USE_QPEL, "Use QPel");
+GUI_BOOL(gui_lumimask, CFG_XVID10_USE_LUMIMASK, "Use Lumimask");
+GUI_BOOL(gui_interlace, CFG_XVID10_USE_INTERLACING, "Use Interlacing");
+GUI_INT_RANGE(gui_vq, CFG_XVID10_VIDEO_QUALITY, "Video Quality", 0, 6);
+
+DECLARE_TABLE(xvid_gui_options) = {
+  TABLE_GUI(gui_gmc),
+  TABLE_GUI(gui_qpel),
+  TABLE_GUI(gui_lumimask),
+  TABLE_GUI(gui_interlace),
+  TABLE_GUI(gui_vq),
+};
+DECLARE_TABLE_COUNT(xvid_gui_options);
+DECLARE_TABLE_FUNC(xvid_gui_options);
+
 void AddXvid10ConfigVariables(CVideoProfile *pConfig) 
 {
   pConfig->AddConfigVariables(XvidEncoderVariables,
@@ -47,9 +63,10 @@ void AddXvid10ConfigVariables(CVideoProfile *pConfig)
 }
 
 CXvid10VideoEncoder::CXvid10VideoEncoder(CVideoProfile *vp, 
+					 uint16_t mtu,
 					 CVideoEncoder *next, 
 					 bool realTime) :
-  CVideoEncoder(vp, next, realTime)
+  CVideoEncoder(vp, mtu, next, realTime)
 {
 	m_xvidHandle = NULL;
 	m_vopBuffer = NULL;
@@ -350,6 +367,7 @@ bool CXvid10VideoEncoder::GetEsConfig(uint8_t **ppEsConfig,
 
   if (yuvbuf == NULL) {
     error_message("xvid - Can't malloc memory for YUV for VOL");
+    StopEncoder();
     return false;
   }
   // Create a dummy frame, and encode it, requesting an I frame
@@ -366,6 +384,7 @@ bool CXvid10VideoEncoder::GetEsConfig(uint8_t **ppEsConfig,
       m_vopBufferLength > 0) {
     error_message("xvid - encode image for VOL didn't work");
     free(yuvbuf);
+    StopEncoder();
     return false;
   }
   free(yuvbuf);
@@ -373,6 +392,7 @@ bool CXvid10VideoEncoder::GetEsConfig(uint8_t **ppEsConfig,
   volptr = MP4AV_Mpeg4FindVol(m_vopBuffer, m_vopBufferLength);
   if (volptr == NULL) {
     error_message("xvid - didn't put vol in header");
+    StopEncoder();
     return false;
   }
   uint32_t offset, scode;
@@ -382,6 +402,7 @@ bool CXvid10VideoEncoder::GetEsConfig(uint8_t **ppEsConfig,
 			       &offset,
 			       &scode) < 0) {
     error_message("xvid - can't find vop after vol");
+    StopEncoder();
     return false;
   }
   // not really a vop pointer, but pointer to next frame
@@ -390,6 +411,7 @@ bool CXvid10VideoEncoder::GetEsConfig(uint8_t **ppEsConfig,
   *ppEsConfig = m_vopBuffer;
   *pEsConfigLen = (vopptr - m_vopBuffer);
   m_vopBuffer = NULL;
+  StopEncoder();
   return true;
 }
   

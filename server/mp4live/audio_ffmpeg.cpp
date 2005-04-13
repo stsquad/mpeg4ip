@@ -345,8 +345,9 @@ CFfmpegAudioEncoder::CFfmpegAudioEncoder(CAudioProfile *ap,
 					 CAudioEncoder *next, 
 					 u_int8_t srcChannels,
 					 u_int32_t srcSampleRate,
+					 uint16_t mtu,
 					 bool realTime) :
-  CAudioEncoder(ap, next, srcChannels, srcSampleRate, realTime)
+  CAudioEncoder(ap, next, srcChannels, srcSampleRate, mtu, realTime)
 {
 	m_FrameBuffer = NULL;
 	m_codec = NULL;

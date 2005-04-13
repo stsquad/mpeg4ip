@@ -26,10 +26,11 @@
 #include "video_util_filter.h"
 
 CVideoEncoder* VideoEncoderCreate(CVideoProfile *vp, 
+				  uint16_t mtu,
 				  CVideoEncoder *next, 
 				  bool realTime)
 {
-  return VideoEncoderCreateBase(vp, next, realTime);
+  return VideoEncoderCreateBase(vp, mtu, next, realTime);
 }
 void AddVideoProfileEncoderVariables(CVideoProfile *pConfig)
 {

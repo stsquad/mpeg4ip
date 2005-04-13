@@ -37,12 +37,14 @@ class CMediaStream;
 class CMediaCodec : public CMediaFeeder, public CMediaSink {
 public:
 	CMediaCodec(CConfigEntry *cfg,
+		    uint16_t mtu,
 		    CMediaCodec *next = NULL,
 		    bool realTime = true) { 
 		m_pConfig = cfg;
 		m_nextCodec = next;
 		m_realTime = realTime;
 		m_rtp_sink = NULL;
+		m_mtu = mtu;
 	}
 
 	~CMediaCodec(void) {
@@ -58,7 +60,6 @@ public:
 	  return m_pConfig->GetName();
 	};
 	virtual void AddRtpDestination(CMediaStream *stream,
-				       uint16_t mtu,
 				       bool disable_ts_offset, 
 				       uint16_t max_ttl,
 				       in_port_t srcPort = 0) = 0;
@@ -68,17 +69,15 @@ protected:
 	CConfigEntry *m_pConfig;
 	bool m_realTime;
 	CRtpTransmitter *m_rtp_sink;
-	virtual CRtpTransmitter *CreateRtpTransmitter(uint16_t mtu,
-						      bool disable_ts_offset) = 0;
-	void AddRtpDestInt(uint16_t mtu,
-			   bool disable_ts_offset, 
+	uint16_t m_mtu;
+	virtual CRtpTransmitter *CreateRtpTransmitter(bool disable_ts_offset) = 0;
+	void AddRtpDestInt(bool disable_ts_offset, 
 			   uint16_t max_ttl,
 			   const char *dest_addr, 
 			   in_port_t destPort,
 			   in_port_t srcPort) {
-	  debug_message("%u %u", mtu, max_ttl);
 	  if (m_rtp_sink == NULL) {
-	    m_rtp_sink = CreateRtpTransmitter(mtu, disable_ts_offset);
+	    m_rtp_sink = CreateRtpTransmitter(disable_ts_offset);
 	    m_rtp_sink->StartThread();
 	    AddSink(m_rtp_sink);
 	  }

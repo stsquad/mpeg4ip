@@ -691,19 +691,16 @@ void CAVMediaFlow::Start(void)
       // create rtp destination, add to transmitter
       if (ve_ptr != NULL) {
 	ve_ptr->AddRtpDestination(s,
-				  m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE),
 				  m_pConfig->GetBoolValue(CONFIG_RTP_DISABLE_TS_OFFSET),
 				  m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL));
       }
       if (ae_ptr != NULL) {
 	ae_ptr->AddRtpDestination(s,
-				  m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE),
 				  m_pConfig->GetBoolValue(CONFIG_RTP_DISABLE_TS_OFFSET),
 				  m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL));
       }
       if (te_ptr != NULL) {
 	te_ptr->AddRtpDestination(s,
-				  m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE),
 				  m_pConfig->GetBoolValue(CONFIG_RTP_DISABLE_TS_OFFSET),
 				  m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL));
       }
@@ -828,7 +825,10 @@ CVideoEncoder *CAVMediaFlow::FindOrCreateVideoEncoder (CVideoProfile *vp,
  
   if (create == false) return NULL;
 
-  ve_ptr = VideoEncoderCreate(vp, m_video_encoder_list /* TODO realTime */);
+  ve_ptr = 
+    VideoEncoderCreate(vp, 
+		       m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE), 
+		       m_video_encoder_list /* TODO realTime */);
   m_video_encoder_list = ve_ptr;
   ve_ptr->StartThread();
   m_videoSource->AddSink(ve_ptr);
@@ -850,7 +850,8 @@ CAudioEncoder *CAVMediaFlow::FindOrCreateAudioEncoder (CAudioProfile *ap)
   
   ae_ptr = AudioEncoderCreate(ap, m_audio_encoder_list, 
 			      m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS),
-			      m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
+			      m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE),
+			      m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
   m_audio_encoder_list = ae_ptr;
   // need to init, find max samples here..
   ae_ptr->Init();
@@ -874,7 +875,10 @@ CTextEncoder *CAVMediaFlow::FindOrCreateTextEncoder (CTextProfile *tp)
     te_ptr = te_ptr->GetNext();
   }
   
-  te_ptr = TextEncoderCreate(tp, m_text_encoder_list);
+  te_ptr = 
+    TextEncoderCreate(tp, 
+		      m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE), 
+		      m_text_encoder_list);
 
   m_text_encoder_list = te_ptr;
   // need to init, find max samples here..

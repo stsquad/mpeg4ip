@@ -20,11 +20,11 @@
  */
 
 #ifndef __VIDEO_X264_H__
-#define __VIDEO_X264_H__
+#define __VIDEO_X264_H__ 1
 
 #include "video_encoder.h"
-#ifdef HAVE_X264
 
+#ifdef HAVE_X264
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,6 +36,7 @@ extern "C" {
 class CX264VideoEncoder : public CVideoEncoder {
  public:
 	CX264VideoEncoder(CVideoProfile *vp, 
+			  uint16_t mtu,
 			  CVideoEncoder *next, 
 			  bool realTime = true);
 
@@ -88,6 +89,7 @@ class CX264VideoEncoder : public CVideoEncoder {
 };
 
 void AddX264ConfigVariables(CVideoProfile *pConfig);
+EXTERN_TABLE_F(x264_gui_options);
 #endif
 
 #endif /* __VIDEO_X264_H__ */

@@ -27,7 +27,7 @@
 #include "mp4live_config.h"
 #include "media_flow.h"
 #include "preview_flow.h" 
-
+#include "encoder_gui_options.h"
 // From gui_main.cpp
 extern CLiveConfig* MyConfig;
 extern CPreviewAVMediaFlow* AVFlow;
@@ -81,5 +81,11 @@ void create_PreferencesDialog(void);
 void create_TextSourceDialog(void);
 void create_TextProfileDialog(CTextProfile *tp);
 GtkWidget *create_TextFileDialog(bool do_file);
+
+void CreateEncoderSettingsDialog(CConfigEntry *config,
+				 GtkWidget *calling_dialog,
+				 const char *encoder_name,
+				 encoder_gui_options_base_t **enc_settings,
+				 uint enc_settings_count);
 
 #endif

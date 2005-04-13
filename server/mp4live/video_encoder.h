@@ -30,6 +30,7 @@
 #include "media_sink.h"
 #include "media_feeder.h"
 #include "video_util_resize.h"
+#include "encoder_gui_options.h"
 
 class CTimestampPush {
  public:
@@ -63,6 +64,7 @@ class CTimestampPush {
 class CVideoEncoder : public CMediaCodec {
 public:
   CVideoEncoder(CVideoProfile *vp,
+		uint16_t mtu,
 		CVideoEncoder *next,
 		bool realTime); 
   
@@ -74,11 +76,10 @@ public:
   virtual bool GetEsConfig(uint8_t **ppEsConfig,
 			   uint32_t *pEsConfigLen) { return false; };
   void AddRtpDestination (CMediaStream *stream,
-			  uint16_t mtu,
 			  bool disable_ts_offset, 
 			  uint16_t max_ttl,
 			  in_port_t srcPort = 0) {
-    AddRtpDestInt(mtu, disable_ts_offset, max_ttl,
+    AddRtpDestInt(disable_ts_offset, max_ttl,
 		  stream->GetStringValue(STREAM_VIDEO_DEST_ADDR),
 		  stream->GetIntegerValue(STREAM_VIDEO_DEST_PORT),
 		  srcPort);
@@ -95,8 +96,8 @@ public:
   int ThreadMain(void);
   CVideoProfile *Profile(void) { return (CVideoProfile *)m_pConfig; } ;
 
-  CRtpTransmitter *CreateRtpTransmitter(uint16_t mtu, bool disable_ts_offset) {
-    return new CVideoRtpTransmitter(Profile(), mtu, disable_ts_offset);
+  CRtpTransmitter *CreateRtpTransmitter(bool disable_ts_offset) {
+    return new CVideoRtpTransmitter(Profile(), m_mtu, disable_ts_offset);
   };
 
   // encoder specific routines.
@@ -189,6 +190,7 @@ public:
 };
 
 CVideoEncoder* VideoEncoderCreate(CVideoProfile *vp, 
+				  uint16_t mtu,
 				  CVideoEncoder *next, 
 				  bool realTime = true);
 
@@ -238,6 +240,7 @@ typedef struct video_encoder_table_t {
   const char **sizeNamesNTSC;
   const char **sizeNamesPAL;
   const char **sizeNamesSecam;
+  get_gui_options_list_f get_gui_options;
 } video_encoder_table_t;
 
 extern const video_encoder_table_t video_encoder_table[];

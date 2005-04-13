@@ -166,7 +166,9 @@ void CRawFileSink::DoWriteFrame(CMediaFrame* pFrame)
 		  yuv_media_frame_t *pYUV =
 		    (yuv_media_frame_t *)pFrame->GetData();
 		  if (pYUV->y_stride == m_pConfig->m_videoWidth) {
-		    write(m_yuvFile, pYUV->y, m_pConfig->m_yuvSize);
+		    write(m_yuvFile, pYUV->y, m_pConfig->m_ySize);
+		    write(m_yuvFile, pYUV->u, m_pConfig->m_uvSize);
+		    write(m_yuvFile, pYUV->v, m_pConfig->m_uvSize);
 		  } else {
 		    const uint8_t *p;
 		    uint h, max_h;

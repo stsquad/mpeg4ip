@@ -24,18 +24,12 @@
 #include "video_encoder_base.h"
 #include "mp4av.h"
 
-#ifdef ADD_XVID_ENCODER
 #ifdef HAVE_XVID10
 #include "video_xvid10.h"
 #else
 #ifdef HAVE_XVID_H
 #include "video_xvid.h"
 #endif
-#endif
-#endif
-
-#ifdef ADD_H26L_ENCODER
-#include "video_h26l.h"
 #endif
 
 #ifdef HAVE_FFMPEG
@@ -49,13 +43,14 @@
 #include "h261/encoder-h261.h"
 #include "rtp_transmitter.h"
 CVideoEncoder* VideoEncoderCreateBase(CVideoProfile *vp,
+				      uint16_t mtu,
 				      CVideoEncoder *next, 
 				      bool realTime)
 {
   const char *encoderName = vp->GetStringValue(CFG_VIDEO_ENCODER);
 	if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
 #ifdef HAVE_FFMPEG
-		return new CFfmpegVideoEncoder(vp, next, realTime);
+		return new CFfmpegVideoEncoder(vp, mtu, next, realTime);
 #else
 		error_message("ffmpeg encoder not available in this build");
 #endif
@@ -64,29 +59,23 @@ CVideoEncoder* VideoEncoderCreateBase(CVideoProfile *vp,
 #if defined(HAVE_XVID10) || defined(HAVE_XVID_H)
 
 #ifdef HAVE_XVID10
-	  return new CXvid10VideoEncoder(vp, next, realTime);
+	  return new CXvid10VideoEncoder(vp, mtu, next, realTime);
 #else
-		return new CXvidVideoEncoder(vp, next, realTime);
+		return new CXvidVideoEncoder(vp, mtu, next, realTime);
 #endif
 #else
 		error_message("xvid encoder not available in this build");
 #endif
-	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_H26L)) {
-#ifdef ADD_H26L_ENCODER
-		return new CH26LVideoEncoder(vp, next, realTime);
-#else
-		error_message("H.26L encoder not available in this build");
-#endif
 	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_X264)) {
 #ifdef HAVE_X264
-	  return new CX264VideoEncoder(vp, next, realTime);
+	  return new CX264VideoEncoder(vp, mtu, next, realTime);
 #else
 	  error_message("X264 encoder is not available in this build");
 #endif
 	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_H261)) {
 	  
 	  CH261PixelEncoder *ret;
-	  ret = new CH261PixelEncoder(vp, next, realTime);
+	  ret = new CH261PixelEncoder(vp, mtu, next, realTime);
 	  return ret;
 
 	} else {
@@ -104,6 +93,7 @@ void AddVideoProfileEncoderVariablesBase (CVideoProfile *pConfig)
 #ifdef HAVE_X264
   AddX264ConfigVariables(pConfig);
 #endif
+  AddH261ConfigVariables(pConfig);
 }
 MediaType get_video_mp4_fileinfo_base (CVideoProfile *pConfig,
 				       bool *createIod,

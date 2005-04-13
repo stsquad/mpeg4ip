@@ -200,8 +200,9 @@ CFaacAudioEncoder::CFaacAudioEncoder(CAudioProfile *profile,
 				     CAudioEncoder *next,
 				     u_int8_t srcChannels,
 				     u_int32_t srcSampleRate,
+				     uint16_t mtu,
 				     bool realTime) :
-  CAudioEncoder(profile, next, srcChannels, srcSampleRate, realTime)
+  CAudioEncoder(profile, next, srcChannels, srcSampleRate, mtu,realTime)
 {
   m_faacHandle = NULL;
   m_samplesPerFrame = 1024;

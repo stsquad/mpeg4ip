@@ -440,7 +440,7 @@ int CPlayerSession::sync_thread_playing (void)
       }
     } 
 
-    int delay;
+    int delay = 0;
     bool have_delay = false;
 
     if (m_timed_sync_list && m_audio_sync) {

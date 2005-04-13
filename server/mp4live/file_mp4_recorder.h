@@ -35,6 +35,7 @@ public:
     m_stream = stream;
     m_videoTempBuffer = NULL;
     m_videoTempBufferSize = 0;
+    m_rawYUV = NULL;
   };
 
   const char *GetRecordFileName(void) {
@@ -88,6 +89,7 @@ protected:
   CMediaFrame*          m_prevAudioFrame;
   CMediaFrame*          m_prevTextFrame;
 
+  uint8_t              *m_rawYUV;
   u_int32_t		m_movieTimeScale;
   u_int32_t		m_videoTimeScale;
   u_int32_t		m_audioTimeScale;

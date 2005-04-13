@@ -28,6 +28,7 @@
 class CXvid10VideoEncoder : public CVideoEncoder {
 public:
 	CXvid10VideoEncoder(CVideoProfile *vp, 
+			    uint16_t mtu,
 			    CVideoEncoder *next, 
 			    bool realTime = true);
 
@@ -75,5 +76,6 @@ public:
 };
 
 void AddXvid10ConfigVariables(CVideoProfile *pConfig);
+EXTERN_TABLE_F(xvid_gui_options);
 #endif /* __VIDEO_XVID10_H__ */
 

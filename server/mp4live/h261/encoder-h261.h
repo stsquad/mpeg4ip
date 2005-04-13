@@ -32,8 +32,10 @@
  */
 
 //static const char rcsid[] =
-//    "@(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/encoder-h261.h,v 1.5 2005/02/18 19:48:22 wmaycisco Exp $";
+//    "@(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/encoder-h261.h,v 1.6 2005/04/13 22:23:03 wmaycisco Exp $";
 
+#ifndef __ENCODER_H261_H__
+#define __ENCODER_H261_H__ 1
 #include "video_encoder.h"
 #include "crdef.h"
 // wmay - make sure we want uint64_t here...
@@ -62,7 +64,8 @@ class CH261Encoder : public CVideoEncoder {
 		media_free_f GetMediaFreeFunction(void);
 	protected:
 		CH261Encoder(CVideoProfile *vp,
-			     CVideoEncoder *next = NULL, 
+			     uint16_t mtu,
+			     CVideoEncoder *next, 
 			     bool realTime = true);
 		void StopEncoder();
 		virtual void encode(const u_int8_t*, const u_int8_t *crvec);
@@ -134,7 +137,8 @@ class CH261Encoder : public CVideoEncoder {
 class CH261PixelEncoder : public CH261Encoder, public ConditionalReplenisher {
 	public:
 		CH261PixelEncoder(CVideoProfile *vp,
-			     CVideoEncoder *next = NULL,
+				  uint16_t mtu,
+				  CVideoEncoder *next,
 				  bool realTime = true);
 		virtual ~CH261PixelEncoder() {};
 	bool EncodeImage(
@@ -159,3 +163,6 @@ class CH261PixelEncoder : public CH261Encoder, public ConditionalReplenisher {
 		Timestamp m_srcFrameTimestamp;
 };
 
+void AddH261ConfigVariables(CVideoProfile *pConfig);
+EXTERN_TABLE_F(h261_gui_options);
+#endif

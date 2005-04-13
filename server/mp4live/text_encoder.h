@@ -31,17 +31,17 @@
 class CTextEncoder : public CMediaCodec {
  public:
   CTextEncoder(CTextProfile *profile,
-		CTextEncoder *next,
-		bool realTime = true);
+	       uint16_t mtu,
+	       CTextEncoder *next,
+	       bool realTime = true);
 
   virtual bool Init(void) = 0;
 
   void AddRtpDestination (CMediaStream *stream,
-			  uint16_t mtu,
 			  bool disable_ts_offset,
 			  uint16_t max_ttl,
 			  in_port_t srcPort = 0) {
-    AddRtpDestInt(mtu, disable_ts_offset, max_ttl,
+    AddRtpDestInt(disable_ts_offset, max_ttl,
 		  stream->GetStringValue(STREAM_TEXT_DEST_ADDR),
 		  stream->GetIntegerValue(STREAM_TEXT_DEST_PORT),
 		  srcPort);
@@ -61,8 +61,8 @@ class CTextEncoder : public CMediaCodec {
   virtual bool GetEncodedFrame(void **ppBuffer, 
 			       u_int32_t* pBufferLength) = 0;
 
-  CRtpTransmitter *CreateRtpTransmitter(uint16_t mtu, bool disable_ts) {
-    return new CTextRtpTransmitter(Profile(), mtu, disable_ts);
+  CRtpTransmitter *CreateRtpTransmitter(bool disable_ts) {
+    return new CTextRtpTransmitter(Profile(), m_mtu, disable_ts);
   };
 
   void ProcessTextFrame(CMediaFrame *frame);
@@ -76,6 +76,7 @@ class CTextEncoder : public CMediaCodec {
 
 
 CTextEncoder* TextEncoderCreate(CTextProfile *ap, 
+				uint16_t mtu,
 				CTextEncoder *next,
 				bool realTime = true);
 

@@ -326,8 +326,19 @@ static int ffmpeg_frame_is_sync (codec_data_t *ifptr,
     // look for idr nal
     do {
       uint8_t nal_type = h264_nal_unit_type(buffer);
+      if (nal_type == H264_NAL_TYPE_SEQ_PARAM) return 1;
+      //ffmpeg_message(LOG_DEBUG, "ffmpeg", "nal type %u", nal_type);
       if (h264_nal_unit_type_is_slice(nal_type)) {
-	return nal_type == H264_NAL_TYPE_IDR_SLICE ? 1 : 0;
+	if (nal_type == H264_NAL_TYPE_IDR_SLICE) return 1;
+#if 0
+	uint8_t slice_type;
+	if (h264_find_slice_type(buffer, buflen, &slice_type) >= 0) {
+	  return H264_TYPE_IS_I(slice_type) ? 1 : 0;
+	}
+	return 0;
+#else
+	return 0;
+#endif
       }
       offset = h264_find_next_start_code(buffer, buflen);
       buffer += offset;
@@ -406,7 +417,7 @@ static int ffmpeg_decode (codec_data_t *ptr,
 			       buffer + bytes_used, 
 			       buflen - bytes_used);
     bytes_used += ret;
-    //ffmpeg_message(LOG_CRIT, "ffmpeg", "used %d", ret);
+    //ffmpeg_message(LOG_CRIT, "ffmpeg", "used %d %d", ret, local_got_picture);
     got_picture |= local_got_picture;
   } while (ret != -1 && bytes_used < buflen);
 

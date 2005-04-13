@@ -39,25 +39,26 @@ CAudioEncoder* AudioEncoderBaseCreate(CAudioProfile *ap,
 				      CAudioEncoder *next,
 				      u_int8_t srcChannels,
 				      u_int32_t srcSampleRate,
+				      uint16_t mtu,
 				      bool realTime)
 {
   const char *encoderName = ap->GetStringValue(CFG_AUDIO_ENCODER);
   if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
 #ifdef ADD_FAAC_ENCODER
-    return new CFaacAudioEncoder(ap, next, srcChannels, srcSampleRate, realTime);
+    return new CFaacAudioEncoder(ap, next, srcChannels, srcSampleRate, mtu, realTime);
 #else
     error_message("faac encoder not available in this build");
     return false;
 #endif
   } else if (!strcasecmp(encoderName, AUDIO_ENCODER_LAME)) {
 #ifdef ADD_LAME_ENCODER
-    return new CLameAudioEncoder(ap, next, srcChannels, srcSampleRate, realTime);
+    return new CLameAudioEncoder(ap, next, srcChannels, srcSampleRate, mtu, realTime);
 #else
     error_message("lame encoder not available in this build");
 #endif
   } else if (strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG) == 0) {
 #ifdef HAVE_FFMPEG
-    return new CFfmpegAudioEncoder(ap, next, srcChannels, srcSampleRate, realTime);
+    return new CFfmpegAudioEncoder(ap, next, srcChannels, srcSampleRate, mtu, realTime);
 #else
     error_message("ffmpeg audio encoder not available in this build");
 #endif

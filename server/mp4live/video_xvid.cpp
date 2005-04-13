@@ -23,9 +23,10 @@
 #include "video_xvid.h"
 
 CXvidVideoEncoder::CXvidVideoEncoder(CVideoProfile *vp, 
+				     uint16_t mtu,
 				     CVideoEncoder *next, 
 				     bool realTime) :
-  CVideoEncoder(vp, next, realTime)
+  CVideoEncoder(vp, mtu, next, realTime)
 {
 	m_xvidHandle = NULL;
 	m_vopBuffer = NULL;
