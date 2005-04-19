@@ -27,6 +27,14 @@
 //#include <dsputil.h>
 //#include <mpegvideo.h>
 
+GUI_BOOL(gui_bframe, CFG_VIDEO_USE_B_FRAMES, "Use B Frames");
+GUI_INT_RANGE(gui_bframenum, CFG_VIDEO_NUM_OF_B_FRAMES, "Number of B frames", 1, 4);
+DECLARE_TABLE(ffmpeg_mpeg4_gui_options) = {
+  TABLE_GUI(gui_bframe),
+  TABLE_GUI(gui_bframenum),
+};
+DECLARE_TABLE_FUNC(ffmpeg_mpeg4_gui_options);
+
 CFfmpegVideoEncoder::CFfmpegVideoEncoder(CVideoProfile *vp, 
 					 uint16_t mtu,
 					 CVideoEncoder *next, 
@@ -116,11 +124,14 @@ bool CFfmpegVideoEncoder::Init (void)
 		m_avctx->bit_rate,
 		m_media_frame);
 #endif
-  
+  m_usingBFrames = false;
+  m_BFrameCount = 0;
   if (m_media_frame == MPEG2VIDEOFRAME) {
     m_avctx->gop_size = 15;
     m_avctx->b_frame_strategy = 0;
     m_avctx->max_b_frames = 2;
+    m_usingBFrames = true;
+    m_BFrameCount = 2;
   } else {
     if (m_media_frame == H263VIDEOFRAME) {
       m_avctx->bit_rate = 
@@ -133,7 +144,13 @@ bool CFfmpegVideoEncoder::Init (void)
       m_avctx->rtp_payload_size = 
 	Profile()->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
 #endif
-    } 
+    } else if (m_media_frame == MPEG4VIDEOFRAME) {
+      if (Profile()->GetBoolValue(CFG_VIDEO_USE_B_FRAMES)) {
+	m_avctx->max_b_frames = Profile()->GetIntegerValue(CFG_VIDEO_NUM_OF_B_FRAMES);
+	m_usingBFrames = true;
+	m_BFrameCount = m_avctx->max_b_frames;
+      }
+    }
     m_key_frame_count = m_avctx->gop_size = (int)
       ((Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE)+0.5)
        * Profile()->GetFloatValue(CFG_VIDEO_KEY_FRAME_INTERVAL));
@@ -145,7 +162,7 @@ bool CFfmpegVideoEncoder::Init (void)
     error_message("Couldn't open codec");
     return false;
   }
-  
+  m_first_frame = true;
   return true;
 }
 
@@ -213,7 +230,7 @@ bool CFfmpegVideoEncoder::GetEncodedImage(
   *pBufferLength = m_vopBufferLength;
 
   if (m_vopBufferLength != 0) {
-    *dts = m_push->Pop();
+    *pts = *dts = m_push->Pop();
     if (m_media_frame == MPEG2VIDEOFRAME) {
       // special processing for mpeg2 - the pts is not when we
       // dts
@@ -225,9 +242,18 @@ bool CFfmpegVideoEncoder::GetEncodedImage(
 	*pts = *dts - m_frame_time;
       }
       //error_message("dts %llu pts %llu", *dts, *pts);
-    } else {
-      *pts = *dts;
-    }
+    } else if (m_usingBFrames && m_media_frame == MPEG4VIDEOFRAME) {
+      uint8_t *vop = MP4AV_Mpeg4FindVop(m_vopBuffer, m_vopBufferLength);
+      if (MP4AV_Mpeg4GetVopType(vop, m_vopBufferLength - (vop - m_vopBuffer))
+	  != VOP_TYPE_B) {
+	if (m_first_frame) {
+	  // first time - IPBB
+	  *pts = *dts + m_frame_time;
+	  m_first_frame = false;
+	} else
+	  *pts = *dts + (m_BFrameCount * m_frame_time);
+      } 
+    } 
   } else {
     // return without clearing m_vopBuffer
     *dts = *pts = 0;

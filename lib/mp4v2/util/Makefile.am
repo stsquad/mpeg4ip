@@ -1,9 +1,9 @@
 
-INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/lib/mp4v2
+INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/lib/mp4v2 -I$(top_builddir)/lib/mp4av
 
 AM_CXXFLAGS = @BILLS_CPPWARNINGS@
 
-bin_PROGRAMS = mp4dump mp4extract mp4info mp4trackdump mp4tags mp4art
+bin_PROGRAMS = mp4dump mp4extract mp4info mp4trackdump mp4tags mp4art mp4videoinfo
 
 mp4dump_SOURCES = mp4dump.cpp
 mp4dump_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la \
@@ -19,6 +19,11 @@ mp4info_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la \
 
 mp4trackdump_SOURCES = mp4trackdump.cpp
 mp4trackdump_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la
+
+mp4videoinfo_SOURCES = mp4videoinfo.cpp
+mp4videoinfo_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la \
+	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la
 
 mp4tags_SOURCES = mp4tags.cpp

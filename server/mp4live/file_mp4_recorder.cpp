@@ -576,6 +576,10 @@ void CMp4Recorder::WriteH264Frame (CMediaFrame *pFrame,
 {
   bool isIFrame = false;
   Duration rend_offset = 0;
+  rend_offset = pFrame->GetPtsTimestamp() - 
+    pFrame->GetTimestamp();
+  rend_offset = GetTimescaleFromTicks(rend_offset, m_movieTimeScale);
+
   h264_media_frame_t *mf = (h264_media_frame_t *)pFrame->GetData();
   
   uint32_t size = mf->buffer_len + (4 * mf->nal_number);
@@ -780,8 +784,13 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
 				   dataLen);
 	if (pData) {
 	  dataLen -= (pData - (uint8_t *)m_prevVideoFrame->GetData());
-	  isIFrame =
-	    (MP4AV_Mpeg4GetVopType(pData,dataLen) == VOP_TYPE_I);
+	  int vop_type = MP4AV_Mpeg4GetVopType(pData,dataLen);
+	  isIFrame = (vop_type == VOP_TYPE_I);
+	  rend_offset = m_prevVideoFrame->GetPtsTimestamp() - 
+	    m_prevVideoFrame->GetTimestamp();
+	  if (rend_offset != 0 && vop_type != VOP_TYPE_B) {
+	    rend_offset = GetTimescaleFromTicks(rend_offset, m_movieTimeScale);
+	  }
 #if 0
 	  debug_message("record type %d %02x %02x %02x %02x",
 			MP4AV_Mpeg4GetVopType(pData, dataLen),

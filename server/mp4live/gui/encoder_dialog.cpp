@@ -198,25 +198,34 @@ void CreateEncoderSettingsDialog (CConfigEntry *config,
   dialog_vbox4 = GTK_DIALOG(EncoderSettingsDialog)->vbox;
   gtk_widget_show(dialog_vbox4);
 
-  EncoderSettingsTable = gtk_table_new(enc_settings_count, 2, FALSE);
+  EncoderSettingsTable = gtk_table_new(enc_settings_count + 1, 2, FALSE);
   gtk_widget_show(EncoderSettingsTable);
   gtk_box_pack_start(GTK_BOX(dialog_vbox4), EncoderSettingsTable, TRUE, TRUE, 0);
   gtk_table_set_row_spacings(GTK_TABLE(EncoderSettingsTable), 3);
+  GtkWidget *label = gtk_label_new(buffer);
+  gtk_widget_show(label);
+  gtk_table_attach(GTK_TABLE(EncoderSettingsTable), label, 
+		   0, 2, 0, 1,
+		   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+		   (GtkAttachOptions)(0),
+		   0, 0);
+  GLADE_HOOKUP_OBJECT(EncoderSettingsDialog, label, "label");
 
   for (uint ix = 0; ix < enc_settings_count; ix++) {
     encoder_gui_options_base_t *bptr = enc_settings[ix];
-    
-    GtkWidget *label = gtk_label_new(bptr->type == GUI_TYPE_BOOL ?
-				      "" : bptr->label);
-    gtk_widget_show(label);
-    gtk_table_attach(GTK_TABLE(EncoderSettingsTable), label, 
-		     0, 1, ix, ix + 1,
-		     (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
-		     (GtkAttachOptions)(0),
-		     0, 0);
-    sprintf(buffer, "label%u", ix);
+
+    if (bptr->type != GUI_TYPE_BOOL) {
+      label = gtk_label_new(bptr->label);
+      gtk_widget_show(label);
+      gtk_table_attach(GTK_TABLE(EncoderSettingsTable), label, 
+		       0, 1, ix + 1, ix + 2,
+		       (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+		       (GtkAttachOptions)(0),
+		       0, 0);
+      sprintf(buffer, "label%u", ix);
+      GLADE_HOOKUP_OBJECT(EncoderSettingsDialog, label, buffer);
+    } 
     GtkWidget *action = NULL;
-    GLADE_HOOKUP_OBJECT(EncoderSettingsDialog, label, buffer);
     switch (bptr->type) {
     case GUI_TYPE_BOOL:
       action = CreateCheckbox(config, bptr);
@@ -238,8 +247,10 @@ void CreateEncoderSettingsDialog (CConfigEntry *config,
     }
     if (action == NULL) error_message("action null type %u", bptr->type);
     if (action != NULL) {
+      uint start = 1;
+      if (bptr->type == GUI_TYPE_BOOL) start = 0;
       gtk_table_attach(GTK_TABLE(EncoderSettingsTable), action,
-		       1, 2, ix, ix + 1,
+		       start, 2, ix + 1, ix + 2,
 		       (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
 		       (GtkAttachOptions)(0),
 		       0, 0);

@@ -482,7 +482,7 @@ static int ffmpeg_decode (codec_data_t *ptr,
       do {
 	if (h264_nal_unit_type_is_slice(h264_nal_unit_type(nal_ptr))) {
 	  uint8_t slice_type;
-	  if (h264_find_slice_type(nal_ptr, len, &slice_type) >= 0) {
+	  if (h264_find_slice_type(nal_ptr, len, &slice_type, false) >= 0) {
 	    have_b_nal = H264_TYPE_IS_B(slice_type);
 	  }
 	}

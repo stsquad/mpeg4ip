@@ -481,8 +481,9 @@ static void CreateBitRateMenu(GtkWidget *menu = NULL,
   if (menu == NULL) {
     menu = lookup_widget(AudioProfileDialog, "AudioBitRateMenu");
   }
-  if (haverate == false) {
+  if (bitRateValues != NULL && haverate == false) {
     i = gtk_option_menu_get_history(GTK_OPTION_MENU(menu));
+    if (i >= bitRateNumber) i = 0;
     oldBitRate = bitRateValues[i];
   }
   // free up old names
@@ -533,22 +534,48 @@ static void on_SamplingRateMenu_changed (GtkOptionMenu *optionmenu,
   CreateBitRateMenu();
 }
 
+void
+on_AudioEncoderSettingsButton          (GtkButton *button,
+					gpointer user_data)
+{
+  CAudioProfile *profile = (CAudioProfile *)user_data;
+  GtkWidget *temp;
+  temp = lookup_widget(AudioProfileDialog, "AudioProfileEncoder");
+  encoder_gui_options_base_t **settings_array;
+  uint settings_array_count;
+  audio_encoder_table_t *aenct;
+	
+  aenct = audio_encoder_table[GetAudioEncoderIndex()];
+  
+  if ((aenct->get_gui_options)(&settings_array, &settings_array_count) == false) {
+    return;
+  }
+  
+  CreateEncoderSettingsDialog(profile, AudioProfileDialog,
+			      aenct->dialog_selection_name,
+			      settings_array,
+			      settings_array_count);
+}
+
 static void
 on_AudioProfileEncoder_changed         (GtkOptionMenu   *optionmenu,
                                         gpointer         user_data)
 {
   GtkWidget *temp;
-  temp = lookup_widget(AudioProfileDialog, "Mp3Use14");
   audio_encoder_table_t *aenct;
 	
   aenct = audio_encoder_table[GetAudioEncoderIndex()];
-  gtk_widget_set_sensitive(temp,
-			   strcmp(aenct->audio_encoding,
-				  AUDIO_ENCODING_MP3) == 0);
-
   CreateChannelMenu();
   CreateSamplingRateMenu((CAudioCapabilities *)MyConfig->m_audioCapabilities);
   CreateBitRateMenu();
+  bool enable_settings;
+  if (aenct->get_gui_options == NULL) {
+    enable_settings = false;
+  } else {
+    enable_settings = (aenct->get_gui_options)(NULL, NULL);
+  }
+  temp = lookup_widget(AudioProfileDialog, "AudioEncoderSettingsButton");
+  gtk_widget_set_sensitive(temp, enable_settings);
 }
 
 // This will create a new audio profile (if it doesn't already
@@ -609,9 +636,6 @@ on_AudioProfileDialog_response (GtkWidget *dialog,
       profile->SetIntegerValue(CFG_AUDIO_SAMPLE_RATE,
 			       samplingRateValues[gtk_option_menu_get_history(GTK_OPTION_MENU(temp))]);
 
-      temp = lookup_widget(dialog, "Mp3Use14");
-      profile->SetBoolValue(CFG_RTP_USE_MP3_PAYLOAD_14,
-			    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(temp)));
       profile->Update();
       profile->WriteToFile(); // set up profile
     } 
@@ -639,7 +663,6 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
   GtkWidget *ChannelMenu;
   GtkWidget *SampleRateMenu;
   GtkWidget *AudioBitRateMenu;
-  GtkWidget *Mp3Use14;
   GtkWidget *AudioEncoderSettingsButton;
   GtkWidget *alignment19;
   GtkWidget *hbox73;
@@ -650,7 +673,6 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
   GtkWidget *label99;
   GtkWidget *label100;
   GtkWidget *label101;
-  GtkWidget *label102;
   GtkWidget *label103;
   GtkWidget *AudioProfileName;
   GtkWidget *dialog_action_area4;
@@ -709,19 +731,9 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
                    (GtkAttachOptions)(0), 0, 0);
   gtk_tooltips_set_tip(tooltips, AudioBitRateMenu, _("Output Bit Rate"), NULL);
 
-  Mp3Use14 = gtk_check_button_new_with_mnemonic(_("MP3 RTP payload 14"));
-  gtk_widget_show(Mp3Use14);
-  gtk_table_attach(GTK_TABLE(AudioProfileTable), Mp3Use14, 1, 2, 5, 6,
-                   (GtkAttachOptions)(GTK_FILL),
-                   (GtkAttachOptions)(0), 0, 0);
-  gtk_widget_set_sensitive(Mp3Use14, FALSE);
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(Mp3Use14),
-			       profile->GetBoolValue(CFG_RTP_USE_MP3_PAYLOAD_14));
-  gtk_tooltips_set_tip(tooltips, Mp3Use14, _("Transmit MP3 using RFC-2250"), NULL);
-
   AudioEncoderSettingsButton = gtk_button_new();
   gtk_widget_show(AudioEncoderSettingsButton);
-  gtk_table_attach(GTK_TABLE(AudioProfileTable), AudioEncoderSettingsButton, 1, 2, 6, 7,
+  gtk_table_attach(GTK_TABLE(AudioProfileTable), AudioEncoderSettingsButton, 1, 2, 5, 6,
                    (GtkAttachOptions)(GTK_FILL),
                    (GtkAttachOptions)(0), 0, 0);
   gtk_widget_set_sensitive(AudioEncoderSettingsButton, FALSE);
@@ -758,10 +770,6 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
   uint table_index = 0;
   for (uint32_t ix = 0; ix < audio_encoder_table_size; ix++) {
     encodingNames[ix] = strdup(audio_encoder_table[ix]->dialog_selection_name);
-    debug_message("%s %s cmp %s %s", 
-		  audioEncoder, profile->GetStringValue(CFG_AUDIO_ENCODING),
-		  audio_encoder_table[ix]->audio_encoder, 
-		  audio_encoder_table[ix]->audio_encoding);
     if ((strcasecmp(audioEncoder, 
 		    audio_encoder_table[ix]->audio_encoder) == 0) &&
 	(strcasecmp(profile->GetStringValue(CFG_AUDIO_ENCODING), 
@@ -803,16 +811,9 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
                    (GtkAttachOptions)(0), 0, 0);
   gtk_misc_set_alignment(GTK_MISC(label101), 0, 0.5);
 
-  label102 = gtk_label_new("");
-  gtk_widget_show(label102);
-  gtk_table_attach(GTK_TABLE(AudioProfileTable), label102, 0, 1, 5, 6,
-                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
-                   (GtkAttachOptions)(0), 0, 0);
-  gtk_misc_set_alignment(GTK_MISC(label102), 0, 0.5);
-
   label103 = gtk_label_new(_("Encoder Settings:"));
   gtk_widget_show(label103);
-  gtk_table_attach(GTK_TABLE(AudioProfileTable), label103, 0, 1, 6, 7,
+  gtk_table_attach(GTK_TABLE(AudioProfileTable), label103, 0, 1, 5, 6,
                    (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
                    (GtkAttachOptions)(0), 0, 0);
   gtk_misc_set_alignment(GTK_MISC(label103), 0, 0.5);
@@ -851,7 +852,6 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, ChannelMenu, "ChannelMenu");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, SampleRateMenu, "SampleRateMenu");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, AudioBitRateMenu, "AudioBitRateMenu");
-  GLADE_HOOKUP_OBJECT(AudioProfileDialog, Mp3Use14, "Mp3Use14");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, AudioEncoderSettingsButton, "AudioEncoderSettingsButton");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, alignment19, "alignment19");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, hbox73, "hbox73");
@@ -862,7 +862,6 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, label99, "label99");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, label100, "label100");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, label101, "label101");
-  GLADE_HOOKUP_OBJECT(AudioProfileDialog, label102, "label102");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, label103, "label103");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, AudioProfileName, "AudioProfileName");
   GLADE_HOOKUP_OBJECT_NO_REF(AudioProfileDialog, dialog_action_area4, "dialog_action_area4");
@@ -870,10 +869,6 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, AudioProfileOk, "AudioProfileOk");
   GLADE_HOOKUP_OBJECT_NO_REF(AudioProfileDialog, tooltips, "tooltips");
 
-  if (strcmp(profile->GetStringValue(CFG_AUDIO_ENCODING), 
-	     AUDIO_ENCODING_MP3) == 0) {
-    gtk_widget_set_sensitive(Mp3Use14, true);
-  }
   CreateChannelMenu(ChannelMenu, true, 
 		    profile->GetIntegerValue(CFG_AUDIO_CHANNELS));
   CreateSamplingRateMenu((CAudioCapabilities *)MyConfig->m_audioCapabilities, true, 
@@ -892,6 +887,9 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
   g_signal_connect((gpointer) ChannelMenu, "changed",
 		   G_CALLBACK(on_SamplingRateMenu_changed), 
 		   NULL);
+  g_signal_connect((gpointer)AudioEncoderSettingsButton, "clicked", 
+		   G_CALLBACK(on_AudioEncoderSettingsButton),
+		   profile);
   gtk_widget_show(AudioProfileDialog);
 }
 

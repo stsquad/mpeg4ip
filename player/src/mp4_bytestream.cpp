@@ -34,7 +34,7 @@
 CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
 				MP4TrackId track,
 				const char *type,
-				int has_video)
+				bool has_video)
   : COurInByteStream(type)
 {
 #ifdef ISMACRYP_DEBUG

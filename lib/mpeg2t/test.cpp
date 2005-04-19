@@ -175,7 +175,7 @@ int main (int argc, char **argv)
   readfromfile = 0;
 #if 1
     FILE *ofile;
-    //    bool has_pat = false;
+    bool has_pat = false;
     ofile = fopen("es.m4v", FOPEN_WRITE_BINARY);
 #endif
   //lastcc = 0;
@@ -207,7 +207,7 @@ int main (int argc, char **argv)
       if (buflen < 188) {
 	done_with_buf = 1;
       }
-#if 0
+#if 1
       if (pidptr != NULL && pidptr->pak_type == MPEG2T_PAS_PAK) {
 	fwrite(ptr - 188, 1, 188, ofile);
 	has_pat = true;

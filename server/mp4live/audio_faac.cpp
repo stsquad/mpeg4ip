@@ -53,7 +53,8 @@ audio_encoder_table_t faac_audio_encoder_table = {
   samplingRateAllValues,
   NUM_ELEMENTS_IN_ARRAY(samplingRateAllValues),
   faac_bitrates_for_samplerate,
-  2
+  2,
+  NULL
 };
 
 MediaType faac_mp4_fileinfo (CAudioProfile *pConfig,

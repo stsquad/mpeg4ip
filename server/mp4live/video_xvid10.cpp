@@ -53,7 +53,6 @@ DECLARE_TABLE(xvid_gui_options) = {
   TABLE_GUI(gui_interlace),
   TABLE_GUI(gui_vq),
 };
-DECLARE_TABLE_COUNT(xvid_gui_options);
 DECLARE_TABLE_FUNC(xvid_gui_options);
 
 void AddXvid10ConfigVariables(CVideoProfile *pConfig) 

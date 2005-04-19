@@ -28,6 +28,7 @@
 #include <mp4.h>
 #include "profile_audio.h"
 #include "resampl.h"
+#include "encoder_gui_options.h"
 
 class CAudioEncoder : public CMediaCodec {
  public:
@@ -257,6 +258,7 @@ typedef struct audio_encoder_table_t {
   uint32_t num_sample_rates;
   bitrates_for_samplerate_f bitrates_for_samplerate;
   uint32_t max_channels;
+  get_gui_options_list_f get_gui_options;
 } audio_encoder_table_t;
 
 void InitAudioEncoders(void);

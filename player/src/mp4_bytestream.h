@@ -43,7 +43,7 @@ class CMp4ByteStream : public COurInByteStream
   CMp4ByteStream(CMp4File *parent,
 		 MP4TrackId track,
 		 const char *type,
-		 int has_video);
+		 bool has_video);
   ~CMp4ByteStream();
   int eof(void);
   void reset(void);
@@ -100,7 +100,7 @@ class CMp4ByteStream : public COurInByteStream
   uint64_t m_total;
   void set_timebase(MP4SampleId frame);
   double m_max_time;
-  int m_has_video;
+  bool m_has_video;
 };
 
 /*
@@ -115,6 +115,14 @@ class CMp4VideoByteStream : public CMp4ByteStream
     CMp4ByteStream(parent, track, "video", 1) {};
 };
 
+class CMp4TextByteStream : public CMp4ByteStream
+{
+ public:
+  CMp4TextByteStream(CMp4File *parent, MP4TrackId track) :
+    CMp4ByteStream(parent, track, "cntl", 0) {};
+};
+
+			  
 class CMp4H264VideoByteStream : public CMp4VideoByteStream
 {
  public:

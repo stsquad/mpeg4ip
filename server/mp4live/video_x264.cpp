@@ -39,12 +39,15 @@ static SConfigVariable X264EncoderVariables[] = {
 
 GUI_BOOL(gui_cabac, CFG_X264_USE_CABAC, "Use Cabac");
 GUI_BOOL(gui_cbr, CFG_X264_USE_CBR, "Use CBR");
+GUI_BOOL(gui_bframe, CFG_VIDEO_USE_B_FRAMES, "Use B Frames");
+GUI_INT_RANGE(gui_bframenum, CFG_VIDEO_NUM_OF_B_FRAMES, "Number of B frames", 1, 4);
 
 DECLARE_TABLE(x264_gui_options) = {
   TABLE_GUI(gui_cabac),
   TABLE_GUI(gui_cbr),
+  TABLE_GUI(gui_bframe),
+  TABLE_GUI(gui_bframenum),
 };
-DECLARE_TABLE_COUNT(x264_gui_options);
 DECLARE_TABLE_FUNC(x264_gui_options);
 
 void AddX264ConfigVariables (CVideoProfile *pConfig)
@@ -94,7 +97,7 @@ bool CX264VideoEncoder::Init (void)
   rate = TimestampTicks / Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE);
 
   m_frame_time = (Duration)rate;
-  m_push = new CTimestampPush(3);
+  m_push = new CTimestampPush(6);
 
   m_videoH264Seq = NULL;
   m_videoH264SeqSize = 0;
@@ -116,7 +119,10 @@ bool CX264VideoEncoder::Init (void)
   m_key_frame_count = m_param.i_keyint_max = 
     (int)(Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE) * 
 	  Profile()->GetFloatValue(CFG_VIDEO_KEY_FRAME_INTERVAL));
-  m_param.i_bframe = 0;
+  if (Profile()->GetBoolValue(CFG_VIDEO_USE_B_FRAMES)) {
+    m_param.i_bframe = Profile()->GetIntegerValue(CFG_VIDEO_NUM_OF_B_FRAMES);
+  } else 
+    m_param.i_bframe = 0;
   m_param.rc.i_bitrate = Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE);
   m_param.rc.b_cbr = Profile()->GetBoolValue(CFG_X264_USE_CBR) ? 1 : 0;
   //m_param.rc.b_stat_write = 0;
@@ -374,83 +380,64 @@ void CX264VideoEncoder::StopEncoder (void)
 bool CX264VideoEncoder::GetEsConfig (uint8_t **ppEsConfig, 
 				     uint32_t *pEsConfigLen)
 {
-  uint8_t *yuvbuf = (uint8_t *)malloc(Profile()->m_yuvSize);
-
 #ifdef DEBUG_H264
   debug_message("Getting es config for x264");
 #endif
   CHECK_AND_FREE(Profile()->m_videoMpeg4Config);
   Profile()->m_videoMpeg4ConfigLength = 0;
 
-  error_message("Look at using x264_encoder_headers");
-  if (yuvbuf == NULL) {
-    error_message("xvid - Can't malloc memory for YUV for VOL");
+  x264_nal_t *nal;
+  int nal_num;
+  if (x264_encoder_headers(m_h, &nal, &nal_num) != 0) {
+    error_message("x264 - can't create headers");
     StopEncoder();
     return false;
   }
-  // Create a dummy frame, and encode it, requesting an I frame
-  // this should give us a VOL
-  memset(yuvbuf, 0, Profile()->m_yuvSize);
-  if (EncodeImage(yuvbuf,
-		  yuvbuf + Profile()->m_ySize,
-		  yuvbuf + Profile()->m_ySize + Profile()->m_uvSize,
-		  Profile()->m_videoWidth,
-		  Profile()->m_videoWidth / 2,
-		  true,
-		  0, 
-		  0) == false &&
-      m_vopBufferLength > 0) {
-    error_message("x264 - encode image for param sets didn't work");
-    free(yuvbuf);
-    StopEncoder();
-    return false;
-  }
-  free(yuvbuf);
   
   uint8_t *seqptr = m_vopBuffer;
   uint8_t *picptr = m_vopBuffer;
-  uint32_t left = m_vopBufferLength;
   uint32_t seqlen = 0, piclen = 0;
-  uint32_t nalsize;
   bool found_seq = false, found_pic = false;
-  do {
-    uint8_t nal_type = h264_nal_unit_type(seqptr);
-    nalsize = h264_find_next_start_code(seqptr, left);
-    if (nal_type == H264_NAL_TYPE_SEQ_PARAM) {
-      found_seq = true;
-      seqlen = nalsize == 0 ? left : nalsize;
-    } else {
-      seqptr += nalsize;
-      if (nalsize == 0) 
-	left = 0;
-      else
-	left -= nalsize;
+  if (m_vopBuffer == NULL) {
+    m_vopBuffer = (u_int8_t*)malloc(Profile()->m_videoMaxVopSize);
+  }
+  uint8_t *vopBuffer = m_vopBuffer;
+  int vopBufferLen = Profile()->m_videoMaxVopSize;
+
+  for (int ix = 0; ix < nal_num; ix++) {
+    int i_size;
+    i_size = x264_nal_encode(vopBuffer, &vopBufferLen, 1, &nal[ix]);
+    if (i_size > 0) {
+      bool useit = false;
+      uint header_size = 0;
+      if (h264_is_start_code(vopBuffer)) {
+	header_size = vopBuffer[2] == 1 ? 3 : 4;
+      }
+      if (nal[ix].i_type == H264_NAL_TYPE_SEQ_PARAM) {
+	found_seq = true;
+	seqlen = i_size - header_size;
+	seqptr = vopBuffer + header_size;
+	useit = true;
+      } else if (nal[ix].i_type == H264_NAL_TYPE_PIC_PARAM) {
+	found_pic = true;
+	piclen = i_size - header_size;
+	picptr = vopBuffer + header_size;
+	useit = true;
+      }
+      if (useit) {
+	vopBuffer += i_size;
+	vopBufferLen -= i_size;
+      }
     }
-  } while (found_seq == false && left > 0);
+  }
+	  
   if (found_seq == false) {
-    error_message("Couldn't find seq pointer in x264 frame");
+    error_message("Can't find seq pointer in x264 header");
     StopEncoder();
     return false;
   }
-
-  left = m_vopBufferLength;
-  do {
-    uint8_t nal_type = h264_nal_unit_type(picptr);
-    nalsize = h264_find_next_start_code(picptr, left);
-    if (nal_type == H264_NAL_TYPE_PIC_PARAM) {
-      found_pic = true;
-      piclen = nalsize == 0 ? left : nalsize;
-    } else {
-      picptr += nalsize;
-      if (nalsize == 0) 
-	left = 0;
-      else
-	left -= nalsize;
-    }
-  } while (found_pic == false && left > 0);
-
   if (found_pic == false) {
-    error_message("Couldn't find pic pointer in x264 frame");
+    error_message("Can't find pic pointer in x264 header");
     StopEncoder();
     return false;
   }

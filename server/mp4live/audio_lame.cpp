@@ -23,6 +23,12 @@
 #include "audio_lame.h"
 #include <mp4av.h>
 
+GUI_BOOL(gui_mp3use14, CFG_RTP_USE_MP3_PAYLOAD_14, "Transmit MP3 using RFC-2250");
+DECLARE_TABLE(lame_gui_options) = {
+  TABLE_GUI(gui_mp3use14),
+};
+DECLARE_TABLE_FUNC(lame_gui_options);
+
 static const uint32_t lame_sample_rates[] = {
   8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 
 };
@@ -84,7 +90,8 @@ audio_encoder_table_t lame_audio_encoder_table =  {
   lame_sample_rates,
   NUM_ELEMENTS_IN_ARRAY(lame_sample_rates),
   lame_bitrate_for_samplerate,
-  2
+  2,
+  lame_gui_options_f,
 };
     
 MediaType lame_mp4_fileinfo (CAudioProfile *pConfig,

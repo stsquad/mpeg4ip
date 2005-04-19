@@ -1630,7 +1630,7 @@ void DoStart()
   debug_message(U64" %u dur %u units",
 		FlowDuration, 
 		MyConfig->GetIntegerValue(CONFIG_APP_DURATION),
-		durationUnitsValues[MyConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS)]); 
+		MyConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS)); 
 		
 
 #if 0

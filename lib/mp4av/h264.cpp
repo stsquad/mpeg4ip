@@ -257,11 +257,15 @@ int h264_read_seq_info (const uint8_t *buffer,
 }
 extern "C" int h264_find_slice_type (const uint8_t *buffer, 
 				     uint32_t buflen,
-				     uint8_t *slice_type)
+				     uint8_t *slice_type, 
+				     bool noheader)
 {
   uint32_t header;
-  if (buffer[2] == 1) header = 4;
-  else header = 5;
+  if (noheader) header = 1;
+  else {
+    if (buffer[2] == 1) header = 4;
+    else header = 5;
+  }
   CBitstream bs;
   bs.init(buffer + header, (buflen - header) * 8);
   try {
@@ -597,3 +601,12 @@ uint32_t h264_read_sei_value (const uint8_t *buffer, uint32_t *size)
   return ret;
 }
 
+extern "C" const char *h264_get_slice_name (uint8_t slice_type)
+{
+  if (H264_TYPE_IS_P(slice_type)) return "P";  
+  if (H264_TYPE_IS_B(slice_type)) return "B";  
+  if (H264_TYPE_IS_I(slice_type)) return "I";
+  if (H264_TYPE_IS_SI(slice_type)) return "SI";
+  if (H264_TYPE_IS_SP(slice_type)) return "SP";
+  return "UNK";
+}

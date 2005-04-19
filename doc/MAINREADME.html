@@ -254,7 +254,9 @@ installed V4L2</a>.  2.6 series kernels should have V4L2 built in.
 Fedora Core 3 and below do not include the correct include files to
 activate V4L2.  At this point, we believe that the V4L2 is supported
 after installing the videodev.h and videodev2.h files, but have not
-verified it.
+verified it.  We have modified the configure so it will print out a
+message during configure that specifies the directory where you might 
+locate the correct files.
 <p id="ffmpeg">
 To install with ffmpeg version 0.4.8 or earlier,
 enter the argument<code>--enable-ffmpeg=&lt;directory&gt;</code> to the 
@@ -637,6 +639,10 @@ A few debugging tools are also included:<br>
 <tr>
   <td align="left">mp4info</td>
   <td align="left">Utility to display MP4 file summary</td>
+</tr>
+<tr>
+  <td align="left">mp4videoinfo</td>
+  <td align="left">Utility to dump information about MP4 file video tracks</td>
 </tr>
 <tr>
   <td align="left">avidump</td>

@@ -24,6 +24,9 @@
 #ifdef HAVE_XVID10
 #include "video_xvid10.h"
 #endif
+#ifdef HAVE_FFMPEG
+#include "video_ffmpeg.h"
+#endif
 #include "video_x264.h"
 #include "encoder-h261.h"
 
@@ -108,7 +111,7 @@ const video_encoder_table_t video_encoder_table[] = {
     mpeg4SizeNames,
     mpeg4SizeNames,
 #ifdef HAVE_XVID10
-    xvid_gui_options_f,
+    TABLE_FUNC(xvid_gui_options),
 #else
     dummy_opts,
 #endif
@@ -131,7 +134,7 @@ const video_encoder_table_t video_encoder_table[] = {
     mpeg4SizeNames,
     mpeg4SizeNames,
     mpeg4SizeNames,
-    dummy_opts,
+    TABLE_FUNC(ffmpeg_mpeg4_gui_options),
   },
   {
     "Mpeg2 - ffmpeg", 
@@ -187,7 +190,7 @@ const video_encoder_table_t video_encoder_table[] = {
     mpeg4SizeNames,
     mpeg4SizeNames,
     mpeg4SizeNames,
-    x264_gui_options_f,
+    TABLE_FUNC(x264_gui_options),
   },
 #endif
   {
@@ -206,7 +209,7 @@ const video_encoder_table_t video_encoder_table[] = {
     h261SizeNames, 
     h261SizeNames, 
     h261SizeNames, 
-    h261_gui_options_f,
+    TABLE_FUNC(h261_gui_options),
   },
 };
 

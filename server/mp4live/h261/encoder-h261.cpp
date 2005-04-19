@@ -57,7 +57,6 @@ DECLARE_TABLE(h261_gui_options) = {
   TABLE_GUI(gui_q),
   TABLE_GUI(gui_qf),
 };
-DECLARE_TABLE_COUNT(h261_gui_options);
 DECLARE_TABLE_FUNC(h261_gui_options);
 
 void AddH261ConfigVariables (CVideoProfile *pConfig)

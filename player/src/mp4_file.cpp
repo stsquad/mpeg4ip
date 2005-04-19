@@ -72,7 +72,7 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
 			       cc_vft);
   if (ret <= 0) return ret;
 
-  int offset = 0;
+  uint offset = 0;
 
   char errmsg[512];
   uint32_t errlen = sizeof(errmsg) - 1;
@@ -100,7 +100,8 @@ CMp4File::CMp4File (MP4FileHandle filehandle)
   m_file_mutex = SDL_CreateMutex();
   m_illegal_audio_codec = 0;
   m_illegal_video_codec = 0;
-  m_have_audio = 0;
+  m_illegal_text_codec = 0;
+  m_have_audio = false;
 }
 
 CMp4File::~CMp4File (void)
@@ -115,10 +116,10 @@ CMp4File::~CMp4File (void)
 
 int CMp4File::create_video(CPlayerSession *psptr, 
 			   video_query_t *vq, 
-			   int video_offset,
-			   int &start_desc)
+			   uint video_offset,
+			   uint &start_desc)
 {
-  int ix;
+  uint ix;
   CPlayerMedia *mptr;
   codec_plugin_t *plugin;
 
@@ -207,10 +208,10 @@ int CMp4File::create_video(CPlayerSession *psptr,
 
 int CMp4File::create_audio(CPlayerSession *psptr, 
 			   audio_query_t *aq, 
-			   int audio_offset,
-			   int &start_desc)
+			   uint audio_offset,
+			   uint &start_desc)
 {
-  int ix;
+  uint ix;
   uint64_t IVLength;
   CPlayerMedia *mptr;
   codec_plugin_t *plugin;
@@ -300,31 +301,116 @@ int CMp4File::create_audio(CPlayerSession *psptr,
   return 0;
 }
 
+int CMp4File::create_text(CPlayerSession *psptr, 
+			   text_query_t *tq, 
+			   uint text_offset,
+			   uint &start_desc)
+{
+  uint ix;
+  //uint64_t IVLength;
+  CPlayerMedia *mptr;
+  codec_plugin_t *plugin;
+  uint32_t verb = MP4GetVerbosity(m_mp4file);
+  for (ix = 0; ix < text_offset; ix++) {
+    if (tq[ix].enabled != 0) {
+      CMp4TextByteStream *tbyte;
+      mptr = new CPlayerMedia(psptr, TIMED_TEXT_SYNC);
+      if (mptr == NULL) {
+	return (-1);
+      }
+
+      /* check if ismacryp */
+#if 0
+      uint32_t verb = MP4GetVerbosity(m_mp4file);
+      MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
+      if (MP4IsIsmaCrypMediaTrack(m_mp4file, aq[ix].track_id)) {
+        IVLength = MP4GetTrackIntegerProperty(m_mp4file,
+                    aq[ix].track_id, "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.IV-length");
+	abyte = new CMp4EncAudioByteStream(this, aq[ix].track_id, IVLength);
+      } else {
+	abyte = new CMp4AudioByteStream(this, aq[ix].track_id);
+      }
+      MP4SetVerbosity(m_mp4file, verb);
+#else
+      tbyte = new CMp4TextByteStream(this, tq[ix].track_id);
+#endif
+
+      int ret;
+      plugin = check_for_text_codec(tq[text_offset].stream_type,
+				    tq[text_offset].compressor,
+				    NULL,
+				    NULL,
+				    0, 
+				    &config);
+
+      ret = mptr->create_text_plugin(plugin,
+				     STREAM_TYPE_MP4_FILE,
+				     tq[ix].compressor,
+				     NULL, // sdp info
+				     NULL, 
+				     0);
+      if (ret < 0) {
+	mp4f_message(LOG_ERR, "Couldn't create text from plugin %s", 
+		     plugin->c_name);
+	psptr->set_message("Couldn't start text plugin %s", 
+			   plugin->c_name);
+	delete mptr;
+	delete tbyte;
+	return -1;
+      }
+
+      ret = mptr->create_media("text", tbyte);
+      if (ret != 0) {
+	return (-1);
+      }
+      MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
+      char *mp4info = MP4Info(m_mp4file, tq[ix].track_id);
+      MP4SetVerbosity(m_mp4file, verb);
+      char *temp = mp4info;
+      while (*temp != '\0') {
+	if (isspace(*temp)) *temp = ' ';
+	if (!isprint(*temp)) *temp = '*';
+	temp++;
+      }
+      psptr->set_session_desc(start_desc, mp4info);
+      free(mp4info);
+      start_desc++;
+    } else {
+      CHECK_AND_FREE(tq[ix].config);
+    }
+  }
+
+  return 0;
+}
+
 
 int CMp4File::create_media (CPlayerSession *psptr,
 			    int have_audio_driver,
 			    control_callback_vft_t *cc_vft)
 {
-  int video_count, video_offset;
-  int audio_count, audio_offset;
+  uint video_count, video_offset;
+  uint text_count, text_offset;
+  uint audio_count, audio_offset;
   MP4TrackId trackId;
   video_query_t *vq;
   audio_query_t *aq;
-  int ix;
+  text_query_t *tq;
+  uint ix;
   codec_plugin_t *plugin;
   int ret_value = 0;
   uint8_t *foo;
   u_int32_t bufsize;
   
-  video_count = 0;
   uint32_t verb = MP4GetVerbosity(m_mp4file);
   MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
   video_count = MP4GetNumberOfTracks(m_mp4file, MP4_VIDEO_TRACK_TYPE);
   audio_count = MP4GetNumberOfTracks(m_mp4file, MP4_AUDIO_TRACK_TYPE);
+  text_count = MP4GetNumberOfTracks(m_mp4file, MP4_CNTL_TRACK_TYPE);
+  mp4f_message(LOG_DEBUG, "cntl tracks %u", text_count);
   MP4SetVerbosity(m_mp4file, verb);
 
-  if (video_count == 0 && audio_count == 0) {
-    psptr->set_message("No audio or video tracks in file");
+  if (video_count == 0 && audio_count == 0 && text_count == 0) {
+    psptr->set_message("No audio, video or control tracks in file");
     return -1;
   }
 
@@ -341,6 +427,12 @@ int CMp4File::create_media (CPlayerSession *psptr,
     aq = NULL;
   }
 
+  if (text_count > 0) {
+    tq = (text_query_t *)malloc(sizeof(text_query_t) * text_count);
+    memset(tq, 0, sizeof(text_query_t) * text_count);
+  } else {
+    tq = NULL;
+  }
   for (ix = 0, video_offset = 0; ix < video_count; ix++) {
     trackId = MP4FindTrackId(m_mp4file, ix, MP4_VIDEO_TRACK_TYPE);
     const char *media_data_name;
@@ -492,6 +584,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
 	aq[audio_offset].enabled = 0;
 	aq[audio_offset].reference = NULL;
 	audio_offset++;
+	m_have_audio = true;
       } else {
 	m_illegal_audio_codec++;
 	ret_value = 1;
@@ -501,13 +594,38 @@ int CMp4File::create_media (CPlayerSession *psptr,
     if (audio_count)
       ret_value = 1;
   }
+  text_offset = 0;
+  for (ix = 0; ix < audio_count; ix++) {
+    trackId = MP4FindTrackId(m_mp4file, ix, MP4_CNTL_TRACK_TYPE);
+    const char *media_data_name;
+    media_data_name = MP4GetTrackMediaDataName(m_mp4file, trackId);
 
-  if (video_offset == 0 && audio_offset == 0) {
+    tq[text_offset].track_id = trackId;
+    tq[text_offset].stream_type = STREAM_TYPE_MP4_FILE;
+    tq[text_offset].compressor = media_data_name;
+    plugin = check_for_text_codec(tq[text_offset].stream_type,
+				  tq[text_offset].compressor,
+				  NULL,
+				  NULL,
+				  0, 
+				  &config);
+    if (plugin != NULL) {
+      tq[text_offset].fptr = NULL;
+      tq[text_offset].enabled = 0;
+      tq[text_offset].reference = NULL;
+      text_offset++;
+    } else {
+      m_illegal_text_codec++;
+      ret_value = 1;
+    }
+  }
+
+  if (video_offset == 0 && audio_offset == 0 && text_offset == 0) {
     psptr->set_message("No playable codecs in mp4 file");
     return -1;
   }
   if (cc_vft && cc_vft->media_list_query != NULL) {
-    (cc_vft->media_list_query)(psptr, video_offset, vq, audio_offset, aq, 0, NULL);
+    (cc_vft->media_list_query)(psptr, video_offset, vq, audio_offset, aq, text_offset, tq);
   } else {
     if (video_offset > 0) {
       vq[0].enabled = 1;
@@ -515,22 +633,29 @@ int CMp4File::create_media (CPlayerSession *psptr,
     if (audio_offset > 0) {
       aq[0].enabled = 1;
     }
+    if (text_offset > 0) {
+      tq[0].enabled = 1;
+    }
   }
 
-  int vidret, audret;
-  int start_desc = 1;
+  int vidret, audret, textret;
+  uint start_desc = 1;
   vidret = create_video(psptr, vq, video_offset, start_desc);
   free(vq);
 
   if (vidret < 0) {
     free(aq);
+    free(tq);
     return -1;
   }
  
   audret = create_audio(psptr, aq, audio_offset, start_desc);
   free(aq);
 
-  if (audret < 0) ret_value = -1;
+  textret = create_text(psptr, tq, text_offset, start_desc);
+  free(tq);
+
+  if (audret < 0 || textret < 0) ret_value = -1;
 
   char *name;
   verb = MP4GetVerbosity(m_mp4file);

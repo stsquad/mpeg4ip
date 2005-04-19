@@ -62,7 +62,11 @@ uint8_t *h264_sdp_parse_sprop_param_sets (const char *fmt_param,
     if (sprop != end) {
       bin = Base64ToBinary(sprop, end - sprop, &binsize);
       if (bin != NULL) {
-	ret = (uint8_t *)realloc(ret, *nal_len + binsize + 3);
+	ret = (uint8_t *)realloc(ret, *nal_len + binsize + 4);
+	if (nal_len == 0) {
+	  ret[*nal_len] = 0;
+	  *nal_len += 1;
+	}
 	ret[*nal_len] = 0;
 	ret[*nal_len + 1] = 0;
 	ret[*nal_len + 2] = 1;

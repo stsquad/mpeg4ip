@@ -38,6 +38,11 @@ static const uint32_t ffmpeg_bit_rates[] = {
   112000, 128000, 160000, 192000, 224000, 256000, 320000
 };
 
+GUI_BOOL(gui_mp3use14, CFG_RTP_USE_MP3_PAYLOAD_14, "Transmit MP3 using RFC-2250");
+DECLARE_TABLE(ffmpeg_gui_options) = {
+  TABLE_GUI(gui_mp3use14),
+};
+DECLARE_TABLE_FUNC(ffmpeg_gui_options);
 
 static int get_index_for_samplerate (uint32_t sr)
 {
@@ -78,7 +83,8 @@ audio_encoder_table_t ffmpeg_audio_encoder_table =  {
   ffmpeg_sample_rates,
   NUM_ELEMENTS_IN_ARRAY(ffmpeg_sample_rates),
   ffmpeg_bitrate_for_samplerate,
-  2
+  2,
+  TABLE_FUNC(ffmpeg_gui_options)
 };
 
 // these are for AMR

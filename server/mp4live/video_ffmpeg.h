@@ -71,7 +71,12 @@ class CFfmpegVideoEncoder : public CVideoEncoder {
 	CTimestampPush *m_push;
 	Duration m_frame_time;
 	int m_count, m_key_frame_count;
+	bool m_usingBFrames;
+	uint m_BFrameCount;
+	bool m_first_frame;
 };
+
+EXTERN_TABLE_F(ffmpeg_mpeg4_gui_options);
 
 #endif /* __VIDEO_FFMPEG_H__ */
 

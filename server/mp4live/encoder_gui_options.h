@@ -64,30 +64,28 @@ typedef struct encoder_gui_options_string_drop_t {
 typedef bool (*get_gui_options_list_f)(encoder_gui_options_base_t ***value,
 				     uint *count);
 #define GUI_BOOL(name, config_name, label) \
-  encoder_gui_options_t (name) = {{GUI_TYPE_BOOL, &config_name, label}};
+  static encoder_gui_options_t (name) = {{GUI_TYPE_BOOL, &config_name, label}};
   
 #define GUI_INT(name, config_name, label) \
-  encoder_gui_options_t (name) = {{GUI_TYPE_INT, &config_name, label}};
+  static encoder_gui_options_t (name) = {{GUI_TYPE_INT, &config_name, label}};
 
 #define GUI_FLOAT(name, config_name, label) \
-  encoder_gui_options_t (name) = {{GUI_TYPE_FLOAT, &config_name, label}};
+  static encoder_gui_options_t (name) = {{GUI_TYPE_FLOAT, &config_name, label}};
 
 #define GUI_STRING(name, config_name, label) \
-  encoder_gui_options_t (name) = {{GUI_TYPE_STRING, &config_name, label}};
+  static encoder_gui_options_t (name) = {{GUI_TYPE_STRING, &config_name, label}};
 
 #define GUI_INT_RANGE(name, config_name, label, min, max) \
-  encoder_gui_options_int_range_t (name) = {{GUI_TYPE_INT_RANGE, &config_name, label}, min, max };
+  static encoder_gui_options_int_range_t (name) = {{GUI_TYPE_INT_RANGE, &config_name, label}, min, max };
 #define GUI_FLOAT_RANGE(name, config_name, label, min, max) \
-  encoder_gui_options_float_range_t (name) = {{GUI_TYPE_FLOAT_RANGE, &config_name, label}, min, max };
+  static encoder_gui_options_float_range_t (name) = {{GUI_TYPE_FLOAT_RANGE, &config_name, label}, min, max };
 
 #define GUI_FLOAT_STRING_DROPDOWN(name, config_name, label, string_list, count) \
-  encoder_gui_options_float_range_t (name) = {{GUI_TYPE_STRING_DROPDOWN, &config_name, label}, string_list, count };
+  static encoder_gui_options_float_range_t (name) = {{GUI_TYPE_STRING_DROPDOWN, &config_name, label}, string_list, count };
 
 #define EXTERN_TABLE_F(name)  extern bool name##_f(encoder_gui_options_base_t ***value, uint *count);
-#define EXTERN_TABLE_COUNT(name) extern uint name##_count;
 
-#define DECLARE_TABLE(name) encoder_gui_options_base_t *name[]
-#define DECLARE_TABLE_COUNT(name) uint name##_count = NUM_ELEMENTS_IN_ARRAY(name)
+#define DECLARE_TABLE(name) static encoder_gui_options_base_t *name[]
 #define DECLARE_TABLE_FUNC(name) \
 bool name##_f (encoder_gui_options_base_t ***value, uint *count) \
 { \
@@ -97,4 +95,5 @@ bool name##_f (encoder_gui_options_base_t ***value, uint *count) \
 }\
 
 #define TABLE_GUI(name) &name.base
+#define TABLE_FUNC(name) name##_f
 #endif

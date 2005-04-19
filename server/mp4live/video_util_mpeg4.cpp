@@ -61,10 +61,12 @@ void GenerateMpeg4VideoConfig(CVideoProfile *pConfig)
 		&mpeg4ConfigLength,
 		1);
 
+	uint vot = pConfig->GetBoolValue(CFG_VIDEO_USE_B_FRAMES) ?
+	  17 : 1;
 	MP4AV_Mpeg4CreateVol(
 		&pMpeg4Config,
 		&mpeg4ConfigLength,
-		1, // this should always indicate simple profile required
+		vot, 
 		pConfig->GetFloatValue(CFG_VIDEO_FRAME_RATE),
 		pConfig->GetIntegerValue(CFG_VIDEO_TIMEBITS) == 0, 
 		// short time - true if we haven't set the # of bits

@@ -92,7 +92,8 @@ uint32_t h264_find_next_start_code(const uint8_t *pBuf,
   int h264_nal_unit_type_is_slice(uint8_t nal_type);
   int h264_find_slice_type(const uint8_t *buffer, 
 			   uint32_t buflen, 
-			   uint8_t *slice_type);
+			   uint8_t *slice_type, 
+			   bool noheader);
   uint8_t h264_nal_ref_idc(const uint8_t *buffer);
   int h264_detect_boundary(const uint8_t *buffer, 
 			   uint32_t buflen, 
@@ -108,6 +109,7 @@ uint32_t h264_find_next_start_code(const uint8_t *pBuf,
 
   bool h264_slice_is_idr(h264_decode_t *dec);
 
+  const char *h264_get_slice_name(uint8_t slice_type);
 
 #ifdef __cplusplus
  }

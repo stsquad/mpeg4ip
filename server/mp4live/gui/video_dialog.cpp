@@ -850,8 +850,14 @@ static void CreateSizeMenu(uint16_t width, uint16_t height)
 		   sizeMaxIndex,
 		   sizeIndex);
   temp = lookup_widget(VideoProfileDialog, "VideoEncoderSettingsButton");
-  gtk_widget_set_sensitive(temp,
-			   (video_encoder_table[encoderIndex].get_gui_options)(NULL, NULL));
+  bool enable_settings;
+  if (video_encoder_table[encoderIndex].get_gui_options == NULL) {
+    enable_settings = false;
+  } else {
+    enable_settings = 
+      (video_encoder_table[encoderIndex].get_gui_options)(NULL, NULL);
+  }
+  gtk_widget_set_sensitive(temp, enable_settings);
 }
 
 void
@@ -875,7 +881,7 @@ on_VideoEncoderSettingsButton          (GtkButton *button,
 			      settings_array_count);
 }
 
-void
+static void
 on_VideoProfileEncoder_changed         (GtkOptionMenu   *optionmenu,
                                         gpointer         user_data)
 {

@@ -87,16 +87,7 @@ void CVideoProfile::Update (void)
 	
   uint32_t mbpSec = (uint32_t)ceil(frame_rate);
   uint16_t profile;
-  if (bitrate <= 65536 && mbpSec < 1485) {
-    // profile is SP0, or SP1  SP0 is more accurate
-    profile = MPEG4_SP_L0;
-  } else if (bitrate <= 131072 && mbpSec < 5940) {
-    // profile is SP2
-    profile = MPEG4_SP_L2;
-  } else if (bitrate < 393216 && mbpSec < 11880) {
-    // profile is SP3
-    profile = MPEG4_SP_L3;
-  } else if (bitrate < 131072 && mbpSec < 2970) {
+  if (bitrate < 131072 && mbpSec < 2970) {
     // profile is ASP 0/1 - subsumed3 by SP2
     profile = MPEG4_ASP_L0;
   } else if (bitrate < 393216 && mbpSec < 5940) {
@@ -118,6 +109,18 @@ void CVideoProfile::Update (void)
 		    bitrate, mbpSec);
     }
     profile = MPEG4_ASP_L5;
+  }
+  if (GetBoolValue(CFG_VIDEO_USE_B_FRAMES) == false) {
+    if (bitrate <= 65536 && mbpSec < 1485) {
+      // profile is SP0, or SP1  SP0 is more accurate
+      profile = MPEG4_SP_L0;
+    } else if (bitrate <= 131072 && mbpSec < 5940) {
+      // profile is SP2
+      profile = MPEG4_SP_L2;
+    } else if (bitrate < 393216 && mbpSec < 11880) {
+      // profile is SP3
+      profile = MPEG4_SP_L3;
+    }
   }
   m_videoMpeg4ProfileId = profile;
   
