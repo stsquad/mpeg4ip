@@ -514,6 +514,8 @@ codec_data_t *video_codec_check_for_raw_file (const char *name,
     if (vptr->codec != NULL &&
 	vptr->codec_type == CODEC_TYPE_VIDEO &&
 	vptr->codec->c_raw_file_check != NULL) {
+      message(LOG_DEBUG, "plugin", 
+	      "Trying raw file codec %s", vptr->codec->c_name);
       cifptr = vptr->codec->c_raw_file_check(message,
 					     name,
 					     maxtime,
@@ -521,8 +523,8 @@ codec_data_t *video_codec_check_for_raw_file (const char *name,
 					     pConfig);
       if (cifptr != NULL) {
 	*codec = vptr->codec;
+	message(LOG_DEBUG, "plugin", "Found raw file codec %s", vptr->codec->c_name);
 #if 0
-	player_debug_message("Found raw file codec %s", vptr->codec->c_name);
 
 	return 0;
 #endif
@@ -564,8 +566,8 @@ codec_data_t *audio_codec_check_for_raw_file (const char *name,
 					     pConfig);
       if (cifptr != NULL) {
 	*codec = aptr->codec;
+	message(LOG_DEBUG, "plugin", "Found raw file codec %s", aptr->codec->c_name);
 #if 0
-	player_debug_message("Found raw file codec %s", aptr->codec->c_name);
 	CPlayerMedia *mptr;
       
 	mptr = new CPlayerMedia(psptr);

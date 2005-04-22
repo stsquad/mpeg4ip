@@ -66,7 +66,8 @@ static void ParseH264 (uint8_t *bptr, uint32_t blen,
       h264_find_slice_type(bptr, nal_len, &slice_type, true);
       printf("%s", h264_get_slice_name(slice_type));
     }
-    if (dump_off) printf("(%u)", bptr - fptr - len_size);
+    uint32_t off =  bptr - fptr - len_size;
+    if (dump_off) printf("(%u)", off);
     bptr += nal_len;
     if (nal_len > blen) {
       blen = 0;
@@ -107,7 +108,8 @@ static void ParseMpeg4 (uint8_t *bptr, uint32_t blen, bool dump_off)
 	case VOP_TYPE_S: printf(" VOP-S"); break;
 	}
       } else printf(" 0x%x", bptr[3]);
-      if (dump_off) printf("(%u)", bptr - fptr);
+      uint32_t off = bptr - fptr;
+      if (dump_off) printf("(%u)", off);
     }
     bptr++;
     blen--;

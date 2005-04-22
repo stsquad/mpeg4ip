@@ -37,17 +37,17 @@ typedef u_int16_t MediaType;
 #define VORBISAUDIOFRAME	5
 #define AMRNBAUDIOFRAME         6
 #define AMRWBAUDIOFRAME         7
+#define ALAWAUDIOFRAME          8
+#define ULAWAUDIOFRAME          9
 
-#define YUVVIDEOFRAME		11
-#define RGBVIDEOFRAME		12
-#define MPEG4VIDEOFRAME		14
-#define H26LVIDEOFRAME          13
-#define RECONSTRUCTYUVVIDEOFRAME 	15
-#define H261VIDEOFRAME          16
-#define MPEG2VIDEOFRAME         17
-#define RAWPCMAUDIOFRAME	18
-#define H263VIDEOFRAME          19
-#define H264VIDEOFRAME          20
+#define YUVVIDEOFRAME		20
+#define RGBVIDEOFRAME		21
+#define MPEG4VIDEOFRAME		22
+#define H261VIDEOFRAME          23
+#define MPEG2VIDEOFRAME         24
+#define RAWPCMAUDIOFRAME	25
+#define H263VIDEOFRAME          26
+#define H264VIDEOFRAME          27
 
 #define PLAINTEXTFRAME          32
 #define HREFTEXTFRAME           33

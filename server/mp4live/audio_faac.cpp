@@ -20,6 +20,7 @@
  */
 
 #include "mp4live.h"
+#ifdef HAVE_FAAC
 #include "audio_faac.h"
 #include "mp4.h"
 #include "mp4av.h"
@@ -361,3 +362,4 @@ void CFaacAudioEncoder::StopEncoder (void)
   CHECK_AND_FREE(m_aacFrameBuffer);
 }
 
+#endif

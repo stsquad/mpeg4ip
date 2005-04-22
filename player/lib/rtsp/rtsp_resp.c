@@ -619,7 +619,7 @@ static int rtsp_parse_response (rtsp_client_t *info)
 	     &info->m_resp_buffer[info->m_offset_on],
 	     len);
       while (len < decode->content_length) {
-	int left;
+	uint32_t left;
 	ret = rtsp_read_into_buffer(info, 0, 1);
 	
 	if (ret <= 0) {

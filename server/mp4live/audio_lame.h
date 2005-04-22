@@ -23,6 +23,7 @@
 #define __AUDIO_LAME_H__
 
 #include "audio_encoder.h"
+#ifdef HAVE_LAME
 #include <lame/lame.h>
 #include <sdp.h>
 
@@ -90,6 +91,6 @@ protected:
 };
 
 extern audio_encoder_table_t lame_audio_encoder_table;
-
+#endif
 #endif /* __AUDIO_LAME_H__ */
 

@@ -595,7 +595,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
       ret_value = 1;
   }
   text_offset = 0;
-  for (ix = 0; ix < audio_count; ix++) {
+  for (ix = 0; ix < text_count; ix++) {
     trackId = MP4FindTrackId(m_mp4file, ix, MP4_CNTL_TRACK_TYPE);
     const char *media_data_name;
     media_data_name = MP4GetTrackMediaDataName(m_mp4file, trackId);

@@ -43,48 +43,15 @@ fi
 
 allargs="$@"
 #
-# Test for lame
+# Test for faac and possible error
 #
 if test $target_system = "Linux"; then
-    have_lame=no
-    if lame --version >/dev/null 2>/dev/null
-	then
-	lamever=`lame --version | tr '.' ' '`
-	lameresult=`sh util/testlame.sh $lamever`
-	if test $lameresult = "yes"; then
-	    have_lame=yes
-	fi
-    fi
-
     have_faac=no
     if which faac >/dev/null 2>/dev/null; then
 	have_faac=yes
-    else
-	have_lame=no
     fi
 
-    disabled_mp4live=no
-    while test $# -gt 0;
-      do
-      if test $1 = "--disable-server"; then
-	  disabled_mp4live=yes
-      else
-	  if test $1 = "--disable-mp4live"; then
-	      disabled_mp4live=yes
-	  fi
-      fi
-      shift
-    done
-    if test $disabled_mp4live = no; then
-	if test $have_lame = "no"; then
-	    echo "Error - we cannot detect a valid version of lame and/or faac and you are trying"
-	    echo "to build mpeg4ip with mp4live."
-	    echo "To remedy this, either reexecute this program with either the"
-	    echo "--disable-mp4live or --disable-server options -OR-"
-	    echo "install lame at version 3.92 or greater from http://www.mp3dev.org"
-	    echo "and libfaac at verion 1.20 or greater from http://www.audiocoding.com"
-	    exit 1
-	fi
+    if test $have_faac = "yes"; then
 	# we have lame and faac - see if faac is built with mp4 support
 	faac --help >&faac_help
 	sdf=`grep "MP4 support unavailable" faac_help`

@@ -4,4 +4,4 @@ INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib/m
 LDADD = $(top_builddir)/lib/avi/libavi.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	 -lm 
-EXTRA_DIST = avi2raw60.dsp avi2raw.xcode/project.pbxproj
+EXTRA_DIST = avi2raw60.dsp 

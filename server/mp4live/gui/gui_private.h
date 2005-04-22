@@ -62,9 +62,6 @@ void CreatePictureDialog(void);
 void CreateAudioProfileDialog(CAudioProfile *profile);
 void create_AudioSourceDialog(void);
 
-// From recording_dialog.cpp
-void CreateRecordingDialog(void);
-
 // From transmit_dialog.cpp
 void CreateTransmitDialog(void);
 void create_IpAddrDialog(CMediaStream *ms, 

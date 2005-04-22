@@ -45,19 +45,21 @@ endif
   XVID_LIB=-lxvidcore
 endif
 
-X264_SRC=video_x264.cpp video_x264.h
 
 libmp4live_la_SOURCES = \
 	audio_encoder_base.cpp \
 	audio_encoder.h \
 	audio_faac.cpp \
 	audio_faac.h \
+	audio_g711.cpp \
+	audio_g711.h \
 	audio_lame.cpp \
 	audio_lame.h \
 	audio_oss_source.cpp \
 	audio_oss_source.h \
 	config_list.cpp \
 	config_list.h \
+	encoder_gui_options.h \
 	file_mp4_recorder.cpp \
 	file_mp4_recorder.h \
 	file_raw_sink.cpp \
@@ -113,7 +115,10 @@ libmp4live_la_SOURCES = \
 	audio_ffmpeg.cpp \
 	audio_ffmpeg.h \
 	video_ffmpeg.cpp \
-	video_ffmpeg.h $(XVID_SRC) $(X264_SRC)
+	video_ffmpeg.h \
+	video_x264.cpp \
+	video_x264.h \
+	$(XVID_SRC)
 
 mp4live_SOURCES = \
 	audio_encoder.cpp \
@@ -143,15 +148,14 @@ INCLUDES=\
 	@FFMPEG_INC@ 
 
 AM_CXXFLAGS = \
-	-DADD_LAME_ENCODER -DADD_FAAC_ENCODER \
 	-D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
 mp4live_LDADD = \
 	@GTK_LIBS@ @GLIB_LIBS@ \
 	$(GUIADD) \
 	libmp4live.la \
-	-lfaac \
-	-lmp3lame \
+	@FAAC_LIB@ \
+	@LAME_LIB@ \
 	$(top_builddir)/lib/mpeg2ps/libmpeg2_program.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
@@ -165,4 +169,4 @@ mp4live_LDADD = \
 	@SDL_LIBS@ $(GUILIBS) @FFMPEG_LIB@ @LIBVORBIS_LIB@ $(XVID_LIB) \
 	@X264_LIB@
 
-EXTRA_DIST = $(ed1) $(ed2) README_MULTIOUTPUT.txt
+EXTRA_DIST = $(ed1) $(ed2) 

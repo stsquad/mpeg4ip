@@ -84,18 +84,18 @@ void h264_check_0s (CBitstream *bs, int count)
 void h264_hrd_parameters (CBitstream *bs)
 {
   uint32_t cpb_cnt = h264_ue(bs);
-  printf("      cpb_cnt_minus1: %u\n", cpb_cnt);
-  printf("      bit_rate_scale: %u\n", bs->GetBits(4));
-  printf("      cpb_size_scale: %u\n", bs->GetBits(4));
-  for (uint32_t ix = 0; ix <= cpb_cnt; cpb_cnt++) {
+  printf("     cpb_cnt_minus1: %u\n", cpb_cnt);
+  printf("     bit_rate_scale: %u\n", bs->GetBits(4));
+  printf("     cpb_size_scale: %u\n", bs->GetBits(4));
+  for (uint32_t ix = 0; ix <= cpb_cnt; ix++) {
     printf("      bit_rate_value_minus1[%u]: %u\n", ix, h264_ue(bs));
     printf("      cpb_size_value_minus1[%u]: %u\n", ix, h264_ue(bs));
     printf("      cbr_flag[%u]: %u\n", ix, bs->GetBits(1));
   }
-  printf("      initial_cpb_removal_delay_length_minus1: %u\n", bs->GetBits(5));
-  printf("      cpb_removal_delay_length_minus1: %u\n", bs->GetBits(5));
-  printf("      dpb_output_delay_length_minus1: %u\n", bs->GetBits(5));
-  printf("      time_offset_delay: %u\n", bs->GetBits(5));
+  printf("     initial_cpb_removal_delay_length_minus1: %u\n", bs->GetBits(5));
+  printf("     cpb_removal_delay_length_minus1: %u\n", bs->GetBits(5));
+  printf("     dpb_output_delay_length_minus1: %u\n", bs->GetBits(5));
+  printf("     time_offset_delay: %u\n", bs->GetBits(5));
 }
 
 void h264_vui_parameters (CBitstream *bs)
@@ -154,18 +154,18 @@ void h264_vui_parameters (CBitstream *bs)
     h264_hrd_parameters(bs);
   }
   if (temp || temp2) {
-    printf("     low_delay_hrd_flag: %u\n", bs->GetBits(1));
-    printf("     pic_struct_present_flag: %u\n", bs->GetBits(1));
-    temp = bs->GetBits(1);
-    if (temp) {
-      printf("      motion_vectors_over_pic_boundaries_flag: %u\n", bs->GetBits(1));
-      printf("      max_bytes_per_pic_denom: %u\n", h264_ue(bs));
-      printf("      max_bits_per_mb_denom: %u\n", h264_ue(bs));
-      printf("      log2_max_mv_length_horizontal: %u\n", h264_ue(bs));
-      printf("      log2_max_mv_length_vertical: %u\n", h264_ue(bs));
-      printf("      num_reorder_frames: %u\n", h264_ue(bs));
-      printf("      max_dec_frame_buffering: %u\n", h264_ue(bs));
-    }
+    printf("    low_delay_hrd_flag: %u\n", bs->GetBits(1));
+  }
+  printf("    pic_struct_present_flag: %u\n", bs->GetBits(1));
+  temp = bs->GetBits(1);
+  if (temp) {
+    printf("    motion_vectors_over_pic_boundaries_flag: %u\n", bs->GetBits(1));
+    printf("    max_bytes_per_pic_denom: %u\n", h264_ue(bs));
+    printf("    max_bits_per_mb_denom: %u\n", h264_ue(bs));
+    printf("    log2_max_mv_length_horizontal: %u\n", h264_ue(bs));
+    printf("    log2_max_mv_length_vertical: %u\n", h264_ue(bs));
+    printf("    num_reorder_frames: %u\n", h264_ue(bs));
+    printf("     max_dec_frame_buffering: %u\n", h264_ue(bs));
   }
 }
     

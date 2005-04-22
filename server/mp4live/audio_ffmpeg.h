@@ -97,9 +97,6 @@ protected:
 	u_int32_t			m_FrameMaxSize;
 };
 
-extern audio_encoder_table_t ffmpeg_audio_encoder_table,
-  ffmpeg_amr_audio_encoder_table;
-
 void InitFFmpegAudio(void);
 EXTERN_TABLE_F(ffmpeg_audio_gui_options);
 #endif /* __AUDIO_FFMPEG_H__ */

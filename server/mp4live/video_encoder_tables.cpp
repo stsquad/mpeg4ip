@@ -82,11 +82,12 @@ static const char *h263SizeNames[] = {
 };
 #define H263_SIZES (NUM_ELEMENTS_IN_ARRAY(h263SizeWidthValues))
 #endif
-
+#if defined(HAVE_XVID_H) || defined(HAVE_FFMPEG)
 static bool dummy_opts (encoder_gui_options_base_t ***value, uint *count)
 {
   return false;
 }
+#endif
 
 const video_encoder_table_t video_encoder_table[] = {
 #if defined(HAVE_XVID_H) || defined(HAVE_XVID10)

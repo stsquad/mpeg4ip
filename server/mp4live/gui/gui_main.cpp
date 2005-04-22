@@ -56,14 +56,6 @@ static const u_int32_t durationUnitsValues[] = {
 //static u_int64_t StartFileSize;
 //static u_int64_t StopFileSize;
 
-static void delete_event (GtkWidget *widget, gpointer *data)
-{
-  // stop the flow (which gets rid of the preview, before we gtk_main_quit
-  AVFlow->Stop();
-  delete AVFlow;
-  //  SDL_DestroyMutex(dialog_mutex);
-  gtk_main_quit();
-}
 
 CMediaStream *GetSelectedStream (void)
 {
@@ -297,6 +289,19 @@ static void ReadConfigFromWindow (void)
 
   MyConfig->SetIntegerValue(CONFIG_APP_DURATION,
 			    gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(temp)));
+  // read info that might not be saved from config
+  CMediaStream *ms = GetSelectedStream();
+  if (ms != NULL) {
+    temp = lookup_widget(MainWindow, "StreamRecordFileEntry");
+    ms->SetStringValue(STREAM_RECORD_MP4_FILE_NAME,
+		       gtk_entry_get_text(GTK_ENTRY(temp)));
+    temp = lookup_widget(MainWindow, "StreamSdpFileEntry");
+    ms->SetStringValue(STREAM_SDP_FILE_NAME,
+		       gtk_entry_get_text(GTK_ENTRY(temp)));
+    temp = lookup_widget(MainWindow, "StreamDescription");
+    ms->SetStringValue(STREAM_DESCRIPTION, 
+		       gtk_entry_get_text(GTK_ENTRY(temp)));
+  }
 }
 
 /*
@@ -952,8 +957,15 @@ on_about1_activate                     (GtkMenuItem     *menuitem,
 	   "\nUsing open source packages:\n"
 	   "lame encoder\n"
 	   "faac encoder\n"
+#if defined(HAVE_XVID10) || defined(HAVE_XVID_H)
 	   "Xvid mpeg-4 encoder\n"
+#endif
+#ifdef HAVE_FFMPEG
 	   "Ffmpeg encoder\n"
+#endif
+#ifdef HAVE_X264
+	   "H.264 encoder from x264\n"
+#endif
 	   "H.261 encoder from UC\n"
 	   "Glade interface designer\n"
 	   "\n2000 to present\n"
@@ -1577,7 +1589,6 @@ void DoStart()
 {
   GtkWidget *temp;
   ReadConfigFromWindow();
-  temp = lookup_widget(MainWindow, "Duration");
   
   if (!MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
       && !MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) 
@@ -1605,8 +1616,8 @@ void DoStart()
     bool have_file;
     have_file = strcmp(type, TEXT_SOURCE_FILE_WITH_DIALOG) == 0;
     if (have_file || strcmp(type, TEXT_SOURCE_DIALOG) == 0) {
-      GtkWidget *temp = create_TextFileDialog(have_file);
-      GLADE_HOOKUP_OBJECT(MainWindow, temp, "TextDialog");
+      GtkWidget *textd = create_TextFileDialog(have_file);
+      GLADE_HOOKUP_OBJECT(MainWindow, textd, "TextDialog");
     }
   }
 
@@ -1705,10 +1716,22 @@ static void on_StreamTree_select (GtkTreeSelection *selection,
   gchar *stream;
 
   if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+    ReadConfigFromWindow();
+
     gtk_tree_model_get(model, &iter, 0, &stream, -1);
     DisplayStreamData(stream);
     g_free(stream);
   }
+}
+
+static void delete_event (GtkWidget *widget, gpointer *data)
+{
+  // stop the flow (which gets rid of the preview, before we gtk_main_quit
+  AVFlow->Stop();
+  ReadConfigFromWindow();
+  delete AVFlow;
+  //  SDL_DestroyMutex(dialog_mutex);
+  gtk_main_quit();
 }
 
 static GtkWidget *create_MainWindow (void)

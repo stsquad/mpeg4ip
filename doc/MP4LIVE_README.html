@@ -6,9 +6,9 @@
 <body id="top">
 <h1>MP4LIVE README</h1>
 <p>
-March, 2005<br>  
-Dave Mackie<br>
+April, 2005<br>  
 Bill May<br>
+Dave Mackie<br>
 <p>
 User Contributions by:
 <br>
@@ -65,7 +65,12 @@ a single audio and video source, as well as being able to generate
 ISMA href and text streams.
 <p>
 Added H.264 encoding through x264.  Added b frame encoding for H.264 and
-mpeg4 through ffmpeg
+mpeg4 through ffmpeg.
+<p>
+lame and faac are no longer required; a G.711 encoder has been added
+that will be the default.
+<p>
+If faac is installed, faac encoding will be the default encoding.
 <P>
 <div id="s1.1">
 <h2>Changes in Version 1.1</h2>
@@ -85,6 +90,9 @@ Added decimate and deinterlace filters
 <div id="hw">
 <h2>Hardware Requirements</h2>
 </div>
+<p>
+Note: most of this is outdated; I develop now on a dual-2GHz Pentium IV machine, 
+or a 3GHz machine with at least 512MB ram.
 <P>
 Pentium III class machine of at least 500 MHz 
 (Pentium IV class machine at 2 GHz is very nice.)
@@ -114,7 +122,7 @@ Known to work are:
 		Others will also have a TV Tuner input.
 </li>
 <li>
-	Logitech Quickcam Express Webcam
+	Logitech Quickcam Express Webcam (sometimes)
 </li>
 </ul>
 <P>
@@ -125,6 +133,9 @@ owners of multiprocessor machines, the video encoder thread dominates the
 computational requirements so one CPU will be very busy, and the others will
 be lightly to moderately loaded. For those looking for a project, a multi-
 threaded video encoder would certainly provide an interesting challenge.
+<p>
+Again - a bit out-dated; if you're doing multiple encodings, this is no
+longer true.
 <P>
 <a href="#top">Back to top</a>
 <P>
@@ -162,7 +173,9 @@ re-programming since the sound and video capture interfaces are Linux
 specific.
 <p>
 We no longer include a mpeg-4 encoder native with the package.  You will
-have to download ffmpeg or xvid if you want to encode with mpeg-4.
+have to download ffmpeg or xvid if you want to encode with mpeg-4.  You 
+will also want to include a good audio encoder, like faac or lame.  See
+the main readme for more information.
 <P>
 By far the easiest route is to use a Linux distribution that already has a
 2.6 kernel and the bttv driver, and the associated i2c module built into it.
@@ -851,6 +864,8 @@ stream in the .mp4live_d/Video directory.
 <tr align=center><td>videoH261QualityAdjFrames</td><td>int</td><td>8</td><td>Number of frames to adjust H.261 Quality over</tr>
 <tr align=center><td>videoCaptureBuffersCount</td><td>int</td><td>16</td><td>Number of capture buffers to request<br>(V4L2 only)</tr>
 <tr align=center><td>videoFilter</td><td>string</td><td>none</td><td>Video filter to use (none, "deinterlace - blend")</td></tr>
+<tr align=center><td>videoUseBFrames</td><td>bool</td><td>0</td><td>Encode using b-frames (ffmpeg, x264 encoders only</td>
+<tr align=center><td>videoBFrameNum</td><td>int</td><td>2</td><td>Number of b frames (ffmpeg, x264 encoders only</td>
 <tr><th colspan=5 align=center><b>Mpeg-4 Video Options</b></tr>
 <tr align=center><td>videoMpeg4ParWidth</td><td>int</td><td>0</td><td>Mpeg-4 par width value</td>
 <tr align=center><td>videoMpeg4ParHeight</td><td>int</td><td>0</td><td>Mpeg-4 par height value</td>

@@ -24,13 +24,11 @@
 #include "audio_encoder.h"
 #include "mp4av.h"
 
-#ifdef ADD_LAME_ENCODER
+#include "audio_g711.h"
+#ifdef HAVE_LAME
 #include "audio_lame.h"
 #endif
-
-#ifdef ADD_FAAC_ENCODER
 #include "audio_faac.h"
-#endif
 #ifdef HAVE_FFMPEG
 #include "audio_ffmpeg.h"
 #endif
@@ -44,14 +42,14 @@ CAudioEncoder* AudioEncoderBaseCreate(CAudioProfile *ap,
 {
   const char *encoderName = ap->GetStringValue(CFG_AUDIO_ENCODER);
   if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
-#ifdef ADD_FAAC_ENCODER
+#ifdef HAVE_FAAC
     return new CFaacAudioEncoder(ap, next, srcChannels, srcSampleRate, mtu, realTime);
 #else
     error_message("faac encoder not available in this build");
     return false;
 #endif
   } else if (!strcasecmp(encoderName, AUDIO_ENCODER_LAME)) {
-#ifdef ADD_LAME_ENCODER
+#ifdef HAVE_LAME
     return new CLameAudioEncoder(ap, next, srcChannels, srcSampleRate, mtu, realTime);
 #else
     error_message("lame encoder not available in this build");
@@ -62,6 +60,8 @@ CAudioEncoder* AudioEncoderBaseCreate(CAudioProfile *ap,
 #else
     error_message("ffmpeg audio encoder not available in this build");
 #endif
+  } else if (strcasecmp(encoderName, AUDIO_ENCODER_G711) == 0) {
+    return new CG711AudioEncoder(ap, next, srcChannels, srcSampleRate, mtu, realTime);
   } else {
     error_message("unknown audio encoder (%s) specified",encoderName);
   }
@@ -79,7 +79,7 @@ MediaType get_base_audio_mp4_fileinfo (CAudioProfile *pConfig,
   const char *encoderName = pConfig->GetStringValue(CFG_AUDIO_ENCODER);
 
   if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
-#ifdef ADD_FAAC_ENCODER
+#ifdef HAVE_FAAC
     return faac_mp4_fileinfo(pConfig, mpeg4,
 			     isma_compliant, 
 			     audioProfile, 
@@ -90,7 +90,7 @@ MediaType get_base_audio_mp4_fileinfo (CAudioProfile *pConfig,
     return UNDEFINEDFRAME;
 #endif
   } else if (!strcasecmp(encoderName, AUDIO_ENCODER_LAME)) {
-#ifdef ADD_LAME_ENCODER
+#ifdef HAVE_LAME
     return lame_mp4_fileinfo(pConfig, mpeg4,
 			     isma_compliant, 
 			     audioProfile, 
@@ -112,7 +112,13 @@ MediaType get_base_audio_mp4_fileinfo (CAudioProfile *pConfig,
 #else
     return UNDEFINEDFRAME;
 #endif
-
+  } else if (!strcasecmp(encoderName, AUDIO_ENCODER_G711)) {
+    return g711_mp4_fileinfo(pConfig, mpeg4,
+			     isma_compliant, 
+			     audioProfile, 
+			     audioConfig,
+			     audioConfigLen,
+			     mp4_audio_type);
   } else {
     error_message("unknown encoder specified");
   }
@@ -129,7 +135,7 @@ media_desc_t *create_base_audio_sdp (CAudioProfile *pConfig,
   const char *encoderName = pConfig->GetStringValue(CFG_AUDIO_ENCODER);
 
   if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
-#ifdef ADD_FAAC_ENCODER
+#ifdef HAVE_FAAC
     return faac_create_audio_sdp(pConfig, mpeg4,
 				 isma_compliant, 
 				 audioProfile, 
@@ -139,7 +145,7 @@ media_desc_t *create_base_audio_sdp (CAudioProfile *pConfig,
     return NULL;
 #endif
   } else if (!strcasecmp(encoderName, AUDIO_ENCODER_LAME)) {
-#ifdef ADD_LAME_ENCODER
+#ifdef HAVE_LAME
     return lame_create_audio_sdp(pConfig, mpeg4,
 				 isma_compliant, 
 				 audioProfile, 
@@ -160,6 +166,12 @@ media_desc_t *create_base_audio_sdp (CAudioProfile *pConfig,
     return NULL;
 #endif
 
+  } else if (!strcasecmp(encoderName, AUDIO_ENCODER_G711)) {
+    return g711_create_audio_sdp(pConfig, mpeg4,
+				   isma_compliant, 
+				   audioProfile, 
+				   audioConfig,
+				   audioConfigLen);
   } else {
     error_message("unknown encoder specified");
   }
@@ -206,7 +218,7 @@ bool get_base_audio_rtp_info (CAudioProfile *pConfig,
   const char *encoderName = pConfig->GetStringValue(CFG_AUDIO_ENCODER);
 
   if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
-#ifdef ADD_FAAC_ENCODER
+#ifdef HAVE_FAAC
     return faac_get_audio_rtp_info(pConfig,
 				   audioFrameType,
 				   audioTimeScale,
@@ -221,7 +233,7 @@ bool get_base_audio_rtp_info (CAudioProfile *pConfig,
     return false;
 #endif
   } else if (!strcasecmp(encoderName, AUDIO_ENCODER_LAME)) {
-#ifdef ADD_LAME_ENCODER
+#ifdef HAVE_LAME
     return lame_get_audio_rtp_info(pConfig,
 				   audioFrameType,
 				   audioTimeScale,
@@ -251,6 +263,18 @@ bool get_base_audio_rtp_info (CAudioProfile *pConfig,
 #else
     return false;
 #endif
+  } else if (!strcasecmp(encoderName, AUDIO_ENCODER_G711)) {
+    return g711_get_audio_rtp_info(pConfig,
+				   audioFrameType,
+				   audioTimeScale,
+				   audioPayloadNumber,
+				   audioPayloadBytesPerPacket,
+				   audioPayloadBytesPerFrame,
+				   audioQueueMaxCount,
+				   audio_set_rtp_payload,
+				   audio_set_header,
+				   audio_set_jumbo,
+				   ud);
   } else {
     error_message("unknown encoder specified");
   }

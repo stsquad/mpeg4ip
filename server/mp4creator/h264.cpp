@@ -17,7 +17,8 @@
  *
  * Contributor(s):
  *           Bill May wmay@cisco.com
- *           Laurent Aimar
+ *           Laurent Aimar (with much gratitude from the developers
+ *                          for his work on ctts creation)
  */
 
 //#define DEBUG_H264 1
@@ -67,6 +68,7 @@ static void DpbUpdate( h264_dpb_t *p, int is_forced )
 {
   int i;
   int pos;
+
   if (!is_forced && p->dpb.cnt < 16)
     return;
 
@@ -80,12 +82,15 @@ static void DpbUpdate( h264_dpb_t *p, int is_forced )
   //fprintf( stderr, "lowest=%d\n", pos );
 
   /* save the idx */
-  if (p->cnt >= p->cnt_max)
+  if (p->dpb.idx[pos] >= p->cnt_max)
   {
-    p->cnt_max += 1000;
+    int inc = 1000 + (p->dpb.idx[pos]-p->cnt_max);
+    p->cnt_max += inc;
     p->frame = (int*)realloc( p->frame, sizeof(int)*p->cnt_max );
+    for (i=0;i<inc;i++)
+      p->frame[p->cnt_max-inc+i] = -1; /* To detect errors latter */
   }
-  p->frame[p->cnt++] = p->dpb.idx[pos];
+  p->frame[p->dpb.idx[pos]] = p->cnt++;
 
   /* Update the dpb minimal size */
   if (pos > p->dpb.size_min)
@@ -123,6 +128,8 @@ int DpbFrameOffset( h264_dpb_t *p, int idx )
 {
   if (idx >= p->cnt)
     return 0;
+  if (p->frame[idx] < 0)
+    return p->dpb.size_min; /* We have an error (probably broken/truncated bitstream) */
 
   return p->dpb.size_min + p->frame[idx] - idx;
 }
@@ -566,8 +573,10 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 
     if (h264_dpb.dpb.size_min > 0) {
       unsigned int ix;
-      for (ix = 0; ix < samplesWritten; ix++) {
+
+      for (ix = 0; ix < samplesWritten; ix++) {;
 	const int offset = DpbFrameOffset(&h264_dpb, ix);
+        //fprintf( stderr, "dts=%d pts=%d offset=%d\n", ix, ix+offset, offset );
 	MP4SetSampleRenderingOffset(mp4File, trackId, 1 + ix, 
 				    offset * mp4FrameDuration);
       }

@@ -393,7 +393,7 @@ static int mpeg2t_process_pas (mpeg2t_t *ptr, const uint8_t *buffer)
     pasptr = ptr->pas.pid.data;
     section_len = ptr->pas.pid.data_len;
   } else {
-    if (*pasptr + 1 > buflen) 
+    if (*pasptr >= buflen) 
       return 0;
     buflen -= *pasptr + 1;
     pasptr += *pasptr + 1; // go through the pointer field
@@ -471,7 +471,7 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
     pmapptr = ifptr->data;
     section_len = ifptr->data_len;
   } else {
-    if (*pmapptr + 1 > buflen) 
+    if (*pmapptr >= buflen) 
       return 0;
     buflen -= *pmapptr + 1;
     pmapptr += *pmapptr + 1; // go through the pointer field
@@ -775,7 +775,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
     es_pid->have_ps_ts = 0;
     es_pid->have_dts = 0;
     if (read_pes_options) {
-      if (esptr[2] + 3 > buflen) {
+      if (esptr[2] + 3U > buflen) {
 	return 0;
       }
       mpeg2t_message(LOG_INFO, "pid %x pes bits %x %x", 

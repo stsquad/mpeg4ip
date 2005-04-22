@@ -23,6 +23,7 @@
 #include "mpeg4ip_utils.h"
 #ifndef _WIN32
 #include <sys/wait.h>
+#include <signal.h>
 #endif
 #include "our_config_file.h"
 

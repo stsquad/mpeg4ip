@@ -17,7 +17,6 @@ libmp4livegui_la_SOURCES = \
 	text_dialog.cpp \
 	transmit_dialog.cpp \
 	video_dialog.cpp 
-#	recording_dialog.cpp 
 
 INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I.. \

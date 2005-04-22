@@ -322,10 +322,12 @@ bool CX264VideoEncoder::GetEncodedImage(
 
   *dts = m_push->Pop();
   *pts = m_pic_input.i_pts;
+#if 0
   if (*dts != *pts) {
     debug_message("PTS "U64" not DTS "U64, 
 		  *pts, *dts);
   }
+#endif
   m_vopBuffer = NULL;
   m_vopBufferLength = 0;
   

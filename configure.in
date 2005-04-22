@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(mpeg4ip, 1.2.17)
+AC_INIT(mpeg4ip, 1.2.18)
 AM_CONFIG_HEADER(mpeg4ip_config.h)
 dnl Prevent user from running just ./configure
 AC_CHECK_FILE(./bootstrapped, [did_bootstrap=yes], [did_bootstrap=no])
@@ -85,7 +85,22 @@ AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
 AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h sys/time.h)
 
 AC_LANG_PUSH(C++)
-AC_CHECK_HEADER(id3/tag.h, [have_id3_tag=true], [have_id3_tag=false])
+
+AC_ARG_ENABLE(id3tags,
+[AC_HELP_STRING([--disable-id3tags],[disable use of installed id3tags library])],
+[ case "${enableval}" in
+  no)  disable_it=yes ;;
+  yes) disable_it=no ;;
+  *) AC_MSG_ERROR([bad valud ${enableval} for --disable-id3tags]) ;;
+esac],
+  [disable_it=no])
+
+if test x$disable_it = xyes; then
+  have_id3_tag=false
+  AC_MSG_NOTICE([disabling id3 tag library])
+else
+  AC_CHECK_HEADER(id3/tag.h, [have_id3_tag=true], [have_id3_tag=false])
+fi
 if test $have_id3_tag = true; then
    dnl should check for libraries here
    AC_DEFINE(HAVE_ID3_TAG_H, [1], [have id3/tag.h])
@@ -106,6 +121,7 @@ esac],
 if test x$disable_xvid = xyes; then
   use_xvid10=false
   no_xvid=true
+  AC_MSG_NOTICE([disabling xvid library])
 else
 AC_MSG_CHECKING([for xvid.h, API version 3])
 AC_TRY_COMPILE([],
@@ -139,25 +155,67 @@ AC_SEARCH_LIBS(dlopen, dl libc)
 dnl check for this for mp3lame
 saved_LIBS="$LIBS"
 LIBS="$LIBS -lm"
-AC_CHECK_LIB(a52, 
-             a52_syncinfo, 
-	     [have_a52=true],
-             [have_a52=false])
+
+AC_ARG_ENABLE(a52dec,
+[AC_HELP_STRING([--disable-a52dec],[disable use of installed a52dec library])],
+[ case "${enableval}" in
+  no)  disable_a52=yes ;;
+  yes) disable_a52=no ;;
+  *) AC_MSG_ERROR([bad valud ${enableval} for --disable-a52]) ;;
+esac],
+  [disable_a52=no])
+
+if test x$disable_a52 = xyes; then
+  have_a52=false
+  AC_MSG_NOTICE([disabling a52dec library])
+else
+   AC_CHECK_LIB(a52, 
+                a52_syncinfo, 
+	        [have_a52=true],
+                [have_a52=false])
+fi
 AM_CONDITIONAL(HAVE_A52DEC_LIB, $have_a52)
-AC_CHECK_LIB(mad,
-	     mad_decoder_init,
-	     [have_mad=true],
-	     [have_mad=false])
+
+AC_ARG_ENABLE(mad,
+[AC_HELP_STRING([--disable-mad],[disable use of installed mad library])],
+[ case "${enableval}" in
+  no)  disable_it=yes ;;
+  yes) disable_it=no ;;
+  *) AC_MSG_ERROR([bad valud ${enableval} for --disable-mad]) ;;
+esac],
+  [disable_it=no])
+
+if test x$disable_it = xyes; then
+  have_mad=false
+  AC_MSG_NOTICE([disabling mad library])
+else
+  AC_CHECK_LIB(mad,
+	       mad_decoder_init,
+	       [have_mad=true],
+	       [have_mad=false])
+fi
 AM_CONDITIONAL(HAVE_LIBMAD, $have_mad)
 
-have_mpeg2=true
-AC_CHECK_LIB(mpeg2,
-	     mpeg2_init,
-	     [have_mpeg2=true],
-	     [have_mpeg2=false])
-if test x$have_mpeg2 = xtrue; then
-   AC_MSG_CHECKING([libmpeg2 version])
-   AC_COMPILE_IFELSE([#include <stdint.h>
+AC_ARG_ENABLE(mpeg2dec,
+[AC_HELP_STRING([--disable-mpeg2dec],[disable use of installed mpeg2dec library])],
+[ case "${enableval}" in
+  no)  disable_it=yes ;;
+  yes) disable_it=no ;;
+  *) AC_MSG_ERROR([bad valud ${enableval} for --disable-mpeg2dec]) ;;
+esac],
+  [disable_it=no])
+
+if test x$disable_it = xyes; then
+  have_mpeg2=false
+  AC_MSG_NOTICE([disabling mpeg2dec library])
+else
+  AC_CHECK_LIB(mpeg2,
+	       mpeg2_init,
+	       [have_mpeg2=true],
+	       [have_mpeg2=false])
+  if test x$have_mpeg2 = xtrue; then
+     AC_MSG_CHECKING([libmpeg2 version])
+     AC_COMPILE_IFELSE([#include <stdint.h>
 #include <mpeg2dec/mpeg2.h>
 
 #ifndef MPEG2_VERSION
@@ -173,15 +231,15 @@ int main (int argc, char **argv)
 #endif
 #endif
 ],
-	[have_mpeg2=true],
-	[have_mpeg2=false])
-   if test x$have_mpeg2 = xtrue; then
-      AC_MSG_RESULT([yes])
-   else
-      AC_MSG_RESULT([no])
-   fi
+	  [have_mpeg2=true],
+	  [have_mpeg2=false])
+     if test x$have_mpeg2 = xtrue; then
+        AC_MSG_RESULT([yes])
+     else
+        AC_MSG_RESULT([no])
+     fi
+  fi
 fi
-
 AM_CONDITIONAL(HAVE_LIBMPEG2, $have_mpeg2)
 if test $have_mpeg2 = true; then
    AC_DEFINE(HAVE_LIBMPEG2, [1], [have libmpeg2 decoder library])
@@ -418,16 +476,82 @@ if test x$disable_ffmpeg = xfalse; then
      fi
   fi
 else
-  AC_MSG_NOTICE([use of ffmpeg has been disabled])
+  AC_MSG_NOTICE([disabling ffmpeg library])
 fi
 AC_SUBST(FFMPEG_INC)
 AC_SUBST(FFMPEG_LIB)
 AM_CONDITIONAL(HAVE_FFMPEG, [test x$have_ffmpeg = xtrue])
 
-saved_LIBS="$LIBS"
-LIBS="$LIBS -lm -lz"
-AC_CHECK_LIB(x264, x264_encoder_open, [have_x264=true], [have_x264=false])
-LIBS=$saved_LIBS
+AC_ARG_ENABLE(mp3lame,
+[AC_HELP_STRING([--disable-mp3lame],[disable use of installed lame library])],
+[ case "${enableval}" in
+  no)  disable_it=yes ;;
+  yes) disable_it=no ;;
+  *) AC_MSG_ERROR([bad valud ${enableval} for --disable-mp3lame]) ;;
+esac],
+  [disable_it=no])
+
+if test x$disable_it = xyes; then
+  have_lame=false
+  AC_MSG_NOTICE([disabling lame library])
+else
+  saved_LIBS="$LIBS"
+  LIBS="$LIBS -lm -lz"
+  AC_CHECK_LIB(mp3lame, lame_init, [have_lame=true], [have_lame=false])
+  LIBS=$saved_LIBS
+fi
+if test x$have_lame = xtrue; then
+   AC_DEFINE(HAVE_LAME, 1, [enable lame for mp4live])
+   LAME_LIB=-lmp3lame
+else
+   LAME_LIB=
+fi
+AC_SUBST(LAME_LIB)
+
+AC_ARG_ENABLE(faac,
+[AC_HELP_STRING([--disable-faac],[disable use of installed faac library])],
+[ case "${enableval}" in
+  no)  disable_it=yes ;;
+  yes) disable_it=no ;;
+  *) AC_MSG_ERROR([bad valud ${enableval} for --disable-faac]) ;;
+esac],
+  [disable_it=no])
+
+if test x$disable_it = xyes; then
+  have_faac=false
+  AC_MSG_NOTICE([disabling faac library])
+else
+  saved_LIBS="$LIBS"
+  LIBS="$LIBS -lm -lz"
+  AC_CHECK_LIB(faac, faacEncOpen, [have_faac=true], [have_faac=false])
+  LIBS=$saved_LIBS
+fi
+if test x$have_faac = xtrue; then
+   AC_DEFINE(HAVE_FAAC, 1, [enable faac for mp4live])
+   FAAC_LIB=-lfaac
+else
+   FAAC_LIB=
+fi
+AC_SUBST(FAAC_LIB)
+
+AC_ARG_ENABLE(x264,
+[AC_HELP_STRING([--disable-x264],[disable use of installed x264 library])],
+[ case "${enableval}" in
+  no)  disable_it=yes ;;
+  yes) disable_it=no ;;
+  *) AC_MSG_ERROR([bad valud ${enableval} for --disable-x264]) ;;
+esac],
+  [disable_it=no])
+
+if test x$disable_it = xyes; then
+  have_x264=false
+  AC_MSG_NOTICE([disabling x264 library])
+else
+  saved_LIBS="$LIBS"
+  LIBS="$LIBS -lm -lz"
+  AC_CHECK_LIB(x264, x264_encoder_open, [have_x264=true], [have_x264=false])
+  LIBS=$saved_LIBS
+fi
 if test x$have_x264 = xtrue; then
    AC_DEFINE(HAVE_X264, 1, [enable x264 for mp4live])
    X264_LIB=-lx264
@@ -488,14 +612,6 @@ if test x$disable_gtk_glib = xno; then
       haveglib20=no
    fi
   fi
-  if test x$haveglib20 = xno; then 
-   AM_PATH_GLIB(, [glib_gtk=yes], [glib_gtk=no])
-   if test x$glib_gtk = xyes; then
-      AM_PATH_GTK(, [glib_gtk=yes], [glib_gtk=no])
-      AC_DEFINE(HAVE_GTK, 1, [Have GTK on system])
-   fi
-  fi
-
   dnl If we're going to check for GLIB, we most likely need the real path
   dnl we need to save off the CFLAGS and CPPFLAGS for the AC_CHECK_HEADER
   dnl command 
@@ -591,6 +707,9 @@ MY_CHECK_CC_OPT_SET([-Wmissing-declarations], BILLS_CWARNINGS, [c compiler])
 MY_CHECK_CC_OPT_SET([-Wno-char-subscripts], BILLS_CWARNINGS, [c compiler])
 MY_CHECK_CC_OPT_SET([-Wno-unknown-pragmas],BILLS_CWARNINGS, [c compiler])
 MY_CHECK_CC_OPT_SET([-Wformat=2],BILLS_CWARNINGS, [c compiler])
+MY_CHECK_CC_OPT_SET([-Wdeclaration-after-statement], BILLS_CWARNINGS, [c compiler])
+MY_CHECK_CC_OPT_SET([-Wpointer-arith], BILLS_CWARNINGS, [c compiler])
+MY_CHECK_CC_OPT_SET([-Wsign-compare], BILLS_CWARNINGS, [c compiler])
 BILLS_CPPWARNINGS="$BASE_ERR"
 AC_LANG_PUSH(C++)
 MY_CHECK_CC_OPT_SET([-Wmissing-prototypes], BILLS_CPPWARNINGS,[c++ compiler])
@@ -599,6 +718,9 @@ MY_CHECK_CC_OPT_SET([-Woverloaded-virtual], BILLS_CPPWARNINGS,[c++ compiler])
 MY_CHECK_CC_OPT_SET([-Wno-unknown-pragmas], BILLS_CPPWARNINGS,[c++ compiler])
 MY_CHECK_CC_OPT_SET([-Wno-deprecated], BILLS_CPPWARNINGS,[c++ compiler])
 MY_CHECK_CC_OPT_SET([-Wformat=2], BILLS_CPPWARNINGS,[c++ compiler])
+MY_CHECK_CC_OPT_SET([-Wpointer-arith], BILLS_CPPWARNINGS, [c++ compiler])
+MY_CHECK_CC_OPT_SET([-Wsign-compare], BILLS_CPPWARNINGS, [c++ compiler])
+
 AC_LANG_POP(C++)
 AC_SUBST(BILLS_CWARNINGS)
 AC_SUBST(BILLS_CPPWARNINGS)
@@ -672,6 +794,7 @@ AC_OUTPUT( \
 	player/plugin/audio/a52dec/Makefile \
 	player/plugin/audio/celp/Makefile \
 	player/plugin/audio/ffmpeg/Makefile \
+	player/plugin/audio/g711/Makefile \
 	player/plugin/audio/raw/Makefile \
 	player/plugin/rtp/Makefile \
 	player/plugin/rtp/h261/Makefile \

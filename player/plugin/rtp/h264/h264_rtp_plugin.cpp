@@ -250,10 +250,11 @@ static bool start_next_frame (rtp_plugin_data_t *pifptr,
       // FUs
       if (process_fus(iptr, &rpak, rtp_ts) == false) {
 	// had an error
-	if (rpak == NULL) {
-	  have_first = false;
-	  continue;
+	if (rpak != NULL) {
+	  (iptr->m_vft->free_pak)(rpak);
 	}
+	have_first = false;
+	continue;
       }
     } else {
       h264_message(LOG_ERR, h264rtp, "illegal NAL type %d in header seq %u",

@@ -23,6 +23,7 @@
 #define __AUDIO_FAAC_H__
 
 #include "audio_encoder.h"
+#ifdef HAVE_FAAC
 #include <faac.h>
 #include <sdp.h>
 
@@ -91,5 +92,6 @@ protected:
 };
 
 extern audio_encoder_table_t faac_audio_encoder_table;
+#endif
 #endif /* __AUDIO_FAAC_H__ */
 

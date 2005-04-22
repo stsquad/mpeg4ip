@@ -20,6 +20,7 @@
  */
 
 #include "mp4live.h"
+#ifdef HAVE_LAME
 #include "audio_lame.h"
 #include <mp4av.h>
 
@@ -411,3 +412,4 @@ void CLameAudioEncoder::StopEncoder (void)
 	m_lameParams = NULL;
 }
 
+#endif // HAVE_LAME
