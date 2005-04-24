@@ -5,11 +5,11 @@ g711_audio_plugin_la_LDFLAGS = -module
 g711_audio_plugin_la_SOURCES = \
 	ourg711.h ourg711.cpp
 g711_audio_plugin_la_LIBADD = \
-	$(top_srcdir)/../mpeg4ip/lib/mp4av/libmp4av.la \
-	$(top_srcdir)/../mpeg4ip/lib/mp4v2/libmp4v2.la \
+	$(top_srcdir)/lib/mp4av/libmp4av.la \
+	$(top_srcdir)/lib/mp4v2/libmp4v2.la \
 	-lm  
 
-INCLUDES = -I$(top_srcdir)/../mpeg4ip/player/src -I$(top_srcdir)/../mpeg4ip/include -I$(top_srcdir)/../mpeg4ip/lib 
+INCLUDES = -I$(top_srcdir)/player/src -I$(top_srcdir)/include -I$(top_srcdir)/lib 
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 
