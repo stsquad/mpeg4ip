@@ -254,6 +254,13 @@ bool CFfmpegVideoEncoder::GetEncodedImage(
 
   if (m_vopBufferLength != 0) {
     *pts = *dts = m_push->Pop();
+#if 1
+    if (m_media_frame == MPEG2VIDEOFRAME ||
+	(m_usingBFrames && m_media_frame == MPEG4VIDEOFRAME)) {
+      *pts = m_avctx->coded_frame->pts;
+    }
+#else
+      
     if (m_media_frame == MPEG2VIDEOFRAME) {
       // special processing for mpeg2 - the pts is not when we
       // dts
@@ -277,6 +284,11 @@ bool CFfmpegVideoEncoder::GetEncodedImage(
 	  *pts = *dts + (m_BFrameCount * m_frame_time);
       } 
     } 
+    debug_message("dts"U64" pts "U64" from ffmpeg "U64,
+		  *dts,
+		  *pts,
+		  m_avctx->coded_frame->pts);
+#endif
   } else {
     // return without clearing m_vopBuffer
     *dts = *pts = 0;
