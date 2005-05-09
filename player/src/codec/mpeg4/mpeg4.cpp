@@ -32,20 +32,14 @@
 #endif // __PC_COMPILER_
 #endif
 
-#include <type/typeapi.h>
-#include <sys/mode.hpp>
-#include <sys/vopses.hpp>
-#include <tools/entropy/bitstrm.hpp>
-#include <sys/tps_enhcbuf.hpp>
-#include <sys/decoder/enhcbufdec.hpp>
-#include <sys/decoder/vopsedec.hpp>
+#include <typeapi.h>
+#include <mode.hpp>
+#include <vopses.hpp>
+#include <bitstrm.hpp>
+#include <tps_enhcbuf.hpp>
+#include <enhcbufdec.hpp>
+#include <vopsedec.hpp>
 #include "mpeg4.h"
-#ifndef __GLOBAL_VAR_
-#define __GLOBAL_VAR_
-#endif
-#define DEFINE_GLOBALS
-#include <sys/global.hpp>
-#include <vtc/ztq/globals.hpp>
 
 #include <mp4v2/mp4.h>
 #include <mp4av/mp4av.h>

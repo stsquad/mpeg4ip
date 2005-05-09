@@ -23,13 +23,13 @@
  * Create media structures for session for an mp4v file (raw mpeg4)
  */
 #include "mpeg4.h"
-#include "type/typeapi.h"
-#include "sys/mode.hpp"
-#include "sys/vopses.hpp"
+#include "typeapi.h"
+#include "mode.hpp"
+#include "vopses.hpp"
 //#include "sys/tps_enhcbuf.hpp"
 //#include "sys/decoder/enhcbufdec.hpp"
-#include "tools/entropy/bitstrm.hpp"
-#include "sys/decoder/vopsedec.hpp"
+#include "bitstrm.hpp"
+#include "vopsedec.hpp"
 
 #define logit divx->m_vft->log_msg
 /*

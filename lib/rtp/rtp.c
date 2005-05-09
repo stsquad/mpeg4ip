@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.21 $ 
- * $Date: 2004/10/28 22:44:17 $
+ * $Revision: 1.22 $ 
+ * $Date: 2005/05/09 21:29:53 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -283,7 +283,7 @@ struct rtp {
  			cipherInstance cipherInst;
  		} rijndael;
  		struct {
- 			char            *encryption_key;
+ 			unsigned char            *encryption_key;
  		} des;
  	} crypto_state;
 	rtp_callback	 callback;
@@ -977,7 +977,7 @@ static void init_rng(const char *s)
 	}
         if (seed == 0) {
                 pid_t p = getpid();
-		int32_t i, n;
+		int32_t i = 0, n = 0;
                 while (*s) {
                         seed += (uint32_t)*s++;
                         seed = seed * 31 + 1;
@@ -1429,15 +1429,17 @@ int rtp_process_recv_data (struct rtp *session,
   uint8_t		*buffer = ((uint8_t *) packet) + RTP_PACKET_HEADER_SIZE;
   source		*s;
   int ret;
+  unsigned int blen;
 
   packet->pd.rtp_pd_buflen = buflen;
 
+  blen = buflen;
   if (buflen > 0) {
     if (session->encryption_enabled)
       {
-	ret = (session->decrypt_func)(session->encrypt_userdata, buffer, &buflen);
+	ret = (session->decrypt_func)(session->encrypt_userdata, buffer, &blen);
 	if (ret != TRUE) return -1;
-	packet->pd.rtp_pd_buflen = buflen;
+	packet->pd.rtp_pd_buflen = blen;
       }
     
     /* Convert header fields to host byte order... */
@@ -1845,13 +1847,15 @@ void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen)
 	rtcp_t		*packet;
 	int		 first;
 	uint32_t	 packet_ssrc = rtp_my_ssrc(session);
+	unsigned int blen = buflen;
 
 	gettimeofday(&event_ts, NULL);
 	if (buflen > 0) {
 		if (session->encryption_enabled)
 		{
 			/* Decrypt the packet... */
-			(session->decrypt_func)(session->encrypt_userdata, buffer, &buflen);
+			(session->decrypt_func)(session->encrypt_userdata, buffer, &blen);
+	buflen = blen;
 			buffer += 4;	/* Skip the random prefix... */
 			buflen -= 4;
 		}
@@ -2249,7 +2253,7 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m,
                   uint8_t *data, int data_len, 
 		  uint8_t *extn, uint16_t extn_len, uint16_t extn_type)
 {
-	int		 buffer_len, i, rc, pad, pad_len;
+	unsigned int		 buffer_len; int i, rc, pad, pad_len;
 	int malloc_len;
 	uint8_t		*buffer;
 	rtp_packet	*packet;
@@ -3286,7 +3290,7 @@ int rtp_set_encryption_key(struct rtp* session, const char *passphrase)
 
 static int des_initialize(struct rtp *session, u_char *hash, int hashlen)
 {
-	char *key;
+	unsigned char *key;
 	int	 i, j, k;
 	
 	UNUSED(hashlen);
@@ -3301,7 +3305,7 @@ static int des_initialize(struct rtp *session, u_char *hash, int hashlen)
                 xfree(session->crypto_state.des.encryption_key);
         }
 
-        key = session->crypto_state.des.encryption_key = (char *) xmalloc(8);
+        key = session->crypto_state.des.encryption_key = (unsigned char *) xmalloc(8);
 
 	/* Step 3: take first 56 bits of the MD5 hash */
 	key[0] = hash[0];

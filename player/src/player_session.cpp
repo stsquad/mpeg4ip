@@ -723,7 +723,7 @@ uint64_t CPlayerSession::get_current_time (void)
   return(m_current_time);
 }
 
-void CPlayerSession::syncronize_rtp_bytestreams (rtcp_sync_t *sync)
+void CPlayerSession::synchronize_rtp_bytestreams (rtcp_sync_t *sync)
 {
   if (sync != NULL) {
     m_audio_rtcp_sync = *sync;
@@ -735,7 +735,7 @@ void CPlayerSession::syncronize_rtp_bytestreams (rtcp_sync_t *sync)
   CPlayerMedia *mptr = m_my_media;
   while (mptr != NULL) {
     if (mptr->is_audio() == false) {
-      mptr->syncronize_rtp_bytestreams(&m_audio_rtcp_sync);
+      mptr->synchronize_rtp_bytestreams(&m_audio_rtcp_sync);
     }
     mptr = mptr->get_next();
   }

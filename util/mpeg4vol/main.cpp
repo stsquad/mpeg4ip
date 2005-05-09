@@ -3,7 +3,7 @@
 
 #include "mpeg4ip.h"
 #include "mp4v2/mp4.h"
-#include <bitstream/bitstream.h>
+#include <mpeg4ip_bitstream.h>
 
 static uint8_t tohex (char a)
 { 

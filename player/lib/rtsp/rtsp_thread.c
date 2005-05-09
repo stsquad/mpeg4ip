@@ -207,7 +207,7 @@ static int get_rtp_packet (rtsp_client_t *info, rtp_state_t *state)
     state->rtp_len_gotten = 0;
   }
   ret = 
-    rtsp_recv(info,
+   rtsp_recv(info,
 	      ((char *)state->rtp_ptr) + RTP_PACKET_HEADER_SIZE + state->rtp_len_gotten,
 	      state->rtp_len - state->rtp_len_gotten);
   //rtsp_debug(LOG_DEBUG, "recv %d", ret);
@@ -506,7 +506,7 @@ int rtsp_thread (void *data)
 	       */
 	      info->m_offset_on++;
 	
-	      ret = rtsp_recv(info, state.header, 3);
+	      ret = rtsp_recv(info, (char *)state.header, 3U);
 	      if (ret != 3) continue;
 	      state.rtp_len = (state.header[1] << 8) | state.header[2];
 	      state_cont = get_rtp_packet(info, &state);

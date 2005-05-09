@@ -58,7 +58,7 @@ extern "C" bool MP4AV_Mp3GetNextFrame(
 	u_int dropped = 0;
 	u_char bytes[4];
 	u_int32_t srcPos = 0;
-
+	memset(bytes, 0, sizeof(bytes));
 	while (true) {
 		/* read a byte */
 		if (srcPos >= srcLength) {

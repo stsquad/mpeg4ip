@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "../.." /I "../../../lib" /I "../../../../common/video/mpeg4-2000/type" /I "../../../../common/video/mpeg4-2000" /I "../../../../include" /I "../../../../lib" /I "../../../../lib/SDL/include" /I "../../../../lib/mp4v2" /I "../../../../lib/sdp" /I "../../../../common/video/mpeg4-2000/vtc/include" /I "../../../../common/video/mpeg4-2000/vtc/zte" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_WIN32" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /D "__PC_COMPILER_" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../../../common/video/mpeg4-2000/vtc/zte" /I "../.." /I "../../../lib" /I "../../../../lib" /I "../../../../common/video/iso-mpeg4/include" /I "../../../../include" /I "../../../../lib/SDL/include" /I "../../../../lib/mp4v2" /I "../../../../lib/sdp" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_WIN32" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /D "__PC_COMPILER_" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -74,7 +74,7 @@ PostBuild_Cmds=copy Release\mpeg4_iso_plugin.dll ..\..
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "../.." /I "../../../lib" /I "../../../../common/video/mpeg4-2000/type" /I "../../../../common/video/mpeg4-2000" /I "../../../../include" /I "../../../../lib" /I "../../../../lib/SDL/include" /I "../../../../lib/mp4v2" /I "../../../../lib/sdp" /I "../../../../common/video/mpeg4-2000/vtc/include" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_WIN32" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /D "_MBC" /D "_CONSOLE" /D "_OBSS_" /D "_VTC_DECODER_" /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "../.." /I "../../../lib" /I "../../../../lib" /I "../../../../common/video/iso-mpeg4/include" /I "../../../../include" /I "../../../../lib/SDL/include" /I "../../../../lib/mp4v2" /I "../../../../lib/sdp" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_WIN32" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /D "_MBC" /D "_CONSOLE" /D "_OBSS_" /D "_VTC_DECODER_" /YX /FD /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"

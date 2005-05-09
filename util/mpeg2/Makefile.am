@@ -11,7 +11,6 @@ AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ 
 
 mpeg2video_parse_LDADD = \
-	$(top_builddir)/lib/bitstream/libbitstream.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la 

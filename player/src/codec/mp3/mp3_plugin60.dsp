@@ -99,6 +99,22 @@ PostBuild_Cmds=copy Debug\mp3_plugin.dll ..\..
 # Name "mp3_plugin - Win32 Debug"
 # Begin Source File
 
+SOURCE=.\bitwindow.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\filter.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\filter_2.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\huffmantable.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\mp3_file.cpp
 # End Source File
 # Begin Source File
@@ -112,6 +128,54 @@ SOURCE=.\mp3if.cpp
 # Begin Source File
 
 SOURCE=.\mp3if.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\MPEGaction.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\MPEGaudio.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\MPEGaudio.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\MPEGerror.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\MPEGfilter.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpeglayer1.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpeglayer2.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpeglayer3.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\MPEGring.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpegtable.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpegtoraw.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\ourmpegaudio.cpp
 # End Source File
 # End Target
 # End Project

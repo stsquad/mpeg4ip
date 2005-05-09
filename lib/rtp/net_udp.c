@@ -277,7 +277,7 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 	struct sockaddr_in  	 s_in;
 	int recv_buf_size;
 	int test_buffer;
-	int test_buffer_size=sizeof(test_buffer);
+	socklen_t test_buffer_size=sizeof(test_buffer);
 
 	socket_udp         	*s = (socket_udp *)malloc(sizeof(socket_udp));
 	s->mode    = IPv4;

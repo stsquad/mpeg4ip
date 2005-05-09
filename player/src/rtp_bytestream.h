@@ -99,7 +99,7 @@ class CRtpByteStreamBase : public COurInByteStream
   void pause(void);
   void set_sync(CPlayerSession *psptr);
 
-  void syncronize(rtcp_sync_t *sync);
+  void synchronize(rtcp_sync_t *sync);
   bool check_seq (uint16_t seq);
   void set_last_seq(uint16_t seq);
   bool find_mbit(void);

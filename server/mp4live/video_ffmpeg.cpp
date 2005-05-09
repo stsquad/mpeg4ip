@@ -27,6 +27,13 @@
 //#include <dsputil.h>
 //#include <mpegvideo.h>
 
+#ifdef HAVE_AVCODECCONTEXT_TIME_BASE
+static config_index_t CFG_FFMPEG_USE_STRICT;
+static SConfigVariable ffmpegEncoderVariables[] = {
+  CONFIG_BOOL(CFG_FFMPEG_USE_STRICT, "FfmpegUseStrictStdCompliance", false),
+};
+
+#endif
 GUI_BOOL(gui_bframe, CFG_VIDEO_USE_B_FRAMES, "Use B Frames");
 GUI_INT_RANGE(gui_bframenum, CFG_VIDEO_NUM_OF_B_FRAMES, "Number of B frames", 1, 4);
 DECLARE_TABLE(ffmpeg_mpeg4_gui_options) = {
@@ -34,6 +41,14 @@ DECLARE_TABLE(ffmpeg_mpeg4_gui_options) = {
   TABLE_GUI(gui_bframenum),
 };
 DECLARE_TABLE_FUNC(ffmpeg_mpeg4_gui_options);
+
+void AddFfmpegConfigVariables (CVideoProfile *pConfig)
+{
+#ifdef HAVE_AVCODECCONTEXT_TIME_BASE
+  pConfig->AddConfigVariables(ffmpegEncoderVariables,
+			      NUM_ELEMENTS_IN_ARRAY(ffmpegEncoderVariables));
+#endif
+}
 
 CFfmpegVideoEncoder::CFfmpegVideoEncoder(CVideoProfile *vp, 
 					 uint16_t mtu,
@@ -101,8 +116,14 @@ bool CFfmpegVideoEncoder::Init (void)
   m_avctx->height = Profile()->m_videoHeight;
   m_avctx->bit_rate = 
     Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE) * 1000;
+#ifndef HAVE_AVCODECCONTEXT_TIME_BASE
   m_avctx->frame_rate = (int)(Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE) + 0.5);
   m_avctx->frame_rate_base = 1;
+#else
+  m_avctx->time_base = (AVRational){1, (int)(Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE) + .5)};
+  m_avctx->strict_std_compliance = -1;
+  m_avctx->pix_fmt = PIX_FMT_YUV420P;
+#endif
   if (Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_WIDTH) > 0 &&
       Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_HEIGHT) > 0) {
 #ifndef HAVE_AVRATIONAL
@@ -199,10 +220,12 @@ bool CFfmpegVideoEncoder::EncodeImage(
 	m_picture->linesize[0] = yStride;
 	m_picture->linesize[1] = uvStride;
 	m_picture->linesize[2] = uvStride;
-
+	m_picture->pts = srcFrameTimestamp;
+#if 0
 	if (m_picture->key_frame == 1) {
 	  debug_message("key frame "U64, srcFrameTimestamp);
 	}
+#endif
 
 	
 	m_vopBufferLength = avcodec_encode_video(m_avctx, 

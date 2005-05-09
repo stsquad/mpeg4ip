@@ -56,7 +56,7 @@ if test $target_system = "Linux"; then
 	faac --help >&faac_help
 	sdf=`grep "MP4 support unavailable" faac_help`
 	rm -f faac_help
-	if test -n $sdf; then
+	if test -z "$sdf"; then
 	    if which mpeg4ip-config >/dev/null 2>/dev/null; then
 		echo "Warning - faac uses libmp4v, but we've detected a version"
 		echo "of mpeg4ip.  If you get errors building mp4live, please"
@@ -82,5 +82,24 @@ echo "Do not remove this file or you might have to re-bootstrap" > bootstrapped
 ./configure $allargs || exit 1
 set +x
 
+if test $target_system = "Linux"; then
+   disabled_mp4live=no
+   while test $# -gt 0;
+     do
+     if test $1 = "--disable-server"; then
+        disabled_mp4live=yes
+     else
+        if test $1 = "--disable-mp4live"; then
+           disabled_mp4live=yes
+        fi
+     fi
+     shift
+   done
+   if test $disabled_mp4live = no; then
+       sh ./mp4live_encoder_check.sh
+   fi
+
+fi
 # Now ready to run make
+echo
 echo "ready to make"

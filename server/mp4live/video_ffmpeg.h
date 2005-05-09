@@ -76,6 +76,7 @@ class CFfmpegVideoEncoder : public CVideoEncoder {
 	bool m_first_frame;
 };
 
+void AddFfmpegConfigVariables(CVideoProfile *pConfig);
 EXTERN_TABLE_F(ffmpeg_mpeg4_gui_options);
 
 #endif /* __VIDEO_FFMPEG_H__ */

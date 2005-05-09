@@ -1,5 +1,5 @@
 #include "mpeg4ip.h"
-#include <bitstream.h>
+#include <mpeg4ip_bitstream.h>
 #include <math.h>
 #include <mp4av_h264.h>
 
@@ -395,6 +395,23 @@ uint32_t h264_find_next_start_code (uint8_t *pBuf,
   return 0;
 }
 
+static uint32_t remove_03 (uint8_t *bptr, uint32_t len)
+{
+  uint32_t nal_len = 0;
+
+  while (nal_len + 2 < len) {
+    if (bptr[0] == 0 && bptr[1] == 0 && bptr[2] == 3) {
+      bptr += 2;
+      nal_len += 2;
+      len--;
+      memmove(bptr, bptr + 1, len - nal_len);
+    } else {
+      bptr++;
+      nal_len++;
+    }
+  }
+  return len;
+}
 static const char *nal[] = {
   "Coded slice of non-IDR picture", // 1
   "Coded slice data partition A",   // 2
@@ -639,17 +656,21 @@ int main (int argc, char **argv)
       } else {
 	// have a complete NAL from buffer_on to end
 	if (ret > 3) {
-	  printf("Nal length %d start code %d bytes\n", ret,
+	  uint32_t nal_len;
+
+	  nal_len = remove_03(buffer + buffer_on, ret);
+
+	  printf("Nal length %d start code %d bytes\n", nal_len, 
 		 buffer[buffer_on + 2] == 1 ? 3 : 4);
-	  ourbs.init(buffer + buffer_on, ret * 8);
+	  ourbs.init(buffer + buffer_on, nal_len * 8);
 	  uint8_t type;
 	  type = h264_parse_nal(&dec, &ourbs);
 	  if (type >= 1 && type <= 5) {
 	    if (have_prevdec) {
 	      // compare the 2
-	      bool ret;
-	      ret = compare_boundary(&prevdec, &dec);
-	      printf("Nal is %s\n", ret ? "part of last picture" : "new picture");
+	      bool bound;
+	      bound = compare_boundary(&prevdec, &dec);
+	      printf("Nal is %s\n", bound ? "part of last picture" : "new picture");
 	    }
 	    memcpy(&prevdec, &dec, sizeof(dec));
 	    have_prevdec = true;

@@ -17,8 +17,7 @@ h261_plugin_la_SOURCES = \
 	p64-huff.h
 
 h261_plugin_la_LIBADD = \
-	-lm \
-	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la 
+	-lm 
 
 INCLUDES = -I.. -I../.. -I../../../lib -I../../../../include -I../../../../lib -I$(top_srcdir)/player/src -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/player/plugin/rtp/h261 -I$(top_srcdir)/lib/sdp
 

@@ -6,7 +6,6 @@ rfc2429_rtp_plugin_la_SOURCES = \
 	rfc2429_plugin.cpp rfc2429_plugin.h 
 
 rfc2429_rtp_plugin_la_LIBADD = \
-	$(top_srcdir)/lib/gnu/libmpeg4ip_gnu.la \
 	-lm 
 
 INCLUDES = -I$(top_srcdir)/player/src \

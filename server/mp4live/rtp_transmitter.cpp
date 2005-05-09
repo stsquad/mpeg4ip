@@ -29,6 +29,7 @@
 #include "text_encoder.h"
 
 //#define RTP_DEBUG 1
+//#define DEBUG_WRAP_TS 1
 CRtpTransmitter::CRtpTransmitter (uint16_t mtu, bool disable_ts_offset) : CMediaSink()
 {
   //SetConfig(pConfig);
@@ -38,11 +39,15 @@ CRtpTransmitter::CRtpTransmitter (uint16_t mtu, bool disable_ts_offset) : CMedia
   m_haveStartTimestamp = false;
 
   m_mtu = mtu;
+#ifdef DEBUG_WRAP_TS
+  m_rtpTimestampOffset = 0xffff0000;
+#else 
   if (disable_ts_offset) {
     m_rtpTimestampOffset = 0;
   } else {
     m_rtpTimestampOffset = random();
   }
+#endif
   
 }
 
@@ -651,11 +656,15 @@ CAudioRtpTransmitter::CAudioRtpTransmitter (CAudioProfile *ap,
     if (m_audioiovMaxCount == 0)			// This is purely for backwards compability
       m_audioiovMaxCount = m_audioQueueMaxCount;	// Can go away when lame and faac plugin sets this
 
+#ifdef DEBUG_WRAP_TS
+  m_audioRtpTimestampOffset = 0xffff0000;
+#else 
     if (disable_ts_offset) {
       m_audioRtpTimestampOffset = 0;
     } else {
       m_audioRtpTimestampOffset = random();
     }
+#endif
 
     m_audioQueueCount = 0;
     m_audioQueueSize = 0;

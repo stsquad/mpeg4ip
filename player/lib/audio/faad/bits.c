@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: bits.c,v 1.5 2002/07/05 17:34:27 wmaycisco Exp $
+ * $Id: bits.c,v 1.6 2005/05/09 21:29:56 wmaycisco Exp $
  */
 
 #include <assert.h>
@@ -36,7 +36,7 @@ unsigned int faad_bit_msk[33] =
 };
 
 /* initialize buffer, call once before first getbits or showbits */
-void faad_initbits(bitfile *ld, char *buffer, uint32_t buflen)
+void faad_initbits(bitfile *ld, unsigned char *buffer, uint32_t buflen)
 {
 	ld->incnt = 0;
 	ld->framebits = 0;

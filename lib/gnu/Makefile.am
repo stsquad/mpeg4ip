@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = libmpeg4ip_gnu.la
+lib_LTLIBRARIES = libmpeg4ip_gnu.la
 
 INCLUDES = -I$(top_builddir)/include
 

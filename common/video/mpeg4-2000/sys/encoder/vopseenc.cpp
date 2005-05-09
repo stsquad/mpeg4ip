@@ -2725,8 +2725,10 @@ Void CVideoObjectEncoder::biInterpolateY (
 			*ppxliZoomBotRow = (*ppxliOrgRow + *ppxliOrgBotRow + 1 - iRoundingControl) >> 1;
 			*(ppxliZoomBotRow + 1) = 
 				(*ppxliOrgRow + *ppxliOrgBotRow + 
-				*(ppxliOrgRow++ + 1) + *(ppxliOrgBotRow++ + 1) + 2 - iRoundingControl
+				*(ppxliOrgRow + 1) + *(ppxliOrgBotRow + 1) + 2 - iRoundingControl
 			) >> 2;
+			ppxliOrgRow++;
+			ppxliOrgBotRow++;
 
 		}
 		*ppxliZoomRow = *(ppxliZoomRow + 1) = *ppxliOrgRow;
@@ -2740,7 +2742,8 @@ Void CVideoObjectEncoder::biInterpolateY (
 	PixelC* ppxliZoomLastLnToSec = ppxliZoom;
 	for (x = 0; x < iWidthPrevMinus1; x++, ppxliZoomLastLnToSec += 2) {
 		*ppxliZoomLastLnToSec = *ppxliOrg;
-		*(ppxliZoomLastLnToSec + 1) = (*ppxliOrg + *(ppxliOrg++ + 1) + 1 - iRoundingControl) >> 1;
+		*(ppxliZoomLastLnToSec + 1) = (*ppxliOrg + *(ppxliOrg + 1) + 1 - iRoundingControl) >> 1;
+		ppxliOrg++;
 	}
 	*ppxliZoomLastLnToSec = *(ppxliZoomLastLnToSec + 1) = *ppxliOrg;
 	// NBIT: add sizeof(PixelC)

@@ -21,7 +21,7 @@
 
 #include "mpeg4ip.h"
 #include "mp4av_h264.h"
-#include "bitstream.h"
+#include "mpeg4ip_bitstream.h"
 //#define BOUND_VERBOSE 1
 
 static uint8_t exp_golomb_bits[256] = {

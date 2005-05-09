@@ -1,0 +1,18 @@
+This is a flatten version of the ISO encoder.
+
+What I did was put all the .h* files in include,
+and all the *.cpp files in the src directory.
+
+I had to edit a number of files to put the proper
+include file path.
+
+Also, had to edit sys_block.cpp and add 
+#ifndef __GLOBAL_VAR_
+#define __GLOBAL_VAR_
+#endif
+before global.hpp
+
+and edit vtc_ztq_Utils.cpp and add:
+#define GLOBALS 
+
+before globals.hpp

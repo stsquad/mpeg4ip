@@ -6,7 +6,6 @@ href_rtp_plugin_la_SOURCES = \
 	href_plugin.cpp href_plugin.h 
 
 href_rtp_plugin_la_LIBADD = \
-	$(top_srcdir)/lib/gnu/libmpeg4ip_gnu.la \
 	-lm 
 
 INCLUDES = -I$(top_srcdir)/player/src \

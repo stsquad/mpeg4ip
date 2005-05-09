@@ -1,7 +1,7 @@
 
-noinst_LTLIBRARIES = libcelp.la
+lib_LTLIBRARIES = libmpeg4ip_celp.la
 
-libcelp_la_SOURCES = \
+libmpeg4ip_celp_la_SOURCES = \
 	att_abs_postp.c \
 	att_bwx.c \
 	att_firfilt.c \

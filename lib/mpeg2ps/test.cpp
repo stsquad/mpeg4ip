@@ -58,7 +58,7 @@ int main (int argc, char *argv[])
     uint8_t *buffer, ftype;
     uint32_t buflen;
     uint64_t ts;
-    if (mpeg2ps_get_video_frame(ps, 0, &buffer, &buflen, &ftype, &ts) == false) {
+    if (mpeg2ps_get_video_frame(ps, 0, &buffer, &buflen, &ftype, TS_MSEC, &ts) == false) {
       printf("couldn't read frame\n");
     } else {
       printf("frame - len %d type %d ts "U64"\n", 
@@ -66,7 +66,7 @@ int main (int argc, char *argv[])
     }
     mpeg2ps_seek_audio_frame(ps, 0, mpeg2ps_get_max_time_msec(ps) / 2);
     uint32_t freq_ts;
-    if (mpeg2ps_get_audio_frame(ps, 0, &buffer, &buflen, &freq_ts, &ts) == false) {
+    if (mpeg2ps_get_audio_frame(ps, 0, &buffer, &buflen, TS_MSEC, &freq_ts, &ts) == false) {
       printf("couldn't read frame\n");
     } else {
       printf("frame - len %d freq_Ts %u ts "U64"\n", 

@@ -25,11 +25,11 @@ mp4creator_SOURCES = \
 	mpeg.h 
 
 mp4creator_LDADD = \
+	$(top_builddir)/lib/mpeg2ps/libmpeg2_program.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/avi/libavi.la \
-	@ISMACRYP_LIB@ \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
-	$(top_builddir)/lib/mpeg2ps/libmpeg2_program.la
+	@ISMACRYP_LIB@ 
 
 EXTRA_DIST = mp4creator60.dsp 

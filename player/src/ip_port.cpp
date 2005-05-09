@@ -86,7 +86,7 @@ C2ConsecIpPort::C2ConsecIpPort (CIpPort **global, in_port_t start_port)
   m_first = m_second = NULL;
   in_port_t firstport, maxport;
 
-  maxport = ~0;
+  maxport = (in_port_t)~0;
   if (start_port == 0) {
     firstport = 1024;
     if (config.get_config_value(CONFIG_IPPORT_MIN) != UINT32_MAX) {
@@ -96,7 +96,7 @@ C2ConsecIpPort::C2ConsecIpPort (CIpPort **global, in_port_t start_port)
 	if (maxport <= firstport) {
 	  player_error_message("IP port configuration error - %u %u - using 65535 as max port value", 
 			       firstport, maxport);
-	  maxport = ~0;
+	  maxport = (in_port_t)~0;
 	}
       }
     }

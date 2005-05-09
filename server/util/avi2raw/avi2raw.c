@@ -243,7 +243,7 @@ int main(int argc, char** argv)
 #endif
 
 		while (TRUE) {
-			numBytes = AVI_read_frame(aviFile, buf);
+		  numBytes = AVI_read_frame(aviFile, (char *)buf);
 
 			/* read error */
 			if (numBytes < 0) {
@@ -373,7 +373,7 @@ int main(int argc, char** argv)
 		}
 	  }
 
-		while ((numBytes = AVI_read_audio(aviFile, buf, sizeof(buf))) > 0) {
+	  while ((numBytes = AVI_read_audio(aviFile, (char *)buf, sizeof(buf))) > 0) {
 			if (fwrite(buf, 1, numBytes, rawFile) != numBytes) {
 				fprintf(stderr,
 					"%s: error writing %s: %s\n",

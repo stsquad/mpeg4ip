@@ -1,5 +1,5 @@
-noinst_LTLIBRARIES = libfaad.la
-libfaad_la_SOURCES = \
+lib_LTLIBRARIES = libmpeg4ip_faad.la
+libmpeg4ip_faad_la_SOURCES = \
 	bits.c \
 	block.c \
 	config.c \

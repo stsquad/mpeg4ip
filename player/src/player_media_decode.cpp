@@ -122,6 +122,7 @@ int CPlayerMedia::decode_thread (void)
   bool found_out_of_range_ts = false;
   uint64_t bytes_decoded;
 
+  lasttime.msec_timestamp = 0;
   frames_decoded = 0;
   bytes_decoded = 0;
 

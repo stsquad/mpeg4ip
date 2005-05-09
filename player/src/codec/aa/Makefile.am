@@ -9,7 +9,7 @@ aac_plugin_la_SOURCES = \
 	aa_file.h
 
 aac_plugin_la_LIBADD = \
-	$(top_builddir)/player/lib/audio/faad/libfaad.la \
+	$(top_builddir)/player/lib/audio/faad/libmpeg4ip_faad.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/player/lib/mp4util/libmp4util.la \

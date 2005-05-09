@@ -3,8 +3,8 @@
  *
  *  Unix specific definitions and includes
  *  
- *  $Revision: 1.9 $
- *  $Date: 2005/01/07 19:49:43 $
+ *  $Revision: 1.10 $
+ *  $Date: 2005/05/09 21:29:53 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -145,6 +145,10 @@
 #endif /* HAVE_IPv6 */
 
 #include <net/if.h>
+
+#ifndef HAVE_SOCKLEN_T
+typedef unsigned int socklen_t;
+#endif
 
 typedef u_char	ttl_t;
 typedef int	fd_t;

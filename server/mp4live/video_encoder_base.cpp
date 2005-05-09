@@ -93,6 +93,9 @@ void AddVideoProfileEncoderVariablesBase (CVideoProfile *pConfig)
 #ifdef HAVE_X264
   AddX264ConfigVariables(pConfig);
 #endif
+#ifdef HAVE_FFMPEG
+  AddFfmpegConfigVariables(pConfig);
+#endif
   AddH261ConfigVariables(pConfig);
 }
 MediaType get_video_mp4_fileinfo_base (CVideoProfile *pConfig,

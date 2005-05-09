@@ -399,7 +399,7 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
       if (is_audio()) {
 	m_rtp_byte_stream->set_sync(m_parent);
       } else {
-	m_parent->syncronize_rtp_bytestreams(NULL);
+	m_parent->synchronize_rtp_bytestreams(NULL);
       }
 #if 1
       media_message(LOG_DEBUG, "media %s - rtp tps %u ntp per rtp ",
@@ -646,13 +646,13 @@ void CPlayerMedia::create_rtp_byte_stream (uint8_t rtp_pt,
 					   m_rtcp_rtp_ts);
 }
 
-void CPlayerMedia::syncronize_rtp_bytestreams (rtcp_sync_t *sync)
+void CPlayerMedia::synchronize_rtp_bytestreams (rtcp_sync_t *sync)
 {
   if (is_audio()) {
     player_error_message("Attempt to syncronize audio byte stream");
     return;
   }
   if (m_rtp_byte_stream != NULL) 
-    m_rtp_byte_stream->syncronize(sync);
+    m_rtp_byte_stream->synchronize(sync);
 }
 /* end player_media_rtp.cpp */

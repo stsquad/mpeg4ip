@@ -2,8 +2,7 @@
 INCLUDES = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/lib/mp4v2 \
-	-I$(top_srcdir)/lib/avi \
-	-I$(top_srcdir)/lib/bitstream
+	-I$(top_srcdir)/lib/avi 
 
 AM_CXXFLAGS = -DMPEG4IP @BILLS_CPPWARNINGS@
 
@@ -48,7 +47,6 @@ libmp4av_la_SOURCES = \
 	rfcisma.cpp \
 	rfch264.cpp
 
-libmp4av_la_LIBADD = $(top_builddir)/lib/bitstream/libbitstream.la
 
 EXTRA_DIST = libmp4av.dsp libmp4av_st.dsp 
 

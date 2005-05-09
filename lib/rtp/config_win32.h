@@ -3,8 +3,8 @@
  *
  *  Windows specific definitions and includes.
  *  
- *  $Revision: 1.7 $
- *  $Date: 2004/10/28 22:44:17 $
+ *  $Revision: 1.8 $
+ *  $Date: 2005/05/09 21:29:53 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -41,6 +41,7 @@
 #ifndef _CONFIG_WIN32_H
 #define _CONFIG_WIN32_H
 
+#define HAVE_SOCKLEN_T
 #include <limits.h>
 #include <malloc.h>
 #include <stdio.h>
@@ -87,7 +88,7 @@
 
 typedef int		ttl_t;
 typedef unsigned int	fd_t;
-
+typedef int socklen_t;
 /*
  * the definitions below are valid for 32-bit architectures and will have to
  * be adjusted for 16- or 64-bit architectures

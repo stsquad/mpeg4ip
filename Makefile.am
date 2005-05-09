@@ -15,7 +15,7 @@ endif
 EXTRA_DIST = bootstrap cvs_bootstrap encoding60.dsw README_FIRST \
 	strip_fPIC.sh depcomp README.html faac_mpeg4ip_add.tar \
 	mp4liveOnDebian.FAQ \
-	index.html FEATURES.html suse90pro.installed 
+	index.html FEATURES.html suse90pro.installed mp4live_encoder_check.sh
 
 include_HEADERS = mpeg4ip_config.h
 

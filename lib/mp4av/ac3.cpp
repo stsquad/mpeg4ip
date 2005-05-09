@@ -38,7 +38,7 @@ static const uint32_t acmod_to_chans[] = {
   2, 1, 2, 3, 3, 4, 4, 5
 };
 
-int MP4AV_Ac3ParseHeader (const uint8_t *buf, 
+extern "C" int MP4AV_Ac3ParseHeader (const uint8_t *buf, 
 			  uint32_t buflen,
 			  const uint8_t **ppFrame,
 			  uint32_t *pbitrate,

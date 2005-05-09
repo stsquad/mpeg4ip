@@ -1558,7 +1558,8 @@ static int sdp_decode_parse_time_adj (char *lptr,
   int valid;
   time_adj_desc_t *start_aptr, *aptr;
   time_t adj_time;
-  int32_t offset;
+  int32_t offset; 
+  uint32_t off;
   int possign;
   int err;
   
@@ -1598,11 +1599,11 @@ static int sdp_decode_parse_time_adj (char *lptr,
     adj_time -= NTP_TO_UNIX_TIME;
 
     // Process offset - could be positive or negative.
-    if (str_to_time_offset(sep, &offset) == FALSE) {
+    if (str_to_time_offset(sep, &off) == FALSE) {
       valid = FALSE;
       continue;
     }
-
+    offset = off;
     if (possign == FALSE) offset = 0 - offset;
 
     /*

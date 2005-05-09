@@ -152,10 +152,11 @@ AM_CXXFLAGS = \
 
 mp4live_LDADD = \
 	@GTK_LIBS@ @GLIB_LIBS@ \
-	$(GUIADD) \
-	libmp4live.la \
 	@FAAC_LIB@ \
 	@LAME_LIB@ \
+	./h261/libmp4live_h261.la \
+	$(GUIADD) \
+	libmp4live.la \
 	$(top_builddir)/lib/mpeg2ps/libmpeg2_program.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
@@ -164,9 +165,8 @@ mp4live_LDADD = \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/lib/utils/libutils.la \
-	./h261/libmp4live_h261.la \
 	-lpthread \
 	@SDL_LIBS@ $(GUILIBS) @FFMPEG_LIB@ @LIBVORBIS_LIB@ $(XVID_LIB) \
-	@X264_LIB@
+	@X264_LIB@ 
 
 EXTRA_DIST = $(ed1) $(ed2) 

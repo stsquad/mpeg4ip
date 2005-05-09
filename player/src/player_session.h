@@ -203,7 +203,7 @@ class CPlayerSession {
   const char *get_session_desc(int line);
   void streaming_media_set_up(void) { m_streaming_media_set_up = 1; };
   CIpPort **get_unused_ip_port_ptr(void) { return &m_unused_ports; };
-  void syncronize_rtp_bytestreams(rtcp_sync_t *sync);
+  void synchronize_rtp_bytestreams(rtcp_sync_t *sync);
   // persistent video connection
   void *get_video_persistence (void) { 
     return m_video_persistence;

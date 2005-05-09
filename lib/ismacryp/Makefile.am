@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = libismacryp.la
+lib_LTLIBRARIES = libismacryp.la
 
 INCLUDES=-I$(top_srcdir)/include \
           @AESICM_INC@

@@ -808,7 +808,7 @@ int CPlayerMedia::process_rtsp_transport (char *transport)
   return ret;
 }
 
-struct {
+static struct {
   const char *name;
   uint32_t namelen;
   char *(*routine)(char *transport, CPlayerMedia *, int &end_for_url);

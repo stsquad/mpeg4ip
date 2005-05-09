@@ -51,7 +51,7 @@ int add_rtp_packet_to_queue (rtp_packet *pak,
   bool inserted = true;
   int16_t head_diff = 0, tail_diff = 0;
 #ifdef DEBUG_RTP_PAKS
-  rtp_message(LOG_DEBUG, "%s - m %u pt %u seq %u ts %u len %d", 
+  rtp_message(LOG_DEBUG, "%s - m %u pt %u seq %u ts %x len %d", 
 	      name,
 	      pak->rtp_pak_m, pak->rtp_pak_pt, pak->rtp_pak_seq, 
 	      pak->rtp_pak_ts, pak->rtp_data_len);
@@ -331,10 +331,10 @@ void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock,
       sync.rtcp_ts = m_rtcp_ts;
       sync.rtcp_rtp_ts = m_rtcp_rtp_ts;
       sync.timescale = m_timescale;
-      m_psptr->syncronize_rtp_bytestreams(&sync);
+      m_psptr->synchronize_rtp_bytestreams(&sync);
     } else {
-      // if this is our first rtcp, try to syncronize
-      if (!had_recvd_rtcp) syncronize(NULL);
+      // if this is our first rtcp, try to synchronize
+      if (!had_recvd_rtcp) synchronize(NULL);
     }
   }
 
@@ -432,7 +432,7 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
 }
 
 /*
- * syncronize is used to adjust a video broadcasts time based
+ * synchronize is used to adjust a video broadcasts time based
  * on an audio broadcasts time.
  * We now start the audio and video just based on the Unix time of the
  * first packet.  Then we use this to adjust when both sides have rtcp
@@ -440,7 +440,7 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
  * It will also work if we never get in RTCP - this routine won't be
  * called - but our sync will be off.
  */
-void CRtpByteStreamBase::syncronize (rtcp_sync_t *sync)
+void CRtpByteStreamBase::synchronize (rtcp_sync_t *sync)
 {
   // need to recalculate m_first_pak_ts here
   uint64_t adjust_first_pak_ts;
@@ -464,7 +464,8 @@ void CRtpByteStreamBase::syncronize (rtcp_sync_t *sync)
   // what the timestamp value would be at the RTCP's RTP timestamp value
   // adjust_first_pak is amount we need to add to the first_packet's timestamp
   // We do this for the data we got for the audio stream
-  adjust_first_pak = sync->rtcp_rtp_ts - sync->first_pak_rtp_ts;
+  adjust_first_pak = sync->rtcp_rtp_ts;
+  adjust_first_pak -= sync->first_pak_rtp_ts;
   adjust_first_pak *= 1000;
   adjust_first_pak /= (int64_t)sync->timescale;
 
@@ -489,7 +490,8 @@ void CRtpByteStreamBase::syncronize (rtcp_sync_t *sync)
   // Now, we do the same calculation for the numbers for our timestamps - 
   // find the timestamp by adjusting the first packet's timestamp to the
   // timestamp based on the current RTCP RTP timestamp;
-  adjust_first_pak = m_rtcp_rtp_ts - m_first_pak_rtp_ts;
+  adjust_first_pak = m_rtcp_rtp_ts;
+  adjust_first_pak -= m_first_pak_rtp_ts;
   adjust_first_pak *= 1000;
   adjust_first_pak /= (int64_t)m_timescale;
 
@@ -695,13 +697,20 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
   uint64_t adjusted_rtp_ts;
   uint64_t adjusted_wc_rtp_ts;
   bool have_wrap = false;
+  uint32_t this_mask, last_mask;
 
-  if (((m_last_rtp_ts & 0x80000000) == 0x80000000) &&
-      ((rtp_ts & 0x80000000) == 0)) {
-    wrap_offset += (TO_U64(1) << 32);
-    have_wrap = true;
-    rtp_message(LOG_DEBUG, "%s - have wrap %x new %x", m_name, 
-		m_last_rtp_ts, rtp_ts);
+  last_mask = m_last_rtp_ts & (1U << 31);
+  this_mask = rtp_ts & (1U << 31);
+  
+  if (last_mask != this_mask) {
+    if (this_mask == 0) {
+      wrap_offset += (TO_U64(1) << 32);
+      have_wrap = true;
+      rtp_message(LOG_DEBUG, "%s - have wrap %x new %x", m_name, 
+		  m_last_rtp_ts, rtp_ts);
+    } else {
+      // need to do something here
+    }
   }
 
   if (m_stream_ondemand) {
@@ -735,7 +744,7 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
       rtp_message(LOG_DEBUG, "%s first pak ts %u "U64, 
 		  m_name, m_first_pak_rtp_ts, m_first_pak_ts);
       // if we have received RTCP, set the wallclock offset, which
-      // triggers the syncronization effort.
+      // triggers the synchronization effort.
       if (m_rtcp_received) {
 	// calculate other stuff
 	set_wallclock_offset(m_rtcp_ts, m_rtcp_rtp_ts);
@@ -772,7 +781,7 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
     SDL_UnlockMutex(m_rtp_packet_mutex);
 
 #ifdef DEBUG_RTP_BCAST
-    rtp_message(LOG_DEBUG, "%s ts %u base %u "U64" tp "U64" adder %d "D64,
+    rtp_message(LOG_DEBUG, "%s ts %x base %x "U64" tp "U64" adder %d "D64,
 		m_name, rtp_ts, m_first_pak_rtp_ts, m_first_pak_ts, 
 		timetick, adder, ts_adder);
 #endif

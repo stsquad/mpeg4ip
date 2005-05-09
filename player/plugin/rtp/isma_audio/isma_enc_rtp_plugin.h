@@ -28,7 +28,7 @@
 #define __ISMA_ENC_RTP_PLUGIN_H__ 1
 #include "rtp_plugin.h"
 #include "mp4util/mpeg4_sdp.h"
-#include "bitstream/bitstream.h"
+#include "mpeg4ip_bitstream.h"
 #include <ismacryplib.h>
 #include "mpeg4ip_sdl_includes.h"
 // Uncomment this #define to dump rtp packets to file.

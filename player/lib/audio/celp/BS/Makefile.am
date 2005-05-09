@@ -1,7 +1,7 @@
 
-noinst_LTLIBRARIES = libcelpbs.la
+lib_LTLIBRARIES = libmpeg4ip_celpbs.la
 
-libcelpbs_la_SOURCES = \
+libmpeg4ip_celpbs_la_SOURCES = \
 	adif.c \
 	adif.h \
 	audio.c \

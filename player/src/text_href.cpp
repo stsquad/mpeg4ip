@@ -190,7 +190,7 @@ void CHrefTextRenderer::dispatch (const char *url)
       temp = "/usr/bin/firefox/firefox";
 #endif
     } 
-    execl(temp, temp, url, NULL);
+    execl(temp, temp, url, (void *)NULL);
   }
 #endif
 }

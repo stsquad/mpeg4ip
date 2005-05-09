@@ -10,7 +10,7 @@ SUFFIXES = .asm
 
 ###########################################################################
 
-SUBDIRS = codec osx win_client win_common win_gui
+SUBDIRS = codec win_client win_common win_gui
 
 noinst_LTLIBRARIES = libmp4playerutils.la libmp4player.la libmp4syncbase.la \
 	libmp4syncsdl.la libmp4decode_plugin.la
@@ -163,7 +163,7 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/player/lib/rtsp/librtsp.la \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
-	$(top_builddir)/lib/fposrec/libfposrec.la \
+	$(top_builddir)/lib/fposrec/libmpeg4ip_fposrec.la \
 	$(top_builddir)/lib/avi/libavi.la  \
 	@ISMACRYP_LIB@ \
 	$(top_builddir)/lib/utils/libutils.la

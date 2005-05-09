@@ -20,7 +20,7 @@
  */
 #include "mpeg4ip.h"
 #include "mpeg4_audio_config.h"
-#include "bitstream/bitstream.h"
+#include "mpeg4ip_bitstream.h"
 
 static long freq_index_to_freq[] = {
   96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 

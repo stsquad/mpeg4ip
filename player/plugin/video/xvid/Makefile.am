@@ -21,7 +21,7 @@ xvid10_plugin_la_LIBADD = \
 	-lxvidcore \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/player/lib/mp4util/libmp4util.la \
-	$(top_builddir)/lib/fposrec/libfposrec.la \
+	$(top_builddir)/lib/fposrec/libmpeg4ip_fposrec.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la
 endif
@@ -41,7 +41,7 @@ xvid_plugin_la_LIBADD = \
 	-lxvidcore \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/player/lib/mp4util/libmp4util.la \
-	$(top_builddir)/lib/fposrec/libfposrec.la \
+	$(top_builddir)/lib/fposrec/libmpeg4ip_fposrec.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la
 

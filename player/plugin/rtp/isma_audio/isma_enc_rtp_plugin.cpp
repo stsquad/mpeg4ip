@@ -257,7 +257,7 @@ static int insert_frame_data (isma_enc_rtp_data_t *iptr,
 
 static void get_au_header_bits (isma_enc_rtp_data_t *iptr)
 {
-  uint32_t temp;
+  uint32_t temp = 0;
   if (iptr->m_fmtp->CTS_delta_length > 0) {
     iptr->m_header_bitstream.getbits(1, &temp);
     if (temp > 0) {
@@ -358,7 +358,7 @@ static int process_fragment (isma_enc_rtp_data_t *iptr,
     // if aux data, move frag pointer
     if (iptr->m_fmtp->auxiliary_data_size_length > 0) {
       iptr->m_header_bitstream.byte_align();
-      uint32_t aux_len;
+      uint32_t aux_len = 0;
       iptr->m_header_bitstream.getbits(iptr->m_fmtp->auxiliary_data_size_length, &aux_len);
       aux_len = (aux_len + 7) / 8;
       cur->frag_ptr += aux_len;
@@ -490,7 +490,7 @@ static void process_packet_header (isma_enc_rtp_data_t *iptr)
   int error = insert_frame_data(iptr, frame_data);
   frame_ptr = frame_data->frame_ptr + frame_data->frame_len;
   while (iptr->m_header_bitstream.bits_remain() >= iptr->m_min_header_bits) {
-    uint32_t stride;
+    uint32_t stride = 0;
     // if deltaIVLength is not zero, frames subsequent to the first frame
     // will have a deltaIV, otherwise nothing. in either case, need to 
     // derive the IV.
@@ -567,7 +567,7 @@ static void process_packet_header (isma_enc_rtp_data_t *iptr)
   }
   if (iptr->m_fmtp->auxiliary_data_size_length > 0) {
     iptr->m_header_bitstream.byte_align();
-    uint32_t aux_len;
+    uint32_t aux_len = 0;
     iptr->m_header_bitstream.getbits(iptr->m_fmtp->auxiliary_data_size_length, &aux_len);
     aux_len = (aux_len + 7) / 8;
 #ifdef DEBUG_ISMA_AAC

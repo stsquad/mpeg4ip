@@ -617,6 +617,12 @@ void CMp4Recorder::WriteH264Frame (CMediaFrame *pFrame,
     case H264_NAL_TYPE_DP_A_SLICE:
     case H264_NAL_TYPE_DP_B_SLICE:
     case H264_NAL_TYPE_DP_C_SLICE:
+#if 0
+      if (m_videoFrameNumber % 7 == 0) {
+	debug_message("drop frame");
+	return;
+      }
+#endif
       write_it = true;
       break;
     case H264_NAL_TYPE_FILLER_DATA:

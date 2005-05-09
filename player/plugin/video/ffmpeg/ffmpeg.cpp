@@ -598,6 +598,7 @@ static int ffmpeg_codec_check (lib_message_func_t message,
     return -1;
 
   c = avcodec_find_decoder(fcodec);
+  message(LOG_DEBUG, "ffmpeg", "codec value %p", c);
   if (c == NULL) {
     return -1;
   }

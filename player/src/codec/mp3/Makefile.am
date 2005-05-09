@@ -6,7 +6,23 @@ mp3_plugin_la_SOURCES = \
 	mp3if.cpp \
 	mp3if.h \
 	mp3_file.cpp \
-	mp3_file.h
+	mp3_file.h \
+	MPEGaudio.cpp		\
+	bitwindow.cpp		\
+	filter.cpp		\
+	filter_2.cpp		\
+	huffmantable.cpp	\
+	mpeglayer1.cpp		\
+	mpeglayer2.cpp		\
+	mpeglayer3.cpp		\
+	mpegtable.cpp		\
+	mpegtoraw.cpp           \
+	ourmpegaudio.cpp \
+	MPEGaction.h \
+	MPEGaudio.h \
+	MPEGerror.h \
+	MPEGfilter.h \
+	MPEGring.h
 if HAVE_ID3_TAG
    ID3_LIBS=-lid3 -lid3tag
 else
@@ -14,9 +30,7 @@ else
 endif
 mp3_plugin_la_LIBADD = \
 	-lm $(ID3_LIBS) \
-	$(top_builddir)/player/lib/audio/mp3/libourmp3.la \
-	$(top_builddir)/player/lib/audio/mp3util/libmp3utils.la \
-	$(top_builddir)/lib/fposrec/libfposrec.la
+	$(top_builddir)/lib/fposrec/libmpeg4ip_fposrec.la
 
 
 INCLUDES = -I.. -I../..  -I../../../lib -I../../../lib/audio -I../../../../common/video/mpeg4 -I../../../../include -I../../../../lib -I$(top_builddir)/lib/mp4v2 -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/utils

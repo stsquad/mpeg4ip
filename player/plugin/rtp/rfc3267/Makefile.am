@@ -9,7 +9,6 @@ rfc3267_plugin_la_SOURCES = \
 
 rfc3267_plugin_la_LIBADD = \
 	$(top_srcdir)/lib/mp4av/libmp4av.la \
-	$(top_srcdir)/lib/gnu/libmpeg4ip_gnu.la \
 	-lm 
 
 INCLUDES = -I$(top_srcdir)/player/src \

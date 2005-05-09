@@ -1,5 +1,5 @@
-noinst_LTLIBRARIES = libfposrec.la
-libfposrec_la_SOURCES = \
+lib_LTLIBRARIES = libmpeg4ip_fposrec.la
+libmpeg4ip_fposrec_la_SOURCES = \
 	fposrec.cpp \
 	fposrec.h
 
