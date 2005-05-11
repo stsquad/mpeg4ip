@@ -106,6 +106,7 @@ protected:
 	bool m_decimate_filter;
 	SDL_mutex *m_v4l_mutex;
 	uint32_t m_release_index_mask;
+	bool m_videoNeedRgbToYuv;
 
 };
 

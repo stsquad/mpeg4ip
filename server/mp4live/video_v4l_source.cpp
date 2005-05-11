@@ -108,22 +108,18 @@ void CV4LVideoSource::DoStopCapture(void)
 
 bool CV4LVideoSource::Init(void)
 {
-	if (!InitDevice()) {
-		return false;
-	}
-
 	m_pConfig->CalculateVideoFrameSize();
 
-	InitVideo(
-		(m_pConfig->m_videoNeedRgbToYuv ?
-			RGBVIDEOFRAME :
-			YUVVIDEOFRAME),
-		true);
+	InitVideo(true);
 
 	SetVideoSrcSize(
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH),
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT),
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH));
+	if (!InitDevice()) {
+		return false;
+	}
+
 
 	m_maxPasses = (u_int8_t)(m_videoSrcFrameRate + 0.5);
 
@@ -334,9 +330,7 @@ bool CV4LVideoSource::InitDevice(void)
 		  CalculateVideoTimestampFromFrames(i);
 	}
 
-	if (format == VIDEO_PALETTE_RGB24) {
-		m_pConfig->m_videoNeedRgbToYuv = true;
-	}
+	m_videoNeedRgbToYuv = (format == VIDEO_PALETTE_RGB24);
 
 	SetPictureControls();
 
