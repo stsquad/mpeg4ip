@@ -533,7 +533,7 @@ void CV4LVideoSource::ProcessVideo(void)
 	  u_int8_t* pV;
 	  
 	  // perform colorspace conversion if necessary
-	  if (m_videoSrcType == RGBVIDEOFRAME) {
+	  if (m_videoNeedRgbToYuv) {
 	    mallocedYuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
 	    
 	    pY = mallocedYuvImage;
@@ -547,7 +547,7 @@ void CV4LVideoSource::ProcessVideo(void)
 		      pY,
 		      pU,
 		      pV,
-		      1);
+		      1, false);
 	  } else {
 	    pY = (u_int8_t*)m_videoMap + m_videoMbuf.offsets[index];
 	    pU = pY + m_videoSrcYSize;

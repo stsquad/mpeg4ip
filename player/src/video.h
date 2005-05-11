@@ -78,6 +78,7 @@ class CVideoSync : public CTimedSync, public CVideoApi
     { m_next_video = NULL;};
   void SetNextVideo(CVideoSync *n) { m_next_video = n; } ;
   CVideoSync *GetNextVideo(void) { return m_next_video; };
+  session_sync_types_t get_sync_type (void) { return VIDEO_SYNC; } ;
  protected:
   CVideoSync *m_next_video;
 };

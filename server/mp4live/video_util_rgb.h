@@ -24,6 +24,7 @@
 #define __VIDEO_UTIL_RGB_H__
 
 int RGB2YUV(int x_dim, int y_dim, void *bmp, 
-	void *y_out, void *u_out, void *v_out, int flip);
+	void *y_out, void *u_out, void *v_out, int flip,
+	    bool have_rgb);
 
 #endif /* __VIDEO_UTIL_RGB_H__ */

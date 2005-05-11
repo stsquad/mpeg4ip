@@ -13,10 +13,11 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
+ *              Bill May                wmay@cisco.com
  */
 
 #include "mp4live.h"
@@ -45,18 +46,9 @@ CMediaSource::~CMediaSource()
 }
 
 
-bool CMediaSource::InitVideo(
-			     MediaType srcType,
-			     bool realTime)
+bool CMediaSource::InitVideo (bool realTime)
 {
   m_sourceRealTime = realTime;
-
-  m_videoSrcType = srcType;
-
-  const char *videoFilter;
-  videoFilter = m_pConfig->GetStringValue(CONFIG_VIDEO_FILTER);
-  m_videoFilterInterlace = 
-    (strncasecmp(videoFilter, VIDEO_FILTER_DEINTERLACE, strlen(VIDEO_FILTER_DEINTERLACE)) == 0);
 
   m_videoWantKeyFrame = true;
 

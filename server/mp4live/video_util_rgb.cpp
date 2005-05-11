@@ -35,7 +35,7 @@
 
 /* This file contains RGB to YUV transformation functions.                */
 
-#include "stdlib.h"
+#include "mp4live.h"
 #include "video_util_rgb.h"
 
 static float RGBYUV02990[256], RGBYUV05870[256], RGBYUV01140[256];
@@ -73,16 +73,18 @@ void InitLookupTable();
  *
  ************************************************************************/
 
-int RGB2YUV (int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_out, int flip)
+int RGB2YUV (int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_out, int flip, bool have_rgb)
 {
 	static int init_done = 0;
 
 	long i, j, size;
-	unsigned char *r, *g, *b;
-	unsigned char *y, *u, *v;
-	unsigned char *pu1, *pu2, *pv1, *pv2, *psu, *psv;
-	unsigned char *y_buffer, *u_buffer, *v_buffer;
-	unsigned char *sub_u_buf, *sub_v_buf;
+	uint8_t *offset;
+	uint8_t *r, *g, *b;
+	uint8_t *y, *u, *v;
+	uint8_t *pu1, *pu2, *pv1, *pv2, *psu, *psv;
+	uint8_t *y_buffer, *u_buffer, *v_buffer;
+	uint8_t *sub_u_buf, *sub_v_buf;
+	uint r_offset, b_offset, g_offset;
 
 	if (init_done == 0)
 	{
@@ -95,11 +97,11 @@ int RGB2YUV (int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_
 	size = x_dim * y_dim;
 
 	// allocate memory
-	y_buffer = (unsigned char *)y_out;
-	sub_u_buf = (unsigned char *)u_out;
-	sub_v_buf = (unsigned char *)v_out;
-	u_buffer = (unsigned char *)malloc(size * sizeof(unsigned char));
-	v_buffer = (unsigned char *)malloc(size * sizeof(unsigned char));
+	y_buffer = (uint8_t *)y_out;
+	sub_u_buf = (uint8_t *)u_out;
+	sub_v_buf = (uint8_t *)v_out;
+	u_buffer = (uint8_t *)malloc(size * sizeof(uint8_t));
+	v_buffer = (uint8_t *)malloc(size * sizeof(uint8_t));
 	if (!(u_buffer && v_buffer))
 	{
 		if (u_buffer) free(u_buffer);
@@ -107,11 +109,19 @@ int RGB2YUV (int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_
 		return 2;
 	}
 
-	b = (unsigned char *)bmp;
+	offset = (uint8_t *)bmp;
 	y = y_buffer;
 	u = u_buffer;
 	v = v_buffer;
-
+	if (have_rgb) {
+	  r_offset = 0;
+	  g_offset = 1;
+	  b_offset = 2;
+	} else {
+	  b_offset = 0;
+	  g_offset = 1;
+	  r_offset = 2;
+	}
 	// convert RGB to YUV
 	if (!flip) {
 		for (j = 0; j < y_dim; j ++)
@@ -121,12 +131,13 @@ int RGB2YUV (int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_
 			v = v_buffer + (y_dim - j - 1) * x_dim;
 
 			for (i = 0; i < x_dim; i ++) {
-				g = b + 1;
-				r = b + 2;
-				*y = (unsigned char)(  RGBYUV02990[*r] + RGBYUV05870[*g] + RGBYUV01140[*b]);
-				*u = (unsigned char)(- RGBYUV01684[*r] - RGBYUV03316[*g] + (*b)/2          + 128);
-				*v = (unsigned char)(  (*r)/2          - RGBYUV04187[*g] - RGBYUV00813[*b] + 128);
-				b += 3;
+			  b = offset + b_offset;
+			  g = offset + g_offset;
+			  r = offset + r_offset;
+				*y = (uint8_t)(  RGBYUV02990[*r] + RGBYUV05870[*g] + RGBYUV01140[*b]);
+				*u = (uint8_t)(- RGBYUV01684[*r] - RGBYUV03316[*g] + (*b)/2          + 128);
+				*v = (uint8_t)(  (*r)/2          - RGBYUV04187[*g] - RGBYUV00813[*b] + 128);
+				offset += 3;
 				y ++;
 				u ++;
 				v ++;
@@ -135,12 +146,13 @@ int RGB2YUV (int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_
 	} else {
 		for (i = 0; i < size; i++)
 		{
-			g = b + 1;
-			r = b + 2;
-			*y = (unsigned char)(  RGBYUV02990[*r] + RGBYUV05870[*g] + RGBYUV01140[*b]);
-			*u = (unsigned char)(- RGBYUV01684[*r] - RGBYUV03316[*g] + (*b)/2          + 128);
-			*v = (unsigned char)(  (*r)/2          - RGBYUV04187[*g] - RGBYUV00813[*b] + 128);
-			b += 3;
+		  b = offset + b_offset;
+			  g = offset + g_offset;
+			  r = offset + r_offset;
+			*y = (uint8_t)(  RGBYUV02990[*r] + RGBYUV05870[*g] + RGBYUV01140[*b]);
+			*u = (uint8_t)(- RGBYUV01684[*r] - RGBYUV03316[*g] + (*b)/2          + 128);
+			*v = (uint8_t)(  (*r)/2          - RGBYUV04187[*g] - RGBYUV00813[*b] + 128);
+			offset += 3;
 			y ++;
 			u ++;
 			v ++;

@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2003.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2003-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Waqar Mohsin            wmohsin@cisco.com
@@ -88,6 +88,10 @@ class CV4L2VideoSource : public CMediaSource {
   uint32_t m_release_index_mask;
   bool m_use_alternate_release;
   bool m_waiting_frames_return;
+  bool m_videoNeedRgbToYuv;
+  uint32_t m_format;
+  uint32_t m_u_offset;
+  uint32_t m_v_offset;
 };
 
 

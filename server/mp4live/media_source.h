@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -80,7 +80,6 @@ protected:
 	// Video
 
 	bool InitVideo(
-		MediaType srcType,
 		bool realTime = true);
 
 	void SetVideoSrcSize(
@@ -122,7 +121,6 @@ protected:
 
 	// video source info
 	CMediaSource*	m_videoSource; 
-	MediaType		m_videoSrcType;
 	u_int16_t		m_videoSrcWidth;
 	u_int16_t		m_videoSrcHeight;
 	u_int16_t		m_videoSrcAdjustedHeight;
@@ -132,9 +130,6 @@ protected:
 	u_int16_t		m_videoSrcYStride;
 	u_int32_t		m_videoSrcUVSize;
 	u_int16_t		m_videoSrcUVStride;
-
-	// video destination info
-	bool                    m_videoFilterInterlace;
 
 	// video resizing info
 	bool			m_videoWantKeyFrame;

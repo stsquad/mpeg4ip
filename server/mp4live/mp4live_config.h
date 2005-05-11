@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -345,7 +345,6 @@ public:
 	u_int32_t	m_ySize;
 	u_int32_t	m_uvSize;
 	u_int32_t	m_yuvSize;
-	bool		m_videoNeedRgbToYuv;
 	u_int32_t	m_videoMpeg4ConfigLength;
 	u_int8_t*	m_videoMpeg4Config;
 	u_int32_t	m_videoMaxVopSize;

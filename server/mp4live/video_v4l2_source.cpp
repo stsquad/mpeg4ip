@@ -13,10 +13,12 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2003.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2003-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Waqar Mohsin            wmohsin@cisco.com
+ *              Bill May     wmay@cisco.com
+ *              Charlie Normand  charlienormand@cantab.net alias cpn24
  */
 
 #include "mp4live.h"
@@ -104,28 +106,37 @@ void CV4L2VideoSource::DoStopCapture(void)
 
 bool CV4L2VideoSource::Init(void)
 {
-  if (!InitDevice()) return false;
+  m_videoNeedRgbToYuv = false;
 
   m_pConfig->CalculateVideoFrameSize();
 
-  InitVideo((m_pConfig->m_videoNeedRgbToYuv ?
-             RGBVIDEOFRAME : YUVVIDEOFRAME), true);
+  InitVideo(true);
 
   SetVideoSrcSize(
                   m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH),
                   m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT),
                   m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH));
 
+  if (!InitDevice()) return false;
+
   m_maxPasses = (u_int8_t)(m_videoSrcFrameRate + 0.5);
 
   return true;
 }
+
+static const uint32_t formats[] = {
+  V4L2_PIX_FMT_YVU420,
+  V4L2_PIX_FMT_YUV420,
+  V4L2_PIX_FMT_RGB24,
+  V4L2_PIX_FMT_BGR24,
+};
 
 bool CV4L2VideoSource::InitDevice(void)
 {
   int rc;
   const char* deviceName = m_pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME);
   int buftype = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  bool pass = false;
   v4l2_std_id std;
 
   if (m_videoDevice != -1)
@@ -235,13 +246,6 @@ bool CV4L2VideoSource::InitDevice(void)
   }
 
   // query image format
-  struct v4l2_format format;
-  format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  rc = ioctl(m_videoDevice, VIDIOC_G_FMT, &format);
-  if (rc < 0) {
-    error_message("Failed to query video image format for %s", deviceName);
-    goto failure;
-  }
   
   // select image format
   uint32_t width, height;
@@ -273,20 +277,62 @@ bool CV4L2VideoSource::InitDevice(void)
       height *= 2;
     }
   }
-    
-  format.fmt.pix.width = width;
-  format.fmt.pix.height = height;
-  format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
-  rc = ioctl(m_videoDevice, VIDIOC_S_FMT, &format);
-  if (rc < 0) {
-    // try RGB24 palette instead
-    format.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
-    rc = ioctl(m_videoDevice, VIDIOC_S_FMT, &format);
+
+  for (uint ix = 0; 
+       pass == false && ix < NUM_ELEMENTS_IN_ARRAY(formats); 
+       ix++) {
+    struct v4l2_format format;
+    memset(&format, 0, sizeof(format));
+    format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    rc = ioctl(m_videoDevice, VIDIOC_G_FMT, &format);
     if (rc < 0) {
-      error_message("Failed to select video image format for %s", deviceName);
+      error_message("Failed to query video image format for %s", deviceName);
       goto failure;
     }
-    m_pConfig->m_videoNeedRgbToYuv = true;
+    format.fmt.pix.width = width;
+    format.fmt.pix.height = height;
+    format.fmt.pix.pixelformat = formats[ix];
+
+    rc = ioctl(m_videoDevice, VIDIOC_S_FMT, &format);
+    if (rc == 0 && format.fmt.pix.pixelformat == formats[ix]) {
+      m_format = formats[ix];
+      pass = true;
+    }
+    if (format.fmt.pix.width != width) {
+      error_message("format %u - returned width %u not selected %u", 
+		    formats[ix], format.fmt.pix.width, width);
+    }
+    if (format.fmt.pix.height != height) {
+      error_message("format %u - returned height %u not selected %u", 
+		    formats[ix], format.fmt.pix.height, height);
+    }
+  }
+  if (pass == false) {
+      error_message("Failed to select any video formats for %s", deviceName);
+      goto failure;
+  }
+  switch (m_format) {
+  case V4L2_PIX_FMT_YVU420:
+    m_v_offset = m_videoSrcYSize;
+    m_u_offset = m_videoSrcYSize + m_videoSrcUVSize;
+    m_videoNeedRgbToYuv = false;
+    debug_message("format is YVU 4:2:0 %ux%u", width, height);
+    break;
+  case V4L2_PIX_FMT_YUV420:
+    m_u_offset = m_videoSrcYSize;
+    m_v_offset = m_videoSrcYSize + m_videoSrcUVSize;
+    m_videoNeedRgbToYuv = false;
+    debug_message("format is YUV 4:2:0 %ux%u", width, height);
+    break;
+  case V4L2_PIX_FMT_RGB24:
+    m_videoNeedRgbToYuv = true;
+    debug_message("format is RGB24 %ux%u", width, height);
+    break;
+  case V4L2_PIX_FMT_BGR24:
+    m_videoNeedRgbToYuv = true;
+    debug_message("format is BGR24 %ux%u", width, height);
+    break;
+
   }
   
   // allocate the desired number of buffers
@@ -312,8 +358,10 @@ bool CV4L2VideoSource::InitDevice(void)
   
   for(uint32_t ix=0; ix<reqbuf.count; ix++) {
     struct v4l2_buffer buffer;
+    memset(&buffer, 0, sizeof(buffer)); // cpn24
     buffer.index = ix;
     buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buffer.memory = V4L2_MEMORY_MMAP; // cpn24
 
     rc = ioctl(m_videoDevice, VIDIOC_QUERYBUF, &buffer);
     if (rc < 0) {
@@ -612,7 +660,7 @@ void CV4L2VideoSource::ProcessVideo(void)
     u_int8_t* pV;
 
     // perform colorspace conversion if necessary
-    if (m_videoSrcType == RGBVIDEOFRAME) {
+    if (m_videoNeedRgbToYuv) {
       mallocedYuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
 
       pY = mallocedYuvImage;
@@ -626,11 +674,12 @@ void CV4L2VideoSource::ProcessVideo(void)
                 pY,
                 pU,
                 pV,
-                1);
+                1, 
+		m_format == V4L2_PIX_FMT_RGB24);
     } else {
       pY = (u_int8_t*)m_buffers[index].start;
-      pV = pY + m_videoSrcYSize;
-      pU = pV + m_videoSrcUVSize;
+      pU = pY + m_u_offset;
+      pV = pY + m_v_offset;
     }
 
     if (m_decimate_filter) {

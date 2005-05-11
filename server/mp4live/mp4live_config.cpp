@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -39,7 +39,6 @@ CLiveConfig::CLiveConfig(
 	m_appAutomatic = false;
 	m_videoCapabilities = NULL;
 	m_videoPreviewWindowId = 0;
-	m_videoNeedRgbToYuv = false;
 	m_videoMpeg4ConfigLength = 0;
 	m_videoMpeg4Config = NULL;
 	m_videoMaxVopSize = 128 * 1024;

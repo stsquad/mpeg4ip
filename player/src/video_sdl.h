@@ -74,7 +74,6 @@ class CSDLVideoSync : public CVideoSync {
   int initialize(const char *name);  // from sync task
   bool is_ready(uint64_t &disptime);  // from sync task
 
-  session_sync_types_t get_sync_type (void) { return VIDEO_SYNC; } ;
   int get_video_buffer(uint8_t **y,
 		       uint8_t **u,
 		       uint8_t **v);
