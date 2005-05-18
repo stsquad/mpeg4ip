@@ -141,6 +141,10 @@ CPlayerSession::~CPlayerSession ()
     m_sdp_info = NULL;
   }
 
+  if (m_stop_processing != NULL) {
+    SDL_DestroySemaphore(m_stop_processing);
+    m_stop_processing = NULL;
+  }
   if (m_sync_sem) {
     SDL_DestroySemaphore(m_sync_sem);
     m_sync_sem = NULL;

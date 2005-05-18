@@ -41,7 +41,10 @@
 extern "C" {
 #endif
 
+  typedef struct udp_set_ udp_set;
 
+  udp_set *udp_init_for_session(void);
+  void udp_close_session(udp_set *s);
 int         udp_addr_valid(const char *addr);
 socket_udp *udp_init(const char *addr, uint16_t rx_port, uint16_t tx_port, int ttl);
 socket_udp *udp_init_if(const char *addr, const char *iface, uint16_t rx_port, uint16_t tx_port, int ttl);
@@ -56,10 +59,10 @@ int         udp_recv(socket_udp *s, uint8_t *buffer, int buflen);
 char *udp_host_addr(socket_udp *s);
 int         udp_fd(socket_udp *s);
 
-int         udp_select(struct timeval *timeout);
-void        udp_fd_zero(void);
-void        udp_fd_set(socket_udp *s);
-int         udp_fd_isset(socket_udp *s);
+  int         udp_select(udp_set *session, struct timeval *timeout);
+  void        udp_fd_zero(udp_set *session);
+  void        udp_fd_set(udp_set *session, socket_udp *s);
+  int         udp_fd_isset(udp_set *session, socket_udp *s);
 
 void  udp_set_multicast_src(const char* src);
 

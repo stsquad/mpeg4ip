@@ -33,7 +33,6 @@
 
 //#define VIDEO_SYNC_PLAY 2
 //#define VIDEO_SYNC_FILL 1
-//#define SHORT_VIDEO 1
 //#define SWAP_UV 1
 
 #ifdef _WIN32
@@ -560,7 +559,7 @@ CSDLVideoSync::~CSDLVideoSync (void)
  * CSDLVideoSync::config - routine for the codec to call to set up the
  * width, height and frame_rate of the video
  */
-void CSDLVideoSync::config (int w, int h, double aspect_ratio)
+void CSDLVideoSync::configure (int w, int h, double aspect_ratio)
 {
   m_width = w;
   m_height = h;
@@ -611,11 +610,10 @@ bool CSDLVideoSync::is_ready (uint64_t &disptime)
   if (m_dont_fill) {
     return false;
   }
-#ifdef SHORT_VIDEO
-  return (m_buffer_filled[m_play_index]);
-#else
+  if (config.GetBoolValue(CONFIG_SHORT_VIDEO_RENDER)) {
+    return (m_buffer_filled[m_play_index]);
+  }
   return (m_buffer_filled[(m_play_index + 2*m_max_buffers/3) % m_max_buffers]);
-#endif
 }
 
 
@@ -776,7 +774,7 @@ static void c_video_configure (void *ifptr,
 			       double aspect_ratio)
 {
   // asdf - ignore format for now
-  ((CSDLVideoSync *)ifptr)->config(w, h, aspect_ratio);
+  ((CSDLVideoSync *)ifptr)->configure(w, h, aspect_ratio);
 }
 
 static int c_video_get_buffer (void *ifptr, 

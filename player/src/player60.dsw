@@ -54,18 +54,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "bitstream"=..\..\lib\bitstream\bitstream60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
 Project: "celp_plugin"=..\plugin\audio\celp\celp_plugin.dsp - Package Owner=<4>
 
 Package=<5>

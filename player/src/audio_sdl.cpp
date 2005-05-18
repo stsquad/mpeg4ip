@@ -323,7 +323,8 @@ int do_we_have_audio (void)
   if (Our_SDL_AudioDriverName(buffer, sizeof(buffer)) == NULL) {
     return (0);
   }
-  //  Our_SDL_CloseAudio();
+  //  Our_SDL_CloseAudio(); - wmay - don't know why commented out - 
+  // causes memleak if PlayAudio is 0.
   return (1);
 }
 

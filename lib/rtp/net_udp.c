@@ -939,19 +939,30 @@ int udp_recv(socket_udp *s, uint8_t *buffer, int buflen)
 	return 0;
 }
 
-static fd_set	rfd;
-static fd_t	max_fd;
+struct udp_set_ {
+  fd_set	rfd;
+  fd_t	max_fd;
+};
 
+udp_set *udp_init_for_session (void)
+{
+  return (udp_set *)malloc(sizeof(udp_set));
+}
+
+void udp_close_session (udp_set *s)
+{
+  free((void *)s);
+}
 /**
  * udp_fd_zero:
  * 
  * Clears file descriptor from set associated with UDP sessions (see select(2)).
  * 
  **/
-void udp_fd_zero(void)
+void udp_fd_zero(udp_set *session)
 {
-	FD_ZERO(&rfd);
-	max_fd = 0;
+	FD_ZERO(&session->rfd);
+	session->max_fd = 0;
 }
 
 /**
@@ -960,11 +971,11 @@ void udp_fd_zero(void)
  * 
  * Adds file descriptor associated of @s to set associated with UDP sessions.
  **/
-void udp_fd_set(socket_udp *s)
+void udp_fd_set(udp_set *session, socket_udp *s)
 {
-	FD_SET(s->fd, &rfd);
-	if (s->fd > (fd_t)max_fd) {
-		max_fd = s->fd;
+	FD_SET(s->fd, &session->rfd);
+	if (s->fd > (fd_t)session->max_fd) {
+		session->max_fd = s->fd;
 	}
 }
 
@@ -977,9 +988,9 @@ void udp_fd_set(socket_udp *s)
  *
  * Returns: non-zero if set, zero otherwise.
  **/
-int udp_fd_isset(socket_udp *s)
+int udp_fd_isset(udp_set *session, socket_udp *s)
 {
-	return FD_ISSET(s->fd, &rfd);
+	return FD_ISSET(s->fd, &session->rfd);
 }
 
 /**
@@ -990,9 +1001,9 @@ int udp_fd_isset(socket_udp *s)
  * 
  * Return value: number of UDP sessions ready for reading.
  **/
-int udp_select(struct timeval *timeout)
+int udp_select(udp_set *session, struct timeval *timeout)
 {
-	return select(max_fd + 1, &rfd, NULL, NULL, timeout);
+	return select(session->max_fd + 1, &session->rfd, NULL, NULL, timeout);
 }
 
 /**

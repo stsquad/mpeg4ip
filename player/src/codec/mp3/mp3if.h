@@ -3,7 +3,7 @@
 #define __MP3IF_H__ 1
 
 #include "mpeg4ip.h"
-#include <mp3/MPEGaudio.h>
+#include <MPEGaudio.h>
 #include "codec_plugin.h"
 #include <fposrec/fposrec.h>
 

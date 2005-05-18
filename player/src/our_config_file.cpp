@@ -67,6 +67,7 @@ static const SConfigVariable MyConfigVariables[] = {
   CONFIG_INT(CONFIG_MPEG2PS_DEBUG, "Mpeg2psDebug", LOG_ALERT),
   CONFIG_STRING_HELP(CONFIG_URL_EXEC, "UrlExec", NULL, 
 		     "Enter full path to browser launch - default /usr/bin/firefox/firefox"),
+  CONFIG_BOOL(CONFIG_SHORT_VIDEO_RENDER, "ShortVideoRender", false),
 };
 
 CConfigSet config(MyConfigVariables, 

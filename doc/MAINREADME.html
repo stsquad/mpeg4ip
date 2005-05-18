@@ -8,7 +8,7 @@
 <div id="top">
 <h1>MPEG4IP README</h1> </div>
 <p>
-December 1, 2004
+May, 2005
 <P>
 <b>
 <a href="#Project">MPEG4IP Project </a>
@@ -34,7 +34,7 @@ December 1, 2004
 </div>
 <P>
 The MPEG4IP project provides a standards-based system for encoding, 
-streaming, and playing encoded audio and video. To achieve 
+streaming, and playing encoded audio, video and text. To achieve 
 this we've integrated a number of existing open source packages, and
  created some original code to fill in the gaps.
 <P>
@@ -162,7 +162,7 @@ forums for more information
 </div>
 <P>
 This section will discuss prerequisites for building mpeg4ip (ie: packages
-that you will want to install to build correctly).  This does not include
+that you will first want to install to build correctly).  This does not include
 Windows.  To build on Windows, see <a href="#windoze">these instructions.</a>
 <p>
 Specifics on how to build using these libraries will be discussed 
@@ -170,7 +170,7 @@ Specifics on how to build using these libraries will be discussed
 <p>
 All builds require the <a href="http://www.libsdl.org">SDL</a> development 
 libraries.  SDL version 1.2.7 or later is required; please be sure to 
-install the development library.
+install the development library, if you are using RPMs.
 <p>
 If you have a x86 based platform, you will want to install nasm.  If you
 do not install it, you may not be able to decode or encode at the frame
@@ -186,11 +186,15 @@ If you are building the player, you may want the following packages:
 and wide-band packages</li>
 <li><a href="http://www.xvid.org">xvidcore</a> (versions 0.9.8 or later)</li>
 <li><a href="http://libmpeg2.sourceforge.net">libmpeg2</a> (highly recommended 
-for mpeg2 decoding)</li>
+for mpeg2 decoding)<br>
+note: for gcc 4.0, you will need to configure with --enable-shared=yes<br>
+you may also need to remove some inlines from libmpeg2/cpu_accel.c
+</li>
 <li><a href="http://tangent.org/index.pl?node=libID3">libid3</a> - id3 tags 
 for mp3 files</li>
 <li><a href="http://liba52.sourceforge.net">liba52</a> - AC3 decoding for 
-mpeg files and mpeg2 transport streams</li>
+mpeg files and mpeg2 transport streams<br>
+note: for gcc 4.0, you will need to configure with --enable-shared=yes</li>
 <li><a href="http://www.audiocoding.com">faad2</a> <a href="#faad2">(install after installing mpeg4ip)</a></li>
 </ul>
 <p>
@@ -720,14 +724,13 @@ If you're going to start hacking, a map of the territory may prove useful:
 <b>common</b> - shared code<br>
 |-&gt; video<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
-mpeg4-2000 -  ISO MPEG-4 video encoder/decoder<br>
+iso-mpeg4 -  flattened directory version of ISO MPEG-4 video encoder/decoder<br>
 
 <P>
 <b>lib</b> - project wide libraries<br>
         |-&gt; SDLAudio - Simple DirectMedia Layer(modified audio only)<br>
         |-&gt; audio - audio format conversions<br>
         |-&gt; avi - AVI file format<br>
-        |-&gt; bitstream - MPEG style low level bitstream utlity<br>
         |-&gt; config_file - Configuration file utility<br>
         |-&gt; gnu<br>
            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt; 
@@ -755,8 +758,6 @@ mpeg4-2000 -  ISO MPEG-4 video encoder/decoder<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
                 faad - FAAD AAC decoder<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
-                mp3 - MP3 decoder<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
                 mp3util - MP3 utilities for RFC 3119<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
                 portaudio - MAC audio rendering library<br>
@@ -774,17 +775,39 @@ mpeg4-2000 -  ISO MPEG-4 video encoder/decoder<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
 		celp - celp decoder plugin<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               faad2 - code for faad2 audio plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               g711 - g711 audio plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               ffmpeg - ffmpeg audio plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
                raw - raw audio plugin<br>
            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
 	    rtp - rtp bytestream plugins<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
 	       h261 - h261 rtp plugin<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+	       h264 - h264 rtp plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
                isma_audio - isma audio format plugin<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               isma_href - isma HREF format plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
                isma_video - ISMACryp video RTP format plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               rfc2429 - H.263 rfc2429 video RTP format plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               rfc3267 - AMR audio RTP format plugin<br>
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            text - text plugins<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               href - ISMA href deocoder plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               plain - plain text deocoder plugin<br>
            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
             video - video plugins<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               ffmpeg - ffmpeg video plugin<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
                raw - raw video plugin<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
@@ -808,8 +831,6 @@ mpeg4-2000 -  ISO MPEG-4 video encoder/decoder<br>
                 mpeg4 - mpeg4 ISO decoder plugin<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
                 wav - wav plugin<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
-            osx - Mac OS X UI<br>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
 	    win_common - common windows code<br>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
@@ -958,7 +979,8 @@ bit rate.  Samples can be converted to seconds by dividing by the sample rate).
 <p>
 You can remove some of this latency by not bundling multiple frames in 
 an RTP packet.  This can be set using the rtpMaxFramesPerPacket in the
-Audio Profile configuration file in mp4live.
+Audio Profile configuration file in mp4live.  You can also use G.711
+or AMR codecs.
 <P>
 The kernel IP stacks can have some latency built in, as well.  Probably
 not too much, but you should be aware that it can exist (look at a sniffer

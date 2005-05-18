@@ -101,10 +101,6 @@ SOURCE=.\audio_hinters.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\bitstream\bitstream.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\h264.cpp
 # End Source File
 # Begin Source File

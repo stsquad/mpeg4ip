@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.22 $ 
- * $Date: 2005/05/09 21:29:53 $
+ * $Revision: 1.23 $ 
+ * $Date: 2005/05/18 23:22:36 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -234,6 +234,7 @@ typedef int (*rtcp_send_f)(struct rtp *s, uint8_t *buffer, int buflen);
  */
 
 struct rtp {
+        udp_set         *udp_session;
 	socket_udp	*rtp_socket;
 	socket_udp	*rtcp_socket;
 	char		*addr;
@@ -1131,10 +1132,12 @@ struct rtp *rtp_init_if(const char *addr, char *iface,
 	init_opt(session);
 
 	if (dont_init_sockets == 0) {
+	  session->udp_session = udp_init_for_session();
 	  session->rtp_socket	= udp_init_if(addr, iface, rx_port, tx_port, ttl);
 	  session->rtcp_socket = udp_init_if(addr, iface, (uint16_t) (rx_port ? rx_port + 1 : 0), (uint16_t) (tx_port + 1), ttl);
 
-	  if (session->rtp_socket == NULL || session->rtcp_socket == NULL) {
+	  if (session->udp_session == NULL || 
+	      session->rtp_socket == NULL || session->rtcp_socket == NULL) {
 	    xfree(session);
 	    return NULL;
 	  }
@@ -1964,14 +1967,14 @@ void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen)
 int rtp_recv(struct rtp *session, struct timeval *timeout, uint32_t curr_rtp_ts)
 {
 	check_database(session);
-	udp_fd_zero();
-	udp_fd_set(session->rtp_socket);
-	udp_fd_set(session->rtcp_socket);
-	if (udp_select(timeout) > 0) {
-		if (udp_fd_isset(session->rtp_socket)) {
+	udp_fd_zero(session->udp_session);
+	udp_fd_set(session->udp_session, session->rtp_socket);
+	udp_fd_set(session->udp_session, session->rtcp_socket);
+	if (udp_select(session->udp_session, timeout) > 0) {
+	  if (udp_fd_isset(session->udp_session, session->rtp_socket)) {
 			rtp_recv_data(session, curr_rtp_ts);
 		}
-		if (udp_fd_isset(session->rtcp_socket)) {
+	  if (udp_fd_isset(session->udp_session, session->rtcp_socket)) {
                         uint8_t		 buffer[RTP_MAX_PACKET_LEN];
                         int		 buflen;
                         buflen = udp_recv(session->rtcp_socket, buffer, RTP_MAX_PACKET_LEN);
@@ -3099,9 +3102,10 @@ void rtp_send_bye(struct rtp *session)
 			timeout.tv_sec  = 0;
 			timeout.tv_usec = 0;
 			tv_add(&timeout, tv_diff(session->next_rtcp_send_time, curr_time));
-			udp_fd_zero();
-			udp_fd_set(session->rtcp_socket);
-			if ((udp_select(&timeout) > 0) && udp_fd_isset(session->rtcp_socket)) {
+			udp_fd_zero(session->udp_session);
+			udp_fd_set(session->udp_session, session->rtcp_socket);
+			if ((udp_select(session->udp_session, &timeout) > 0) && 
+			    udp_fd_isset(session->udp_session, session->rtcp_socket)) {
 				/* We woke up because an RTCP packet was received; process it... */
 				buflen = udp_recv(session->rtcp_socket, buffer, RTP_MAX_PACKET_LEN);
 				rtp_process_ctrl(session, buffer, buflen);

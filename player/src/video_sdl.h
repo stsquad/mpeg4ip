@@ -84,7 +84,7 @@ class CSDLVideoSync : public CVideoSync {
 		       int m_pixelw_y,
 		       int m_pixelw_uv,
 		       uint64_t time);
-  void config (int w, int h, double aspect_ratio); // from codec
+  void configure (int w, int h, double aspect_ratio); // from codec
 
   void set_screen_size(int scaletimes2); // 1 gets 50%, 2, normal, 4, 2 times
   void set_fullscreen(int fullscreen);

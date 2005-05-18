@@ -24,7 +24,7 @@ mp3_plugin_la_SOURCES = \
 	MPEGfilter.h \
 	MPEGring.h
 if HAVE_ID3_TAG
-   ID3_LIBS=-lid3 -lid3tag
+   ID3_LIBS=-lid3 -lz
 else
    ID3_LIBS=
 endif
