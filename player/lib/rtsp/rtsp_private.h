@@ -62,6 +62,9 @@ struct rtsp_client_ {
   struct addrinfo *addr_info;
   uint16_t port;
 
+  bool use_proxy;
+  const char *proxy_name;
+  in_port_t proxy_port;
   /*
    * Communications information - socket, receive buffer
    */
@@ -110,7 +113,9 @@ void clear_decode_response(rtsp_decode_t *decode);
 
 void free_rtsp_client(rtsp_client_t *rptr);
 void free_session_info(rtsp_session_t *session);
-rtsp_client_t *rtsp_create_client_common(const char *url, int *perr);
+rtsp_client_t *rtsp_create_client_common(const char *url, int *perr,
+					 const char *proxy_name,
+					 in_port_t proxy_port);
 int rtsp_dissect_url(rtsp_client_t *rptr, const char *url);
 /* communications routines */
 int rtsp_create_socket(rtsp_client_t *info);

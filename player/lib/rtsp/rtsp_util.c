@@ -256,6 +256,7 @@ int rtsp_setup_redirect (rtsp_client_t *info)
   }
 
   CHECK_AND_FREE(info->server_name);
+  info->use_proxy = false; // redirect from proxy - go to the right one
   rtsp_close_socket(info);
 
   ret = rtsp_dissect_url(info, decode->location);

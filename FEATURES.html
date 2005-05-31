@@ -29,11 +29,11 @@ File formats:
 Video codecs: 
 <br>mpeg-4 (xvid, xvid-1.0, ISO reference), mpeg1/2 (libmpeg3, 
 mpeg2dec), H.261, YUV (i420 raw)
-<br>Through ffmpeg: h.263, Sorenson, some MJPEG, simple H.264
+<br>Through ffmpeg: h.263, Sorenson, some MJPEG, H.264
 <p>
 Audio Codecs: 
 <br>aac (faad, faad2 with seperate download), mp3, celp, 
-  ac3 (with seperate download), raw PCM 
+  ac3 (with seperate download), raw PCM, G.711 alaw and ulaw 
 <br>Through ffmpeg: AMR NB, AMR WB, G.711 alaw and ulaw
 <p>
 Streaming capability: 
@@ -66,7 +66,7 @@ H.261, mpeg2 (with ffmpeg download), h263 (through ffmpeg), h264 (through x264)
 Audio Encoders:
 <br>AAC (faac, with required download), MP3 (lame, with required download)
 Mpeg2, layer 2 (with ffmpeg), AMR NB and WB (through ffmpeg), G.711 alaw
-and ulaw (through ffmpeg)
+and ulaw 
 <p>
 Video Filters:
 <br>de-interlace (Y only), decimate
@@ -79,7 +79,8 @@ Audio Input Interface:
 <p>
 Recording Options: (mp4 file format)
 <br>
-Mpeg4 video, Mpeg2 video, Mp3 audio, AAC audio, raw audio (PCM) and video
+H.263, H.264, Mpeg4 video, Mpeg2 video, Mp3 audio, AAC audio, AMR audio,
+raw audio (PCM) and video
 (YUV)
 <p>
 Transmission Options: (RTP, multicast or unicast)

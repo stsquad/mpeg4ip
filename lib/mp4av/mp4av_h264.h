@@ -21,6 +21,7 @@
 #define H264_NAL_TYPE_END_OF_SEQ 0xa
 #define H264_NAL_TYPE_END_OF_STREAM 0xb
 #define H264_NAL_TYPE_FILLER_DATA 0xc
+#define H264_NAL_TYPE_SEQ_EXTENSION 0xd
 
 #define H264_TYPE_P 0
 #define H264_TYPE_B 1
@@ -41,6 +42,12 @@
 typedef struct h264_decode_t {
   uint8_t profile;
   uint8_t level;
+  uint32_t chroma_format_idc;
+  uint8_t residual_colour_transform_flag;
+  uint32_t bit_depth_luma_minus8;
+  uint32_t bit_depth_chroma_minus8;
+  uint8_t qpprime_y_zero_transform_bypass_flag;
+  uint8_t seq_scaling_matrix_present_flag;
   uint32_t log2_max_frame_num_minus4;
   uint32_t log2_max_pic_order_cnt_lsb_minus4;
   uint32_t pic_order_cnt_type;

@@ -32,6 +32,7 @@
 #include "audio.h"
 #include "video.h"
 #include "media_utils.h"
+#include "our_config_file.h"
 
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(sync_message, "avsync")
@@ -283,9 +284,13 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
    * create RTSP session
    */
   if (use_tcp != 0) {
-    m_rtsp_client = rtsp_create_client_for_rtp_tcp(url, &err);
+    m_rtsp_client = rtsp_create_client_for_rtp_tcp(url, &err,
+						   config.GetStringValue(CONFIG_RTSP_PROXY_ADDR),
+						   config.GetIntegerValue(CONFIG_RTSP_PROXY_PORT));
   } else {
-    m_rtsp_client = rtsp_create_client(url, &err);
+    m_rtsp_client = rtsp_create_client(url, &err,
+				       config.GetStringValue(CONFIG_RTSP_PROXY_ADDR),
+				       config.GetIntegerValue(CONFIG_RTSP_PROXY_PORT));
   }
   if (m_rtsp_client == NULL) {
     set_message("Failed to create RTSP client");

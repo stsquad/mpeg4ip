@@ -182,16 +182,71 @@ static uint32_t calc_ceil_log2 (uint32_t val)
   return ix;
 }
 
+static void scaling_list (uint ix, uint sizeOfScalingList, CBitstream *bs)
+{
+  uint lastScale = 8, nextScale = 8;
+  uint jx;
+  int deltaScale;
+
+  for (jx = 0; jx < sizeOfScalingList; jx++) {
+    if (nextScale != 0) {
+      deltaScale = h264_se(bs);
+      nextScale = (lastScale + deltaScale + 256) % 256;
+      printf("     delta: %u\n", deltaScale);
+    }
+    if (nextScale == 0) {
+      lastScale = lastScale;
+    } else {
+      lastScale = nextScale;
+    }
+    printf("     scaling list[%u][%u]: %u\n", ix, jx, lastScale);
+
+  }
+}
+
 void h264_parse_sequence_parameter_set (h264_decode_t *dec, CBitstream *bs)
 {
   uint32_t temp;
-  printf("   profile %d\n", bs->GetBits(8));
+  dec->profile = bs->GetBits(8);
+  printf("   profile: %u\n", dec->profile);
   printf("   constaint_set0_flag: %d\n", bs->GetBits(1));
   printf("   constaint_set1_flag: %d\n", bs->GetBits(1));
   printf("   constaint_set2_flag: %d\n", bs->GetBits(1));
-  h264_check_0s(bs, 5);
+  printf("   constaint_set3_flag: %d\n", bs->GetBits(1));
+  h264_check_0s(bs, 4);
   printf("   level_idc: %u\n", bs->GetBits(8));
   printf("   seq parameter set id: %u\n", h264_ue(bs));
+  if (dec->profile == 100 || dec->profile == 110 ||
+      dec->profile == 122 || dec->profile == 144) {
+    dec->chroma_format_idc = h264_ue(bs);
+    printf("   chroma format idx: %u\n", dec->chroma_format_idc);
+
+    if (dec->chroma_format_idc == 3) {
+      dec->residual_colour_transform_flag = bs->GetBits(1);
+      printf("    resigual colour transform flag: %u\n", dec->residual_colour_transform_flag);
+    }
+    dec->bit_depth_luma_minus8 = h264_ue(bs);
+    printf("   bit depth luma minus8: %u\n", dec->bit_depth_luma_minus8);
+    dec->bit_depth_chroma_minus8 = h264_ue(bs);
+    printf("   bit depth chroma minus8: %u\n", dec->bit_depth_luma_minus8);
+    dec->qpprime_y_zero_transform_bypass_flag = bs->GetBits(1);
+    printf("   Qpprime Y Zero Transform Bypass flag: %u\n", 
+	   dec->qpprime_y_zero_transform_bypass_flag);
+    dec->seq_scaling_matrix_present_flag = bs->GetBits(1);
+    printf("   Seq Scaling Matrix Present Flag: %u\n", 
+	   dec->seq_scaling_matrix_present_flag);
+    if (dec->seq_scaling_matrix_present_flag) {
+      for (uint ix = 0; ix < 8; ix++) {
+	temp = bs->GetBits(1);
+	printf("   Seq Scaling List[%u] Present Flag: %u\n", ix, temp); 
+	if (temp) {
+	  scaling_list(ix, ix < 6 ? 16 : 64, bs);
+	}
+      }
+    }
+    
+  }
+
   dec->log2_max_frame_num_minus4 = h264_ue(bs);
   printf("   log2_max_frame_num_minus4: %u\n", dec->log2_max_frame_num_minus4);
   dec->pic_order_cnt_type = h264_ue(bs);
@@ -243,6 +298,24 @@ void h264_parse_sequence_parameter_set (h264_decode_t *dec, CBitstream *bs)
     h264_vui_parameters(bs);
   }
 }
+
+static void h264_parse_seq_ext (h264_decode_t *dec, CBitstream *bs)
+{
+  uint32_t temp;
+  printf("   seq_parameter_set_id: %u\n", h264_ue(bs));
+  temp = h264_ue(bs);
+  printf("   aux format idc: %u\n", temp);
+  if (temp != 0) {
+    temp = h264_ue(bs);
+    printf("    bit depth aux minus8:%u\n", temp);
+    printf("    alpha incr flag:%u\n", bs->GetBits(1));
+    printf("    alpha opaque value: %u\n", bs->GetBits(temp + 9));
+    printf("    alpha transparent value: %u\n", bs->GetBits(temp + 9));
+  }
+  printf("   additional extension flag: %u\n", bs->GetBits(1));
+}
+    
+  
 void h264_parse_pic_parameter_set (h264_decode_t *dec, CBitstream *bs)
 {
   uint32_t num_slice_groups, temp, iGroup;
@@ -425,6 +498,7 @@ static const char *nal[] = {
   "End of Sequence",                // 10
   "end of stream",                  // 11
   "filler data",                    // 12
+  "Sequence parameter set extension", // 13
 };
 
 static const char *nal_unit_type (uint8_t type)
@@ -432,7 +506,7 @@ static const char *nal_unit_type (uint8_t type)
   if (type == 0 || type >= 24) {
     return "unspecified";
   }
-  if (type < 13) {
+  if (type < 14) {
     return nal[type - 1];
   }
   return "reserved";
@@ -534,6 +608,9 @@ uint8_t h264_parse_nal (h264_decode_t *dec, CBitstream *bs)
       break;
     case H264_NAL_TYPE_ACCESS_UNIT:
       printf("   primary_pic_type: %u\n", bs->GetBits(3));
+      break;
+    case H264_NAL_TYPE_SEQ_EXTENSION:
+      h264_parse_seq_ext(dec, bs);
       break;
     }
   } catch (BitstreamErr_t err) {

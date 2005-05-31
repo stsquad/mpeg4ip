@@ -68,6 +68,9 @@ static const SConfigVariable MyConfigVariables[] = {
   CONFIG_STRING_HELP(CONFIG_URL_EXEC, "UrlExec", NULL, 
 		     "Enter full path to browser launch - default /usr/bin/firefox/firefox"),
   CONFIG_BOOL(CONFIG_SHORT_VIDEO_RENDER, "ShortVideoRender", false),
+  CONFIG_STRING_HELP(CONFIG_RTSP_PROXY_ADDR, "RtspProxyAddr", NULL, 
+		     "RTSP proxy address"),
+  CONFIG_INT(CONFIG_RTSP_PROXY_PORT, "RtspProxyPort", 0),
 };
 
 CConfigSet config(MyConfigVariables, 

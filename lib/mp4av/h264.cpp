@@ -188,6 +188,24 @@ extern "C" uint8_t h264_nal_ref_idc (const uint8_t *buffer)
   return (buffer[offset] >> 5) & 0x3;
 }
 
+static void scaling_list (uint sizeOfScalingList, CBitstream *bs)
+{
+  uint lastScale = 8, nextScale = 8;
+  uint j;
+
+  for (j = 0; j < sizeOfScalingList; j++) {
+    if (nextScale != 0) {
+      int deltaScale = h264_se(bs);
+      nextScale = (lastScale + deltaScale + 256) % 256;
+    }
+    if (nextScale == 0) {
+      lastScale = lastScale;
+    } else {
+      lastScale = nextScale;
+    }
+  }
+}
+
 int h264_read_seq_info (const uint8_t *buffer, 
 			uint32_t buflen, 
 			h264_decode_t *dec)
@@ -206,9 +224,27 @@ int h264_read_seq_info (const uint8_t *buffer,
   //bs.set_verbose(true);
   try {
     dec->profile = bs.GetBits(8);
-    bs.GetBits(1 + 1 + 1 + 5);
+    bs.GetBits(1 + 1 + 1 + 1 + 4);
     dec->level = bs.GetBits(8);
     h264_ue(&bs); // seq_parameter_set_id
+    if (dec->profile == 100 || dec->profile == 110 ||
+	dec->profile == 122 || dec->profile == 144) {
+      dec->chroma_format_idc = h264_ue(&bs);
+      if (dec->chroma_format_idc == 3) {
+	dec->residual_colour_transform_flag = bs.GetBits(1);
+      }
+      dec->bit_depth_luma_minus8 = h264_ue(&bs);
+      dec->bit_depth_chroma_minus8 = h264_ue(&bs);
+      dec->qpprime_y_zero_transform_bypass_flag = bs.GetBits(1);
+      dec->seq_scaling_matrix_present_flag = bs.GetBits(1);
+      if (dec->seq_scaling_matrix_present_flag) {
+	for (uint ix = 0; ix < 8; ix++) {
+	  if (bs.GetBits(1)) {
+	    scaling_list(ix < 6 ? 16 : 64, &bs);
+	  }
+	}
+      }
+    }
     dec->log2_max_frame_num_minus4 = h264_ue(&bs);
     dec->pic_order_cnt_type = h264_ue(&bs);
     if (dec->pic_order_cnt_type == 0) {
@@ -216,7 +252,7 @@ int h264_read_seq_info (const uint8_t *buffer,
     } else if (dec->pic_order_cnt_type == 1) {
       dec->delta_pic_order_always_zero_flag = bs.GetBits(1);
       dec->offset_for_non_ref_pic = h264_se(&bs); // offset_for_non_ref_pic
-      dec->offset_for_non_ref_pic = h264_se(&bs); // offset_for_top_to_bottom_field
+      dec->offset_for_top_to_bottom_field = h264_se(&bs); // offset_for_top_to_bottom_field
       dec->pic_order_cnt_cycle_length = h264_ue(&bs); // poc_cycle_length
       for (uint32_t ix = 0; ix < dec->pic_order_cnt_cycle_length; ix++) {
         dec->offset_for_ref_frame[MIN(ix,255)] = h264_se(&bs); // offset for ref fram -

@@ -42,13 +42,16 @@ void free_rtsp_client (rtsp_client_t *rptr)
   CHECK_AND_FREE(rptr->url);
   CHECK_AND_FREE(rptr->server_name);
   CHECK_AND_FREE(rptr->cookie);
+  CHECK_AND_FREE(rptr->proxy_name);
   free_decode_response(rptr->decode_response);
   rptr->decode_response = NULL;
   free(rptr);
 }
 
 
-rtsp_client_t *rtsp_create_client_common (const char *url, int *perr)
+rtsp_client_t *rtsp_create_client_common (const char *url, int *perr,
+					  const char *proxy_addr,
+					  in_port_t proxy_port)
 {
   int err;
   rtsp_client_t *info;
@@ -83,11 +86,19 @@ rtsp_client_t *rtsp_create_client_common (const char *url, int *perr)
     return (NULL);
   }
   free(converted_url);
+
+  info->use_proxy = proxy_addr != NULL;
+  if (info->use_proxy) {
+    info->proxy_name = strdup(proxy_addr);
+    info->proxy_port = proxy_port != 0 ? proxy_port : 554;
+  }
   return (info);
 }
 
 
-rtsp_client_t *rtsp_create_client (const char *url, int *err)
+rtsp_client_t *rtsp_create_client (const char *url, int *err,
+				   const char *proxy_addr, 
+				   in_port_t proxy_port)
 {
   rtsp_client_t *info;
 
@@ -107,7 +118,7 @@ rtsp_client_t *rtsp_create_client (const char *url, int *err)
   }
 #endif
 
-  info = rtsp_create_client_common(url, err);
+  info = rtsp_create_client_common(url, err, proxy_addr, proxy_port);
   if (info == NULL) return (NULL);
   
   *err = rtsp_create_socket(info);

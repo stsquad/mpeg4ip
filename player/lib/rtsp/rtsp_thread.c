@@ -609,7 +609,9 @@ int rtsp_thread_set_rtp_callback (rtsp_client_t *info,
  * create threaded rtsp session
  */
 rtsp_client_t *rtsp_create_client_for_rtp_tcp (const char *url,
-					       int *err)
+					       int *err,
+					       const char *proxy_addr,
+					       in_port_t proxy_port)
 {
   rtsp_client_t *info;
   int ret;
@@ -622,7 +624,7 @@ rtsp_client_t *rtsp_create_client_for_rtp_tcp (const char *url,
     return NULL;
   }
 #endif
-  info = rtsp_create_client_common(url, err);
+  info = rtsp_create_client_common(url, err, proxy_addr, proxy_port);
   if (info == NULL) return (NULL);
   info->msg_mutex = SDL_CreateMutex();
   if (rtsp_create_thread(info) != 0) {

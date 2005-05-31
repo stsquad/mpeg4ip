@@ -312,13 +312,22 @@ static char* PrintVideoInfo(
 	  // avc
 	  uint8_t profile, level;
 	  char profileb[20], levelb[20];
-	  if (MP4GetTrackH264ProfileLevel(mp4File, trackId, &profile, &level)) {
+	  if (MP4GetTrackH264ProfileLevel(mp4File, trackId, 
+					  &profile, &level)) {
 	    if (profile == 66) {
 	      strcpy(profileb, "Baseline");
 	    } else if (profile == 77) {
 	      strcpy(profileb, "Main");
 	    } else if (profile == 88) {
 	      strcpy(profileb, "Extended");
+	    } else if (profile == 100) {
+	      strcpy(profileb, "High");
+	    } else if (profile == 110) {
+	      strcpy(profileb, "High 10");
+	    } else if (profile == 122) {
+	      strcpy(profileb, "High 4:2:2");
+	    } else if (profile == 144) {
+	      strcpy(profileb, "High 4:4:4");
 	    } else {
 	      sprintf(profileb, "Unknown Profile %x", profile);
 	    } 

@@ -771,7 +771,9 @@ mpeg2t_client_t *mpeg2t_start_rtsp (CPlayerSession *psptr,
   rtsp_url[2] = 's';
   rtsp_url[3] = 'p';
   // That's to change mpeg2t:// to rtsp://
-  rptr = rtsp_create_client(rtsp_url, &err);
+  rptr = rtsp_create_client(rtsp_url, &err,
+			    config.GetStringValue(CONFIG_RTSP_PROXY_ADDR),
+			    config.GetIntegerValue(CONFIG_RTSP_PROXY_PORT));
   if (rptr == NULL) {
     psptr->set_message("Couldn't create rtsp client %d", err);
     free(rtsp_url);

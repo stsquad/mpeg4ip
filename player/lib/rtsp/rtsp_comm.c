@@ -27,12 +27,6 @@
 #include <sys/poll.h>
 #endif
 
-#if 0
-#if !defined(HAVE_STRUCT_ADDRINFO) && !defined(_WIN32)
-#include "addrinfo.h"
-#endif
-#endif
-
 /*
  * rtsp_create_socket()
  * creates and connects socket to server.  Requires rtsp_info_t fields
@@ -41,16 +35,29 @@
  */
 static int rtsp_lookup_server_address (rtsp_client_t *info)
 {
+  const char *server_name;
+  in_port_t port;
+
+  if (info->use_proxy) {
+    server_name = info->proxy_name;
+    port = info->proxy_port;
+    rtsp_debug(LOG_ERR, "using proxy %s:%u", 
+	       server_name, port);
+  } else {
+    server_name = info->server_name;
+    port = info->port;
+  }
+
 #ifdef HAVE_IPv6
   struct addrinfo hints;
-  char port[32];
+  char sport[32];
   int error;
   
-  snprintf(port, sizeof(port), "%d", info->port);
+  snprintf(sport, sizeof(sport), "%d", port);
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = PF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
-  error = getaddrinfo(info->server_name, port, &hints, &info->addr_info);
+  error = getaddrinfo(server_name, sport, &hints, &info->addr_info);
   if (error) {
     rtsp_debug(LOG_CRIT, "Can't get server address info %s - error %d", 
 	       info->server_name, h_errno);
@@ -59,15 +66,15 @@ static int rtsp_lookup_server_address (rtsp_client_t *info)
 #else
   struct hostent *host;
 #if defined(_WIN32) || !defined(HAVE_INET_NTOA)
-  info->server_addr.s_addr = inet_addr(info->server_name);
+  info->server_addr.s_addr = inet_addr(server_name);
   if (info->server_addr.s_addr != INADDR_NONE) return 0;
 #else
-  if (inet_aton(info->server_name, &info->server_addr) != 0) return 0;
+  if (inet_aton(server_name, &info->server_addr) != 0) return 0;
 #endif
   
-  host = gethostbyname(info->server_name);
+  host = gethostbyname(server_name);
   if (host == NULL) {
-    rtsp_debug(LOG_CRIT, "Can't get server host name %s", info->server_name);
+    rtsp_debug(LOG_CRIT, "Can't get server host name %s", server_name);
     return (h_errno);
   }
   info->server_addr = *(struct in_addr *)host->h_addr;
@@ -88,7 +95,7 @@ int rtsp_create_socket (rtsp_client_t *info)
     return (0);
   }
   
-  if (info->server_name == NULL) {
+  if (info->server_name == NULL && info->proxy_name == NULL) {
     rtsp_debug(LOG_CRIT, "No server name in create socket");
     return (-1);
   }
@@ -115,7 +122,7 @@ int rtsp_create_socket (rtsp_client_t *info)
   
 #ifndef HAVE_IPv6  
   sockaddr.sin_family = AF_INET;
-  sockaddr.sin_port = htons(info->port);
+  sockaddr.sin_port = htons(info->use_proxy ? info->proxy_port : info->port);
   sockaddr.sin_addr = info->server_addr;
 #endif
 

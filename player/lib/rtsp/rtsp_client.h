@@ -150,9 +150,13 @@ void free_rtsp_client(rtsp_client_t *info);
  *               values should be errno values
  * Output - pointer to rtsp_client handle
  */
-rtsp_client_t *rtsp_create_client(const char *url, int *err);
+rtsp_client_t *rtsp_create_client(const char *url, int *err, 
+				  const char *proxy_addr, 
+				  in_port_t proxy_port);
 rtsp_client_t *rtsp_create_client_for_rtp_tcp(const char *url,
-					      int *err);
+					      int *err,
+					      const char *proxy_addr,
+					      in_port_t proxy_port);
 
   typedef int (*rtsp_thread_callback_f)(void *);
 
