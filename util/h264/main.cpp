@@ -192,7 +192,7 @@ static void scaling_list (uint ix, uint sizeOfScalingList, CBitstream *bs)
     if (nextScale != 0) {
       deltaScale = h264_se(bs);
       nextScale = (lastScale + deltaScale + 256) % 256;
-      printf("     delta: %u\n", deltaScale);
+      printf("     delta: %d\n", deltaScale);
     }
     if (nextScale == 0) {
       lastScale = lastScale;
@@ -355,9 +355,9 @@ void h264_parse_pic_parameter_set (h264_decode_t *dec, CBitstream *bs)
     printf("   num_ref_idx_l1_active_minus1: %u\n", h264_ue(bs));
     printf("   weighted_pred_flag: %u\n", bs->GetBits(1));
     printf("   weighted_bipred_idc: %u\n", bs->GetBits(2));
-    printf("   pic_init_qp_minus26: %u\n", h264_se(bs));
-    printf("   pic_init_qs_minus26: %u\n", h264_se(bs));
-    printf("   chroma_qp_index_offset: %u\n", h264_se(bs));
+    printf("   pic_init_qp_minus26: %d\n", h264_se(bs));
+    printf("   pic_init_qs_minus26: %d\n", h264_se(bs));
+    printf("   chroma_qp_index_offset: %d\n", h264_se(bs));
     printf("   deblocking_filter_control_present_flag: %u\n", bs->GetBits(1));
     printf("   constrained_intra_pred_flag: %u\n", bs->GetBits(1));
     printf("   redundant_pic_cnt_present_flag: %u\n", bs->GetBits(1));
@@ -557,7 +557,7 @@ void h264_slice_header (h264_decode_t *dec, CBitstream *bs)
     printf("   pic_order_cnt_lsb: %u\n", dec->pic_order_cnt_lsb);
     if (dec->pic_order_present_flag && !dec->field_pic_flag) {
       dec->delta_pic_order_cnt_bottom = h264_se(bs);
-      printf("   delta_pic_order_cnt_bottom: %u\n", 
+      printf("   delta_pic_order_cnt_bottom: %d\n", 
 	     dec->delta_pic_order_cnt_bottom);
     }
     break;

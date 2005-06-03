@@ -37,10 +37,10 @@ Audio Codecs:
 <br>Through ffmpeg: AMR NB, AMR WB, G.711 alaw and ulaw
 <p>
 Streaming capability: 
-<br>RTSP, SDP, RTP (rfc 1890 for raw audio, 2250 for mpeg1/2 
+<br>RTSP, SDP, RTP (rfc 3551 for raw audio, 2250 for mpeg1/2 
 audio and video, 3016 for mpeg4 video, 3119 for mp3, 3640 for aac/celp audio, 
-3267 for AMR octet-aligned only), mpeg2 transport streams (mpeg2 video, mp3 
-and ac3 audio), both multicast and streaming.
+3267 for AMR octet-aligned only, 3984 for h.264), 
+mpeg2 transport streams (mpeg2 video, mp3 and ac3 audio), both multicast and streaming.
 <p>
 Supports http fetch of sdp files.
 <p>
@@ -57,7 +57,7 @@ streaming playback.
 <h2>Mp4live Features</h2>
 </div>
 <p>
-Mp4live supports the following:
+Mp4live is only available on Linux.  Mp4live supports the following:
 <p>
 Video Encoders:
 <br>mpeg4 (xvid, xvid-0.9.2 or xvid-1.0 series with seperate download, ffmpeg with seperate download), 
@@ -85,9 +85,9 @@ raw audio (PCM) and video
 <p>
 Transmission Options: (RTP, multicast or unicast)
 <br>
-mpeg4 video (RFC 3016), mpeg2 video (rfc 2250), h263 video (rfc 2429),
-h264 video (draft-ietf-avt-rtp-h264-10), 
-aac audio (rfc 3460), mp3 audio (rfc 2250), amr audio (rfc 3267)
+mpeg4 video (RFC 3016), mpeg2 video (rfc 2250), h261 video (rfc 3551), 
+h263 video (rfc 2429), h264 video (RFC 3982), 
+G.711 audio (RFC 3551), aac audio (rfc 3460), mp3 audio (rfc 2250), amr audio (rfc 3267)
 <a href="#top">Back to top</a>
 <p>
 <div id="mp4f">

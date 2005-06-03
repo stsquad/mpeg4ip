@@ -37,6 +37,13 @@ static int rtsp_lookup_server_address (rtsp_client_t *info)
 {
   const char *server_name;
   in_port_t port;
+#ifdef HAVE_IPv6
+  struct addrinfo hints;
+  char sport[32];
+  int error;
+#else
+  struct hostent *host;
+#endif
 
   if (info->use_proxy) {
     server_name = info->proxy_name;
@@ -49,10 +56,6 @@ static int rtsp_lookup_server_address (rtsp_client_t *info)
   }
 
 #ifdef HAVE_IPv6
-  struct addrinfo hints;
-  char sport[32];
-  int error;
-  
   snprintf(sport, sizeof(sport), "%d", port);
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = PF_UNSPEC;
@@ -64,7 +67,6 @@ static int rtsp_lookup_server_address (rtsp_client_t *info)
     return h_errno;
   }
 #else
-  struct hostent *host;
 #if defined(_WIN32) || !defined(HAVE_INET_NTOA)
   info->server_addr.s_addr = inet_addr(server_name);
   if (info->server_addr.s_addr != INADDR_NONE) return 0;
