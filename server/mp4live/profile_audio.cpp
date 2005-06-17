@@ -21,10 +21,17 @@
 
 #define DECLARE_CONFIG_VARIABLES 1
 #include "profile_audio.h"
+#undef DECLARE_CONFIG_VARIABLES
+#include "audio_encoder.h"
 
 void CAudioProfile::LoadConfigVariables (void)
 {
   AddConfigVariables(AudioProfileConfigVariables, 
 		     NUM_ELEMENTS_IN_ARRAY(AudioProfileConfigVariables));
   // eventually will add interface to read each encoder's variables
+}
+
+void CAudioProfile::Update (void)
+{
+  AudioProfileCheck(this);
 }

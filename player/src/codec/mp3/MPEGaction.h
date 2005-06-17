@@ -38,6 +38,7 @@ public:
         looping = false;
 	play_time = 0.0;
     }
+    virtual ~MPEGaction() {};
     virtual void Loop(bool toggle) {
         looping = toggle;
     }
@@ -84,6 +85,7 @@ typedef struct MPEG_AudioInfo {
 /* Audio action class */
 class MPEGaudioaction : public MPEGaction {
 public:
+  virtual ~MPEGaudioaction() {};
     virtual bool GetAudioInfo(MPEG_AudioInfo *info) {
         return(true);
     }
@@ -105,6 +107,7 @@ typedef struct MPEG_VideoInfo {
 /* Video action class */
 class MPEGvideoaction : public MPEGaction {
 public:
+  virtual ~MPEGvideoaction() {};
     virtual void SetTimeSource(MPEGaudioaction *source) {
         time_source = source;
     }

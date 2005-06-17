@@ -47,11 +47,8 @@ Revision History:
 #define _HUFFMAN_HPP_
 
 #define VM_HOME_DIR		"\\vm"
+#include "bitstrm.hpp"
 
-class istream;
-class ostream;
-class CInBitStream;
-class COutBitStream;
 class CEntropyEncoder;
 class CEntropyDecoder;
 class CNode;
@@ -86,6 +83,8 @@ private:
 
 class CHuffmanCoDec
 {
+public:
+    virtual ~CHuffmanCoDec() {};
 protected:
     virtual Int makeIndexFromSymbolInTable (istream &huffmanTable);
     Void profileTable (

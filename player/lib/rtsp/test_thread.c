@@ -53,11 +53,13 @@ static void local_error_msg (int loglevel,
 	}
 #define sleep(a) Sleep((a) * 1000)
 #endif
+  long int msec;
   gettimeofday(&thistime, NULL);
   strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
+  msec = thistime.tv_usec / 1000;
   printf("%s.%03ld-%s-%d: ",
 	 buffer,
-	 thistime.tv_usec / 1000,
+	 msec,
 	 lib,
 	 loglevel);
   vprintf(fmt, ap);
@@ -70,11 +72,12 @@ static int callback (void *foo)
   rtsp_debug(LOG_DEBUG, "callback - SDL thread %d\n", SDL_ThreadID());
   return (SDL_ThreadID());
 }
-static void do_relative_url_to_absolute (char **control_string,
+static void do_relative_url_to_absolute (const char **control_string,
 				  const char *base_url,
 				  int dontfree)
 {
-  char *str, *cpystr;
+  char *str;
+  const char *cpystr;
   uint32_t cblen, malloclen;
 
   malloclen = cblen = strlen(base_url);
@@ -101,7 +104,7 @@ static void do_relative_url_to_absolute (char **control_string,
     str = strdup(base_url);
   }
   if (dontfree == 0) 
-    free(*control_string);
+    CHECK_AND_FREE(*control_string);
   *control_string = str;
 }
 
@@ -151,7 +154,7 @@ int main (int argc, char **argv)
   callback(NULL);
   
   argv++;
-  rtsp_client = rtsp_create_client_for_rtp_tcp(*argv, &ret);
+  rtsp_client = rtsp_create_client_for_rtp_tcp(*argv, &ret, NULL, 0);
 
   if (rtsp_client == NULL) {
     printf("No client created - error %d\n", ret);

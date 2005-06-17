@@ -28,6 +28,7 @@
 
 //#define DEBUG_LOC 1
 //#define DEBUG_STATE 1
+static const uint lpcm_freq_tab[4] = {48000, 96000, 44100, 32000};
 
 /*************************************************************************
  * File access routines.  Could all be inlined
@@ -289,8 +290,9 @@ static bool read_to_next_pes_header (FDTYPE fd,
     *stream_id = hdr & 0xff;
     *pes_len = convert16(local + 4);
 #if 0
-    printf("loc: "X64" %x len %u\n", file_location(fd) - 6,
+    printf("loc: "X64" %x %x len %u\n", file_location(fd) - 6,
 	   local[3],
+	   *stream_id,
 	   *pes_len);
 #endif
     return TRUE;
@@ -372,6 +374,7 @@ static bool read_pes_header_data (FDTYPE fd,
       ts->have_pts = TRUE;
       file_read_bytes(fd, local, 5);
       ts->pts = ts->dts = read_pts(local);
+      //printf("pts "U64"\n", ts->pts);
       *have_ts = true;
       hdr_len -= 5;
     } else if ((local[1] & 0xc0) == 0xc0) {
@@ -432,8 +435,20 @@ static bool search_for_next_pes_header (mpeg2ps_stream_t *sptr,
 	file_skip_bytes(sptr->m_fd, *pes_len);
 	continue; // skip to the next one
       }
-      *pes_len -= 3;
-      file_skip_bytes(sptr->m_fd, 3); // 4 bytes - we don't need now...
+      if (sptr->m_substream_id >= 0xa0) {
+	*pes_len -= 6;
+	file_read_bytes(sptr->m_fd, sptr->audio_private_stream_info, 6);
+#if 0
+	printf("reading %x %x %x %x\n", 
+	       sptr->audio_private_stream_info[0],
+	       sptr->audio_private_stream_info[1],
+	       sptr->audio_private_stream_info[2],
+	       sptr->audio_private_stream_info[3]);
+#endif
+      } else {
+	*pes_len -= 3;
+	file_skip_bytes(sptr->m_fd, 3); // 4 bytes - we don't need now...
+      }
       // we need more here...
     }
     if (have_ts) {
@@ -578,6 +593,69 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
   }
   return FALSE;
 }
+static bool mpeg2ps_stream_find_lpcm_frame (mpeg2ps_stream_t *sptr)
+{
+  uint8_t frames;
+  uint32_t this_pes_byte_count;
+
+  if (sptr->pes_buffer_size == sptr->pes_buffer_on) {
+    if (mpeg2ps_stream_read_next_pes_buffer(sptr) == false) {
+      return false;
+    }
+  }
+  if (sptr->channels == 0) {
+    // means we haven't read anything yet - we need to read for
+    // frequency and channels.
+    sptr->channels = 1 + (sptr->audio_private_stream_info[LPCM_INFO] & 0x7);
+    sptr->freq = lpcm_freq_tab[(sptr->audio_private_stream_info[LPCM_INFO] >> 4) & 7];
+  }
+
+  sptr->frame_ts = sptr->next_pes_ts;
+  sptr->next_pes_ts.have_dts = sptr->next_pes_ts.have_pts = false;
+  if (sptr->lpcm_read_offset) {
+    // we need to read bytes - 4 bytes.  This should only occur when 
+    // we seek.  Otherwise, we've already reall read the bytes when
+    // we read the last pes
+    uint32_t bytes_to_skip;
+    bytes_to_skip = 
+      ntohs(*(uint16_t *)&sptr->audio_private_stream_info[LPCM_PES_OFFSET_MSB]);
+    bytes_to_skip -= 4;
+
+    while (bytes_to_skip > sptr->pes_buffer_size - sptr->pes_buffer_on) {
+      if (mpeg2ps_stream_read_next_pes_buffer(sptr) == false) {
+	return FALSE;
+      }
+    } 
+    sptr->pes_buffer_on += bytes_to_skip;
+    sptr->lpcm_read_offset = false;
+  }
+
+  // calculate the number of bytes in this LPCM frame.  There are
+  // 150 PTS ticks per LPCM frame.  We will read all the PCM frames
+  // referenced by the header.
+  frames = sptr->audio_private_stream_info[LPCM_FRAME_COUNT];
+  this_pes_byte_count = frames;
+  this_pes_byte_count *= 150;
+  this_pes_byte_count *= sptr->freq;
+  this_pes_byte_count *= sptr->channels * sizeof(int16_t);
+  this_pes_byte_count /= 90000;
+  //printf("fcount %u bytes %u\n", frames, this_pes_byte_count);
+
+  sptr->frame_len = this_pes_byte_count;
+
+  while (sptr->pes_buffer_size - sptr->pes_buffer_on < sptr->frame_len) {
+    if (mpeg2ps_stream_read_next_pes_buffer(sptr) == FALSE) {
+      return FALSE;
+    }
+  }
+  sptr->have_frame_loaded = true;
+#if 0
+  printf("lpcm size %u %u %u %u\n", sptr->pes_buffer_size - sptr->pes_buffer_on, 
+	 sptr->frame_len,
+	 sptr->frame_ts.have_dts, sptr->frame_ts.have_pts);
+#endif
+  return TRUE;
+}
 
 static bool mpeg2ps_stream_find_ac3_frame (mpeg2ps_stream_t *sptr)
 {
@@ -721,6 +799,17 @@ static bool mpeg2ps_stream_read_frame (mpeg2ps_stream_t *sptr,
     return FALSE;
   } else if (sptr->m_stream_id == 0xbd) {
     // would need to handle LPCM here
+    if (sptr->m_substream_id >= 0xa0) {
+      if (mpeg2ps_stream_find_lpcm_frame(sptr)) {
+	*buffer = sptr->pes_buffer + sptr->pes_buffer_on;
+	*buflen = sptr->frame_len;
+	if (advance_pointers) {
+	  sptr->pes_buffer_on += sptr->frame_len;
+	}
+	return TRUE;
+      }
+      return FALSE;
+    }
     if (mpeg2ps_stream_find_ac3_frame(sptr)) {
       *buffer = sptr->pes_buffer + sptr->pes_buffer_on;
       *buflen = sptr->frame_len;
@@ -779,9 +868,8 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
   } else if (sptr->m_stream_id == 0xbd) {
     if (sptr->m_substream_id >= 0xa0) {
       // PCM - ???
-      sptr->freq = 48000;
-      sptr->channels = 2;
-      sptr->samples_per_frame = 1024;
+      sptr->samples_per_frame = 0;
+      sptr->bitrate = sptr->freq * sptr->channels * sizeof(int16_t);
     } else if (sptr->m_substream_id >= 0x80) {
       // ac3
       const uint8_t *temp;
@@ -818,6 +906,7 @@ static void clear_stream_buffer (mpeg2ps_stream_t *sptr)
   sptr->have_frame_loaded = false;
   sptr->next_pes_ts.have_dts = sptr->next_pes_ts.have_pts = false;
   sptr->frame_ts.have_dts = sptr->frame_ts.have_pts = false;
+  sptr->lpcm_read_offset = true;
 }
 
 /*
@@ -996,6 +1085,7 @@ static void get_info_for_all_streams (mpeg2ps_t *ps)
 	continue;
       }
       get_info_from_frame(sptr, buffer, buflen);
+      //printf("got stream av %d %d\n", av, sptr->first_pes_has_dts);
       // here - if (sptr->first_pes_has_dts == false) should be processed
       if (sptr->first_pes_has_dts == false) {
 	uint32_t frames_from_beg = 0;
@@ -1217,6 +1307,7 @@ static void mpeg2ps_scan_file (mpeg2ps_t *ps)
       
       // pick up here - find the final time...
       if (sptr->end_dts_loc != 0) {
+	//printf("end loc "U64"\n", sptr->end_dts_loc);
 	file_seek_to(ps->fd, sptr->end_dts_loc);
 	sptr->m_fd = ps->fd;
 	frame_cnt_since_last = 0;
@@ -1225,6 +1316,7 @@ static void mpeg2ps_scan_file (mpeg2ps_t *ps)
 					 &buffer, 
 					 &buflen,
 					 true)) {
+	  //printf("loc "U64"\n", file_location(sptr->m_fd)); 
 	  frame_cnt_since_last++;
 	}
 	sptr->m_fd = FDNULL;
@@ -1489,6 +1581,10 @@ static uint64_t stream_convert_frame_ts_to_msec (mpeg2ps_stream_t *sptr,
   else frames_since_last = sptr->frames_since_last_ts + 1;
 
   if (freq_ts != NULL) {
+#if 0
+    printf("base dts "U64" "U64" %d %u %u\n", base_dts, calc_ts, frames_since_last,
+	   sptr->samples_per_frame, sptr->freq);
+#endif
     freq_conv = calc_ts - base_dts;
     freq_conv *= sptr->freq;
     freq_conv /= 90000;

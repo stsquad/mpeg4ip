@@ -435,8 +435,8 @@ int CPlayerSession::sync_thread_playing (void)
 		       have_eof);
 #endif
 	  video_next_time = MIN(cmp, video_next_time);
-	  have_video_eof &= have_eof;
 	}
+	have_video_eof &= have_eof;
       }
     } 
 
@@ -454,7 +454,7 @@ int CPlayerSession::sync_thread_playing (void)
       }
     } else if (m_timed_sync_list) {
       if (have_video_eof) {
-	sync_message(LOG_DEBUG, "have video eof");
+	sync_message(LOG_DEBUG, "have video eof %d", have_video_eof);
 	return (SYNC_STATE_DONE);
       } 
       if (video_have_next_time) {

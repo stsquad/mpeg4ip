@@ -33,6 +33,39 @@
 #include "audio_ffmpeg.h"
 #endif
 
+void AudioProfileCheck (CAudioProfile *ap)
+{
+  const char *encoderName = ap->GetStringValue(CFG_AUDIO_ENCODER);
+  error_message("audio profile checking %s:%s", ap->GetName(), encoderName);
+  if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
+#ifdef HAVE_FAAC
+    return;
+#else
+    // fall through
+#endif
+  } else if (!strcasecmp(encoderName, AUDIO_ENCODER_LAME)) {
+#ifdef HAVE_LAME
+    return;
+#else
+
+#endif
+  } else if (strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG) == 0) {
+#ifdef HAVE_FFMPEG
+    return;
+#else
+#endif
+  } else if (strcasecmp(encoderName, AUDIO_ENCODER_G711) == 0) {
+    return;
+  }
+  error_message("Audio Profile %s: encoder %s does not exist - switching to G.711",
+		ap->GetName(), encoderName);
+  ap->SetStringValue(CFG_AUDIO_ENCODER, AUDIO_ENCODER_G711);
+  ap->SetStringValue(CFG_AUDIO_ENCODING, AUDIO_ENCODING_ULAW);
+  ap->SetIntegerValue(CFG_AUDIO_CHANNELS, 1);
+  ap->SetIntegerValue(CFG_AUDIO_SAMPLE_RATE, 8000);
+  ap->SetIntegerValue(CFG_AUDIO_BIT_RATE, 64000);
+}  
+
 CAudioEncoder* AudioEncoderBaseCreate(CAudioProfile *ap,
 				      CAudioEncoder *next,
 				      u_int8_t srcChannels,

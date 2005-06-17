@@ -36,6 +36,8 @@ const uint32_t allSampleRateTable[] = {
 };
 const uint32_t allSampleRateTableSize = NUM_ELEMENTS_IN_ARRAY(allSampleRateTable);
 
+void AudioProfileCheck(CAudioProfile *ap);
+
 CAudioEncoder* AudioEncoderCreate(CAudioProfile *ap, 
 				  CAudioEncoder *next, 
 				  u_int8_t srcChannels,

@@ -189,6 +189,7 @@ public:
   bool m_preview;
 };
 
+void VideoProfileCheck(CVideoProfile *vp);
 CVideoEncoder* VideoEncoderCreate(CVideoProfile *vp, 
 				  uint16_t mtu,
 				  CVideoEncoder *next, 

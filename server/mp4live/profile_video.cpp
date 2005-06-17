@@ -33,6 +33,7 @@ void CVideoProfile::LoadConfigVariables (void)
 
 void CVideoProfile::Update (void) 
 {
+  VideoProfileCheck(this);
 
   u_int16_t frameHeight;
   float aspectRatio = GetFloatValue(CFG_VIDEO_CROP_ASPECT_RATIO);

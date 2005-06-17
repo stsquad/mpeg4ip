@@ -42,6 +42,56 @@
 
 #include "h261/encoder-h261.h"
 #include "rtp_transmitter.h"
+
+void VideoProfileCheckBase (CVideoProfile *vp)
+{
+  const char *encoderName = vp->GetStringValue(CFG_VIDEO_ENCODER);
+  if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
+#ifdef HAVE_FFMPEG
+    return;
+#else
+    error_message("Profile:%s ffmpeg encoder not available in this build", 
+		  vp->GetName());
+#if defined(HAVE_XVID10) || defined(HAVE_XVID_H)
+    error_message("It has been changed to xvid");
+    vp->SetStringValue(CFG_VIDEO_ENCODER, VIDEO_ENCODER_XVID);
+    return;
+#endif
+#endif
+  } else if (!strcasecmp(encoderName, VIDEO_ENCODER_XVID)) {
+
+#if defined(HAVE_XVID10) || defined(HAVE_XVID_H)
+    return;
+#else
+    error_message("Profile %s:xvid encoder not available in this build",
+		  vp->GetName());
+#ifdef HAVE_FFMPEG
+    error_message("It has been changed to ffmpeg");
+    vp->SetStringValue(CFG_VIDEO_ENCODER, VIDEO_ENCODER_FFMPEG);
+    return;
+#endif
+#endif
+  } else if (!strcasecmp(encoderName, VIDEO_ENCODER_X264)) {
+#ifdef HAVE_X264
+    return;
+#else
+    error_message("Profile %s:X264 encoder is not available in this build", 
+		  vp->GetName());
+#endif
+  } else if (!strcasecmp(encoderName, VIDEO_ENCODER_H261)) {
+    return;
+  } else {
+    error_message("Profile %s: encoder %s not found", vp->GetName(), encoderName);
+  }
+  // if we reach here, we want to set the h.261 encoder
+  error_message("It has been changed to H.261");
+  vp->SetStringValue(CFG_VIDEO_ENCODER, VIDEO_ENCODER_H261);
+  vp->SetStringValue(CFG_VIDEO_ENCODING, VIDEO_ENCODING_H261);
+  vp->SetIntegerValue(CFG_VIDEO_WIDTH, 352);
+  vp->SetIntegerValue(CFG_VIDEO_HEIGHT, 288);
+  // called from update, so don't sweat update.
+}
+  
 CVideoEncoder* VideoEncoderCreateBase(CVideoProfile *vp,
 				      uint16_t mtu,
 				      CVideoEncoder *next, 

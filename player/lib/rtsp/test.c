@@ -53,23 +53,26 @@ static void local_error_msg (int loglevel,
 #else
   struct timeval thistime;
   char buffer[80];
+  long int msec;
 
   gettimeofday(&thistime, NULL);
   strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
+  msec = thistime.tv_usec / 1000;
   printf("%s.%03ld-%s-%d: ",
 	 buffer,
-	 thistime.tv_usec / 1000,
+	 msec,
 	 lib,
 	 loglevel);
   vprintf(fmt, ap);
   printf("\n");
 #endif
 }
-static void do_relative_url_to_absolute (char **control_string,
+static void do_relative_url_to_absolute (const char **control_string,
 				  const char *base_url,
 				  int dontfree)
 {
-  char *str, *cpystr;
+  char *str;
+  const char *cpystr;
   uint32_t cblen, malloclen;
 
   malloclen = cblen = strlen(base_url);
@@ -95,8 +98,9 @@ static void do_relative_url_to_absolute (char **control_string,
   } else {
     str = strdup(base_url);
   }
-  if (dontfree == 0) 
-    free(*control_string);
+  if (dontfree == 0) {
+    CHECK_AND_FREE(*control_string);
+  }
   *control_string = str;
 }
 
@@ -142,7 +146,7 @@ int main (int argc, char **argv)
   memset(&cmd, 0, sizeof(rtsp_command_t));
 
   argv++;
-  rtsp_client = rtsp_create_client(*argv, &ret);
+  rtsp_client = rtsp_create_client(*argv, &ret, NULL, 0);
 
   if (rtsp_client == NULL) {
     printf("No client created - error %d\n", ret);

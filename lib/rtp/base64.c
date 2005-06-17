@@ -57,10 +57,10 @@
 
 static unsigned char basis_64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-int base64encode(const unsigned char *input, int input_length, unsigned char *output, int output_length)
+unsigned int base64encode(const unsigned char *input, unsigned int input_length, unsigned char *output, int output_length)
 {
-	int	i = 0, j = 0;
-	int	pad;
+  unsigned int	i = 0, j = 0;
+  unsigned int	pad;
 
 	ASSERT(output_length >= (input_length * 4 / 3));
 

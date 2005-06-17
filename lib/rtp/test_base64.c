@@ -42,18 +42,18 @@
 void test_base64(void)
 {
 	/* The string "Hello, world" should encode as "SGVsbG8sIHdvcmxk" */
-	const char	*input = "Hello, world";
-	char	 output[100];
-	char	 decode[100];
-	int	 i;
+  const unsigned char	*input = (const unsigned char *)"Hello, world";
+	unsigned char	 output[100];
+	unsigned char	 decode[100];
+	unsigned int	 i;
 
 	for (i = 0; i < 100; i++) {
 		output[i] = '\0';
 	}
 
 	printf("Base64 encode.......................... "); fflush(stdout);
-	i = base64encode(input, strlen(input), output, 100);
-	if ((i != 16) || (strncmp(output, "SGVsbG8sIHdvcmxk", i) != 0)) {
+	i = base64encode(input, strlen((char *)input), output, 100);
+	if ((i != 16) || (strncmp((char *)output, "SGVsbG8sIHdvcmxk", i) != 0)) {
 		printf("fail\n");
 		return;
 	}
@@ -61,7 +61,7 @@ void test_base64(void)
 
 	printf("Base64 decode.......................... "); fflush(stdout);
 	i = base64decode(output, i, decode, 100);
-	if ((i != 12) || (strncmp(decode, "Hello, world", i) != 0)) {
+	if ((i != 12) || (strncmp((char *)decode, "Hello, world", i) != 0)) {
 		printf("fail\n");
 		return;
 	}

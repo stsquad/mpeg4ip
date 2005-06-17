@@ -79,7 +79,7 @@ class CMp4ByteStream : public COurInByteStream
 #endif
   void read_frame(uint32_t frame, frame_timestamp_t *ts);
   CMp4File *m_parent;
-  int m_eof;
+  bool m_eof;
   MP4TrackId m_track;
   MP4SampleId m_frames_max;
   uint32_t m_sample_freq;

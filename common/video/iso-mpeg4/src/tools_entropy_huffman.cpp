@@ -42,21 +42,20 @@ Abstract:
 Revision History:
 
 *************************************************************************/
-
 #include <stdlib.h>
 #include <string.h>
-#include <fstream.h>
-#include <iostream.h>
+//#include <fstream.h>
+//#include <iostream.h>
 #include "typeapi.h"
 #include "entropy.hpp"
 #include "huffman.hpp"
-#include "iostream.h"
-#include "fstream.h"
+//#include "iostream.h"
+//#include "fstream.h"
 #include "math.h"
 #include "bitstrm.hpp"
 
 #include "vlc.hpp"
-
+#include <iostream.h>
 #ifdef __MFC_
 #ifdef _DEBUG
 #undef THIS_FILE

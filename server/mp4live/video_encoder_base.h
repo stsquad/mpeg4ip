@@ -28,6 +28,8 @@
 #include <mp4.h>
 #include "video_encoder.h"
 
+void VideoProfileCheckBase(CVideoProfile *vp);
+
 CVideoEncoder* VideoEncoderCreateBase(CVideoProfile *vp, 
 				      uint16_t mtu,
 				      CVideoEncoder *next, 

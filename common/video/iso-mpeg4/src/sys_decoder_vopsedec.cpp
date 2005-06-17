@@ -76,8 +76,8 @@ Revision History:
 
 *************************************************************************/
 #include <stdio.h>
-#include <fstream.h>
-#include <iostream.h>
+//#include <fstream.h>
+//#include <iostream.h>
 #ifdef __GNUC__
 //#include <strstream.h>
 #else
@@ -103,6 +103,10 @@ Revision History:
 // NEWPRED
 #include "newpred.hpp"
 // ~NEWPRED
+
+#ifndef max
+#define max MAX
+#endif
 
 #ifdef __MFC_
 #ifdef _DEBUG

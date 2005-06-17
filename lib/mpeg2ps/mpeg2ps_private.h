@@ -108,7 +108,14 @@ typedef struct mpeg2ps_stream_t
   double bit_rate;
   uint64_t ticks_per_frame;
   uint8_t mpeg2_profile;
+  uint8_t audio_private_stream_info[6];
+  bool lpcm_read_offset;
 } mpeg2ps_stream_t;
+
+#define LPCM_FRAME_COUNT 0
+#define LPCM_PES_OFFSET_MSB 1
+#define LPCM_PES_OFFSET_LSB 2
+#define LPCM_INFO 4
 
 /*
  * main interface structure - contains stream pointers and other

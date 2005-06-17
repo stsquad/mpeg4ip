@@ -56,8 +56,6 @@ Revision History:
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <fstream.h>
-#include <iostream.h>
 #include <strstream>
 #ifdef __PC_COMPILER_
 #include <windows.h>
@@ -75,10 +73,10 @@ Revision History:
 #include "dataStruct.hpp"
 
 #ifndef __GLOBAL_VAR_
-#define __GLOBAL_VAR_
+//#define __GLOBAL_VAR_
 #endif
 
-#define DEFINE_GLOBALS
+//#define DEFINE_GLOBALS
 
 
 #include "global.hpp"
@@ -229,6 +227,8 @@ int main(int argc, char* argv[])
 
 	if ( !bScalability || !bTemporalScalability ){
 		CVideoObjectDecoder* pvodec [2];
+		pvodec[0] = NULL;
+		pvodec[1] = NULL;
 		Bool bSpatialScalable = FALSE;
 		//		CRct rctDisplayBackup = rctDisplay; // for recovery from sprite decoding
 
@@ -269,7 +269,7 @@ int main(int argc, char* argv[])
 			pvodec [BASE_LAYER] -> decodeInitSprite ();
 		}
 
-		FILE* pfReconYUV [2];
+		FILE* pfReconYUV [2] = {NULL, NULL};
 		Char pchTmp [100];
 		sprintf (pchTmp, "%s.yuv", argv [2 + bScalability]);
 		pfReconYUV [BASE_LAYER] = fopen (pchTmp, "wb");
@@ -675,7 +675,7 @@ int main(int argc, char* argv[])
 			fatal_error("cant open enhancement layer output yuv file",pfReconYUV [ENHN_LAYER] != NULL);
 		}
 		sprintf (pchTmp, "%s.seg", argv [2 + bScalability]);
-		FILE* pfReconSeg [2];
+		FILE* pfReconSeg [2] = { NULL, NULL};
 		if (pvodec [BASE_LAYER]-> volmd ().fAUsage != RECTANGLE) {
 			pfReconSeg [BASE_LAYER] = fopen (pchTmp, "wb");
 			fatal_error("cant open output seg file",pfReconSeg [BASE_LAYER] != NULL);

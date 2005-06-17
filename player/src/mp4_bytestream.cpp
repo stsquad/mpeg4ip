@@ -51,9 +51,10 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
   m_track = track;
   m_frame_on = 1;
   m_parent = parent;
-  m_eof = 0;
+  m_eof = false;
   MP4FileHandle fh = parent->get_file();
   m_frames_max = MP4GetTrackNumberOfSamples(fh, m_track);
+  mp4f_message(LOG_DEBUG, "%s - %u samples", type, m_frames_max);
   m_max_frame_size = MP4GetTrackMaxSampleSize(fh, m_track) + 4; 
   m_sample_freq = MP4GetTrackTimeScale(fh, m_track);
   m_buffer = (u_int8_t *) malloc(m_max_frame_size * sizeof(u_int8_t));
@@ -91,7 +92,7 @@ CMp4ByteStream::~CMp4ByteStream()
 
 int CMp4ByteStream::eof(void)
 {
-  return m_eof != 0;
+  return m_eof;
 }
 
 
@@ -106,7 +107,9 @@ void CMp4ByteStream::check_for_end_of_frame (void)
 		 next_frame); 
 #endif
     if (next_frame >= m_frames_max + 1) {
-	m_eof = 1;
+	m_eof = true;
+	mp4f_message(LOG_DEBUG, "%s last frame %u %u", 
+		     m_name, next_frame, m_frames_max);
     } else {
       read_frame(next_frame, NULL);
     }
@@ -115,7 +118,7 @@ void CMp4ByteStream::check_for_end_of_frame (void)
 
 void CMp4ByteStream::set_timebase (MP4SampleId frame)
 {
-  m_eof = 0;
+  m_eof = false;
   if (frame == 0) frame = 1;
   m_frame_on = frame;
   read_frame(m_frame_on, NULL);
@@ -133,7 +136,9 @@ bool CMp4ByteStream::start_next_frame (uint8_t **buffer,
 {
 
   if (m_frame_on >= m_frames_max) {
-    m_eof = 1;
+    mp4f_message(LOG_DEBUG, "%s snf end %u %u", m_name, 
+		 m_frame_on, m_frames_max);
+    m_eof = true;
   }
 
   read_frame(m_frame_on, pts);
@@ -227,7 +232,7 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read,
   if (ret == FALSE) {
     mp4f_message(LOG_ALERT, "Couldn't read frame from mp4 file - frame %d %d", 
 		 frame_to_read, m_track);
-    m_eof = 1;
+    m_eof = true;
     m_parent->unlock_file_mutex();
     return;
   }

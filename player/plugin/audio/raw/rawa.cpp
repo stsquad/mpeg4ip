@@ -20,6 +20,7 @@
  */
 #include "rawa.h"
 #include <mp4v2/mp4.h>
+#include <mpeg2ps/mpeg2_ps.h>
 #define LOGIT rawa->m_vft->log_msg
 /*
  * Create raw audio structure
@@ -104,10 +105,11 @@ static codec_data_t *rawa_codec_create (const char *stream_type,
   }
 
   LOGIT(LOG_DEBUG, "rawa", 
-	"setting freq %d chans %d bitsper %d", 
+	"setting freq %d chans %d bitsper %d swap %d", 
 	rawa->m_freq,
 	rawa->m_chans, 
-	rawa->m_bitsperchan);
+	rawa->m_bitsperchan,
+	rawa->m_convert_bytes);
 
   return (codec_data_t *)rawa;
 }
@@ -140,11 +142,15 @@ static int rawa_decode (codec_data_t *ptr,
 {
   rawa_codec_t *rawa = (rawa_codec_t *)ptr;
   uint32_t ix;
-  unsigned short *b;
+  uint16_t *b;
   uint32_t orig_buflen = buflen;
   uint64_t ts = pts->msec_timestamp;
   uint32_t freq_ts = pts->audio_freq_timestamp;
-  //  LOGIT(LOG_DEBUG, "rawa", "ts "U64" buffer len %d", ts, buflen);
+
+#if 0
+   LOGIT(LOG_DEBUG, "rawa", "ts "U64" buffer len %d %u", ts, buflen,
+	 rawa->m_convert_bytes);
+#endif
   if (rawa->m_initialized == 0) {
     if (rawa->m_chans == 0) {
       // Special mp4 case - we don't know how many channels, but we
@@ -185,7 +191,7 @@ static int rawa_decode (codec_data_t *ptr,
     audio_format_t audio_format;
 
     if (rawa->m_bitsperchan == 16) {
-      audio_format = AUDIO_FMT_S16MSB;
+      audio_format = AUDIO_FMT_S16;
     } else {
       audio_format = AUDIO_FMT_U8;
     }
@@ -239,7 +245,7 @@ static int rawa_decode (codec_data_t *ptr,
    * if we're over RTP, we've got the buffer reversed...
    */
   if (rawa->m_convert_bytes) {
-    for (ix = 0, b = (unsigned short *)buffer; 
+    for (ix = 0, b = (uint16_t *)buffer; 
 	 ix < buflen; 
 	 ix += 2, b++) {
       *b = ntohs(*b);
@@ -283,7 +289,7 @@ static int rawa_codec_check (lib_message_func_t message,
   }
 
   if ((strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0) &&
-      (type == 3)) { // AUDIO_PCM from mpeg file
+      (type == MPEG_AUDIO_LPCM)) { // AUDIO_PCM from mpeg file
     return 1;
   }
 						    

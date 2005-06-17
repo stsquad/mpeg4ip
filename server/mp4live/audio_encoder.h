@@ -165,6 +165,8 @@ class CAudioEncoder : public CMediaCodec {
 
 };
 
+void AudioProfileCheck(CAudioProfile *ap);
+
 CAudioEncoder* AudioEncoderCreate(CAudioProfile *ap, 
 				  CAudioEncoder *next,
 				  u_int8_t srcChannels,
@@ -205,6 +207,8 @@ bool get_audio_rtp_info (CAudioProfile *pConfig,
 			 audio_set_rtp_header_f *audio_set_header,
 			 audio_set_rtp_jumbo_frame_f *audio_set_jumbo_frame,
 			 void **ud);
+
+void AudioProfileCheckBase(CAudioProfile *ap);
 
 CAudioEncoder* AudioEncoderBaseCreate(CAudioProfile *ap, 
 				      CAudioEncoder *next, 

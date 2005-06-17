@@ -32,7 +32,7 @@
 int CV4L2VideoSource::ThreadMain(void) 
 {
   debug_message("v4l2 thread start");
-  m_v4l_mutex = SDL_CreateMutex();
+  m_v4l_mutex = NULL;
   m_waiting_frames_return = false;
   while (true) {
     int rc;
@@ -91,6 +91,7 @@ void CV4L2VideoSource::DoStartCapture(void)
   if (m_source) {
     return;
   }
+  m_v4l_mutex = SDL_CreateMutex();
   if (!Init()) return;
   m_source = true;
 }
@@ -102,6 +103,7 @@ void CV4L2VideoSource::DoStopCapture(void)
   ReleaseDevice();
   m_source = false;
   SDL_DestroyMutex(m_v4l_mutex);
+  m_v4l_mutex = NULL;
 }
 
 bool CV4L2VideoSource::Init(void)
@@ -445,6 +447,7 @@ void CV4L2VideoSource::ReleaseDevice()
       munmap(m_buffers[i].start, m_buffers[i].length);
   }
   free(m_buffers);
+  m_buffers = NULL;
 
   close(m_videoDevice);
   m_videoDevice = -1;
@@ -563,7 +566,6 @@ int8_t CV4L2VideoSource::AcquireFrame(Timestamp &frameTimestamp)
     m_waiting_frames_return = true;
     return -1;
   }
-  SDL_UnlockMutex(m_v4l_mutex);
   //  debug_message("acq %d", buffer.index);
   frameTimestamp = GetTimestampFromTimeval(&(buffer.timestamp));
   return buffer.index;
@@ -677,7 +679,13 @@ void CV4L2VideoSource::ProcessVideo(void)
                 1, 
 		m_format == V4L2_PIX_FMT_RGB24);
     } else {
+#if 0
+      mallocedYuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
+      pY = mallocedYuvImage;
+      memcpy(mallocedYuvImage, m_buffers[index].start, m_videoSrcYUVSize);
+#else
       pY = (u_int8_t*)m_buffers[index].start;
+#endif
       pU = pY + m_u_offset;
       pV = pY + m_v_offset;
     }

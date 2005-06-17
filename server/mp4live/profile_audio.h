@@ -79,6 +79,7 @@ class CAudioProfile : public CConfigEntry
   };
   ~CAudioProfile(void) { };
   void LoadConfigVariables(void);
+  void Update(void);
 };
 
 class CAudioProfileList : public CConfigList

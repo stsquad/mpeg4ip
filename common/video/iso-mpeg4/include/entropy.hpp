@@ -39,9 +39,9 @@ Revision History:
 #ifndef __ENTROPY_HPP_
 #define __ENTROPY_HPP_
 
+#include <istream.h>
+#include <ostream.h>
 
-class istream;
-class ostream;
 class CInBitStream;
 class COutBitStream;
 

@@ -54,10 +54,13 @@ int main (int argc, char *argv[])
       continue;
     }
     printf("max time is "U64"\n", mpeg2ps_get_max_time_msec(ps));
-    mpeg2ps_seek_video_frame(ps, 0, mpeg2ps_get_max_time_msec(ps) / 2);
-    uint8_t *buffer, ftype;
+    uint8_t *buffer;
     uint32_t buflen;
     uint64_t ts;
+    uint32_t freq_ts;
+#if 0
+    uint8_t ftype;
+    mpeg2ps_seek_video_frame(ps, 0, mpeg2ps_get_max_time_msec(ps) / 2);
     if (mpeg2ps_get_video_frame(ps, 0, &buffer, &buflen, &ftype, TS_MSEC, &ts) == false) {
       printf("couldn't read frame\n");
     } else {
@@ -65,13 +68,21 @@ int main (int argc, char *argv[])
 	     buflen, ftype, ts);
     }
     mpeg2ps_seek_audio_frame(ps, 0, mpeg2ps_get_max_time_msec(ps) / 2);
-    uint32_t freq_ts;
+
     if (mpeg2ps_get_audio_frame(ps, 0, &buffer, &buflen, TS_MSEC, &freq_ts, &ts) == false) {
       printf("couldn't read frame\n");
     } else {
       printf("frame - len %d freq_Ts %u ts "U64"\n", 
 	     buflen, freq_ts, ts);
     }
+#else
+    uint frame_cnt = 0;
+    while (mpeg2ps_get_audio_frame(ps, 0, &buffer, &buflen, TS_MSEC, &freq_ts, &ts)) {
+      frame_cnt++;
+      printf("%u - len %u freq %u ts "X64"\n", 
+	     frame_cnt, buflen, freq_ts, ts);
+    }
+#endif
     mpeg2ps_close(ps);
   }
   return (1);

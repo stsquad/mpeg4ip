@@ -36,7 +36,6 @@
 class CAudioSync : public CSync {
  public:
   CAudioSync(CPlayerSession *psptr) : CSync(psptr) { 
-    m_eof = false;
     m_convert_buffer = NULL;
     m_fmt_buffer = NULL;
     m_audio_initialized = false;

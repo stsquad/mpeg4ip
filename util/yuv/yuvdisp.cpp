@@ -67,4 +67,5 @@ int main (int argc, char **argv)
   SDL_FreeYUVOverlay(m_image);
   SDL_FreeSurface(m_screen);
   SDL_Quit();
+  return 0;
 }

@@ -25,6 +25,11 @@
 #include "video_encoder_base.h"
 #include "video_util_filter.h"
 
+void VideoProfileCheck (CVideoProfile *vp)
+{
+  return VideoProfileCheckBase(vp);
+}
+
 CVideoEncoder* VideoEncoderCreate(CVideoProfile *vp, 
 				  uint16_t mtu,
 				  CVideoEncoder *next, 

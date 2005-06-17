@@ -61,6 +61,7 @@
 #define LIMIT(x, t) (LIMIT8((x), t) & 0xff)
 
 /* row order */
+/*
 static const u_char ROWZAG[] = {
 	0,  1,  8, 16,  9,  2,  3, 10,
 	17, 24, 32, 25, 18, 11,  4,  5,
@@ -73,6 +74,7 @@ static const u_char ROWZAG[] = {
 	0,  0,  0,  0,  0,  0,  0,  0,
 	0,  0,  0,  0,  0,  0,  0,  0
 };
+*/
 /* column order */
 const u_char COLZAG[] = {
 	0, 8, 1, 2, 9, 16, 24, 17,

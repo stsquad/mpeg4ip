@@ -109,10 +109,10 @@ Revision History:
 
 
 #ifndef __GLOBAL_VAR_
-#define __GLOBAL_VAR_
+//#define __GLOBAL_VAR_
 #endif
 #include "global.hpp"
-#define DEFINE_GLOBALS
+//#define DEFINE_GLOBALS
 #include "globals.hpp"
 
 #ifdef __MFC_

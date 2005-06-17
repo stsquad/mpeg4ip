@@ -30,6 +30,7 @@
 #include "codec_plugin.h"
 #include "mpeg4ip_sdl_includes.h"
 #include "player_session.h"
+#include "player_util.h"
 
 #define DECODE_BUFFERS_MAX 32
 
@@ -46,7 +47,10 @@ class CSync {
   };
   // APIs from  codec
   void clear_eof(void) { m_eof = false; };
-  void set_eof(void) { m_eof = true; };
+  void set_eof(void) { 
+    m_eof = true; 
+    //    player_debug_message("eof set");
+  };
   bool get_eof(void) { return m_eof; };
 
   void set_wait_sem (SDL_sem *p) { m_decode_sem = p; };  // from set up
@@ -58,6 +62,7 @@ class CSync {
  protected:
   CPlayerSession *m_psptr;
   SDL_sem *m_decode_sem; // pointer to player media decode thread semaphore
+ private:
   bool m_eof;
 };
 

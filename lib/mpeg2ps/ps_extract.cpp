@@ -135,7 +135,9 @@ int main(int argc, char** argv)
 	} else {
 	  memcpy(outfilename, infilename, suffix_len);
 	}
-	switch (mpeg2ps_get_audio_stream_type(infile, audio_stream)) {
+	mpeg2ps_audio_type_t audio_type = 
+	  mpeg2ps_get_audio_stream_type(infile, audio_stream);
+	switch (audio_type) {
 	case MPEG_AUDIO_MPEG:
 	  strcpy(outfilename + suffix_len, ".mp3");
 	  break;
@@ -158,12 +160,20 @@ int main(int argc, char** argv)
 				       &ftime)) {
 	  printf("audio len %d time %u "U64"\n", 
 		 len, freq_ftime, ftime);
-	  if (last_freq_time != 0) {
+	  if (audio_type == MPEG_AUDIO_LPCM) {
+	    if (last_freq_time != 0) {
+	      if (last_freq_time != freq_ftime) {
+		printf("error in timestamp %u %u\n", freq_ftime, last_freq_time);
+	      }
+	    }
+	    last_freq_time = freq_ftime + (len / 4);
+#if 0
 	    if (last_freq_time + 1152 != freq_ftime) {
 	      printf("error in timestamp %d\n", freq_ftime - last_freq_time);
 	    }
+	    last_freq_time = freq_ftime;
+#endif
 	  }
-	  last_freq_time = freq_ftime;
 	  fwrite(buf, len, 1, outfile);
 	  cnt++;
 	}
