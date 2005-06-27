@@ -3,6 +3,7 @@ SUBDIRS= src
 EXTRA_DIST =  \
 	ProgrammersGuide.doc \
         libobj60.dsp \
+	isoencoder60.dsp \
 	include/ac.hpp \
 	include/basic.hpp \
 	include/BinArCodec.hpp \

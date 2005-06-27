@@ -26,6 +26,9 @@ static uint8_t exp_golomb_bits[256] = {
 0, 
 };
 
+static const uint8_t trailing_bits[9] = 
+  { 0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80 };
+
 uint32_t h264_ue (CBitstream *bs)
 {
   uint32_t bits, read;
@@ -361,8 +364,30 @@ void h264_parse_pic_parameter_set (h264_decode_t *dec, CBitstream *bs)
     printf("   deblocking_filter_control_present_flag: %u\n", bs->GetBits(1));
     printf("   constrained_intra_pred_flag: %u\n", bs->GetBits(1));
     printf("   redundant_pic_cnt_present_flag: %u\n", bs->GetBits(1));
-	  
+    int bits = bs->bits_remain();
+    if (bits == 0) return;
+    if (bits < 8) {
+      uint8_t trail_check = bs->PeekBits(bits);
+      if (trail_check == trailing_bits[bits]) return;
+    }
+    // we have the extensions
+    uint8_t transform_8x8_mode_flag = bs->GetBits(1);
+    printf("   transform_8x8_mode_flag: %u\n", transform_8x8_mode_flag);
+    temp = bs->GetBits(1);
+    printf("   pic_scaling_matrix_present_flag: %u\n", temp);
+    if (temp) {
+      uint max_count = 6 + (2 * transform_8x8_mode_flag);
+      for (uint ix = 0; ix < max_count; ix++) {
+	temp = bs->GetBits(1);
+	printf("   Pic Scaling List[%u] Present Flag: %u\n", ix, temp); 
+	if (temp) {
+	  scaling_list(ix, ix < 6 ? 16 : 64, bs);
+	}
+      }
+    }
+    printf("   second_chroma_qp_index_offset: %u\n", h264_se(bs));
 }
+
 static const char *sei[19] = {
   "buffering_period",
   "pic_timing", 

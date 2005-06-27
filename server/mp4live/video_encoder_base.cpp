@@ -23,6 +23,7 @@
 #include "video_encoder.h"
 #include "video_encoder_base.h"
 #include "mp4av.h"
+#include "mp4av_h264.h"
 
 #ifdef HAVE_XVID10
 #include "video_xvid10.h"
@@ -634,7 +635,11 @@ static void H264SendVideo (CMediaFrame *pFrame, CRtpDestination *list,
      *
      * We don't send multiple time aggregation units
      */
-    if (nal_len > mtu) {
+    if (mf->nal_bufs[nal_on].unique == false &&
+	(mf->nal_bufs[nal_on].nal_type == H264_NAL_TYPE_SEQ_PARAM ||
+	 mf->nal_bufs[nal_on].nal_type == H264_NAL_TYPE_PIC_PARAM)) {
+      nal_on++;
+    } else if (nal_len > mtu) {
       // fragmentation unit - break up into mtu size chunks
 #ifdef DEBUG_H264_TX
       debug_message("%u fu %u", nal_on, nal_len);

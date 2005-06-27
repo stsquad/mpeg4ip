@@ -26,7 +26,7 @@
 #include "mp4av_h264.h"
 #include "encoder_gui_options.h"
 
-//#define DEBUG_H264 1
+//  #define DEBUG_H264 1
 #define USE_OUR_YUV 1
 
 static config_index_t CFG_X264_USE_CABAC;
@@ -212,6 +212,7 @@ bool CX264VideoEncoder::EncodeImage(
       m_nal_info[nal_on].nal_length = i_size;
       m_nal_info[nal_on].nal_offset = loaded;
       m_nal_info[nal_on].nal_type = nal[ix].i_type;
+      m_nal_info[nal_on].unique = false;
       uint32_t header = 0;
       if (h264_is_start_code(vopBuffer)) {
 	header = vopBuffer[2] == 1 ? 3 : 4;
@@ -222,22 +223,20 @@ bool CX264VideoEncoder::EncodeImage(
       if (m_nal_info[nal_on].nal_type == H264_NAL_TYPE_SEQ_PARAM) {
 	if (m_nal_info[nal_on].nal_length != m_videoH264SeqSize ||
 	    memcmp(vopBuffer, m_videoH264Seq, m_videoH264SeqSize) != 0) {
+	  m_nal_info[nal_on].unique = m_videoH264Seq != NULL;
 	  CHECK_AND_FREE(m_videoH264Seq);
 	  m_videoH264SeqSize = m_nal_info[nal_on].nal_length;
 	  m_videoH264Seq = (uint8_t *)malloc(m_videoH264SeqSize);
 	  memcpy(m_videoH264Seq, vopBuffer, m_videoH264SeqSize);
-	} else {
-	  skip = true;
-	}
+	} 
       } else if (m_nal_info[nal_on].nal_type == H264_NAL_TYPE_PIC_PARAM) {
 	if (m_nal_info[nal_on].nal_length != m_videoH264PicSize ||
 	      memcmp(vopBuffer, m_videoH264Pic, m_videoH264PicSize) != 0) {
+	  m_nal_info[nal_on].unique = m_videoH264Pic != NULL;
 	  CHECK_AND_FREE(m_videoH264Pic);
 	  m_videoH264PicSize = m_nal_info[nal_on].nal_length;
 	  m_videoH264Pic = (uint8_t *)malloc(m_videoH264PicSize);
 	  memcpy(m_videoH264Pic, vopBuffer, m_videoH264PicSize);
-	} else {
-	  skip = true;
 	}
       }
       if (skip == false) {
@@ -245,7 +244,7 @@ bool CX264VideoEncoder::EncodeImage(
 	uint8_t nal_type = nal[ix].i_type;
 	if (h264_nal_unit_type_is_slice(nal_type)) {
 	  uint8_t stype;
-	  h264_find_slice_type(vopBuffer, i_size, &stype);
+	  h264_find_slice_type(vopBuffer, i_size, &stype, true);
 	  debug_message("nal %d - type %u slice type %u %d",
 			ix, nal_type, stype, i_size);
 	} else {

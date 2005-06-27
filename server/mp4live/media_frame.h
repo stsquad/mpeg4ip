@@ -69,6 +69,7 @@ typedef struct h264_nal_buf_t {
   uint32_t nal_offset;
   uint32_t nal_length;
   uint8_t nal_type;
+  bool unique;
 } h264_nal_buf_t;
 
 typedef struct h264_media_frame_t {

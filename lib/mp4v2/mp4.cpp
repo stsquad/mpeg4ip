@@ -1586,6 +1586,8 @@ extern "C" u_int32_t MP4GetTrackBitRate(
 		  uint64_t msDuration = 
 		    pFile->ConvertFromTrackDuration(trackId, trackDur, 
 						    MP4_MSECS_TIME_SCALE);
+		  if (msDuration == 0) return 0;
+
 		  MP4Track *pTrack = pFile->GetTrack(trackId);
 		  uint64_t bytes = pTrack->GetTotalOfSampleSizes();
 		  bytes *= TO_U64(8 * 1000);

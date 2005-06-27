@@ -161,15 +161,13 @@ socket_error(const char *msg, ...)
 	va_start(ap, msg);
 	_vsnprintf(buffer, blen, msg, ap);
 	va_end(ap);
-	printf("ERROR: %s, (%d - %s)\n", msg, e, ws_errs[i].errname);
+	rtp_message(LOG_ALERT, "ERROR: %s, (%d - %s)\n", buffer, e, ws_errs[i].errname);
 #else
 	uint32_t retlen;
 	va_start(ap, msg);
 	retlen = vsnprintf(buffer, blen, msg, ap);
 	va_end(ap);
-	blen -= retlen;
-	snprintf(buffer + retlen, blen, ":%s", strerror(errno));
-	rtp_message(LOG_ALERT, "%s", buffer);
+	rtp_message(LOG_ALERT, "%s:%s", buffer, strerror(errno));
 #endif
 }
 

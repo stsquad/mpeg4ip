@@ -28,6 +28,7 @@
 #include "video_v4l2_source.h"
 #include "video_util_rgb.h"
 #include "video_util_filter.h"
+#include "video_util_convert.h"
 
 int CV4L2VideoSource::ThreadMain(void) 
 {
@@ -105,11 +106,8 @@ void CV4L2VideoSource::DoStopCapture(void)
   SDL_DestroyMutex(m_v4l_mutex);
   m_v4l_mutex = NULL;
 }
-
 bool CV4L2VideoSource::Init(void)
 {
-  m_videoNeedRgbToYuv = false;
-
   m_pConfig->CalculateVideoFrameSize();
 
   InitVideo(true);
@@ -129,6 +127,9 @@ bool CV4L2VideoSource::Init(void)
 static const uint32_t formats[] = {
   V4L2_PIX_FMT_YVU420,
   V4L2_PIX_FMT_YUV420,
+  V4L2_PIX_FMT_YUYV,
+  V4L2_PIX_FMT_UYVY,
+  V4L2_PIX_FMT_YYUV,
   V4L2_PIX_FMT_RGB24,
   V4L2_PIX_FMT_BGR24,
 };
@@ -313,28 +314,39 @@ bool CV4L2VideoSource::InitDevice(void)
       error_message("Failed to select any video formats for %s", deviceName);
       goto failure;
   }
+ 
+ //turn auto exposure off for ovfx2 camera
+ // int exposure=0;
+ // ioctl(m_videoDevice, VIDIOCCAPTURE, &exposure);
+
+
+
   switch (m_format) {
   case V4L2_PIX_FMT_YVU420:
     m_v_offset = m_videoSrcYSize;
     m_u_offset = m_videoSrcYSize + m_videoSrcUVSize;
-    m_videoNeedRgbToYuv = false;
     debug_message("format is YVU 4:2:0 %ux%u", width, height);
     break;
   case V4L2_PIX_FMT_YUV420:
     m_u_offset = m_videoSrcYSize;
     m_v_offset = m_videoSrcYSize + m_videoSrcUVSize;
-    m_videoNeedRgbToYuv = false;
     debug_message("format is YUV 4:2:0 %ux%u", width, height);
     break;
   case V4L2_PIX_FMT_RGB24:
-    m_videoNeedRgbToYuv = true;
     debug_message("format is RGB24 %ux%u", width, height);
     break;
   case V4L2_PIX_FMT_BGR24:
-    m_videoNeedRgbToYuv = true;
     debug_message("format is BGR24 %ux%u", width, height);
     break;
-
+  case V4L2_PIX_FMT_YUYV:
+    debug_message("format is YUYV %ux%u", width, height);
+    break;
+  case V4L2_PIX_FMT_UYVY:
+    debug_message("format is UYUV %ux%u", width, height);
+    break;
+  case V4L2_PIX_FMT_YYUV:
+    debug_message("format is YYUV %ux%u", width, height);
+    break;
   }
   
   // allocate the desired number of buffers
@@ -485,7 +497,26 @@ bool CV4L2VideoSource::SetPictureControls()
 
   int rc;
   struct v4l2_control control;
+/*
+  //autoexposure
+  control.id = V4L2_CID_AUTOGAIN;
+  control.value = 0; 
+      ((m_pConfig->GetIntegerValue(CONFIG_VIDEO_AUTOGAIN) * 0xFFFF) /100);// Changes to 1 to turn it on
+  rc = ioctl(m_videoDevice, VIDIOC_S_CTRL, &control);
 
+  //autobrightness
+  control.id = V4L2_CID_AUTO_WHITE_BALANCE;
+  control.value = 0;
+      ((m_pConfig->GetIntegerValue(CONFIG_VIDEO_AUTO_WHITE_BALANCE) * 0xFFFF) /100);// Changes to 1 to turn it on
+  rc = ioctl(m_videoDevice, VIDIOC_S_CTRL, &control);
+  
+  //Turn on flipvert
+  control.id = V4L2_CID_VFLIP;
+  control.value = 0;
+      ((m_pConfig->GetIntegerValue(CONFIG_VIDEO_VFLIP) * 0xFFFF) /100);// Changes to 1 to turn it on
+  rc = ioctl(m_videoDevice, VIDIOC_S_CTRL, &control);
+
+*/
   // brightness
   control.id = V4L2_CID_BRIGHTNESS;
   rc = ioctl(m_videoDevice, VIDIOC_G_CTRL, &control);
@@ -662,9 +693,11 @@ void CV4L2VideoSource::ProcessVideo(void)
     u_int8_t* pV;
 
     // perform colorspace conversion if necessary
-    if (m_videoNeedRgbToYuv) {
+    switch (m_format) {
+    case V4L2_PIX_FMT_RGB24:
+    case V4L2_PIX_FMT_BGR24:
       mallocedYuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
-
+      debug_message("converting to YUV420P from RGB");
       pY = mallocedYuvImage;
       pV = pY + m_videoSrcYSize;
       pU = pV + m_videoSrcUVSize,
@@ -678,11 +711,47 @@ void CV4L2VideoSource::ProcessVideo(void)
                 pV,
                 1, 
 		m_format == V4L2_PIX_FMT_RGB24);
-    } else {
-#if 0
+      break;
+    case V4L2_PIX_FMT_YUYV: 
       mallocedYuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
+      //debug_message("converting to YUV420P from YUYV");
       pY = mallocedYuvImage;
-      memcpy(mallocedYuvImage, m_buffers[index].start, m_videoSrcYUVSize);
+      pU = pY + m_videoSrcYSize;
+      pV = pU + m_videoSrcUVSize;
+      convert_yuyv_to_yuv420p(pY, 
+			      (const uint8_t *)m_buffers[index].start,
+			      m_videoSrcWidth,
+			      m_videoSrcHeight);
+      break;
+    case V4L2_PIX_FMT_UYVY:
+      mallocedYuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
+      //debug_message("converting to YUV420P from YUYV");
+      pY = mallocedYuvImage;
+      pU = pY + m_videoSrcYSize;
+      pV = pU + m_videoSrcUVSize;
+      convert_uyvy_to_yuv420p(pY,
+			      (const uint8_t *)m_buffers[index].start,
+			      m_videoSrcWidth,
+			      m_videoSrcHeight);
+      break;
+    case V4L2_PIX_FMT_YYUV:
+      mallocedYuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
+      //debug_message("converting to YUV420P from YUYV");
+      pY = mallocedYuvImage;
+      pU = pY + m_videoSrcYSize;
+      pV = pU + m_videoSrcUVSize;
+      convert_yyuv_to_yuv420p(pY,
+			      (const uint8_t *)m_buffers[index].start,
+			      m_videoSrcWidth,
+			      m_videoSrcHeight);
+      break;
+    default:
+#if 0
+      // we would need the below if we were going to switch 
+      // video - this is a problem with the 
+      mallocedYuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
+      pY = (u_int8_t*)mallocedYuvImage;
+      memcpy(pY, m_buffers[index].start, m_videoSrcYUVSize);
 #else
       pY = (u_int8_t*)m_buffers[index].start;
 #endif
