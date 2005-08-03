@@ -770,6 +770,15 @@ bool MP4File::GetMetadataCoverArt(u_int8_t **coverArt, u_int32_t *size)
     return true;
 }
 
+u_int32_t MP4File::GetMetadataCoverArtCount (void)
+{
+   MP4Atom *pMetaAtom = m_pRootAtom->FindAtom("moov.udta.meta.ilst.covr");
+   if (!pMetaAtom)
+     return 0;
+
+   return pMetaAtom->GetNumberOfChildAtoms();
+}
+
 bool MP4File::DeleteMetadataCoverArt()
 {
   return DeleteMetadataAtom("covr");

@@ -35,6 +35,7 @@
 #include "mp4live_common.h"
 #include "rtp_transmitter.h"
 #include "text_source.h"
+#include "video_v4l_source.h"
 
 #define HAVE_TEXT 1
 //#define HAVE_TEXT_ENTRY 1
@@ -970,11 +971,7 @@ on_about1_activate                     (GtkMenuItem     *menuitem,
 	   "Glade interface designer\n"
 	   "\n2000 to present\n"
 	   ,
-#ifdef HAVE_LINUX_VIDEODEV2_H
-	   "V4L2",
-#else
-	   "V4L",
-#endif
+	   get_linux_video_type(),
 	   MPEG4IP_VERSION);
   ShowMessage("About", buffer);
 }
@@ -3144,12 +3141,7 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 
   char buffer[80];
   snprintf(buffer, sizeof(buffer), "cisco %s %s %s", argv[0], MPEG4IP_VERSION,
-#ifdef HAVE_LINUX_VIDEODEV2_H
-	   "V4L2"
-#else
-	   "V4L"
-#endif
-	   );
+	   get_linux_video_type());
   gtk_window_set_title(GTK_WINDOW(MainWindow), buffer);
   gtk_widget_show(MainWindow);
 

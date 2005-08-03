@@ -22,15 +22,13 @@
 #ifndef __VIDEO_V4L2_SOURCE_H__
 #define __VIDEO_V4L2_SOURCE_H__
 
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <linux/videodev.h>
-#include "media_source.h"
-#include "video_encoder.h"
+#ifndef __VIDEO_V4L_SOURCE_H__
+#error Please include video_v4l_source.h instead of video_v4l2_source.h
+#endif
 
-class CV4L2VideoSource : public CMediaSource {
+class CV4LVideoSource : public CMediaSource {
  public:
-  CV4L2VideoSource() : CMediaSource() {
+  CV4LVideoSource() : CMediaSource() {
     m_videoDevice = -1;
     m_buffers = NULL;
     m_decimate_filter = false;
@@ -93,65 +91,5 @@ class CV4L2VideoSource : public CMediaSource {
   uint32_t m_v_offset;
 };
 
-
-
-class CVideoCapabilities : public CCapabilities {
- public:
-  CVideoCapabilities(const char* deviceName) :
-    CCapabilities(deviceName) {
-    m_canCapture = false;
-    m_driverName = NULL;
-    m_numInputs = 0;
-    m_inputNames = NULL;
-    //m_inputSignalTypes = NULL;
-    m_inputHasTuners = NULL;
-    m_inputTunerSignalTypes = NULL;
-    m_hasAudio = false;
-
-    ProbeDevice();
-  }
-
-  ~CVideoCapabilities() {
-    free(m_driverName);
-    for (int i = 0; i < m_numInputs; i++) {
-      free(m_inputNames[i]);
-    }
-    free(m_inputNames);
-    //free(m_inputSignalTypes);
-    free(m_inputHasTuners);
-    free(m_inputTunerSignalTypes);
-  }
-
-  bool IsValid() {
-    return m_canOpen && m_canCapture;
-  }
-  void Display(CLiveConfig *pConfig, 
-	       char *msg, 
-	       uint32_t max_len);
- public:
-  bool		m_canOpen;
-  bool		m_canCapture;
-
-  // N.B. the rest of the fields are only valid 
-  // if m_canOpen and m_canCapture are both true
-
-  char*		m_driverName; 
-  u_int16_t	m_numInputs;
-
-  //TODO: why seg fault if I comment these ?
-  u_int16_t	m_minWidth;
-  u_int16_t	m_minHeight;
-  u_int16_t	m_maxWidth;
-  u_int16_t	m_maxHeight;
-
-  // each of these points at m_numInputs values
-  char**	m_inputNames;
-  bool*		m_inputHasTuners;
-  u_int8_t*	m_inputTunerSignalTypes;	// possible signal types from tuner
-
-  bool		m_hasAudio;
- protected:
-  bool ProbeDevice(void);
-};
 
 #endif /* __VIDEO_V4L2_SOURCE_H__ */

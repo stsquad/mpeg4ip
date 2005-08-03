@@ -133,6 +133,15 @@ int main(int argc, char** argv)
 		  if (MP4GetMetadataTempo(mp4file, &numvalue)) {
 		    fprintf(stdout, " Metadata Tempo: %u\n", numvalue);
 		  }
+		  if (MP4GetMetadataComment(mp4file, &value) && 
+		      value != NULL) {
+		    fprintf(stdout, " Metadata Comment: %s\n", value);
+		  }
+		  u_int32_t artcount = MP4GetMetadataCoverArtCount(mp4file);
+		  if (artcount > 0) {
+		    fprintf(stdout, " Metadata Cover Art pieces: %u\n", 
+			    artcount);
+		  }
 		  MP4Close(mp4file);
 		}
 		free(info);

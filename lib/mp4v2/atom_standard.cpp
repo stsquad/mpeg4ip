@@ -71,10 +71,10 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
     pTable->AddProperty(
 			new MP4Integer64Property("chunkOffset"));
 
-  } else if (ATOMID(type) == ATOMID("cpil") ||
-	     ATOMID(type) == ATOMID("covr")) { /* Apple iTunes */
+  } else if (ATOMID(type) == ATOMID("cpil")) {
     ExpectChildAtom("data", Required, OnlyOne);
-
+  } else if (ATOMID(type) == ATOMID("covr")) { /* Apple iTunes */
+    ExpectChildAtom("data", Required, Many);
   } else if (ATOMID(type) == ATOMID("cprt")) {
     AddVersionAndFlags();
     AddProperty(

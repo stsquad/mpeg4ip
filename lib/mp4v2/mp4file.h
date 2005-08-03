@@ -585,6 +585,7 @@ public: /* equivalent to MP4 library API */
 	bool GetMetadataTempo(u_int16_t* tempo);
 	bool GetMetadataCompilation(u_int8_t* compilation);
 	bool GetMetadataCoverArt(u_int8_t **coverArt, u_int32_t* size);
+	u_int32_t GetMetadataCoverArtCount(void);
 	bool GetMetadataFreeForm(char *name, 
 				 u_int8_t** pValue, 
 				 u_int32_t* valueSize);

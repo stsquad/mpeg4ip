@@ -23,12 +23,7 @@
 #include "mp4live.h"
 #include "media_flow.h"
 #include "audio_oss_source.h"
-
-#ifdef HAVE_LINUX_VIDEODEV2_H
-#include "video_v4l2_source.h"
-#else
 #include "video_v4l_source.h"
-#endif
 
 #include "file_mp4_recorder.h"
 #include "rtp_transmitter.h"

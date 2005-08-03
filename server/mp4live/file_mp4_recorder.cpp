@@ -27,6 +27,7 @@
 #include "text_encoder.h"
 #include "mpeg4ip_byteswap.h"
 #include "mp4av_h264.h"
+#include "video_v4l_source.h"
 //#define DEBUG_H264 1
 
 int CMp4Recorder::ThreadMain(void) 
@@ -223,12 +224,7 @@ void CMp4Recorder::DoStartRecord()
 
   char buffer[80];
   sprintf(buffer, "mp4live version %s %s", MPEG4IP_VERSION, 
-#ifdef HAVE_LINUX_VIDEODEV2_H
-		      "V4L2"
-#else
-		      "V4L"
-#endif
-	  );
+	  get_linux_video_type());
   MP4SetMetadataTool(m_mp4File, buffer);
 
   if (m_recordVideo) {

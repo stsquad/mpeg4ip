@@ -25,12 +25,7 @@
 #undef DECLARE_CONFIG_VARIABLES
 #include "media_flow.h"
 
-#ifdef HAVE_LINUX_VIDEODEV2_H
-#include "video_v4l2_source.h"
-#else
 #include "video_v4l_source.h"
-#endif
-
 #include "audio_oss_source.h"
 #include "text_source.h"
 #include "audio_encoder.h"
@@ -74,11 +69,7 @@ CMediaSource *CreateVideoSource (CLiveConfig *pConfig)
     pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_TYPE);
 
   if (!strcasecmp(sourceType, VIDEO_SOURCE_V4L)) {
-#ifdef HAVE_LINUX_VIDEODEV2_H
-    vs = new CV4L2VideoSource();
-#else
     vs = new CV4LVideoSource();
-#endif
   } else {
     error_message("unknown video source type %s", sourceType);
     return NULL;
@@ -131,11 +122,7 @@ CTextSource *CreateTextSource (CLiveConfig *pConfig)
 // Probe video input devices
 void InitialVideoProbe(CLiveConfig *pConfig)
 {
-#ifdef HAVE_LINUX_VIDEODEV2_H
-  CV4L2VideoSource::InitialVideoProbe(pConfig);
-#else
   CV4LVideoSource::InitialVideoProbe(pConfig);
-#endif
 }
 
 int main(int argc, char** argv)
@@ -202,12 +189,7 @@ int main(int argc, char** argv)
 	  case 'v':
 	    fprintf(stderr, 
 		    "%s version %s %s\n", argv[0], MPEG4IP_VERSION,
-#ifdef HAVE_LINUX_VIDEODEV2_H
-		    "V4L2"
-#else
-		    "V4L"
-#endif
-		    );
+		    get_linux_video_type());
 #ifdef HAVE_FFMPEG
 	    fprintf(stderr, "  - with ffmpeg encoder\n");
 #endif
@@ -310,13 +292,8 @@ int main(int argc, char** argv)
 	// other cases:
 
 	SetupRealTimeFeatures(pConfig);
-	error_message("%s version %s %s\n", argv[0], MPEG4IP_VERSION,
-#ifdef HAVE_LINUX_VIDEODEV2_H
-		      "V4L2"
-#else
-		      "V4L"
-#endif
-		      );
+	error_message("%s version %s %s", argv[0], MPEG4IP_VERSION,
+		      get_linux_video_type());
 #ifndef HAVE_GTK
 	rc = nogui_main(pConfig);
 #else

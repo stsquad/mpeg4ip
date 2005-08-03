@@ -21,12 +21,17 @@
  */
 
 #include "mp4live.h"
-
+#ifndef HAVE_LINUX_VIDEODEV2_H
 #include <sys/mman.h>
 
 #include "video_v4l_source.h"
 #include "video_util_rgb.h"
 #include "video_util_filter.h"
+
+const char *get_linux_video_type (void)
+{
+  return "V4L";
+}
 
 //#define DEBUG_TIMESTAMPS 1
 int CV4LVideoSource::ThreadMain(void) 
@@ -746,3 +751,5 @@ void CVideoCapabilities::Display (CLiveConfig *pConfig,
 	     );
   }
 }
+
+#endif

@@ -29,6 +29,7 @@
 #define OPT_DISKS   'D'
 #define OPT_GENRE   'g'
 #define OPT_GROUPING 'G'
+#define OPT_PICTURE 'P'
 #define OPT_SONG    's'
 #define OPT_TRACK   't'
 #define OPT_TRACKS  'T'
@@ -36,7 +37,7 @@
 #define OPT_YEAR    'y'
 #define OPT_REMOVE  'r'
 
-#define OPT_STRING  "hvA:a:b:c:d:D:g:G:s:t:T:w:y:r:"
+#define OPT_STRING  "hvA:a:b:c:d:D:g:G:P:s:t:T:w:y:r:"
 
 static const char* help_text =
 "OPTION... FILE...\n"
@@ -52,6 +53,7 @@ static const char* help_text =
 "  -D, -disks    NUM  Set the number of disks\n"
 "  -g, -genre    STR  Set the genre name\n"
 "  -G, -grouping STR  Set the grouping name\n"
+"  -P, -picture  PTH  Set the picture as a .png\n"
 "  -s, -song     STR  Set the song title\n"
 "  -t, -track    NUM  Set the track number\n"
 "  -T, -tracks   NUM  Set the number of tracks\n"
@@ -75,6 +77,7 @@ main(int argc, char** argv)
     { "disks",   1, 0, OPT_DISKS   },
     { "genre",   1, 0, OPT_GENRE   },
     { "grouping",1, 0, OPT_GROUPING},
+    { "picture", 1, 0, OPT_PICTURE },
     { "song",    1, 0, OPT_SONG    },
     { "tempo",   1, 0, OPT_TEMPO   },
     { "track",   1, 0, OPT_TRACK   },
@@ -223,6 +226,25 @@ main(int argc, char** argv)
         case OPT_WRITER:  MP4SetMetadataWriter(h, tags[i]); break;
         case OPT_YEAR:    MP4SetMetadataYear(h, tags[i]); break;
         case OPT_TEMPO:   MP4SetMetadataTempo(h, nums[i]); break;
+	case OPT_PICTURE: {
+	  FILE *artFile = fopen(tags[i], FOPEN_READ_BINARY);
+	  if (artFile != NULL) {
+	    uint64_t artSize;
+	    fseek(artFile, 0, SEEK_END);
+	    artSize = ftell(artFile);
+	    uint8_t *art;
+	    art = (uint8_t *)malloc(artSize);
+	    fseek(artFile, 0, SEEK_SET);
+	    clearerr(artFile);
+	    if (fread(art, artSize, 1, artFile) == 1) {
+	      MP4SetMetadataCoverArt(h, art, artSize);
+	    }
+	    free(art);
+	    fclose(artFile);
+	  } else {
+	    fprintf(stderr, "Art file %s not found\n", tags[i]);
+	  }
+	}
         }
       }
     }

@@ -30,6 +30,11 @@
 #include "media_source.h"
 #include "video_encoder.h"
 
+const char *get_linux_video_type(void);
+
+#ifdef HAVE_LINUX_VIDEODEV2_H
+#include "video_v4l2_source.h"
+#else
 class CV4LVideoSource : public CMediaSource {
 public:
 	CV4LVideoSource() : CMediaSource() {
@@ -109,6 +114,7 @@ protected:
 	bool m_videoNeedRgbToYuv;
 
 };
+#endif
 
 class CVideoCapabilities : public CCapabilities {
 public:

@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.23 $ 
- * $Date: 2005/05/18 23:22:36 $
+ * $Revision: 1.24 $ 
+ * $Date: 2005/08/03 22:04:15 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -1483,8 +1483,8 @@ int rtp_process_recv_data (struct rtp *session,
       }
       if (session->opt->promiscuous_mode) {
 	if (s == NULL) {
-	  create_source(session, packet->rtp_pak_ssrc, FALSE);
-	  s = get_source(session, packet->rtp_pak_ssrc);
+	  s = create_source(session, packet->rtp_pak_ssrc, FALSE);
+	  // redundant - s = get_source(session, packet->rtp_pak_ssrc);
 	}
 	if (s->probation == -1) {
 	  s->probation = MIN_SEQUENTIAL;
@@ -1780,7 +1780,7 @@ static void process_rtcp_bye(struct rtp *session, rtcp_t *packet, struct timeval
 		/* This is kind-of strange, since we create a source we are about to delete. */
 		/* This is done to ensure that the source mentioned in the event which is    */
 		/* passed to the user of the RTP library is valid, and simplify client code. */
-		create_source(session, ssrc, FALSE);
+		s = create_source(session, ssrc, FALSE);
 		/* Call the event handler... */
 		if (!filter_event(session, ssrc)) {
 			event.ssrc = ssrc;
@@ -1791,7 +1791,7 @@ static void process_rtcp_bye(struct rtp *session, rtcp_t *packet, struct timeval
 		}
 		/* Mark the source as ready for deletion. Sources are not deleted immediately */
 		/* since some packets may be delayed and arrive after the BYE...              */
-		s = get_source(session, ssrc);
+		// redundant from above s = get_source(session, ssrc);
 		s->got_bye = TRUE;
 		check_source(s);
 		session->bye_count++;
@@ -1808,8 +1808,8 @@ static void process_rtcp_app(struct rtp *session, rtcp_t *packet, struct timeval
 
 	/* Update the database for this source. */
 	ssrc = ntohl(packet->r.app.ssrc);
-	create_source(session, ssrc, FALSE);
-	s = get_source(session, ssrc);
+	s = create_source(session, ssrc, FALSE);
+	// redundant - wmay - s = get_source(session, ssrc);
 	if (s == NULL) {
 	        /* This should only occur in the event of database malfunction. */
 	        rtp_message(LOG_NOTICE, "Source 0x%08x invalid, skipping...", ssrc);
@@ -2008,8 +2008,8 @@ int rtp_add_csrc(struct rtp *session, uint32_t csrc)
 	check_database(session);
 	s = get_source(session, csrc);
 	if (s == NULL) {
-		s = create_source(session, csrc, FALSE);
-		rtp_message(LOG_INFO, "Created source 0x%08x as CSRC", csrc);
+	  s = create_source(session, csrc, FALSE);
+	  rtp_message(LOG_INFO, "Created source 0x%08x as CSRC", csrc);
 	}
 	check_source(s);
 	if (!s->should_advertise_sdes) {
@@ -3173,6 +3173,10 @@ void rtp_done(struct rtp *session)
 	if (session->rtcp_socket != NULL) {
 	  udp_exit(session->rtcp_socket);
 	  session->rtcp_socket = NULL;
+	}
+	if (session->udp_session != NULL) {
+	  udp_close_session(session->udp_session);
+	  session->udp_session = NULL;
 	}
 	xfree(session->addr);
 	xfree(session->opt);

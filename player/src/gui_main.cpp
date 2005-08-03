@@ -1333,6 +1333,8 @@ int main (int argc, char **argv)
     { "config-vars", 0, 0, 'c'},
     { NULL, 0, 0, 0 }
   };
+  
+  player_error_message("%s version %s", argv[0], MPEG4IP_VERSION);
 
   bool have_unknown_opts = false;
   char buffer[FILENAME_MAX];

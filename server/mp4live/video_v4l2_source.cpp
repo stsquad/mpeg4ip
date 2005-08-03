@@ -22,15 +22,20 @@
  */
 
 #include "mp4live.h"
-
+#ifdef HAVE_LINUX_VIDEODEV2_H
 #include <sys/mman.h>
 
-#include "video_v4l2_source.h"
+#include "video_v4l_source.h"
 #include "video_util_rgb.h"
 #include "video_util_filter.h"
 #include "video_util_convert.h"
 
-int CV4L2VideoSource::ThreadMain(void) 
+const char *get_linux_video_type (void)
+{
+  return "V4L2";
+}
+
+int CV4LVideoSource::ThreadMain(void) 
 {
   debug_message("v4l2 thread start");
   m_v4l_mutex = NULL;
@@ -87,7 +92,7 @@ int CV4L2VideoSource::ThreadMain(void)
   return -1;
 }
 
-void CV4L2VideoSource::DoStartCapture(void)
+void CV4LVideoSource::DoStartCapture(void)
 {
   if (m_source) {
     return;
@@ -97,7 +102,7 @@ void CV4L2VideoSource::DoStartCapture(void)
   m_source = true;
 }
 
-void CV4L2VideoSource::DoStopCapture(void)
+void CV4LVideoSource::DoStopCapture(void)
 {
   if (!m_source) return;
   //  DoStopVideo();
@@ -106,7 +111,7 @@ void CV4L2VideoSource::DoStopCapture(void)
   SDL_DestroyMutex(m_v4l_mutex);
   m_v4l_mutex = NULL;
 }
-bool CV4L2VideoSource::Init(void)
+bool CV4LVideoSource::Init(void)
 {
   m_pConfig->CalculateVideoFrameSize();
 
@@ -134,7 +139,7 @@ static const uint32_t formats[] = {
   V4L2_PIX_FMT_BGR24,
 };
 
-bool CV4L2VideoSource::InitDevice(void)
+bool CV4LVideoSource::InitDevice(void)
 {
   int rc;
   const char* deviceName = m_pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME);
@@ -442,7 +447,7 @@ bool CV4L2VideoSource::InitDevice(void)
   return false;
 }
 
-void CV4L2VideoSource::ReleaseDevice()
+void CV4LVideoSource::ReleaseDevice()
 {
   SetVideoAudioMute(true);
 
@@ -465,7 +470,7 @@ void CV4L2VideoSource::ReleaseDevice()
   m_videoDevice = -1;
 }
 	
-void CV4L2VideoSource::SetVideoAudioMute(bool mute)
+void CV4LVideoSource::SetVideoAudioMute(bool mute)
 {
   if (!m_pConfig->m_videoCapabilities) return;
 
@@ -491,7 +496,7 @@ void CV4L2VideoSource::SetVideoAudioMute(bool mute)
   }
 }
 
-bool CV4L2VideoSource::SetPictureControls()
+bool CV4LVideoSource::SetPictureControls()
 {
   if (m_videoDevice == -1) return false;
 
@@ -580,7 +585,7 @@ bool CV4L2VideoSource::SetPictureControls()
   return true;
 }
 
-int8_t CV4L2VideoSource::AcquireFrame(Timestamp &frameTimestamp)
+int8_t CV4LVideoSource::AcquireFrame(Timestamp &frameTimestamp)
 {
   struct v4l2_buffer buffer;
 
@@ -608,7 +613,7 @@ void c_ReleaseFrame (void *f)
   if (yuv->free_y) {
     CHECK_AND_FREE(yuv->y);
   } else {
-    CV4L2VideoSource *s = (CV4L2VideoSource *)yuv->hardware;
+    CV4LVideoSource *s = (CV4LVideoSource *)yuv->hardware;
     s->IndicateReleaseFrame(yuv->hardware_index);
   }
   free(yuv);
@@ -619,7 +624,7 @@ void c_ReleaseFrame (void *f)
  * be released - note - there may be a problem if we don't release
  * in order given.
  */
-void CV4L2VideoSource::ReleaseFrames (void)
+void CV4LVideoSource::ReleaseFrames (void)
 {
   uint8_t index = 0;
   uint32_t index_mask = 1;
@@ -675,7 +680,7 @@ void CV4L2VideoSource::ReleaseFrames (void)
   }
 }
 
-void CV4L2VideoSource::ProcessVideo(void)
+void CV4LVideoSource::ProcessVideo(void)
 {
   // for efficiency, process ~1 second before returning to check for commands
   Timestamp frameTimestamp;
@@ -797,7 +802,7 @@ void CV4L2VideoSource::ProcessVideo(void)
   }
 }
 
-bool CV4L2VideoSource::InitialVideoProbe(CLiveConfig* pConfig)
+bool CV4LVideoSource::InitialVideoProbe(CLiveConfig* pConfig)
 {
   static const char* devices[] = {
     "/dev/video", 
@@ -950,3 +955,4 @@ void CVideoCapabilities::Display (CLiveConfig *pConfig,
 	     );
   }
 }
+#endif

@@ -22,14 +22,6 @@ libmp4livepreview_la_SOURCES = \
 	video_sdl_preview.h \
 	video_sdl_preview.cpp
 
-if HAVE_V4L2
-  es1= video_v4l2_source.cpp video_v4l2_source.h
-  ed1= video_v4l_source.cpp video_v4l_source.h
-else
-  es1= video_v4l_source.cpp video_v4l_source.h
-  ed1= video_v4l2_source.cpp video_v4l2_source.h
-endif
-
 if NO_XVID
    XVID_SRC=
    ed2=video_xvid10.h video_xvid10.cpp video_xvid.h video_xvid.cpp
@@ -109,7 +101,10 @@ libmp4live_la_SOURCES = \
 	video_util_rgb.cpp \
 	video_util_tv.h \
 	video_util_tv.cpp \
-	$(es1) \
+	video_v4l_source.cpp \
+	video_v4l_source.h \
+	video_v4l2_source.cpp \
+	video_v4l2_source.h \
 	video_encoder.h \
 	video_encoder_base.h \
 	video_encoder_base.cpp \
@@ -171,4 +166,4 @@ mp4live_LDADD = \
 	@SDL_LIBS@ $(GUILIBS) @FFMPEG_LIB@ @LIBVORBIS_LIB@ $(XVID_LIB) \
 	@X264_LIB@ 
 
-EXTRA_DIST = $(ed1) $(ed2) 
+EXTRA_DIST = $(ed2) 

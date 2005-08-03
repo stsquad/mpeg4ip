@@ -366,7 +366,7 @@ void h264_parse_pic_parameter_set (h264_decode_t *dec, CBitstream *bs)
     printf("   redundant_pic_cnt_present_flag: %u\n", bs->GetBits(1));
     int bits = bs->bits_remain();
     if (bits == 0) return;
-    if (bits < 8) {
+    if (bits <= 8) {
       uint8_t trail_check = bs->PeekBits(bits);
       if (trail_check == trailing_bits[bits]) return;
     }

@@ -3904,7 +3904,21 @@ extern "C" bool MP4GetMetadataCoverArt(MP4FileHandle hFile,
   }
   return false;
 }
- 
+
+extern "C" u_int32_t MP4GetMetadataCoverArtCount(MP4FileHandle hFile)
+{
+  if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+    try {
+      return ((MP4File*)hFile)->GetMetadataCoverArtCount();
+    }
+    catch (MP4Error* e) {
+      PRINT_ERROR(e);
+      delete e;
+    }
+  }
+  return false;
+} 
+
 extern "C" bool MP4DeleteMetadataCoverArt(MP4FileHandle hFile)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
