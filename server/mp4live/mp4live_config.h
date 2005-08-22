@@ -298,6 +298,8 @@ static SConfigVariable MyConfigVariables[] = {
 #endif /* DECLARE_CONFIG_VARIABLES */
 
 
+class CVideoCapabilities;
+
 class CLiveConfig : public CConfigSet {
 public:
 	CLiveConfig(SConfigVariable* variables, 
@@ -334,7 +336,7 @@ public:
 	bool		m_appAutomatic;
 
 	// derived, shared video configuration
-	CCapabilities* m_videoCapabilities;
+	CVideoCapabilities* m_videoCapabilities;
 #ifdef ADD_RTP_SOURCE
 	CCapabilities *m_RTPvideoCapabilities;
 #endif

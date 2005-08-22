@@ -172,12 +172,26 @@ bool CV4LVideoSource::InitDevice(void)
 
   // query attributes of video input
   struct v4l2_input input;
-  input.index = m_pConfig->GetIntegerValue(CONFIG_VIDEO_INPUT);
+  memset(&input, 0, sizeof(input));
+
+  uint input_value;
+  input_value = m_pConfig->GetIntegerValue(CONFIG_VIDEO_INPUT);
+  if (m_pConfig->m_videoCapabilities != NULL) {
+    uint compare_value = m_pConfig->m_videoCapabilities->m_numInputs;
+    if (compare_value > 0) compare_value--;
+    if (input_value > compare_value) {
+      input_value = 0;
+      m_pConfig->SetIntegerValue(CONFIG_VIDEO_INPUT, input_value);
+      error_message("Video input value exceed capabilities; replacing with 0");
+    }
+  }
+
+  input.index = input_value;
   rc = ioctl(m_videoDevice, VIDIOC_ENUMINPUT, &input);
   if (rc < 0) {
     error_message("Failed to enumerate video input %d for %s",
                   input.index, deviceName);
-    goto failure;
+    //goto failure;
   }
 
   // select video input
@@ -185,7 +199,7 @@ bool CV4LVideoSource::InitDevice(void)
   if (rc < 0) {
     error_message("Failed to select video input %d for %s",
                   input.index, deviceName);
-    goto failure;
+    //goto failure;
   }
   
   // select video input standard type
@@ -203,7 +217,7 @@ bool CV4LVideoSource::InitDevice(void)
   rc = ioctl(m_videoDevice, VIDIOC_S_STD, &std);
   if (rc < 0) {
     error_message("Failed to select video standard for %s", deviceName);
-    goto failure;
+    //goto failure;
   }
 
   if (m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL) == VIDEO_SIGNAL_NTSC) {
@@ -884,6 +898,7 @@ bool CVideoCapabilities::ProbeDevice()
   m_hasAudio = capability.capabilities & (V4L2_CAP_AUDIO | V4L2_CAP_TUNER);
 
   struct v4l2_input input;
+  memset(&input, 0, sizeof(input));
 
   // get the number of inputs
   for(i=0; ; i++) {
@@ -909,12 +924,14 @@ bool CVideoCapabilities::ProbeDevice()
   for(i=0; i<m_numInputs; i++) {
     input.index = i;
     rc = ioctl(videoDevice, VIDIOC_ENUMINPUT, &input);
-    if (rc < 0) {
+    if (rc >= 0) {
+      m_inputNames[i] = strdup((char*)input.name);
+    } else {
+      m_inputNames[i] = strdup("Unknown input");
       error_message("Failed to enumerate video input %d for %s",
                     i, m_deviceName);
       continue;
     }
-    m_inputNames[i] = strdup((char*)input.name);
 
     error_message("type %d %s type %x", i, m_inputNames[i], input.type);
     if (input.type == V4L2_INPUT_TYPE_TUNER) {
@@ -941,6 +958,10 @@ void CVideoCapabilities::Display (CLiveConfig *pConfig,
 {
   uint32_t port = pConfig->GetIntegerValue(CONFIG_VIDEO_INPUT);
 
+  if (port >= m_numInputs) {
+    snprintf(msg, max_len, "Video port has illegal value");
+    return;
+  }
   if (m_inputHasTuners[port] == false) {
     snprintf(msg, max_len, 
 	     "%s, %ux%u, %s, %s",

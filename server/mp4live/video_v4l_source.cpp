@@ -730,6 +730,10 @@ void CVideoCapabilities::Display (CLiveConfig *pConfig,
 {
   uint32_t port = pConfig->GetIntegerValue(CONFIG_VIDEO_INPUT);
 
+  if (port >= m_numInputs) {
+    snprintf(msg, max_len, "Video port has illegal value");
+    return;
+  }
   if (m_inputHasTuners[port] == false) {
     snprintf(msg, max_len, 
 	     "%s, %ux%u, %s, %s",
