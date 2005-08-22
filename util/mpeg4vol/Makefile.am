@@ -4,7 +4,7 @@ bin_PROGRAMS = mpeg4vol
 mpeg4vol_SOURCES = \
 	main.cpp
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/lib/mp4av 
+INCLUDES = -I$(srcdir) -I$(top_srcdir)/common/video/mpeg4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/lib/mp4av 
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ 
 

@@ -579,6 +579,7 @@ void MP4Track::UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes)
 			// special case of first sample is zero bytes in length
 			// leave m_pStszFixedSampleSizeProperty at 0
 			// start recording variable sample sizes
+		        m_pStszFixedSampleSizeProperty->SetValue(0); 
 			m_pStszSampleSizeProperty->AddValue(0);
 		}
 
@@ -605,6 +606,13 @@ void MP4Track::UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes)
 	}
 
 	m_pStszSampleCountProperty->IncrementValue();
+#if 0
+	printf("track %u sample id %u bytes %u fixed %u count %u prop %u\n", 
+	       m_trackId, sampleId, numBytes,
+	       m_pStszFixedSampleSizeProperty->GetValue(),
+	       m_pStszSampleSizeProperty->GetCount(),
+	       m_pStszSampleCountProperty->GetValue());
+#endif
 }
 
 u_int32_t MP4Track::GetAvgBitrate()

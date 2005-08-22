@@ -101,6 +101,7 @@ public:
 	void ValidateAndUpdateStreams(void);
 	bool AddStream(const char *name);
 	bool DeleteStream(const char *name);
+	void RestartFileRecording(void);
 protected:
 	//void AddSink(CMediaSink* pSink);
 	//void RemoveSink(CMediaSink* pSink);

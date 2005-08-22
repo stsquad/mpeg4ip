@@ -926,4 +926,22 @@ bool CAVMediaFlow::DeleteStream (const char *name)
   ValidateAndUpdateStreams();
   return true;
 }
+
+void CAVMediaFlow::RestartFileRecording (void)
+{
+  if (m_started == false) return;
+
+  bool hint_tracks = m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS);
+  if (hint_tracks) {
+    error_message("Disabling writing of hint tracks for file record restart");
+  }
+  m_pConfig->SetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS, false);
+  CMediaStream *stream;
+  stream = m_stream_list->GetHead();
+  while (stream != NULL) {
+    stream->RestartFileRecording();
+    stream = stream->GetNext();
+  }
+  m_pConfig->SetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS, hint_tracks);
+}
 /* end file media_flow.cpp */	 

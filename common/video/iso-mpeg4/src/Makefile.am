@@ -1,7 +1,7 @@
 
 AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror -D_OBSS_ @BILLS_CPPWARNINGS@
 
-INCLUDES = -I../include
+INCLUDES = -I$(srcdir)/../include
 
 lib_LTLIBRARIES = libmpeg4ip_mpeg4_iso.la
 check_PROGRAMS = mp4vdec convertpar mp4venc

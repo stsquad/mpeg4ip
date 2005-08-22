@@ -141,7 +141,7 @@ INCLUDES=\
 	-I$(top_srcdir)/lib/mpeg2ps \
 	-I$(top_srcdir)/player/lib \
 	-I$(top_srcdir)/player/src \
-	-I./h261 \
+	-I$(srcdir)/h261 \
 	@FFMPEG_INC@ 
 
 AM_CXXFLAGS = \

@@ -33,7 +33,7 @@ mp3_plugin_la_LIBADD = \
 	$(top_builddir)/lib/fposrec/libmpeg4ip_fposrec.la
 
 
-INCLUDES = -I.. -I../..  -I../../../lib -I../../../lib/audio -I../../../../common/video/mpeg4 -I../../../../include -I../../../../lib -I$(top_builddir)/lib/mp4v2 -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/utils
+INCLUDES = -I$(top_srcdir)/player/src -I$(top_srcdir)/player/lib -I$(top_srcdir)/player/lib/audio -I$(top_srcdir)/common/video/mpeg4 -I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/utils
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 

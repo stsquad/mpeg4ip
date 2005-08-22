@@ -172,6 +172,7 @@ void MP4HexDump(
 	FILE* pFile = stdout, u_int8_t indent = 0);
 
 inline void* MP4Malloc(size_t size) {
+  if (size == 0) return NULL;
 	void* p = malloc(size);
 	if (p == NULL && size > 0) {
 		throw new MP4Error(errno);
@@ -180,6 +181,7 @@ inline void* MP4Malloc(size_t size) {
 }
 
 inline void* MP4Calloc(size_t size) {
+  if (size == 0) return NULL;
 	return memset(MP4Malloc(size), 0, size);
 }
 
@@ -202,6 +204,7 @@ inline void* MP4Realloc(void* p, u_int32_t newSize) {
 }
 
 inline void MP4Free(void* p) {
+  if (p == NULL) return;
 	free(p);
 }
 

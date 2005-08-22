@@ -623,7 +623,10 @@ static void H264SendVideo (CMediaFrame *pFrame, CRtpDestination *list,
   h264_media_frame_t *mf = (h264_media_frame_t *)pFrame->GetData();
   uint32_t nal_on = 0;
   struct iovec iov[32];
-
+  //#define DEBUG_H264_TX 1
+#ifdef DEBUG_H264_TX
+  debug_message("send h264 - %u nals", mf->nal_number);
+#endif
   while (nal_on < mf->nal_number) {
     uint32_t nal_len = mf->nal_bufs[nal_on].nal_length;
     const uint8_t *nal_ptr = mf->buffer + mf->nal_bufs[nal_on].nal_offset;
@@ -635,9 +638,16 @@ static void H264SendVideo (CMediaFrame *pFrame, CRtpDestination *list,
      *
      * We don't send multiple time aggregation units
      */
-    if (mf->nal_bufs[nal_on].unique == false &&
-	(mf->nal_bufs[nal_on].nal_type == H264_NAL_TYPE_SEQ_PARAM ||
-	 mf->nal_bufs[nal_on].nal_type == H264_NAL_TYPE_PIC_PARAM)) {
+    bool have_non_unique_seq_or_pic;
+#if 1
+    have_non_unique_seq_or_pic = 
+      (mf->nal_bufs[nal_on].unique == false &&
+       (mf->nal_bufs[nal_on].nal_type == H264_NAL_TYPE_SEQ_PARAM ||
+	 mf->nal_bufs[nal_on].nal_type == H264_NAL_TYPE_PIC_PARAM));
+#else
+    have_non_unique_seq_or_pic = false;
+#endif
+    if (have_non_unique_seq_or_pic) {
       nal_on++;
     } else if (nal_len > mtu) {
       // fragmentation unit - break up into mtu size chunks
@@ -724,15 +734,17 @@ static void H264SendVideo (CMediaFrame *pFrame, CRtpDestination *list,
       // first, put the stap header
       iov[0].iov_base = &stap;
       iov[0].iov_len = 1;
-      uint8_t lens[2][15];
+      uint8_t lens[30];
       uint32_t iov_on = 1;
+      uint len_on = 0;
       while (nal_on < nal_check) {
 	nal_len = mf->nal_bufs[nal_on].nal_length;
 	nal_ptr = mf->buffer + mf->nal_bufs[nal_on].nal_offset;
 	// ready the length
-	lens[0][iov_on - 1] = nal_len >> 8;
-	lens[1][iov_on - 1] = nal_len & 0xff;
-	iov[iov_on].iov_base = &lens[0][iov_on - 1];
+	lens[len_on] = nal_len >> 8;
+	lens[len_on + 1] = nal_len & 0xff;
+	iov[iov_on].iov_base = &lens[len_on];
+	len_on += 2;
 	iov[iov_on].iov_len = 2;
 	iov_on++;
 	// then store the nal

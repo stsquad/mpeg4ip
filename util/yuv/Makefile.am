@@ -10,7 +10,7 @@ yuvdisp_SOURCES = yuvdisp.cpp
 
 sdl_pcm_play_SOURCES = sdlsoundplay.cpp 
 
-INCLUDES = -I. -I../../include
+INCLUDES = -I$(srcdir) -I$(top_srcdir)/include
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@
 

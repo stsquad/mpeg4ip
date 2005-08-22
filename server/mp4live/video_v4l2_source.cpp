@@ -305,6 +305,13 @@ bool CV4LVideoSource::InitDevice(void)
     if (rc == 0 && format.fmt.pix.pixelformat == formats[ix]) {
       m_format = formats[ix];
       pass = true;
+    } else {
+      debug_message("format %c%c%c%c return code %d", 
+		    formats[ix] & 0xff,
+		    formats[ix] >> 8,
+		    formats[ix] >> 16,
+		    formats[ix] >> 24,
+		    rc);
     }
     if (format.fmt.pix.width != width) {
       error_message("format %u - returned width %u not selected %u", 

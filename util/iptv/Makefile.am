@@ -2,9 +2,9 @@ check_PROGRAMS = iptv_prog
 
 iptv_prog_SOURCES = iptv_prog.cpp
 
-INCLUDES = -I. -I../../include \
-	-I$(top_builddir)/player/lib/libhttp \
-	-I$(top_builddir)/lib/sdp
+INCLUDES = -I$(srcdir) -I$(top_srcdir)/include \
+	-I$(top_srcdir)/player/lib/libhttp \
+	-I$(top_srcdir)/lib/sdp
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@
 

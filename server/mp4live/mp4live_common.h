@@ -21,8 +21,9 @@ CTextSource *CreateTextSource(CLiveConfig *pConfig);
 
 void InitialVideoProbe(CLiveConfig *pConfig);
 
-void InstallSignalHandler(CLiveConfig *pConfig, 
-			  void (*sighandler)(int));
+void InstallSignalHandler(const char *list,
+			  void (*sighandler)(int), 
+			  bool setsigint = false);
 
 void GetHomeDirectory (char *base);
 #endif

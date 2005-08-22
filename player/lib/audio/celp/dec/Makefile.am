@@ -43,7 +43,7 @@ libmpeg4ip_celp_la_SOURCES = \
 	phi_priv.c \
 	phi_xits.c
 
-INCLUDES=-I../include
+INCLUDES=-I$(srcdir)/../include
 AM_CFLAGS = 
 
 AM_CXXFLAGS = 

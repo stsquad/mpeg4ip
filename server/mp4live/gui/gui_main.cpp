@@ -112,12 +112,23 @@ static const char *lockouts[] = {
   "DurationType",
   NULL
 };
+
+static const char *lockins[] = {
+  "restart_recording",
+  NULL,
+};
+
  static void LockoutChanges (bool lockout)
  {
    GtkWidget *temp;
-   for (uint ix = 0; lockouts[ix] != NULL; ix++) {
+   uint ix;
+   for (ix = 0; lockouts[ix] != NULL; ix++) {
      temp = lookup_widget(MainWindow, lockouts[ix]);
      gtk_widget_set_sensitive(GTK_WIDGET(temp), !lockout);
+   }
+   for (ix = 0; lockins[ix] != NULL; ix++) {
+     temp = lookup_widget(MainWindow, lockins[ix]);
+     gtk_widget_set_sensitive(GTK_WIDGET(temp), lockout);
    }
 }
 
@@ -924,6 +935,30 @@ on_generate_addresses_activate         (GtkMenuItem     *menuitem,
 	  "\nDo you want to continue ?",
 	  true,
 	  GTK_SIGNAL_FUNC(on_generate_addresses_yes),
+	  NULL);
+}
+
+static void on_restart_record_yes (void)
+{
+  AVFlow->RestartFileRecording();
+}
+static const char *restart1 = 
+"This will restart recording for all streams\n"
+"\nDo you want to continue ?";
+static const char *restart2 = 
+"This will restart recording for all streams\n"
+"\nIt is configured to wipe out the existing file\n"
+"\nDo you want to continue ?";
+
+static void 
+on_restart_recording_activate           (GtkMenuItem  *menuitem,
+					 gpointer      user_data)
+{
+  YesOrNo("Restart Recording",
+	  MyConfig->GetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS)
+	  == FILE_MP4_CREATE_NEW ? restart1 : restart2,
+	  false,
+	  GTK_SIGNAL_FUNC(on_restart_record_yes),
 	  NULL);
 }
 
@@ -1748,6 +1783,8 @@ static GtkWidget *create_MainWindow (void)
   GtkWidget *generate_addresses;
   GtkWidget *generate_sdp;
   GtkWidget *separator1;
+  GtkWidget *restart_recording;
+  GtkWidget *separator3;
   GtkWidget *preferences1;
   GtkWidget *menuitem4;
   GtkWidget *menuitem4_menu;
@@ -1989,6 +2026,16 @@ static GtkWidget *create_MainWindow (void)
   gtk_widget_show(separator1);
   gtk_container_add(GTK_CONTAINER(menuitem2_menu), separator1);
   gtk_widget_set_sensitive(separator1, FALSE);
+
+  restart_recording = gtk_menu_item_new_with_mnemonic(_("_Restart Recording"));
+  gtk_widget_show(restart_recording);
+  gtk_container_add(GTK_CONTAINER(menuitem2_menu), restart_recording);
+  gtk_widget_set_sensitive(restart_recording, FALSE);
+
+  separator3 = gtk_menu_item_new();
+  gtk_widget_show(separator3);
+  gtk_container_add(GTK_CONTAINER(menuitem2_menu), separator3);
+  gtk_widget_set_sensitive(separator3, FALSE);
 
   preferences1 = gtk_image_menu_item_new_from_stock("gtk-preferences", accel_group);
   gtk_widget_show(preferences1);
@@ -2787,6 +2834,10 @@ static GtkWidget *create_MainWindow (void)
   g_signal_connect((gpointer) generate_addresses, "activate",
                     G_CALLBACK(on_generate_addresses_activate),
                     NULL);
+  g_signal_connect((gpointer)restart_recording, "activate",
+		   G_CALLBACK(on_restart_recording_activate),
+		   NULL);
+
   g_signal_connect((gpointer) generate_sdp, "activate",
                     G_CALLBACK(on_generate_sdp_activate),
                     NULL);
@@ -2899,6 +2950,8 @@ static GtkWidget *create_MainWindow (void)
   GLADE_HOOKUP_OBJECT(MainWindow, generate_sdp, "generate_sdp");
   GLADE_HOOKUP_OBJECT(MainWindow, separator1, "separator1");
   GLADE_HOOKUP_OBJECT(MainWindow, preferences1, "preferences1");
+  GLADE_HOOKUP_OBJECT(MainWindow, restart_recording, "restart_recording");
+  GLADE_HOOKUP_OBJECT(MainWindow, separator3, "separator3");
   GLADE_HOOKUP_OBJECT(MainWindow, menuitem4, "menuitem4");
   GLADE_HOOKUP_OBJECT(MainWindow, menuitem4_menu, "menuitem4_menu");
   GLADE_HOOKUP_OBJECT(MainWindow, about1, "about1");

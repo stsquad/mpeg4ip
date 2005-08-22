@@ -1,6 +1,6 @@
 lib_LTLIBRARIES = libmpeg4ip_gnu.la
 
-INCLUDES = -I$(top_builddir)/include
+INCLUDES = -I$(top_srcdir)/include
 
 libmpeg4ip_gnu_la_SOURCES = \
 	getopt.c \

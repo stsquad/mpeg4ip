@@ -677,7 +677,8 @@ void MP4TableProperty::Write(MP4File* pFile, u_int32_t index)
 	u_int32_t numEntries = GetCount();
 
 	if (m_pProperties[0]->GetCount() != numEntries) {
-	  fprintf(stderr, "%s \"%s\"table entries %u doesn't match count %u\n", 
+	  fprintf(stderr, "%s %s \"%s\"table entries %u doesn't match count %u\n", 
+		  GetParentAtom() != NULL ? GetParentAtom()->GetType() : "", 
 		  GetName(), m_pProperties[0]->GetName(),
 		  m_pProperties[0]->GetCount(), numEntries);
 

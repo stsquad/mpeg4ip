@@ -42,13 +42,13 @@ if HAVE_MAC_OSX
   SDL_AUDIO_SRC = audio_macosx.cpp audio_macosx.h
   SDL_AUDIO_FLAGS = -framework CoreAudio -framework AudioToolbox 
   SDL_AUDIO_LIB = $(top_builddir)/player/lib/audio/portaudio/libportaudio.la 
-  SDL_AUDIO_INC =-I$(top_builddir)/player/lib/audio/portaudio
+  SDL_AUDIO_INC =-I$(top_srcdir)/player/lib/audio/portaudio
   ADD_CFLAGS=-Ddarwin -D_THREAD_SAFE -DNEED_SDL_VIDEO_IN_MAIN_THREAD
 else
   SDL_AUDIO_SRC = audio_sdl.cpp audio_sdl.h
   SDL_AUDIO_FLAGS=
   SDL_AUDIO_LIB = $(top_builddir)/lib/SDLAudio/src/libmpeg4ipSDL.la 
-  SDL_AUDIO_INC = -I$(top_builddir)/lib/SDLAudio/include
+  SDL_AUDIO_INC = -I$(top_srcdir)/lib/SDLAudio/include
   ADD_CFLAGS=
 endif
 
@@ -142,7 +142,7 @@ gmp4player_SOURCES = \
 	gui_utils.h \
 	gui_xpm.h
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio $(SDL_AUDIO_INC) -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYP_INC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/lib/mpeg2ps -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/utils -I$(top_srcdir)/lib/audio @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@  
+INCLUDES = -I$(srcdir) -I$(top_srcdir)/common/video/mpeg4 -I$(srcdir)/codec -I$(srcdir)/codec/mpeg4 -I$(srcdir)/../lib -I$(srcdir)/../lib/audio $(SDL_AUDIO_INC) -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYP_INC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/lib/mpeg2ps -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/utils -I$(top_srcdir)/lib/audio @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@  
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\" $(ADD_CFLAGS)
 

@@ -147,8 +147,8 @@ static bool remove_unused_sei_messages (nal_reader_t *nal,
       // rbsp_trailing_bits
       return true;
     }
-    if (nal->buffer_on - buffer_on < 2) {
-      fprintf(stderr, "extra bytes after SEI message\n");
+    if (nal->buffer_on - buffer_on <= 2) {
+      //fprintf(stderr, "extra bytes after SEI message\n");
       memset(nal->buffer + buffer_on, 0,
 	     nal->buffer_on - buffer_on); 
       nal->buffer_on = buffer_on;

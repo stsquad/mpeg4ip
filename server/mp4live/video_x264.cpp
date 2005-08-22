@@ -220,6 +220,7 @@ bool CX264VideoEncoder::EncodeImage(
       m_nal_info[nal_on].nal_length -= header;
       m_nal_info[nal_on].nal_offset += header;
       // don't put seq or pic nal unless we have a change
+#if 1
       if (m_nal_info[nal_on].nal_type == H264_NAL_TYPE_SEQ_PARAM) {
 	if (m_nal_info[nal_on].nal_length != m_videoH264SeqSize ||
 	    memcmp(vopBuffer, m_videoH264Seq, m_videoH264SeqSize) != 0) {
@@ -228,7 +229,7 @@ bool CX264VideoEncoder::EncodeImage(
 	  m_videoH264SeqSize = m_nal_info[nal_on].nal_length;
 	  m_videoH264Seq = (uint8_t *)malloc(m_videoH264SeqSize);
 	  memcpy(m_videoH264Seq, vopBuffer, m_videoH264SeqSize);
-	} 
+	} else skip = true;
       } else if (m_nal_info[nal_on].nal_type == H264_NAL_TYPE_PIC_PARAM) {
 	if (m_nal_info[nal_on].nal_length != m_videoH264PicSize ||
 	      memcmp(vopBuffer, m_videoH264Pic, m_videoH264PicSize) != 0) {
@@ -237,8 +238,9 @@ bool CX264VideoEncoder::EncodeImage(
 	  m_videoH264PicSize = m_nal_info[nal_on].nal_length;
 	  m_videoH264Pic = (uint8_t *)malloc(m_videoH264PicSize);
 	  memcpy(m_videoH264Pic, vopBuffer, m_videoH264PicSize);
-	}
+	} else skip = true;
       }
+#endif
       if (skip == false) {
 #ifdef DEBUG_H264
 	uint8_t nal_type = nal[ix].i_type;

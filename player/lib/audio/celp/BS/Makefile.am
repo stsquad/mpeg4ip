@@ -24,7 +24,7 @@ libmpeg4ip_celpbs_la_SOURCES = \
 	obj_descr.h \
 	tf_tables.c
 
-INCLUDES=-I../include
+INCLUDES=-I$(srcdir)/../include
 AM_CFLAGS = 
 
 AM_CXXFLAGS = 

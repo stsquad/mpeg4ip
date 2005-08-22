@@ -10,7 +10,7 @@ libmp4live_h261_la_SOURCES = encoder-h261.cpp \
 	huffcode.c \
 	p64-huff.h
 
-INCLUDES = -I.. \
+INCLUDES = -I$(top_srcdir)/server/mp4live \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/lib/ \
 	-I$(top_srcdir)/lib/mp4v2 \

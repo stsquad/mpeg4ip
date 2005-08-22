@@ -5,7 +5,7 @@ libmpeg4ip_fposrec_la_SOURCES = \
 
 EXTRA_DIST = libfileposrec60.dsp 
 
-INCLUDES = -I../../include
+INCLUDES = -I$(top_srcdir)/include
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 

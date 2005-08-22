@@ -101,10 +101,10 @@ static struct sig_str_to_value_ {
   { "stop", SIGSTOP},
 };
 
-void InstallSignalHandler (CLiveConfig *pConfig, 
-			   void (*sighandler)(int))
+void InstallSignalHandler (const char *sig,
+			   void (*sighandler)(int),
+			   bool setsigint)
 {
-  const char *sig = pConfig->GetStringValue(CONFIG_APP_SIGNAL_HALT);
   struct sigaction act;
   bool sigintset = false;
 
@@ -126,7 +126,7 @@ void InstallSignalHandler (CLiveConfig *pConfig,
     }
   }
 
-  if (sigintset == false) {
+  if (setsigint && sigintset == false) {
     sigaction(SIGINT, &act, 0);
   }
 }

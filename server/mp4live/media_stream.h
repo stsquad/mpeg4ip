@@ -130,6 +130,7 @@ class CMediaStream : public CConfigEntry
   void SetAudioEncoder(CAudioEncoder *ae) { m_audio_encoder = ae; };
   void SetTextEncoder(CTextEncoder *te) { m_text_encoder = te; };
   bool GetStreamStatus(uint32_t valueName, void *pValue);
+  void RestartFileRecording(void);
  protected:
   CVideoProfile *m_pVideoProfile;
   CAudioProfile *m_pAudioProfile;

@@ -8,7 +8,7 @@ rfc3267_plugin_la_SOURCES = \
 	rfc3267.cpp rfc3267.h
 
 rfc3267_plugin_la_LIBADD = \
-	$(top_srcdir)/lib/mp4av/libmp4av.la \
+	$(top_builddir)/lib/mp4av/libmp4av.la \
 	-lm 
 
 INCLUDES = -I$(top_srcdir)/player/src \

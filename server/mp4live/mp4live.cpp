@@ -328,12 +328,18 @@ int main(int argc, char** argv)
 	exit (rc);
 }
 
-static int stop_signal_received;
+static volatile bool stop_signal_received, restart_recording_signal_received;
 
 static void signal_stop_handler (int sig)
 {
   error_message("Received stop signal %d", sig);
-  stop_signal_received = 1;
+  stop_signal_received = true;
+}
+
+static void signal_restart_recording_handler (int sig)
+{
+  error_message("Received restart recoding signal %d", sig);
+  restart_recording_signal_received = true;
 }
 
 int nogui_main(CLiveConfig* pConfig)
@@ -347,7 +353,11 @@ int nogui_main(CLiveConfig* pConfig)
 		return -1;
 	}
 
-	InstallSignalHandler(pConfig, signal_stop_handler);
+	InstallSignalHandler(pConfig->GetStringValue(CONFIG_APP_SIGNAL_HALT), 
+			     signal_stop_handler,
+			     true);
+	InstallSignalHandler(pConfig->GetStringValue(CONFIG_APP_SIGNAL_REC_RESTART),
+			     signal_restart_recording_handler);
 
 	// override any configured value of preview
 	bool previewValue =
@@ -364,7 +374,9 @@ int nogui_main(CLiveConfig* pConfig)
 
 	pFlow->Start();
 	error_message("Started - wait");
-	stop_signal_received = 0;
+	stop_signal_received = false;
+	restart_recording_signal_received = false;
+
 	maxduration = pConfig->GetIntegerValue(CONFIG_APP_DURATION)
 	  * pConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS);
 	
@@ -376,6 +388,10 @@ int nogui_main(CLiveConfig* pConfig)
 #endif
 	  nowtime = time(NULL);
 	  duration = difftime(nowtime, starttime);
+	  if (restart_recording_signal_received) {
+	    restart_recording_signal_received = false;
+	    pFlow->RestartFileRecording();
+	  }
 	} while (duration < maxduration && stop_signal_received == 0);
 
 	pFlow->Stop();

@@ -21,13 +21,14 @@ mpeg4_iso_plugin_la_LIBADD = \
 	$(top_builddir)/$(mpeg4_dir)/src/libmpeg4ip_mpeg4_iso.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la 
 
-INCLUDES = -I.. \
-	-I../.. \
-	-I../../../lib \
+INCLUDES = \
+	-I$(top_srcdir)/player/src \
+	-I$(top_srcdir)/player/lib \
+	-I$(top_srcdir)/$(mpeg4_dir) \
 	-I$(top_builddir)/$(mpeg4_dir) \
-	-I$(top_builddir)/$(mpeg4_dir)/include \
-	-I$(top_builddir)/include \
-	-I$(top_builddir)/lib \
+	-I$(top_srcdir)/$(mpeg4_dir)/include \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/lib \
 	-I$(top_srcdir)/lib/mp4v2 \
 	-I$(top_srcdir)/lib/sdp
 

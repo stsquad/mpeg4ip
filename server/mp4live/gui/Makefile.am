@@ -19,7 +19,7 @@ libmp4livegui_la_SOURCES = \
 	video_dialog.cpp 
 
 INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
-	-I.. \
+	-I$(top_srcdir)/server/mp4live \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/lib/mp4v2 \
 	-I$(top_srcdir)/lib/mp4av \

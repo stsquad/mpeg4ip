@@ -204,3 +204,11 @@ bool CMediaStream::GetStreamStatus (uint32_t valueName, void *pValue)
   }
   return false;
 }
+
+void CMediaStream::RestartFileRecording (void)
+{
+  if (m_mp4_recorder != NULL) {
+    m_mp4_recorder->Stop();
+    m_mp4_recorder->Start();
+  }
+}
