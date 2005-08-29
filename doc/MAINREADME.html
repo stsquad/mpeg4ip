@@ -201,7 +201,8 @@ note: for gcc 4.0, you will need to configure with --enable-shared=yes</li>
 The following packages are optional for mp4live, but will enable more 
 functionality:
 <ul>
-<li><a href="http://www.audiocoding.com">faac</a>, version 1.20.1 or later</li>
+<li><a href="http://www.audiocoding.com">faac</a>, version 1.20.1 or later<br>
+If you are using a released or CVS version after version 1.24, use the --with=mp4v2=no option </li>
 <li><a href="http://lame.sourceforge.net">lame</a> (mp3 encoding)</li>
 <li><a href="http://ffmpeg.sourceforge.net">ffmpeg</a> (H.263, mpeg-4, mpeg-2 
 video content, AMR, mpeg-2 audio)</li>
@@ -216,6 +217,9 @@ The developer recommends ffmpeg for mpeg-4 encoding.  Please see the
 If you are going to encode mpeg-4 or H.264, you will also want to 
 include faac for aac encoding; most other players will not play 
 other types of audio with those video encodings.
+<br>
+faac versions after 1.24 will require the --with-mp4v2=no argument to 
+the configure statement.
 <p>
 <a href="#top">Back to top</a>
 <P>
@@ -246,8 +250,6 @@ continuing.
 <P>
 If you wish to build mpeg4ip without mp4live, you can give the 
 <code>--disable-mp4live</code> or <code>--disable-server</code> arguments.  
-Neither the bootstrap or cvs_bootstrap scripts will allow you to build without
-faac installed or one of the above arguments on a Linux system.  
 Other systems will automatically detect that you are not building on Linux 
 and will not build mp4live.
 <p>

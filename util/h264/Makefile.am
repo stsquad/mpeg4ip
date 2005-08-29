@@ -1,8 +1,11 @@
 
 bin_PROGRAMS = h264_parse
+check_PROGRAMS = strip_bytes
 
 h264_parse_SOURCES = \
 	main.cpp
+
+strip_bytes_SOURCES = strip.cpp
 
 INCLUDES = -I$(srcdir) -I$(top_srcdir)/common/video/mpeg4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/lib/mp4av 
 

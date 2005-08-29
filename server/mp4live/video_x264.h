@@ -82,10 +82,6 @@ class CX264VideoEncoder : public CVideoEncoder {
 	h264_nal_buf_t *m_nal_info;
 	uint32_t m_nal_num;
 	
-	uint8_t              *m_videoH264Seq;
-	uint32_t              m_videoH264SeqSize;
-	uint8_t              *m_videoH264Pic;
-	uint32_t              m_videoH264PicSize;
 };
 
 void AddX264ConfigVariables(CVideoProfile *pConfig);

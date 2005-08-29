@@ -84,9 +84,11 @@ void h264_check_0s (CBitstream *bs, int count)
   }
 }
 
-void h264_hrd_parameters (CBitstream *bs)
+void h264_hrd_parameters (h264_decode_t *dec, CBitstream *bs)
 {
-  uint32_t cpb_cnt = h264_ue(bs);
+  uint32_t cpb_cnt;
+  dec->cpb_cnt_minus1 = cpb_cnt = h264_ue(bs);
+  uint32_t temp;
   printf("     cpb_cnt_minus1: %u\n", cpb_cnt);
   printf("     bit_rate_scale: %u\n", bs->GetBits(4));
   printf("     cpb_size_scale: %u\n", bs->GetBits(4));
@@ -95,13 +97,17 @@ void h264_hrd_parameters (CBitstream *bs)
     printf("      cpb_size_value_minus1[%u]: %u\n", ix, h264_ue(bs));
     printf("      cbr_flag[%u]: %u\n", ix, bs->GetBits(1));
   }
-  printf("     initial_cpb_removal_delay_length_minus1: %u\n", bs->GetBits(5));
-  printf("     cpb_removal_delay_length_minus1: %u\n", bs->GetBits(5));
+  temp = dec->initial_cpb_removal_delay_length_minus1 = bs->GetBits(5);
+  printf("     initial_cpb_removal_delay_length_minus1: %u\n", temp);
+
+  dec->cpb_removal_delay_length_minus1 = temp = bs->GetBits(5);
+  printf("     cpb_removal_delay_length_minus1: %u\n", temp);
   printf("     dpb_output_delay_length_minus1: %u\n", bs->GetBits(5));
-  printf("     time_offset_delay: %u\n", bs->GetBits(5));
+  dec->time_offset_length = temp = bs->GetBits(5);  
+  printf("     time_offset_length: %u\n", temp);
 }
 
-void h264_vui_parameters (CBitstream *bs)
+void h264_vui_parameters (h264_decode_t *dec, CBitstream *bs)
 {
   uint32_t temp, temp2;
   temp = bs->GetBits(1);
@@ -149,17 +155,22 @@ void h264_vui_parameters (CBitstream *bs)
   temp = bs->GetBits(1);
   printf("    nal_hrd_parameters_present_flag: %u\n", temp);
   if (temp) {
-    h264_hrd_parameters(bs);
+    dec->NalHrdBpPresentFlag = 1;
+    dec->CpbDpbDelaysPresentFlag = 1;
+    h264_hrd_parameters(dec, bs);
   }
   temp2 = bs->GetBits(1);
   printf("    vcl_hrd_parameters_present_flag: %u\n", temp2);
   if (temp2) {
-    h264_hrd_parameters(bs);
+    dec->VclHrdBpPresentFlag = 1;
+    dec->CpbDpbDelaysPresentFlag = 1;
+    h264_hrd_parameters(dec, bs);
   }
   if (temp || temp2) {
     printf("    low_delay_hrd_flag: %u\n", bs->GetBits(1));
   }
-  printf("    pic_struct_present_flag: %u\n", bs->GetBits(1));
+  dec->pic_struct_present_flag = temp = bs->GetBits(1);
+  printf("    pic_struct_present_flag: %u\n", temp);
   temp = bs->GetBits(1);
   if (temp) {
     printf("    motion_vectors_over_pic_boundaries_flag: %u\n", bs->GetBits(1));
@@ -298,7 +309,7 @@ void h264_parse_sequence_parameter_set (h264_decode_t *dec, CBitstream *bs)
   temp = bs->GetBits(1);
   printf("   vui_parameters_present_flag: %u\n", temp);
   if (temp) {
-    h264_vui_parameters(bs);
+    h264_vui_parameters(dec, bs);
   }
 }
 
@@ -412,12 +423,14 @@ static const char *sei[19] = {
 static void h264_parse_sei (h264_decode_t *dec, CBitstream *bs)
 {
   uint32_t payload_type;
-  uint32_t payload_size;
+  uint32_t payload_size, count;
   uint32_t read_val;
   const char *sei_type;
   char *buffer = NULL;
+  uint8_t *payload_buffer = NULL;
   uint32_t bufsize = 0;
   bool is_printable;
+  uint32_t temp;
 
   while (bs->bits_remain() >= 16) {
     payload_type = 0;
@@ -436,15 +449,18 @@ static void h264_parse_sei (h264_decode_t *dec, CBitstream *bs)
     printf("   payload_size: %u", payload_size);
     if (payload_size + 1 > bufsize) {
       buffer = (char *)realloc(buffer, payload_size + 1);
+      payload_buffer = (uint8_t *)realloc(payload_buffer, payload_size + 1);
       bufsize = payload_size + 1;
     }
     uint ix = 0;
+    count = payload_size;
     if (payload_size > 8) {
       printf("\n   ");
     }
     is_printable = true;
-    while (payload_size > 0) {
+    while (count > 0) {
       uint8_t bits = bs->GetBits(8);
+      payload_buffer[ix] = bits;
       if (isprint(bits)) {
 	buffer[ix++] = bits;
       } else {
@@ -453,12 +469,178 @@ static void h264_parse_sei (h264_decode_t *dec, CBitstream *bs)
       }
       printf(" 0x%x", bits);
       if ((ix % 8) == 0) printf("\n   ");
-      payload_size--;
+      count--;
     }
     printf("\n");
     if (is_printable || payload_type == 4 || payload_type == 5) {
       buffer[ix] = '\0';
-      printf("   %s\n", buffer);
+      printf("    string is \"%s\"\n", buffer);
+    }
+    try {
+      CBitstream payload_bs;
+      payload_bs.init(payload_buffer, payload_size * 8);
+      switch (payload_type) {
+      case 0: // buffering period
+	printf("    seq_parameter_set_id: %u\n", h264_ue(&payload_bs));
+	if (dec->NalHrdBpPresentFlag) {
+	  for (ix = 0; ix <= dec->cpb_cnt_minus1; ix++) {
+	    printf("    initial_cpb_removal_delay[%u]: %u\n", 
+		   ix, 
+		   payload_bs.GetBits(dec->initial_cpb_removal_delay_length_minus1 + 1));
+	    printf("    initial_cpb_removal_delay_offset[%u]: %u\n", 
+		   ix, 
+		   payload_bs.GetBits(dec->initial_cpb_removal_delay_length_minus1 + 1));
+	  }
+	    
+	}
+	if (dec->VclHrdBpPresentFlag) {
+	  for (ix = 0; ix <= dec->cpb_cnt_minus1; ix++) {
+	    printf("    initial_cpb_removal_delay[%u]: %u\n", 
+		   ix, 
+		   payload_bs.GetBits(dec->initial_cpb_removal_delay_length_minus1 + 1));
+	    printf("    initial_cpb_removal_delay_offset[%u]: %u\n", 
+		   ix, 
+		   payload_bs.GetBits(dec->initial_cpb_removal_delay_length_minus1 + 1));
+	  }
+	}
+	break;
+      case 1: // picture timing
+	if (dec->CpbDpbDelaysPresentFlag) {
+	  printf("    cpb_removal_delay: %u\n", 
+		 payload_bs.GetBits(dec->cpb_removal_delay_length_minus1 + 1));
+	  printf("    dpb_output_delay: %u\n", 
+		 payload_bs.GetBits(dec->cpb_removal_delay_length_minus1 + 1));
+	}
+	if (dec->pic_struct_present_flag) {
+	  temp = payload_bs.GetBits(4);
+	  printf("    pict_struct: %u\n", temp);
+	  uint NumClockTS = 0;
+	  if (temp < 3) NumClockTS = 1;
+	  else if (temp < 5 || temp == 7) NumClockTS = 2;
+	  else if (temp < 9) NumClockTS = 3;
+	  for (ix = 0; ix < NumClockTS; ix++) {
+	    temp = payload_bs.GetBits(1);
+	    printf("    clock_timestamp_flag[%u]: %u\n", ix, temp);
+	    if (temp) {
+	      printf("     ct_type: %u\n", payload_bs.GetBits(2));
+	      printf("     nuit_field_base_flag: %u\n", payload_bs.GetBits(1));
+	      printf("     counting_type: %u\n", payload_bs.GetBits(5));
+	      temp = payload_bs.GetBits(1);
+	      printf("     full_timestamp_flag: %u\n", temp);
+	      printf("     discontinuity_flag: %u\n", payload_bs.GetBits(1));
+	      printf("     cnt_dropped_flag: %u\n", payload_bs.GetBits(1));
+	      printf("     n_frame: %u\n", payload_bs.GetBits(8));
+	      if (temp) {
+		printf("     seconds_value: %u\n", payload_bs.GetBits(6));
+		printf("     minutes_value: %u\n", payload_bs.GetBits(6));
+		printf("     hours_value: %u\n", payload_bs.GetBits(5));
+	      } else {
+		temp = payload_bs.GetBits(1);
+		printf("     seconds_flag: %u\n", temp);
+		if (temp) {
+		  printf("     seconds_value: %u\n", payload_bs.GetBits(6));
+		  temp = payload_bs.GetBits(1);
+		  printf("     minutes_flag: %u\n", temp);
+		  if (temp) {
+		    printf("     minutes_value: %u\n", payload_bs.GetBits(6));
+		    temp = payload_bs.GetBits(1);
+		    printf("     hours_flag: %u\n", temp);
+		    if (temp) {
+		      printf("     hours_value: %u\n", payload_bs.GetBits(5));
+		    }
+		  }
+		}
+	      }
+	      if (dec->time_offset_length > 0) {
+		printf("     time_offset: %d\n", 
+		       payload_bs.GetBits(dec->time_offset_length));
+	      }
+	    }
+	  }
+	}
+	break;
+      case 2: //pan scan rectangle
+	printf("    pan_scan_rect_id: %u\n", h264_ue(&payload_bs));
+	temp = payload_bs.GetBits(1);
+	printf("    pan_scan_rect_cancel_flag: %u\n", temp);
+	if (!temp) {
+	  temp = h264_ue(&payload_bs);
+	  printf("     pan_scan_cnd_minus1: %u\n", temp);
+	  for (ix = 0; ix <= temp; ix++) {
+	    printf("      pan_scan_rect_left_offset[%u]: %u\n", 
+		   ix,h264_se(&payload_bs));
+	    printf("      pan_scan_rect_right_offset[%u]: %u\n", 
+		   ix,h264_se(&payload_bs));
+	    printf("      pan_scan_rect_top_offset[%u]: %u\n", 
+		   ix,h264_se(&payload_bs));
+	    printf("      pan_scan_rect_bottom_offset[%u]: %u\n", 
+		   ix,h264_se(&payload_bs));
+	  }
+	  printf("      pan_scan_rect_repitition_period: %u\n", 
+		 h264_ue(&payload_bs));
+	}
+	break;
+
+      case 6: // recover point
+	printf("    recovery_frame_cnt: %u\n", h264_ue(&payload_bs));
+	printf("    exact_match_flag: %u\n", payload_bs.GetBits(1));
+	printf("    broken_link_flag: %u\n", payload_bs.GetBits(1));
+	printf("    changing_slice_group_idc: %u\n",  payload_bs.GetBits(2));
+	break;
+      case 7: // decoded reference picture marking repetition
+	printf("    original_idr_flag: %u\n", payload_bs.GetBits(1));
+	printf("    original_frame_num: %u\n", h264_ue(&payload_bs));
+	if (!dec->frame_mbs_only_flag) {
+	  temp = payload_bs.GetBits(1);
+	  printf("    original_field_pic_flag: %u\n", temp);
+	  if (temp) {
+	    printf("     original_bottom_field_flag: %u\n", 
+		   payload_bs.GetBits(1));
+	  }
+	}
+	break;
+      case 8: { // spare pic 
+	uint32_t spare_field_flag;
+	printf("    target_frame_num: %u\n", h264_ue(&payload_bs));
+	spare_field_flag = payload_bs.GetBits(1);
+	printf("    spare_field_flag: %u\n", spare_field_flag);
+	if (spare_field_flag) 
+	  printf("     target_bottom_field_flag: %u\n", payload_bs.GetBits(1));
+	temp = h264_ue(&payload_bs);
+	printf("    num_spare_pics_minus1: %u\n", temp);
+#if 0
+	for (ix = 0; ix <= temp; ix++) {
+	  printf("    delta_spare_frame_num[%u]: %u\n", ix, h264_ue(&payload_bs));
+	  if (spare_field_flag) {
+	    printf("    spare_bottom_field_flag[%u]: %u\n", 
+		   ix, payload_bs.GetBits(1));
+	  }
+	  uint32_t spare_area_idc = h264_ue(&payload_bs);
+	  printf("    spare_area_idc[%u]: %u", ix, spare_area_idc);
+	  if (spare_area_idc == 1) {
+	  }
+	}
+#endif
+	break;
+      }
+      case 9: // scene information
+	temp = payload_bs.GetBits(1);
+	printf("    scene_info_present_flag: %u\n", temp);
+	if (temp) {
+	  printf("     scene_id: %u\n", h264_ue(&payload_bs));
+	  temp = h264_ue(&payload_bs);
+	  printf("     scene_transition_type: %u\n", temp);
+	  if (temp > 3) {
+	    printf("      second_scene_id: %u\n", h264_ue(&payload_bs));
+	  }
+	}
+	break;
+	
+      }
+      
+    } catch (BitstreamErr_t err) {
+      printf("\nERROR reading bitstream %s\n\n", err == BITSTREAM_PAST_END ?
+	     "read past payload end" : "too many bits requested");
     }
   }
   CHECK_AND_FREE(buffer);
@@ -762,8 +944,13 @@ int main (int argc, char **argv)
 
 	  nal_len = remove_03(buffer + buffer_on, ret);
 
-	  printf("Nal length %d start code %d bytes\n", nal_len, 
+#if 0
+	  printf("Nal length %u start code %u bytes "U64"\n", nal_len, 
+		 buffer[buffer_on + 2] == 1 ? 3 : 4, bytes + buffer_on);
+#else
+	  printf("Nal length %u start code %u bytes \n", nal_len, 
 		 buffer[buffer_on + 2] == 1 ? 3 : 4);
+#endif
 	  ourbs.init(buffer + buffer_on, nal_len * 8);
 	  uint8_t type;
 	  type = h264_parse_nal(&dec, &ourbs);

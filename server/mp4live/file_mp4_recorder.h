@@ -67,6 +67,11 @@ protected:
     m_convert_pcm = NULL;
     m_convert_pcm_size = 0;
 #endif
+    m_videoH264Seq = NULL;
+    m_videoH264SeqSize = 0;
+    m_videoH264Pic = NULL;
+    m_videoH264PicSize = 0;
+
    };
 
   int ThreadMain(void);
@@ -128,6 +133,10 @@ protected:
   void ProcessEncodedVideoFrame(CMediaFrame *pFrame);
   void ProcessEncodedTextFrame(CMediaFrame *pFrame);
   void WriteH264Frame(CMediaFrame *pFrame, Duration dur);
+  uint8_t              *m_videoH264Seq;
+  uint32_t              m_videoH264SeqSize;
+  uint8_t              *m_videoH264Pic;
+  uint32_t              m_videoH264PicSize;
 #ifndef WORDS_BIGENDIAN
   uint16_t *m_convert_pcm;
   uint32_t  m_convert_pcm_size;

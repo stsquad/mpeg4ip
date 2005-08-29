@@ -99,11 +99,6 @@ bool CX264VideoEncoder::Init (void)
   m_frame_time = (Duration)rate;
   m_push = new CTimestampPush(6);
 
-  m_videoH264Seq = NULL;
-  m_videoH264SeqSize = 0;
-  m_videoH264Pic = NULL;
-  m_videoH264PicSize = 0;
-
 #ifdef OUTPUT_RAW
   m_outfile = fopen("raw.h264", FOPEN_WRITE_BINARY);
 #endif
@@ -219,28 +214,8 @@ bool CX264VideoEncoder::EncodeImage(
       }
       m_nal_info[nal_on].nal_length -= header;
       m_nal_info[nal_on].nal_offset += header;
-      // don't put seq or pic nal unless we have a change
-#if 1
-      if (m_nal_info[nal_on].nal_type == H264_NAL_TYPE_SEQ_PARAM) {
-	if (m_nal_info[nal_on].nal_length != m_videoH264SeqSize ||
-	    memcmp(vopBuffer, m_videoH264Seq, m_videoH264SeqSize) != 0) {
-	  m_nal_info[nal_on].unique = m_videoH264Seq != NULL;
-	  CHECK_AND_FREE(m_videoH264Seq);
-	  m_videoH264SeqSize = m_nal_info[nal_on].nal_length;
-	  m_videoH264Seq = (uint8_t *)malloc(m_videoH264SeqSize);
-	  memcpy(m_videoH264Seq, vopBuffer, m_videoH264SeqSize);
-	} else skip = true;
-      } else if (m_nal_info[nal_on].nal_type == H264_NAL_TYPE_PIC_PARAM) {
-	if (m_nal_info[nal_on].nal_length != m_videoH264PicSize ||
-	      memcmp(vopBuffer, m_videoH264Pic, m_videoH264PicSize) != 0) {
-	  m_nal_info[nal_on].unique = m_videoH264Pic != NULL;
-	  CHECK_AND_FREE(m_videoH264Pic);
-	  m_videoH264PicSize = m_nal_info[nal_on].nal_length;
-	  m_videoH264Pic = (uint8_t *)malloc(m_videoH264PicSize);
-	  memcpy(m_videoH264Pic, vopBuffer, m_videoH264PicSize);
-	} else skip = true;
-      }
-#endif
+      // we will send picture or sequence header through - let the
+      // sinks decide to send or not
       if (skip == false) {
 #ifdef DEBUG_H264
 	uint8_t nal_type = nal[ix].i_type;
@@ -361,10 +336,6 @@ void CX264VideoEncoder::StopEncoder (void)
 #endif
   x264_encoder_close(m_h);
 
-  CHECK_AND_FREE(m_videoH264Seq);
-  m_videoH264SeqSize = 0;
-  CHECK_AND_FREE(m_videoH264Pic);
-  m_videoH264PicSize = 0;
 
   CHECK_AND_FREE(m_vopBuffer);
   CHECK_AND_FREE(m_YUV);

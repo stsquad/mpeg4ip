@@ -30,6 +30,7 @@ void CPreviewAVMediaFlow::Start (void)
 // was attached to - either the video source, or the encoder
 void CPreviewAVMediaFlow::DisconnectPreview (void)
 {
+  debug_message("disconnecting preview");
   if (m_videoPreview == NULL) {
     return;
   }
@@ -86,6 +87,7 @@ void CPreviewAVMediaFlow::Stop (void)
   debug_message("preview stop");
   DisconnectPreview();
   CAVMediaFlow::Stop();
+  m_PreviewEncoder = NULL; // stopped above
   debug_message("restarting video preview");
   StartVideoPreview();
 }
@@ -123,15 +125,19 @@ void CPreviewAVMediaFlow::StartVideoPreview(void)
 
 void CPreviewAVMediaFlow::StopVideoPreview (bool delete_it)
 {
+  debug_message("Stopping preview %u", delete_it);
+
 	if (!m_pConfig->IsCaptureVideoSource()) {
 		return;
 	}
 
 	DisconnectPreview();
-
+	
+	debug_message("done disconnect");
 	if (m_PreviewEncoder != NULL) {
 	  if (m_started == false) {
-	    m_videoSource->RemoveSink(m_PreviewEncoder);
+	    if (m_videoSource != NULL)
+	      m_videoSource->RemoveSink(m_PreviewEncoder);
 	    m_PreviewEncoder->StopThread();
 	    delete m_PreviewEncoder;
 	    m_video_encoder_list = NULL;

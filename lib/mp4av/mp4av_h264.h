@@ -83,6 +83,14 @@ typedef struct h264_decode_t {
   int32_t  frame_num_offset;
   int32_t  frame_num_offset_prev;
 
+  uint8_t NalHrdBpPresentFlag;
+  uint8_t VclHrdBpPresentFlag;
+  uint8_t CpbDpbDelaysPresentFlag;
+  uint8_t pic_struct_present_flag;
+  uint8_t cpb_removal_delay_length_minus1;
+  uint8_t time_offset_length;
+  uint32_t cpb_cnt_minus1;
+  uint8_t initial_cpb_removal_delay_length_minus1;
 } h264_decode_t;
 
 #ifdef __cplusplus

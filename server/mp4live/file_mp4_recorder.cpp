@@ -453,7 +453,6 @@ void CMp4Recorder::ProcessEncodedAudioFrame (CMediaFrame *pFrame)
     Duration thisFrameDurationInSamples =
       GetTimescaleFromTicks(thisFrameDurationInTicks, m_audioTimeScale);
 
-    Duration elapsedTimeFromSamples;
     Duration elapsedTimeFromTimestamp;
     elapsedTimeFromTimestamp = pFrame->GetTimestamp() - m_audioStartTimestamp;
 
@@ -469,32 +468,6 @@ void CMp4Recorder::ProcessEncodedAudioFrame (CMediaFrame *pFrame)
     // Timestamp of pFrame should reflect encoded audio samples
     // take difference
     m_audioSamples += pFrame->GetDuration();
-    elapsedTimeFromSamples = 
-      GetTicksFromTimescale(m_audioSamples, 0, 0, m_audioTimeScale);
-
-    Duration diffTimeTicks;
-
-    diffTimeTicks = elapsedTimeFromSamples - elapsedTimeFromTimestamp;
-
-    // we need to adjust this by the amount of time we've already changed
-    diffTimeTicks += m_audioDiffTicksTotal;
-
-    if (diffTimeTicks != 0) {
-      error_message("elfts "D64" samples "D64" elfs "D64" diff "D64,
-		    elapsedTimeFromTimestamp,
-		    m_audioSamples,
-		    elapsedTimeFromSamples,
-		    diffTimeTicks);
-      
-      error_message("adj "D64" diff "D64,
-		    m_audioDiffTicksTotal, diffTimeTicks);
-    }
-
-    // diffTimeTicks is now the amount we need to add to the video frame
-    m_audioDiffTicks = diffTimeTicks;
-
-    m_audioDiffTicksTotal += diffTimeTicks;
-
     /*
      * we don't convert the audio duration any more
      *  m_prevEncodedAudioFrame->SetDuration(audioDurationInSamples);
@@ -592,19 +565,43 @@ void CMp4Recorder::WriteH264Frame (CMediaFrame *pFrame,
 			       mf->buffer + mf->nal_bufs[ix].nal_offset,
 			       mf->nal_bufs[ix].nal_length);
       break;
-    case H264_NAL_TYPE_SEQ_PARAM:
-      MP4AddH264SequenceParameterSet(m_mp4File,
-				     m_videoTrackId,
-				     mf->buffer + mf->nal_bufs[ix].nal_offset,
-				     mf->nal_bufs[ix].nal_length);       
-      debug_message("writing seq parameter %u",mf->nal_bufs[ix].nal_length);
+    case H264_NAL_TYPE_SEQ_PARAM: 
+      if (mf->nal_bufs[ix].nal_length != m_videoH264SeqSize ||
+	  (m_videoH264Seq != NULL &&
+	   memcmp(m_videoH264Seq, 
+		  mf->buffer + mf->nal_bufs[ix].nal_offset,
+		  m_videoH264SeqSize) != 0)) {
+	m_videoH264SeqSize = mf->nal_bufs[ix].nal_length;
+	m_videoH264Seq = 
+	  (uint8_t *)realloc(m_videoH264Seq, m_videoH264SeqSize);
+	memcpy(m_videoH264Seq, 
+	       mf->buffer + mf->nal_bufs[ix].nal_offset,
+	       m_videoH264SeqSize);
+	MP4AddH264SequenceParameterSet(m_mp4File,
+				       m_videoTrackId,
+				       m_videoH264Seq,
+				       m_videoH264SeqSize);
+	debug_message("writing seq parameter %u",mf->nal_bufs[ix].nal_length);
+      }
       break;
     case H264_NAL_TYPE_PIC_PARAM:
-      MP4AddH264PictureParameterSet(m_mp4File,
-				    m_videoTrackId, 
-				    mf->buffer + mf->nal_bufs[ix].nal_offset,
-				    mf->nal_bufs[ix].nal_length);       
-      debug_message("writing pic parameter %u", mf->nal_bufs[ix].nal_length);
+      if (mf->nal_bufs[ix].nal_length != m_videoH264PicSize ||
+	  (m_videoH264Pic != NULL &&
+	   memcmp(m_videoH264Pic, 
+		  mf->buffer + mf->nal_bufs[ix].nal_offset,
+		  m_videoH264PicSize) != 0)) {
+	m_videoH264PicSize = mf->nal_bufs[ix].nal_length;
+	m_videoH264Pic = 
+	  (uint8_t *)realloc(m_videoH264Pic, m_videoH264PicSize);
+	memcpy(m_videoH264Pic, 
+	       mf->buffer + mf->nal_bufs[ix].nal_offset,
+	       m_videoH264PicSize);
+	MP4AddH264PictureParameterSet(m_mp4File,
+				      m_videoTrackId, 
+				      m_videoH264Pic,
+				      m_videoH264PicSize);
+	debug_message("writing pic parameter %u", mf->nal_bufs[ix].nal_length);
+      }
       break;
     case H264_NAL_TYPE_IDR_SLICE:
       isIFrame = true;
@@ -910,7 +907,8 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
     return;
   }
   // RAW AUDIO
-  if (pFrame->GetType() == PCMAUDIOFRAME && m_recordAudio) {
+  if (m_stream == NULL && 
+      pFrame->GetType() == PCMAUDIOFRAME && m_recordAudio) {
     if (m_audioFrameNumber == 1) {
 
       debug_message("First raw audio frame at "U64, pFrame->GetTimestamp());
@@ -984,7 +982,8 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 
     ProcessEncodedAudioFrame(pFrame);
     // RAW VIDEO
-  } else if (pFrame->GetType() == YUVVIDEOFRAME && m_recordVideo) {
+  } else if (m_stream == NULL && 
+	     pFrame->GetType() == YUVVIDEOFRAME && m_recordVideo) {
     // we drop raw video frames until we get the first raw audio frame
     // after that:
     // if we are also recording encoded video, we wait until the first I frame
@@ -1189,6 +1188,11 @@ void CMp4Recorder::DoStopRecord()
     m_prevTextFrame = NULL;
   }
     
+  CHECK_AND_FREE(m_videoH264Seq);
+  m_videoH264SeqSize = 0;
+  CHECK_AND_FREE(m_videoH264Pic);
+  m_videoH264PicSize = 0;
+
   // close the mp4 file
   MP4Close(m_mp4File);
   m_mp4File = NULL;
