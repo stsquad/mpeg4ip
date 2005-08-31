@@ -114,7 +114,9 @@ bool CBufferAudioSync::do_we_need_resync (uint32_t freq_ts,
   // note - the 2 is so that we handle rounding errors that occur when
   // converting timescales to frequency scales (ie: 90000 to 44100).
   if (sample_diff > 2 && sample_diff <= compare_val) {
-    audio_message(LOG_DEBUG, "sample diff is %d", sample_diff);
+    audio_message(LOG_DEBUG, "sample diff is %d %d", sample_diff, compare_val);
+    audio_message(LOG_DEBUG, "freq_ts %u next %u", 
+		  freq_ts, m_buffer_next_freq_ts);
     silence_samples = sample_diff;
     return false;
   } else if (sample_diff >= -1) {
@@ -172,25 +174,26 @@ bool CBufferAudioSync::check_for_bytes (uint32_t bytes,
   bool locked;
   uint32_t diff;
   uint32_t to_insert;
-
-  if (m_dont_fill) return false;
-
+  uint32_t count;
   to_insert = bytes + silence_bytes;
-  locked = Lock();
-  diff = m_sample_buffer_size - m_filled_bytes;
-  if (locked) Unlock();
+  count = 0;
 
-  if (diff < to_insert) {
-    wait_for_callback();
+  // this has changed a bit - we're going to wait a couple of
+  // callbacks, in case the output sample size rate is < the number
+  // of bytes to fill.
+  do {
     if (m_dont_fill) return false;
+
     locked = Lock();
     diff = m_sample_buffer_size - m_filled_bytes;
     if (locked) Unlock();
-    if (diff < to_insert) 
-      return false;
-  }
+    
+    if (diff >= to_insert) return true;
+    count++;
+    wait_for_callback();
+  } while (count < 5);
 
-  return true;
+  return false;
 }
 
 /**************************************************************************
@@ -336,7 +339,7 @@ void CBufferAudioSync::load_audio_buffer (const uint8_t *from,
   if (check_for_bytes(write_bytes, silence_bytes) == false) {
     // can't insert.  If no silence bytes, return NULL
     if (silence_bytes == 0) {
-      audio_message(LOG_ERR, "Couldn't put %u bytes at %u", 
+      audio_message(LOG_ERR, "Couldn't insert encoded %u bytes at %u", 
 		    write_bytes, freq_ts);
       return;
     }
@@ -345,7 +348,7 @@ void CBufferAudioSync::load_audio_buffer (const uint8_t *from,
     silence_bytes = 0;
     need_resync = true;
     if (check_for_bytes(write_bytes, 0) == false) {
-      audio_message(LOG_ERR, "Couldn't put %u bytes at %u", 
+      audio_message(LOG_ERR, "Couldn't put %u resync bytes at %u", 
 		    write_bytes, freq_ts);
       return;
     }
