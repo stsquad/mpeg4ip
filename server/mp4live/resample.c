@@ -299,6 +299,10 @@ int st_resample_flow (resample_t r,
 
 	Nproc = r->Xsize - r->Xp;
 
+#if 0
+	debug_message("xsize %u ysize %u xp %u osamp %u, rfactor %u",
+		      r->Xsize, r->Ysize, r->Xp, *osamp, r->Factor);
+#endif
 	i = (r->Ysize < *osamp)? r->Ysize : *osamp;
 	if (Nproc * r->Factor >= i)
 	  Nproc = i / r->Factor;
@@ -306,7 +310,9 @@ int st_resample_flow (resample_t r,
 	Nx = Nproc - r->Xread; /* space for right-wing future-data */
 	if (Nx <= 0)
 	{
-	  //st_fail("resample: Can not handle this sample rate change. Nx not positive: %d", Nx);
+	  error_message("resample: Can not handle this sample rate change. Nx not positive: %d %d %d", Nx, Nproc, r->Xread);
+	debug_message("xsize %u ysize %u xp %u osamp %u, rfactor %u",
+		      r->Xsize, r->Ysize, r->Xp, *osamp, r->Factor);
 		return (-1);
 	}
 	if (Nx > *isamp)

@@ -43,6 +43,8 @@ Copyright (c) 1996, 1997.
 /******************************************
 ***     class CEnhcBufferDecoder        ***
 ******************************************/
+class CVideoObjectDecoder;
+class CVideoObjectDecoderTPS;
 class CEnhcBufferDecoder : public CEnhcBuffer
 {
 	friend class CVideoObjectDecoder;

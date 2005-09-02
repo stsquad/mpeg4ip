@@ -161,8 +161,6 @@ class CAudioEncoder : public CMediaCodec {
 	Timestamp               m_audioEncodingStartTimestamp;
 	Duration		m_audioSrcElapsedDuration;
 	Duration		m_audioDstElapsedDuration;
-
-
 };
 
 void AudioProfileCheck(CAudioProfile *ap);

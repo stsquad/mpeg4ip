@@ -24,6 +24,8 @@
 #include "audio_encoder.h"
 #include "mp4av.h"
 //#define DEBUG_SYNC 1
+//#define DEBUG_AUDIO_RESAMPLER 1
+//#define DEBUG_AUDIO_SYNC 1
 /*
  * This looks like a fairly bogus set of routines; however, the
  * code makes it really easy to add your own codecs here, include
@@ -255,38 +257,17 @@ void CAudioEncoder::ProcessAudioFrame(CMediaFrame *pFrame)
   const u_int8_t* frameData = (const uint8_t *)pFrame->GetData();
   u_int32_t frameDataLength = pFrame->GetDataLength();
   Timestamp srcFrameTimestamp = pFrame->GetTimestamp();;
-  if (m_audioSrcFrameNumber == 0) {
-    m_audioStartTimestamp = srcFrameTimestamp;
-#ifdef DEBUG_AUDIO_SYNC
-    debug_message("m_audioStartTimestamp = "U64, m_audioStartTimestamp);
-#endif
-  }
-
-  if (m_audioDstFrameNumber == 0) {
-    // we wait until we see the first encoded frame.
-    // this is because encoders usually buffer the first few
-    // raw audio frames fed to them, and this number varies
-    // from one encoder to another
-    m_audioEncodingStartTimestamp = srcFrameTimestamp;
-  }
-
-  // we calculate audioSrcElapsedDuration by taking the current frame's
-  // timestamp and subtracting the audioEncodingStartTimestamp (and NOT
-  // the audioStartTimestamp).
-  // this way, we just need to compare audioSrcElapsedDuration with 
-  // audioDstElapsedDuration (which should match in the ideal case),
-  // and we don't have to compensate for the lag introduced by the initial
-  // buffering of source frames in the encoder, which may vary from
-  // one encoder to another
-  m_audioSrcElapsedDuration = srcFrameTimestamp - m_audioEncodingStartTimestamp;
-  m_audioSrcFrameNumber++;
 
   bool pcmMalloced = false;
   bool pcmBuffered;
   const u_int8_t* pcmData = frameData;
   u_int32_t pcmDataLength = frameDataLength;
   uint32_t audioSrcSamplesPerFrame = SrcBytesToSamples(frameDataLength);
+  Duration subtractDuration = 0;
 
+  /*************************************************************************
+   * First convert input samples to format we need them to be in
+   *************************************************************************/
   if (m_audioSrcChannels != m_audioDstChannels) {
     // Convert the channels if they don't match
     // we either double the channel info, or combine
@@ -320,7 +301,10 @@ void CAudioEncoder::ProcessAudioFrame(CMediaFrame *pFrame)
 
   // resample audio, if necessary
   if (m_audioSrcSampleRate != m_audioDstSampleRate) {
-    ResampleAudio(pcmData, pcmDataLength);
+    subtractDuration = 
+      DstSamplesToTicks(DstBytesToSamples(m_audioPreEncodingBufferLength));
+ 
+     ResampleAudio(pcmData, pcmDataLength);
 
     // resampled data is now available in m_audioPreEncodingBuffer
     pcmBuffered = true;
@@ -329,13 +313,15 @@ void CAudioEncoder::ProcessAudioFrame(CMediaFrame *pFrame)
     // reframe audio, if necessary
     // e.g. MP3 is 1152 samples/frame, AAC is 1024 samples/frame
 
-    // add samples to end of m_audioBuffer
+    // add samples to end of m_audioPreEncodingBuffer
     // InitAudio() ensures that buffer is large enough
     if (m_audioPreEncodingBuffer == NULL) {
       m_audioPreEncodingBuffer = 
 	(u_int8_t*)realloc(m_audioPreEncodingBuffer,
 			   m_audioPreEncodingBufferMaxLength);
     }
+    subtractDuration = 
+      DstSamplesToTicks(DstBytesToSamples(m_audioPreEncodingBufferLength));
     memcpy(
 	   &m_audioPreEncodingBuffer[m_audioPreEncodingBufferLength],
 	   pcmData,
@@ -346,111 +332,171 @@ void CAudioEncoder::ProcessAudioFrame(CMediaFrame *pFrame)
     pcmBuffered = true;
 
   } else {
+    // default case - just use what we're passed
     pcmBuffered = false;
   }
+ 
+  srcFrameTimestamp -= subtractDuration;
 
-  // LATER restructure so as get rid of this label, and goto below
- pcmBufferCheck:
+  /************************************************************************
+   * Loop while we have enough samples
+   ************************************************************************/
+  Duration frametime = DstSamplesToTicks(m_audioDstSamplesPerFrame);
+  if (m_audioDstFrameNumber == 0)
+    debug_message("%s:frametime "U64, Profile()->GetName(), frametime);
+  while (1) {
 
-  if (pcmBuffered) {
-    u_int32_t samplesAvailable =
-      DstBytesToSamples(m_audioPreEncodingBufferLength);
+    /*
+     * Record starting timestamps
+     */
+    if (m_audioSrcFrameNumber == 0) {
+      /*
+       * we use m_audioStartTimestamp to determine audio output start time
+       */
+      m_audioStartTimestamp = srcFrameTimestamp;
+#ifdef DEBUG_AUDIO_SYNC
+      if (Profile()->GetBoolValue(CFG_AUDIO_DEBUG))
+	debug_message("%s:m_audioStartTimestamp = "U64, 
+		      Profile()->GetName(), m_audioStartTimestamp);
+#endif
+    }
+    
+    if (m_audioDstFrameNumber == 0) {
+      // we wait until we see the first encoded frame.
+      // this is because encoders usually buffer the first few
+      // raw audio frames fed to them, and this number varies
+      // from one encoder to another
+      // We use this value to determine if we need to drop due to
+      // a bad input frequency
+      m_audioEncodingStartTimestamp = srcFrameTimestamp;
+    }
+    
+    // we calculate audioSrcElapsedDuration by taking the current frame's
+    // timestamp and subtracting the audioEncodingStartTimestamp (and NOT
+    // the audioStartTimestamp).
+    // this way, we just need to compare audioSrcElapsedDuration with 
+    // audioDstElapsedDuration (which should match in the ideal case),
+    // and we don't have to compensate for the lag introduced by the initial
+    // buffering of source frames in the encoder, which may vary from
+    // one encoder to another
+    m_audioSrcElapsedDuration = 
+      srcFrameTimestamp - m_audioEncodingStartTimestamp;
+    m_audioSrcFrameNumber++;
 
-    // not enough samples collected yet to call encode or forward
-    if (pcmMalloced) {
-      free((void *)pcmData);
-      pcmMalloced = false;
+
+    if (pcmBuffered) {
+      u_int32_t samplesAvailable =
+	DstBytesToSamples(m_audioPreEncodingBufferLength);
+      
+      if (pcmMalloced) {
+	free((void *)pcmData);
+	pcmMalloced = false;
+      }
+#ifdef DEBUG_AUDIO_SYNC
+      if (Profile()->GetBoolValue(CFG_AUDIO_DEBUG))
+      debug_message("%s: samples %u need %u", 
+		    Profile()->GetName(), 
+		    samplesAvailable, m_audioDstSamplesPerFrame);
+#endif
+      // not enough samples collected yet to call encode or forward
+      // we moved the data above.
+      if (samplesAvailable < m_audioDstSamplesPerFrame) {
+	return;
+      }
+      // setup for encode/forward
+      pcmData = &m_audioPreEncodingBuffer[0];
+      pcmDataLength = DstSamplesToBytes(m_audioDstSamplesPerFrame);
     }
 
-    if (samplesAvailable < m_audioDstSamplesPerFrame) {
-      return;
-    }
-    // setup for encode/forward
-    pcmData = &m_audioPreEncodingBuffer[0];
-    pcmDataLength = DstSamplesToBytes(m_audioDstSamplesPerFrame);
-  }
-
-
-  // encode audio frame
-  Duration frametime = DstSamplesToTicks(DstBytesToSamples(frameDataLength));
 
 #ifdef DEBUG_AUDIO_SYNC
-  debug_message("asrc# %d srcDuration="U64" dst# %d dstDuration "U64,
-		m_audioSrcFrameNumber, m_audioSrcElapsedDuration,
-		m_audioDstFrameNumber, m_audioDstElapsedDuration);
+      if (Profile()->GetBoolValue(CFG_AUDIO_DEBUG))
+	debug_message("%s:srcDuration="U64" dstDuration "U64" "D64,
+		  Profile()->GetName(),
+		  m_audioSrcElapsedDuration,
+		  m_audioDstElapsedDuration,
+		      m_audioDstElapsedDuration - m_audioSrcElapsedDuration);
 #endif
 
-  // destination gets ahead of source
-  // This has been observed as a result of clock frequency drift between
-  // the sound card oscillator and the system mainbord oscillator
-  // Example: If the sound card oscillator has a 'real' frequency that
-  // is slightly larger than the 'rated' frequency, and we are sampling
-  // at 32kHz, then the 32000 samples acquired from the sound card
-  // 'actually' occupy a duration of slightly less than a second.
-  // 
-  // The clock drift is usually fraction of a Hz and takes a long
-  // time (~ 20-30 minutes) before we are off by one frame duration
-  
-  if (m_audioSrcElapsedDuration + frametime < m_audioDstElapsedDuration) {
-    debug_message("audio: dropping frame, SrcElapsedDuration="U64" DstElapsedDuration="U64,
-		  m_audioSrcElapsedDuration, m_audioDstElapsedDuration);
-    return;
-  }
-
-  // source gets ahead of destination
-  // We tolerate a difference of 3 frames since A/V sync is usually
-  // noticeable after that. This way we give the encoder a chance to pick up
-  if (m_audioSrcElapsedDuration > (3 * frametime) + m_audioDstElapsedDuration) {
-    int j = (int) (DstTicksToSamples(m_audioSrcElapsedDuration
-				     + (2 * frametime)
-				     - m_audioDstElapsedDuration)
-		   / m_audioDstSamplesPerFrame);
-    debug_message("audio: Adding %d silence frames", j);
-    for (int k=0; k<j; k++)
-      AddSilenceFrame();
-  }
-  
-  //Timestamp encodingStartTimestamp = GetTimestamp();
+    /*
+     * Check if we can encode, or if we have to add/drop frames
+     * First check is to see if the source frequency is greater than the
+     * theory frequency.
+     */
+    if (m_audioSrcElapsedDuration + frametime >= m_audioDstElapsedDuration) {
+      
+      // source gets ahead of destination
+      // We tolerate a difference of 3 frames since A/V sync is usually
+      // noticeable after that. This way we give the encoder a chance to pick 
+      // up
+      if (m_audioSrcElapsedDuration > 
+	  (3 * frametime) + m_audioDstElapsedDuration) {
+	int j = (int) (DstTicksToSamples(m_audioSrcElapsedDuration
+					 + (2 * frametime)
+					 - m_audioDstElapsedDuration)
+		       / m_audioDstSamplesPerFrame);
+	debug_message("%s: Adding %d silence frames", 
+		      Profile()->GetName(), j);
+	for (int k=0; k<j; k++)
+	  AddSilenceFrame();
+      }
+      
 #ifdef DEBUG_SYNC
-  debug_message("encoding");
+      debug_message("%s:encoding", Profile()->GetName());
 #endif
-  bool rc = EncodeSamples(
-			  (int16_t*)pcmData,
-			  m_audioDstSamplesPerFrame,
-			  m_audioDstChannels);
-  
-  if (!rc) {
-    debug_message("failed to encode audio");
-    return;
-  }
-  
-  // Disabled since we are not taking into account audio drift anymore
-  /*
-    Duration encodingTime =  (GetTimestamp() - encodingStartTimestamp);
-    if (m_sourceRealTime && m_videoSource) {
-    Duration drift;
-    if (frametime <= encodingTime) {
-    drift = encodingTime - frametime;
-    m_videoSource->AddEncodingDrift(drift);
+      /*
+       * Actually encode and forward the frames
+       */
+      bool rc = EncodeSamples(
+			      (int16_t*)pcmData,
+			      m_audioDstSamplesPerFrame,
+			      m_audioDstChannels);
+      
+      if (!rc) {
+	debug_message("failed to encode audio");
+      }
+      
+      ForwardEncodedAudioFrames();
+    } else {
+      // destination gets ahead of source
+      // This has been observed as a result of clock frequency drift between
+      // the sound card oscillator and the system mainbord oscillator
+      // Example: If the sound card oscillator has a 'real' frequency that
+      // is slightly larger than the 'rated' frequency, and we are sampling
+      // at 32kHz, then the 32000 samples acquired from the sound card
+      // 'actually' occupy a duration of slightly less than a second.
+      // 
+      // The clock drift is usually fraction of a Hz and takes a long
+      // time (~ 20-30 minutes) before we are off by one frame duration
+      
+      debug_message("%s:audio: dropping frame, SrcElapsedDuration="U64" DstElapsedDuration="U64" "U64,
+		    Profile()->GetName(), 
+		    m_audioSrcElapsedDuration, m_audioDstElapsedDuration,
+		    frametime);
+      // don't return - drop through to remove frame
     }
+    
+    if (pcmMalloced) {
+      free((void *)pcmData);
     }
-  */
-  
-  ForwardEncodedAudioFrames();
-  if (pcmMalloced) {
-    free((void *)pcmData);
+    if (pcmBuffered) {
+      /*
+       * This means we're storing data, either from resampling, or if the
+       * sample numbers do not match.  We will remove the encoded samples, 
+       * and increment the srcFrameTimestamp
+       */
+      m_audioPreEncodingBufferLength -= pcmDataLength;
+      memcpy(
+	     &m_audioPreEncodingBuffer[0],
+	     &m_audioPreEncodingBuffer[pcmDataLength],
+	     m_audioPreEncodingBufferLength);
+      subtractDuration = 0;
+      srcFrameTimestamp += frametime;
+    } else {
+      // no data in buffer (default case).
+      return;
+    }
   }
-
-  if (pcmBuffered) {
-    m_audioPreEncodingBufferLength -= pcmDataLength;
-    memcpy(
-	   &m_audioPreEncodingBuffer[0],
-	   &m_audioPreEncodingBuffer[pcmDataLength],
-	   m_audioPreEncodingBufferLength);
-
-    goto pcmBufferCheck;
-  }
-
 }
 
 void CAudioEncoder::ResampleAudio(
@@ -470,13 +516,20 @@ void CAudioEncoder::ResampleAudio(
     outBufferSamplesLeft = 
       DstBytesToSamples(m_audioPreEncodingBufferMaxLength - 
 			m_audioPreEncodingBufferLength);
+    if (outBufferSamplesLeft * 2 <= samplesIn && samplesIn > 0) {
+      m_audioPreEncodingBufferMaxLength *= 2;
+      m_audioPreEncodingBuffer = 
+	(u_int8_t*)realloc(m_audioPreEncodingBuffer,
+			   m_audioPreEncodingBufferMaxLength);
+    }
     for (uint8_t chan_ix = 0; chan_ix < m_audioDstChannels; chan_ix++) {
       samplesInConsumed = samplesIn;
       outBufferSamplesWritten = outBufferSamplesLeft;
 
       chan_offset = chan_ix * (DstSamplesToBytes(1));
 #ifdef DEBUG_AUDIO_RESAMPLER
-      error_message("resample - chans %d %d, samples %d left %d", 
+      error_message("%s:resample - chans %d %d, samples %d left %d", 
+		    Profile()->GetName(),
 		    m_audioDstChannels, chan_ix,
 		    samplesIn, outBufferSamplesLeft);
 #endif
@@ -487,27 +540,23 @@ void CAudioEncoder::ResampleAudio(
 			   &samplesInConsumed, 
 			   &outBufferSamplesWritten,
 			   m_audioDstChannels) < 0) {
-	error_message("resample failed");
+	error_message("%s:resample failed", Profile()->GetName());
       }
 #ifdef DEBUG_AUDIO_RESAMPLER
-      debug_message("Chan %d consumed %d wrote %d", 
+      debug_message("%s:Chan %d consumed %d wrote %d", 
+		    Profile()->GetName(),
 		    chan_ix, samplesInConsumed, outBufferSamplesWritten);
 #endif
     }
     if (outBufferSamplesLeft < outBufferSamplesWritten) {
-      error_message("Written past end of buffer");
+      error_message("%s:Written past end of buffer",
+		    Profile()->GetName());
     }
     samplesIn -= samplesInConsumed;
     outBufferSamplesLeft -= outBufferSamplesWritten;
     m_audioPreEncodingBufferLength += DstSamplesToBytes(outBufferSamplesWritten);
     // If we have no room for new output data, and more to process,
     // give us a bunch more room...
-    if (outBufferSamplesLeft == 0 && samplesIn > 0) {
-      m_audioPreEncodingBufferMaxLength *= 2;
-      m_audioPreEncodingBuffer = 
-	(u_int8_t*)realloc(m_audioPreEncodingBuffer,
-			   m_audioPreEncodingBufferMaxLength);
-    }
   } // end while we still have input samples
 }
 
@@ -524,7 +573,7 @@ void CAudioEncoder::ForwardEncodedAudioFrames(void)
     // sanity check
     if (pFrame == NULL || frameLength == 0) {
 #ifdef DEBUG_SYNC
-      debug_message("No frame");
+      debug_message("%s:No frame", Profile()->GetName());
 #endif
       break;
     }
@@ -543,7 +592,8 @@ void CAudioEncoder::ForwardEncodedAudioFrames(void)
     // forward the encoded frame to sinks
 
 #ifdef DEBUG_SYNC
-    debug_message("audio forwarding "U64, output);
+    debug_message("%s:audio forwarding "U64, 
+		  Profile()->GetName(), output);
 #endif
     CMediaFrame* pMediaFrame =
       new CMediaFrame(

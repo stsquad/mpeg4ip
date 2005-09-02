@@ -78,6 +78,7 @@ class COutBitStream;
 class CEntropyEncoder;
 class CEntropyEncoderSet;
 class CVideoObjectEncoder;
+class CEnhcBufferEncoder;
 
 typedef struct {
 		// general info

@@ -187,6 +187,7 @@ bool COSSAudioSource::Init(void)
   // gets set 
   m_pcmFrameSize = 
     m_audioSrcSamplesPerFrame * m_audioSrcChannels * sizeof(u_int16_t);
+  debug_message("Audio input size is %u", m_pcmFrameSize);
 
   if (m_audioOssMaxBufferSize > 0) {
     size_t array_size;
