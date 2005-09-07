@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audio_c.h,v 1.1 2004/02/25 01:18:49 wmaycisco Exp $";
+ "@(#) $Id: SDL_audio_c.h,v 1.2 2005/09/07 22:28:00 wmaycisco Exp $";
 #endif
 
 /* Functions and variables exported from SDL_audio.c for SDL_sysaudio.c */
@@ -35,4 +35,3 @@ extern Uint16 SDL_NextAudioFormat(void);
 extern void SDL_CalculateAudioSpec(SDL_AudioSpec *spec);
 
 /* The actual mixing thread function */
-extern int SDL_RunAudio(void *audiop);

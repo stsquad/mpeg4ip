@@ -91,9 +91,11 @@ void createStreamSdp (CLiveConfig *pGlobal,
   sdp->create_addr = get_host_ip_address();
 
 	// s=
-  sdp->session_name = 
-    strdup(pStream->GetStringValue(STREAM_NAME));
-
+  sdp->session_name = strdup(pStream->GetStringValue(STREAM_CAPTION));
+  const char *desc = pStream->GetStringValue(STREAM_DESCRIPTION);
+  if (desc != NULL) {
+    sdp->session_desc = strdup(desc);
+  }
   bool destIsMcast = false;		// Multicast
   bool destIsSSMcast = false;		// Single Source Multicast
   struct in_addr in;

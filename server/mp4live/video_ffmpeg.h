@@ -38,7 +38,8 @@ class CFfmpegVideoEncoder : public CVideoEncoder {
 
 	MediaType GetFrameType(void) { return m_media_frame;}
 	bool Init(void);
-
+	bool CanGetEsConfig (void) { return false; };
+	bool GetEsConfig(uint8_t **ppEsConfig, uint32_t *pEsConfigLen);
  protected:
 	bool EncodeImage(
 		const u_int8_t* pY, const u_int8_t* pU, const u_int8_t* pV,
@@ -55,7 +56,7 @@ class CFfmpegVideoEncoder : public CVideoEncoder {
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV);
 
 	media_free_f GetMediaFreeFunction(void);
-
+	
 	void StopEncoder(void);
 //#define OUTPUT_RAW
 #ifdef OUTPUT_RAW

@@ -394,12 +394,13 @@ bool CXvid10VideoEncoder::GetEsConfig(uint8_t **ppEsConfig,
     StopEncoder();
     return false;
   }
-  uint32_t offset, scode;
+  int32_t offset;
   // I know, I'm using a mpeg1/2 routine, but it works
-  if (MP4AV_Mpeg3FindNextStart(volptr + 1,
-			       m_vopBufferLength - 1 - (volptr - m_vopBuffer),
-			       &offset,
-			       &scode) < 0) {
+  if ((offset = 
+       MP4AV_Mpeg4FindHeader(volptr + 1,
+			     m_vopBufferLength - 1 - (volptr - m_vopBuffer))) 
+      < 0) {
+
     error_message("xvid - can't find vop after vol");
     StopEncoder();
     return false;
@@ -409,6 +410,7 @@ bool CXvid10VideoEncoder::GetEsConfig(uint8_t **ppEsConfig,
 
   *ppEsConfig = m_vopBuffer;
   *pEsConfigLen = (vopptr - m_vopBuffer);
+  RemoveUserdataFromVol(ppEsConfig, pEsConfigLen);
   m_vopBuffer = NULL;
   StopEncoder();
   return true;

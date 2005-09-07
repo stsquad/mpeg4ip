@@ -99,6 +99,7 @@ static const char *lockouts[] = {
   "preferences1",
   "AddStreamButton",
   "DeleteStreamButton",
+  "StreamCaption",  
   "StreamDescription",
   "VideoEnabled",
   "AudioEnabled",
@@ -309,6 +310,9 @@ static void ReadConfigFromWindow (void)
 		       gtk_entry_get_text(GTK_ENTRY(temp)));
     temp = lookup_widget(MainWindow, "StreamSdpFileEntry");
     ms->SetStringValue(STREAM_SDP_FILE_NAME,
+		       gtk_entry_get_text(GTK_ENTRY(temp)));
+    temp = lookup_widget(MainWindow, "StreamCaption");
+    ms->SetStringValue(STREAM_CAPTION,
 		       gtk_entry_get_text(GTK_ENTRY(temp)));
     temp = lookup_widget(MainWindow, "StreamDescription");
     ms->SetStringValue(STREAM_DESCRIPTION, 
@@ -562,6 +566,10 @@ static void DisplayStreamData (const char *stream)
   // Name, description
   temp = lookup_widget(MainWindow, "StreamNameLabel");
   gtk_label_set_text(GTK_LABEL(temp), SelectedStream);
+
+  temp = lookup_widget(MainWindow, "StreamCaption");
+  ptr = ms->GetStringValue(STREAM_CAPTION);
+  gtk_entry_set_text(GTK_ENTRY(temp), ptr == NULL ? "" : ptr);
 
   temp = lookup_widget(MainWindow, "StreamDescription");
   ptr = ms->GetStringValue(STREAM_DESCRIPTION);
@@ -1846,6 +1854,9 @@ static GtkWidget *create_MainWindow (void)
   GtkWidget *StreamNameHbox;
   GtkWidget *label3;
   GtkWidget *StreamNameLabel;
+  GtkWidget *StreamCaptionHbox;
+  GtkWidget *label32;
+  GtkWidget *StreamCaption;
   GtkWidget *StreamDescHbox;
   GtkWidget *label31;
   GtkWidget *StreamDescription;
@@ -2308,6 +2319,19 @@ static GtkWidget *create_MainWindow (void)
   StreamNameLabel = gtk_label_new(_("StreamName"));
   gtk_widget_show(StreamNameLabel);
   gtk_box_pack_start(GTK_BOX(StreamNameHbox), StreamNameLabel, FALSE, FALSE, 4);
+
+  StreamCaptionHbox = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(StreamCaptionHbox);
+  gtk_box_pack_start(GTK_BOX(StreamFrameVbox), StreamCaptionHbox, TRUE, FALSE, 0);
+
+  label32 = gtk_label_new(_("Caption: "));
+  gtk_widget_show(label32);
+  gtk_box_pack_start(GTK_BOX(StreamCaptionHbox), label32, FALSE, FALSE, 0);
+
+  StreamCaption = gtk_entry_new();
+  gtk_widget_show(StreamCaption);
+  gtk_box_pack_start(GTK_BOX(StreamCaptionHbox), StreamCaption, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip(tooltips, StreamCaption, _("The caption for this stream, used to set S field in sdp"), NULL);
 
   StreamDescHbox = gtk_hbox_new(FALSE, 0);
   gtk_widget_show(StreamDescHbox);
@@ -3014,6 +3038,9 @@ static GtkWidget *create_MainWindow (void)
   GLADE_HOOKUP_OBJECT(MainWindow, StreamNameHbox, "StreamNameHbox");
   GLADE_HOOKUP_OBJECT(MainWindow, label3, "label3");
   GLADE_HOOKUP_OBJECT(MainWindow, StreamNameLabel, "StreamNameLabel");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamCaptionHbox, "StreamCaptionHbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, label32, "label32");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamCaption, "StreamCaption");
   GLADE_HOOKUP_OBJECT(MainWindow, StreamDescHbox, "StreamDescHbox");
   GLADE_HOOKUP_OBJECT(MainWindow, label31, "label31");
   GLADE_HOOKUP_OBJECT(MainWindow, StreamDescription, "StreamDescription");

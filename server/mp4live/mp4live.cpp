@@ -26,6 +26,7 @@
 #include "media_flow.h"
 
 #include "video_v4l_source.h"
+#include "audio_alsa_source.h"
 #include "audio_oss_source.h"
 #include "text_source.h"
 #include "audio_encoder.h"
@@ -94,6 +95,10 @@ CMediaSource *CreateAudioSource (CLiveConfig *pConfig,
 
     if (!strcasecmp(sourceType, AUDIO_SOURCE_OSS)) {
       audioSource = new COSSAudioSource(pConfig);
+#ifdef HAVE_ALSA
+    }else if (!strcasecmp(sourceType, AUDIO_SOURCE_ALSA)) {
+      audioSource = new CALSAAudioSource(pConfig);
+#endif
     } else {
       error_message("unknown audio source type %s", sourceType);
       return NULL;
@@ -132,6 +137,7 @@ int main(int argc, char** argv)
 	bool automatic = false;
 	bool headless = false;
 	bool sdpOnly = false;
+	bool detach = false;
 	extern int nogui_main(CLiveConfig* pConfig);
 	extern int gui_main(int argc, char**argv, CLiveConfig* pConfig);
 
@@ -146,6 +152,7 @@ int main(int argc, char** argv)
 	  { "automatic", 0, 0, 'a' },
 	  { "file", 1, 0, 'f' },
 	  { "headless", 0, 0, 'h' },
+	  { "detach", 0, 0, 'd' },
 	  { "sdp", 0, 0, 's' },
 	  { "version", 0, 0, 'v' },
 	  { "help", 0, 0, 'H'},
@@ -183,6 +190,9 @@ int main(int argc, char** argv)
 	  case 'h':
 	    headless = true;
 	    break;
+	  case 'd':
+	    detach = true;
+	    break;
 	  case 's':
 	    sdpOnly = true;
 	    break;
@@ -207,6 +217,14 @@ int main(int argc, char** argv)
 	    break;
 	  }
 	}
+
+  if (detach) {
+    // This will detach from the starting tty
+    if(fork() !=0) {
+      exit(0);
+    }
+    setpgrp();
+  }
 
 	InitAudioEncoders();
 	/*

@@ -123,6 +123,7 @@ bool CFfmpegVideoEncoder::Init (void)
   m_avctx->time_base = (AVRational){1, (int)(Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE) + .5)};
   m_avctx->strict_std_compliance = -1;
   m_avctx->pix_fmt = PIX_FMT_YUV420P;
+  m_avctx->profile = Profile()->m_videoMpeg4ProfileId;
 #endif
   if (Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_WIDTH) > 0 &&
       Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_HEIGHT) > 0) {
@@ -343,4 +344,16 @@ void CFfmpegVideoEncoder::StopEncoder (void)
 	  
 }
 
+bool CFfmpegVideoEncoder::GetEsConfig (uint8_t **ppEsConfig, 
+				       uint32_t *pEsConfigLen)
+{
+  if (m_avctx->extradata_size == 0) return false;
+  *ppEsConfig = (uint8_t *)malloc(m_avctx->extradata_size);
+  *pEsConfigLen = m_avctx->extradata_size;
+  memcpy(*ppEsConfig, m_avctx->extradata, *pEsConfigLen);
+  if (m_media_frame == MPEG4VIDEOFRAME) {
+    RemoveUserdataFromVol(ppEsConfig, pEsConfigLen);
+  }
+  return true;
+}
 #endif

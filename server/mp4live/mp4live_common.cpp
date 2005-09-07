@@ -1,6 +1,7 @@
 #include "mp4live.h"
 #include "util.h"
 #include "mp4live_common.h"
+#include "audio_alsa_source.h"
 #include "audio_oss_source.h"
 #include "signal.h"
 #include "net_udp.h"
@@ -40,10 +41,12 @@ void ProbeVideoAudioCapabilities (CLiveConfig *pConfig)
   }
 
   // probe for sound card capabilities
-  if (!strcasecmp(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE),
-		  AUDIO_SOURCE_OSS)) {
-    pConfig->m_audioCapabilities = 
-      new CAudioCapabilities(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+  if (!strcasecmp(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE), AUDIO_SOURCE_OSS)) {
+    pConfig->m_audioCapabilities = new CAudioCapabilities(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+#ifdef HAVE_ALSA
+  } else if (!strcasecmp(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE), AUDIO_SOURCE_ALSA)) {
+    pConfig->m_audioCapabilities = new CALSAAudioCapabilities(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+#endif
   }
 
 }

@@ -44,6 +44,7 @@
 #endif
 
 #define AUDIO_SOURCE_OSS		"OSS"
+#define AUDIO_SOURCE_ALSA		"ALSA"
 
 
 #define VIDEO_SOURCE_V4L		"V4L"

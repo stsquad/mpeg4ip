@@ -36,6 +36,10 @@
 extern "C" {
 #endif
 
+int32_t MP4AV_Mpeg4FindHeader (const uint8_t *pStart, 
+			       uint32_t buflen,
+			       bool do_header_type DEFAULT_PARM(false), 
+			       uint8_t header_type DEFAULT_PARM(0));
   uint8_t *MP4AV_Mpeg4FindVosh(uint8_t *pBuf, uint32_t bufLen);
 bool MP4AV_Mpeg4ParseVosh(
 	u_int8_t* pVoshBuf, 

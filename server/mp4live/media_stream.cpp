@@ -162,6 +162,12 @@ void CMediaStream::Initialize (bool check_config_name)
     debug_message("Setting stream %s file to \"%s\"",
 		  GetName(), buffer);
   }
+
+  if (GetStringValue(STREAM_CAPTION) == NULL) {
+    SetStringValue(STREAM_CAPTION, GetStringValue(STREAM_NAME));
+    debug_message("Setting stream %s caption to \"%s\"", 
+		  GetName(), GetStringValue(STREAM_NAME));
+  }
 }
 
 void CMediaStream::LoadConfigVariables (void)

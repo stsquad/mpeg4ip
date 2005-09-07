@@ -47,6 +47,8 @@ libmp4live_la_SOURCES = \
 	audio_g711.h \
 	audio_lame.cpp \
 	audio_lame.h \
+	audio_alsa_source.cpp \
+	audio_alsa_source.h \
 	audio_oss_source.cpp \
 	audio_oss_source.h \
 	config_list.cpp \
@@ -145,7 +147,7 @@ INCLUDES=\
 	@FFMPEG_INC@ 
 
 AM_CXXFLAGS = \
-	-D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
+	-D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ @ALSA_CFLAGS@
 
 mp4live_LDADD = \
 	@GTK_LIBS@ @GLIB_LIBS@ \

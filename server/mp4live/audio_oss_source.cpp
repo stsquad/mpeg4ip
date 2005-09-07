@@ -477,7 +477,8 @@ void CAudioCapabilities::Display (CLiveConfig *pConfig,
   // might want to parse out CONFIG_AUDIO_INPUT_NAME a bit to make it
   // more English like...
   snprintf(msg, max_len,
-	   "%s, %s, %u Hz, %s", 
+	   "%s, %s, %s, %u Hz, %s", 
+	   pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE),
 	   pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME),
 	   pConfig->GetStringValue(CONFIG_AUDIO_INPUT_NAME),
 	   pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE),

@@ -26,19 +26,32 @@
 
 #include <mp4av_common.h>
 
-extern "C" uint8_t *MP4AV_Mpeg4FindVosh (uint8_t *pBuf, uint32_t buflen)
+extern "C" int32_t MP4AV_Mpeg4FindHeader (const uint8_t *pStart, 
+					  uint32_t buflen,
+					  bool do_header_type, 
+					  uint8_t header_type)
 {
+  const uint8_t *pBuf = pStart;
   while (buflen > 4) {
     if (pBuf[0] == 0x0 &&
 	pBuf[1] == 0x0 &&
 	pBuf[2] == 0x1 &&
-	pBuf[3] == MP4AV_MPEG4_VOSH_START) {
-      return pBuf;
+	(do_header_type == false || pBuf[3] == header_type)) {
+      return pBuf - pStart;
     }
     pBuf++;
     buflen--;
   }
-  return NULL;
+  return -1;
+}
+
+extern "C" uint8_t *MP4AV_Mpeg4FindVosh (uint8_t *pBuf, uint32_t buflen)
+{
+  int32_t ret = 
+    MP4AV_Mpeg4FindHeader(pBuf, buflen, true, MP4AV_MPEG4_VOSH_START);
+  if (ret < 0) return NULL;
+  
+  return pBuf + ret;
 }
 
 extern "C" bool MP4AV_Mpeg4ParseVosh(
@@ -127,31 +140,19 @@ extern "C" bool MP4AV_Mpeg4CreateVo(
 
 extern "C" uint8_t *MP4AV_Mpeg4FindVol (uint8_t *pBuf, uint32_t buflen)
 {
-  while (buflen > 4) {
-    if (pBuf[0] == 0x0 &&
-	pBuf[1] == 0x0 &&
-	pBuf[2] == 0x1 &&
-	(pBuf[3] & 0xf0) == MP4AV_MPEG4_VOL_START) {
-      return pBuf;
-    }
-    pBuf++;
-    buflen--;
-  }
-  return NULL;
+  int32_t ret = 
+    MP4AV_Mpeg4FindHeader(pBuf, buflen, true, MP4AV_MPEG4_VOL_START);
+  if (ret < 0) return NULL;
+  
+  return pBuf + ret;
 }
 extern "C" uint8_t *MP4AV_Mpeg4FindVop (uint8_t *pBuf, uint32_t buflen)
 {
-  while (buflen > 4) {
-    if (pBuf[0] == 0x0 &&
-	pBuf[1] == 0x0 &&
-	pBuf[2] == 0x1 &&
-	pBuf[3] == MP4AV_MPEG4_VOP_START) {
-      return pBuf;
-    }
-    pBuf++;
-    buflen--;
-  }
-  return NULL;
+  int32_t ret = 
+    MP4AV_Mpeg4FindHeader(pBuf, buflen, true, MP4AV_MPEG4_VOP_START);
+  if (ret < 0) return NULL;
+  
+  return pBuf + ret;
 }
 
 extern "C" bool MP4AV_Mpeg4ParseVol(

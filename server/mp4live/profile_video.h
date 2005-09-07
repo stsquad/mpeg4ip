@@ -122,5 +122,6 @@ class CVideoProfileList : public CConfigList
 };
 
 void GenerateMpeg4VideoConfig(CVideoProfile * pConfig);
+void RemoveUserdataFromVol(uint8_t **ppEsConfig, uint32_t *pEsConfigLen);
 
 #endif

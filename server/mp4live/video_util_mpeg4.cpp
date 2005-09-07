@@ -81,3 +81,36 @@ void GenerateMpeg4VideoConfig(CVideoProfile *pConfig)
 	pConfig->m_videoMpeg4ConfigLength = mpeg4ConfigLength;
 }
 
+void RemoveUserdataFromVol (uint8_t **ppEsConfig, uint32_t *pEsConfigLen)
+{
+  uint8_t *orig = *ppEsConfig;
+  uint32_t orig_len = *pEsConfigLen;
+  uint8_t *replace = (uint8_t *)malloc(*pEsConfigLen);
+  int32_t next_offset;
+  uint32_t written = 0;
+
+  next_offset = MP4AV_Mpeg4FindHeader(orig, orig_len);
+  if (next_offset < 0) return;
+  orig += next_offset;
+  orig_len -= next_offset;
+
+  while ((next_offset = MP4AV_Mpeg4FindHeader(orig + 1, orig_len)) > 0) {
+    if (orig[3] != MP4AV_MPEG4_USER_DATA_START) {
+      memcpy(replace + written,
+	     orig,
+	     next_offset);
+      written += next_offset;
+    }
+    orig_len -= next_offset;
+    orig += next_offset;
+  }
+  if (orig[3] != MP4AV_MPEG4_USER_DATA_START) {
+    memcpy(replace + written,
+	   orig,
+	   orig_len);
+    written += orig_len;
+  }
+  free(*ppEsConfig);
+  *ppEsConfig = replace;
+  *pEsConfigLen = written;
+}

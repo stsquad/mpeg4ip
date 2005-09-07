@@ -74,56 +74,56 @@ void CVideoProfile::Update (void)
   uint32_t bitrate;
   if (GetBoolValue(CFG_VIDEO_FORCE_PROFILE_ID)) {
     m_videoMpeg4ProfileId = GetIntegerValue(CFG_VIDEO_PROFILE_ID);
-    return;
-  }
-  bitrate = GetIntegerValue(CFG_VIDEO_BIT_RATE) * 1000;
-
-  widthMB = (m_videoWidth + 15) / 16;
-  heightMB = (m_videoHeight + 15) / 16;
-       
-  float frame_rate = GetFloatValue(CFG_VIDEO_FRAME_RATE);
-
-  frame_rate *= widthMB;
-  frame_rate *= heightMB;
-	
-  uint32_t mbpSec = (uint32_t)ceil(frame_rate);
-  uint16_t profile;
-  if (bitrate < 131072 && mbpSec < 2970) {
-    // profile is ASP 0/1 - subsumed3 by SP2
-    profile = MPEG4_ASP_L0;
-  } else if (bitrate < 393216 && mbpSec < 5940) {
-    // profile is ASP 2 - subsumed by SP3 
-    profile = MPEG4_ASP_L2;
-  } else if (bitrate < 786432 && mbpSec < 11880) {
-    // profile is ASP 3
-    profile = MPEG4_ASP_L3;
-  } else if (bitrate < 1536000 && mbpSec < 11880) {
-    // profile is ASP3b
-    profile = MPEG4_ASP_L3B;
-  } else if (bitrate < 3000 * 1024 && mbpSec < 23760) {
-    // profile is ASP4
-    profile = MPEG4_ASP_L4;
   } else {
-    // profile is ASP5 - but may be higher
-    if (bitrate > 8000 * 1024 || mbpSec > 16384) {
-      error_message("Video statistics surpass ASP Level 5 - bit rate %u MpbSec %u", 
-		    bitrate, mbpSec);
+    bitrate = GetIntegerValue(CFG_VIDEO_BIT_RATE) * 1000;
+
+    widthMB = (m_videoWidth + 15) / 16;
+    heightMB = (m_videoHeight + 15) / 16;
+       
+    float frame_rate = GetFloatValue(CFG_VIDEO_FRAME_RATE);
+
+    frame_rate *= widthMB;
+    frame_rate *= heightMB;
+	
+    uint32_t mbpSec = (uint32_t)ceil(frame_rate);
+    uint16_t profile;
+    if (bitrate < 131072 && mbpSec < 2970) {
+      // profile is ASP 0/1 - subsumed3 by SP2
+      profile = MPEG4_ASP_L0;
+    } else if (bitrate < 393216 && mbpSec < 5940) {
+      // profile is ASP 2 - subsumed by SP3 
+      profile = MPEG4_ASP_L2;
+    } else if (bitrate < 786432 && mbpSec < 11880) {
+      // profile is ASP 3
+      profile = MPEG4_ASP_L3;
+    } else if (bitrate < 1536000 && mbpSec < 11880) {
+      // profile is ASP3b
+      profile = MPEG4_ASP_L3B;
+    } else if (bitrate < 3000 * 1024 && mbpSec < 23760) {
+      // profile is ASP4
+      profile = MPEG4_ASP_L4;
+    } else {
+      // profile is ASP5 - but may be higher
+      if (bitrate > 8000 * 1024 || mbpSec > 16384) {
+	error_message("Video statistics surpass ASP Level 5 - bit rate %u MpbSec %u", 
+		      bitrate, mbpSec);
+      }
+      profile = MPEG4_ASP_L5;
     }
-    profile = MPEG4_ASP_L5;
-  }
-  if (GetBoolValue(CFG_VIDEO_USE_B_FRAMES) == false) {
-    if (bitrate <= 65536 && mbpSec < 1485) {
-      // profile is SP0, or SP1  SP0 is more accurate
-      profile = MPEG4_SP_L0;
-    } else if (bitrate <= 131072 && mbpSec < 5940) {
-      // profile is SP2
-      profile = MPEG4_SP_L2;
-    } else if (bitrate < 393216 && mbpSec < 11880) {
-      // profile is SP3
-      profile = MPEG4_SP_L3;
+    if (GetBoolValue(CFG_VIDEO_USE_B_FRAMES) == false) {
+      if (bitrate <= 65536 && mbpSec < 1485) {
+	// profile is SP0, or SP1  SP0 is more accurate
+	profile = MPEG4_SP_L0;
+      } else if (bitrate <= 131072 && mbpSec < 5940) {
+	// profile is SP2
+	profile = MPEG4_SP_L2;
+      } else if (bitrate < 393216 && mbpSec < 11880) {
+	// profile is SP3
+	profile = MPEG4_SP_L3;
+      }
     }
+    m_videoMpeg4ProfileId = profile;
   }
-  m_videoMpeg4ProfileId = profile;
   
   GenerateMpeg4VideoConfig(this);
 }
