@@ -1,7 +1,6 @@
 lib_LTLIBRARIES = libismacryp.la
 
-INCLUDES=-I$(top_srcdir)/include \
-          @AESICM_INC@
+INCLUDES=-I$(top_srcdir)/include
 
 libismacryp_la_SOURCES = ismacryplib.c \
 	ismacryplib.h \

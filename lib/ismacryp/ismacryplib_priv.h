@@ -27,7 +27,7 @@
 #include "ismacryplib.h"
 
 #ifndef NULL_ISMACRYP
-#include "aes_icm.h"
+#include "srtp/aes_icm.h"
 #endif
 
 #ifdef __cplusplus

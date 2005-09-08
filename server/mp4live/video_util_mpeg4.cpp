@@ -94,7 +94,8 @@ void RemoveUserdataFromVol (uint8_t **ppEsConfig, uint32_t *pEsConfigLen)
   orig += next_offset;
   orig_len -= next_offset;
 
-  while ((next_offset = MP4AV_Mpeg4FindHeader(orig + 1, orig_len)) > 0) {
+  while ((next_offset = 
+	  1 + MP4AV_Mpeg4FindHeader(orig + 1, orig_len - 1)) > 0) {
     if (orig[3] != MP4AV_MPEG4_USER_DATA_START) {
       memcpy(replace + written,
 	     orig,

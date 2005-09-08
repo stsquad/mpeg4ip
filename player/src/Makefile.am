@@ -142,7 +142,7 @@ gmp4player_SOURCES = \
 	gui_utils.h \
 	gui_xpm.h
 
-INCLUDES = -I$(srcdir) -I$(top_srcdir)/common/video/mpeg4 -I$(srcdir)/codec -I$(srcdir)/codec/mpeg4 -I$(srcdir)/../lib -I$(srcdir)/../lib/audio $(SDL_AUDIO_INC) -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYP_INC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/lib/mpeg2ps -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/utils -I$(top_srcdir)/lib/audio @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@  
+INCLUDES = -I$(srcdir) -I$(top_srcdir)/common/video/mpeg4 -I$(srcdir)/codec -I$(srcdir)/codec/mpeg4 -I$(srcdir)/../lib -I$(srcdir)/../lib/audio $(SDL_AUDIO_INC) -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/lib/ismacryp -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/lib/mpeg2ps -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/utils -I$(top_srcdir)/lib/audio @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@  
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\" $(ADD_CFLAGS)
 
@@ -165,8 +165,9 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/fposrec/libmpeg4ip_fposrec.la \
 	$(top_builddir)/lib/avi/libavi.la  \
-	@ISMACRYP_LIB@ \
-	$(top_builddir)/lib/utils/libutils.la
+	$(top_builddir)/lib/ismacryp/libismacryp.la \
+	$(top_builddir)/lib/utils/libutils.la \
+	@SRTPLIB@
 
 mp4player_LDFLAGS = $(SDL_AUDIO_FLAGS)
 mp4player_LDADD = \
@@ -177,8 +178,8 @@ mp4player_LDADD = \
 	libmp4syncbase.la \
 	libmp4playerutils.la \
 	$(top_builddir)/lib/audio/libaudio.la \
-	@ISMACRYP_LIB@ \
-	@SDL_LIBS@ 
+	$(top_builddir)/lib/ismacryp/libismacryp.la \
+	@SDL_LIBS@ @SRTPLIB@
 
 gmp4player_LDFLAGS= $(SDL_AUDIO_FLAGS)
 gmp4player_LDADD = $(mp4player_LDADD) \

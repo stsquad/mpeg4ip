@@ -4,7 +4,7 @@ INCLUDES = \
 	-I$(top_srcdir)/lib/mp4v2 \
 	-I$(top_srcdir)/lib/mp4av \
 	-I$(top_srcdir)/lib/avi \
-	@ISMACRYP_INC@ \
+	-I$(top_srcdir)/lib/ismacryp \
 	-I$(top_srcdir)/lib/mpeg2ps
 
 AM_CXXFLAGS = -DMPEG4IP -fexceptions @BILLS_CPPWARNINGS@
@@ -30,6 +30,7 @@ mp4creator_LDADD = \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/avi/libavi.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
-	@ISMACRYP_LIB@ 
+	$(top_builddir)/lib/ismacryp/libismacryp.la \
+	@SRTPLIB@ 
 
 EXTRA_DIST = mp4creator60.dsp 

@@ -81,7 +81,7 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
     offset = snprintf(errmsg, errlen, "Unknown or unused Video tracks ");
   }
 
-  if (Mp4File1->have_audio() != 0 && have_audio_driver == 0) {
+  if (have_audio_driver == 0) {
     offset += snprintf(errmsg + offset, errlen - offset, 
 		       "%sNo Audio driver - can't play audio",
 		       offset == 0 ? "" : "and ");

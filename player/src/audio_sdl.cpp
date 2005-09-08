@@ -318,9 +318,11 @@ int do_we_have_audio (void)
 {
   char buffer[80];
   if (Our_SDL_AudioInit(getenv("SDL_AUDIODRIVER")) < 0) {
+    player_debug_message("Can't initialize SDL audio");
     return (0);
   } 
   if (Our_SDL_AudioDriverName(buffer, sizeof(buffer)) == NULL) {
+    player_debug_message("No buffer name");
     return (0);
   }
   //  Our_SDL_CloseAudio(); - wmay - don't know why commented out - 

@@ -38,7 +38,7 @@ class CFfmpegVideoEncoder : public CVideoEncoder {
 
 	MediaType GetFrameType(void) { return m_media_frame;}
 	bool Init(void);
-	bool CanGetEsConfig (void) { return false; };
+	bool CanGetEsConfig (void) { return true; };
 	bool GetEsConfig(uint8_t **ppEsConfig, uint32_t *pEsConfigLen);
  protected:
 	bool EncodeImage(
