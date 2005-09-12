@@ -133,10 +133,17 @@ if `aclocal $ACLOCAL_FLAGS`; then
     aclocal $ACLOCAL_FLAGS
   fi
 else
-if `aclocal -I $pwd/doc`; then
-ACLOCAL_FLAGS="-I $pwd/doc $ACLOCAL_FLAGS"
-fi
-fi
+  if `aclocal -I $pwd/doc`; then
+    ACLOCAL_FLAGS="-I $pwd/doc $ACLOCAL_FLAGS"
+  else 
+    if `aclocal -I $pwd/util`; then
+      ACLOCAL_FLAGS="-I $pwd/util $ACLOCAL_FLAGS"
+    else
+      aclocal -I $pwd/util -I $pwd/doc
+      ACLOCAL_FLAGS="-I $pwd/util -I $pwd/doc $ACLOCAL_FLAGS"
+    fi
+  fi
+fi 
 
 libtoolize --force
 autoheader || exit 1

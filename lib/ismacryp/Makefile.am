@@ -11,4 +11,5 @@ libismacryp_la_SOURCES = ismacryplib.c \
 EXTRA_DIST = \
 	libismacryp.dsp \
 	libismacryp_st.dsp \
-	README
+	README \
+	README.html

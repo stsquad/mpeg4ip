@@ -43,7 +43,7 @@ public:
 		m_pConfig = pConfig;
 		m_started = false;
 	}
-
+	virtual ~CMediaFlow(void) {};
 	virtual void Start() = 0;
 
 	virtual void Stop() = 0; 

@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<HTML lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+<title>MPEG4IP ISMACRYP README</title></head>
+<body>
+<p>
+<div id="top">
+<h1>MPEG4IP ISMACRYP README</h1> </div>
+<p>
+September, 2005
+<P>
+This library, ismacryp, implements the ISMA encryption and authentication 
+protocol defined in "ISMA 1.0 Encryption and Authentication, Version 1.0"
+specification which is published on the <a href="http://www.isma.tv">ISMA web site</a>.  This
+specification is referred to as Ismacryp in the remainder of this README.
+<p>
+Certain portions of the protocol are not implemented: selective encryption 
+which allows for the encryption of selected streaming packets and alternating keys.
+<p>
+The ismacryp lib utilizes a separate library, srtplib, for AES Integer
+Counter Mode encryption functions. The srtplib is not included in the
+mpeg4ip distribution. However, the ismacryp library implemented here
+will still operate correctly in the absence of the srtplib. All new
+mp4 atoms and headers in the case of streamed files are included in
+an Ismacryp file but the data will not be encrypted. The player will
+properly decode and play Ismacryp files or streams that are created
+without the encryption functions provided by srtplib.
+<p>
+To build and install mpeg4ip without srtplib, pass <code>--disable-srtp</code> to <code>configure</code> or <code>bootstrap</code>.
+<p>
+To build and install mpeg4ip with srtplib, perform the following 
+steps.
+<ol>
+<li>Obtain the libsrtp package version 1.3.22 or later from the <a href="http://srtp.sourceforge.net/srtp.html">Sourceforge site</a> (not available as of 2005/9/9).</li>
+<li>Configure libsrtp with the generic option to remove srtp-specific limitations by changing the AES ICM functions. Then build and install the srtplib libraries.
+<code>
+<br>% configure --enable-generic
+<br>% make
+<br>% make install
+</code>
+</ol>
+<p>
+By default libsrtp will install its libraries and header files in <code>/usr/local/lib</code> and <code>/usr/local/include/srtp</code> respectively.  mpeg4ip will look for both in system-defined library and include paths.  If it finds them it will automatically include them in the build unless <code>--disable-srtp</code> is passed to <code>configure</code>.
+<p>
+Prior to using Ismacryp functions, it necessary to provide a key file. The key file must be named .kms_data and a sample is included in this directory. This file must be placed in the home directory of the user running the mpeg4ip application.
+<p>
+Using Ismacryp functions (see the other project README files for more detailed information):
+<ol>
+<li>To create an Ismacryp mp4 file: <code>mp4creator -encrypt &lt;filename&gt;</code>. A new file named <code>&lt;enc-filename&gt;</code> will be created.</li>
+<li>To play an Ismacryp file locally: use mp4player or gmp4player in the usual way.</li>
+<li>To stream an Ismacryp file: create hint tracks and use mp4creator in the usual way.</li>
+</ol>
+<p>
+Functions provided by ismacryplib are described in ismacryp.h
+<p>
+alexv@cisco.com<br>
+will_clark@cisco.com<br>
+<P>
+<a href="http://validator.w3.org/check/referer"><img
+   src="http://www.w3.org/Icons/valid-html401"
+   alt="Valid HTML 4.01!" height="31" width="88"></a>
+ </p>
+</body>
+</html>

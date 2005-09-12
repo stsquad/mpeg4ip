@@ -1,5 +1,17 @@
 xx/xx/xx Version 1.4
     Added restart of file recording in mp4live
+    Autodetection of SRTP library for ISMACryp
+    Changes for GCC 4.0
+    G.711 hinter in mp4live.
+    Allow multiple covers in mp4 files.
+    Add correct extension for cover art extracts (user contributed)
+    LPCM reading in mpeg2 program streams
+    Fix audio playback stuttering when frame size might be less than callback size
+    Fix audio resampling problems with multiple audio streams in mp4live
+    Added Stream Caption for mp4live streams.
+    Added ALSA source for mp4live (off by default - user contributed)
+    Added multiple input pixel formats (YUYV, UYVY, YYUV) for mp4live (V4L2 only)
+    Added some SEI decoding in h264_parse
 
 05/18/05 Version 1.3
     Rewrite of mp4live to handle multiple streams per single video source
