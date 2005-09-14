@@ -164,7 +164,10 @@ void CMediaStream::Initialize (bool check_config_name)
   }
 
   if (GetStringValue(STREAM_CAPTION) == NULL) {
-    SetStringValue(STREAM_CAPTION, GetStringValue(STREAM_NAME));
+    if (GetStringValue(STREAM_NAME) == NULL)
+      SetStringValue(STREAM_CAPTION, "default");
+    else
+      SetStringValue(STREAM_CAPTION, GetStringValue(STREAM_NAME));
     debug_message("Setting stream %s caption to \"%s\"", 
 		  GetName(), GetStringValue(STREAM_NAME));
   }

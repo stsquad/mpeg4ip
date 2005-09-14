@@ -224,6 +224,7 @@ MediaType ffmpeg_mp4_fileinfo (CAudioProfile *pConfig,
 media_desc_t *ffmpeg_create_audio_sdp (CAudioProfile *pConfig,
 				       bool *mpeg4,
 				       bool *isma_compliant,
+				       bool *is3gp,
 				       uint8_t *audioProfile,
 				       uint8_t **audioConfig,
 				       uint32_t *audioConfigLen)
@@ -265,18 +266,21 @@ media_desc_t *ffmpeg_create_audio_sdp (CAudioProfile *pConfig,
       }
       sdpAudioRtpMap->encode_name = strdup("MPA");
     } else if (type == AMRNBAUDIOFRAME) {
+      *is3gp = true;
       sdpAudioRtpMap->encode_name = strdup("AMR");
       sdpAudioRtpMap->clock_rate = 8000;
       sdpMediaAudioFormat->fmt = strdup("97");
       sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
 			     strdup("a=fmtp:97 octet-align=1"));
-      
+      sdpAudioRtpMap->encode_param = 1;
     } else if (type == AMRWBAUDIOFRAME) {
+      *is3gp = true;
       sdpAudioRtpMap->encode_name = strdup("AMR-WB");
       sdpAudioRtpMap->clock_rate = 16000;
       sdpMediaAudioFormat->fmt = strdup("97");
       sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
 			     strdup("a=fmtp:97 octet-align=1"));
+      sdpAudioRtpMap->encode_param = 1;
     }
       
     sdpMediaAudioFormat->rtpmap = sdpAudioRtpMap;
@@ -287,8 +291,10 @@ media_desc_t *ffmpeg_create_audio_sdp (CAudioProfile *pConfig,
 
 static bool ffmpeg_set_rtp_header (struct iovec *iov,
 				 int queue_cnt,
-				 void *ud)
+				 void *ud,
+				   bool *mbit)
 {
+  *mbit = 1;
   *(uint32_t *)ud = 0;
   iov[0].iov_base = ud;
   iov[0].iov_len = 4;
@@ -324,15 +330,22 @@ static bool ffmpeg_set_rtp_jumbo (struct iovec *iov,
 static int ffmpeg_amr_set_rtp_payload(CMediaFrame** m_audioQueue,
  				      int queue_cnt,
  				      struct iovec *iov,
- 				      void *ud)
+ 				      void *ud,
+				      bool *mbit)
 {
   uint8_t *payloadHeader = (uint8_t *)ud;
   
+  *mbit = 0;
   payloadHeader[0] = 0xf0;
   
   for (int i = 0; i < queue_cnt; i++) {
     // extract mode field + quality bit & set the follow bit
+    //    if (i > 0) payloadHeader[i] |= 0x80;
+#if 0
     payloadHeader[i + 1] = (*(uint8_t*)m_audioQueue[i]->GetData() & 0x7C) | 0x80;
+#else
+    payloadHeader[i + 1] = (*(uint8_t*)m_audioQueue[i]->GetData() & 0x78) | 0x84;
+#endif
     // body of the frame
     iov[i + 1].iov_base = (uint8_t*)m_audioQueue[i]->GetData() + 1;
     iov[i + 1].iov_len  = m_audioQueue[i]->GetDataLength() - 1;

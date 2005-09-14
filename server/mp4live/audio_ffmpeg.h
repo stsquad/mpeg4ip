@@ -33,6 +33,7 @@
 media_desc_t *ffmpeg_create_audio_sdp(CAudioProfile *pConfig,
 				    bool *mpeg4,
 				    bool *isma_compliant,
+				      bool *is3gp,
 				    uint8_t *audioProfile,
 				    uint8_t **audioConfig,
 				    uint32_t *audioConfigLen);

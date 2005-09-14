@@ -161,6 +161,7 @@ void createStreamSdp (CLiveConfig *pGlobal,
   // if SSM, add source filter attribute
   
   bool audioIsIsma, videoIsIsma;
+  bool audioIs3gp = false, videoIs3gp = false;
   bool createIod = true;
   u_int8_t audioProfile = 0xFF;
   u_int8_t videoProfile = 0xFF;
@@ -171,6 +172,7 @@ void createStreamSdp (CLiveConfig *pGlobal,
   
   if (pStream->GetBoolValue(STREAM_AUDIO_ENABLED)) {
     audioIsIsma = false;
+    audioIs3gp = false;
     media_desc_t *sdpMediaAudio;
     bool audioCreateIod = false;
     bandwidth_t *audioBandwidth;
@@ -178,6 +180,7 @@ void createStreamSdp (CLiveConfig *pGlobal,
     sdpMediaAudio = create_audio_sdp(pStream->GetAudioProfile(),
 				     &audioCreateIod,
 				     &audioIsIsma,
+				     &audioIs3gp,
 				     &audioProfile,
 				     &pAudioConfig,
 				     &audioConfigLength);
@@ -203,7 +206,7 @@ void createStreamSdp (CLiveConfig *pGlobal,
       sdpMediaAudio->media_bandwidth = audioBandwidth;
       audioBandwidth->modifier = BANDWIDTH_MODIFIER_AS; 
       audioBandwidth->bandwidth =
-	pStream->GetAudioProfile()->GetIntegerValue(CFG_AUDIO_BIT_RATE)/ 1000;
+	(pStream->GetAudioProfile()->GetIntegerValue(CFG_AUDIO_BIT_RATE) + 999)/ 1000;
       
     }
   } else {
@@ -218,6 +221,7 @@ void createStreamSdp (CLiveConfig *pGlobal,
     sdpMediaVideo = create_video_sdp(pStream->GetVideoProfile(),
 				     &videoCreateIod,
 				     &videoIsIsma,
+				     &videoIs3gp,
 				     &videoProfile,
 				     &pVideoConfig,
 				     &videoConfigLength);
@@ -247,7 +251,11 @@ void createStreamSdp (CLiveConfig *pGlobal,
   } else {
     videoIsIsma = true;
   }
-  
+
+  if (videoIs3gp && audioIs3gp) {
+    sdp_add_string_to_list(&sdp->unparsed_a_lines, 
+			   "a=range:npt=0-");
+  }
   if (pStream->GetBoolValue(STREAM_TEXT_ENABLED)) {
     media_desc_t *sdpMediaText;
    

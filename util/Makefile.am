@@ -9,4 +9,5 @@ EXTRA_DIST = repository_sync.sh \
 	sdl_update.sh \
 	testlame.sh \
 	testnasm.sh \
+	dummy_alsa.h \
 	version.sh 

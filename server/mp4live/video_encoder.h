@@ -208,6 +208,7 @@ MediaType get_video_mp4_fileinfo(CVideoProfile *pConfig,
 media_desc_t *create_video_sdp(CVideoProfile *pConfig,
 			       bool *createIod,
 			       bool *isma_compliant,
+			       bool *is3gp,
 			       uint8_t *audioProfile,
 			       uint8_t **audioConfig,
 			       uint32_t *audioConfigLen);

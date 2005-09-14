@@ -68,11 +68,13 @@ MediaType get_audio_mp4_fileinfo (CAudioProfile *pConfig,
 media_desc_t *create_audio_sdp (CAudioProfile *pConfig,
 				bool *mpeg4,
 				bool *isma_compliant,
+				bool *audio_is_3gp,
 				uint8_t *audioProfile,
 				uint8_t **audioConfig,
 				uint32_t *audioConfigLen)
 {
   return create_base_audio_sdp(pConfig, mpeg4, isma_compliant,
+			       audio_is_3gp,
 			       audioProfile, audioConfig, audioConfigLen);
 }
 				

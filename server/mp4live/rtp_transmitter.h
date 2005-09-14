@@ -109,13 +109,15 @@ typedef int (*audio_queue_frame_f)(u_int32_t **frameno,
 					u_int16_t audioQueueSize,
 					u_int32_t rtp_payload_size);
 typedef int (*audio_set_rtp_payload_f)(CMediaFrame** m_audioQueue,
-					int queue_cnt,
-					struct iovec *iov,
-					void *ud);
+				       int queue_cnt,
+				       struct iovec *iov,
+				       void *ud,
+				       bool *mbit);
 
 typedef bool (*audio_set_rtp_header_f)(struct iovec *iov,
 				       int queue_cnt,
-				       void *ud);
+				       void *ud, 
+				       bool *mbit);
 
 typedef bool (*audio_set_rtp_jumbo_frame_f)(struct iovec *iov,
 					    uint32_t dataOffset,

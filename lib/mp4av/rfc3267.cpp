@@ -126,7 +126,7 @@ extern "C" bool MP4AV_Rfc3267Hinter (MP4FileHandle mp4File,
 	toc_on >= 12) {
       // write it
       MP4AddRtpHint(mp4File, hintTrackId);
-      MP4AddRtpPacket(mp4File, hintTrackId, 1);
+      MP4AddRtpPacket(mp4File, hintTrackId);
 #ifdef DEBUG_RFC3267
       printf("pak - writing immediat %u\n", toc_on + 1);
 #endif

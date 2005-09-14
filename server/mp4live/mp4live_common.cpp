@@ -17,6 +17,14 @@ int ReadConfigFile (const char *configFileName,
   try {
     pConfig->ReadFile(configFileName);
 
+#ifndef HAVE_ALSA 
+    if (strcmp(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE),
+	       AUDIO_SOURCE_ALSA) == 0) {
+      error_message("Audio source from config is alsa, and not configured");
+      error_message("Switching to OSS");
+      pConfig->SetStringValue(CONFIG_AUDIO_SOURCE_TYPE, AUDIO_SOURCE_OSS);
+    }
+#endif
     if (!pConfig->IsDefault(CONFIG_RECORD_MP4_OVERWRITE)) {
       pConfig->SetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS, FILE_MP4_APPEND);
       pConfig->SetToDefault(CONFIG_RECORD_MP4_OVERWRITE);

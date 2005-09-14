@@ -103,7 +103,7 @@ MediaType lame_mp4_fileinfo (CAudioProfile *pConfig,
 			     uint32_t *audioConfigLen,
 			     uint8_t *mp4AudioType)
 {
-  *mpeg4 = true; // legal in an mp4 - create an iod
+  *mpeg4 = false; // legal in an mp4 - create an iod
   *isma_compliant = false;
   *audioProfile = 0xfe;
   *audioConfig = NULL;
@@ -147,8 +147,6 @@ media_desc_t *lame_create_audio_sdp (CAudioProfile *pConfig,
     sdpAudioRtpMap->clock_rate = 
       pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
     sdpMediaAudioFormat->fmt = strdup("97");
-    sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
-			   "a=mpeg4-esid:10");
   }
   sdpAudioRtpMap->encode_name = strdup("MPA");
   
@@ -161,8 +159,10 @@ media_desc_t *lame_create_audio_sdp (CAudioProfile *pConfig,
 
 static bool lame_set_rtp_header (struct iovec *iov,
 				 int queue_cnt,
-				 void *ud)
+				 void *ud, 
+				 bool *mbit)
 {
+  *mbit = 1;
   *(uint32_t *)ud = 0;
   iov[0].iov_base = ud;
   iov[0].iov_len = 4;

@@ -131,11 +131,13 @@ media_desc_t *faac_create_audio_sdp (CAudioProfile *pConfig,
 #define AAC_MAX_FRAME_IN_RTP_PAK 8
 static bool faac_add_rtp_header (struct iovec *iov,
 				 int queue_cnt,
-				 void *ud)
+				 void *ud, 
+				 bool *m_bit)
 {
   uint16_t numHdrBits = 16 * queue_cnt;
   int ix;
   uint8_t *aacHeader = (uint8_t *)ud;
+  *m_bit = true;
   aacHeader[0] = numHdrBits >> 8;
   aacHeader[1] = numHdrBits & 0xff;
 

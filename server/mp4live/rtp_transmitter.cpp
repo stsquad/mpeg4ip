@@ -463,13 +463,14 @@ void CAudioRtpTransmitter::SendQueuedAudioFrames(void)
 	// See if we need to add the header.
 	int iov_start = 1;
 	int iov_add = 0;
-
+	bool mbit = 1;
 	if (m_audio_set_rtp_payload != NULL) {
 		iov_start = 0;
 		iov_add = m_audio_set_rtp_payload(m_audioQueue,
-					m_audioQueueCount,
-					iov,
-					m_audio_rtp_userdata);
+						  m_audioQueueCount,
+						  iov,
+						  m_audio_rtp_userdata,
+						  &mbit);
 	} else {
 		// audio payload data
 		for (i = 0; i < m_audioQueueCount; i++) {
@@ -479,8 +480,9 @@ void CAudioRtpTransmitter::SendQueuedAudioFrames(void)
 
 		if (m_audio_set_rtp_header != NULL) {
 	  		if ((m_audio_set_rtp_header)(iov, 
-				       	m_audioQueueCount, 
-				       	m_audio_rtp_userdata)) {
+						     m_audioQueueCount, 
+						     m_audio_rtp_userdata, 
+						     &mbit)) {
 	    			iov_start = 0;
 	    			iov_add = 1;
 	  		} 
@@ -493,7 +495,7 @@ void CAudioRtpTransmitter::SendQueuedAudioFrames(void)
 	  rdptr->send_iov(&iov[iov_start],
 			  iov_add + m_audioQueueCount,
 			  rtpTimestamp,
-			  1);
+			  mbit ? 1 : 0);
 	  rdptr = rdptr->get_next();
 	}
 

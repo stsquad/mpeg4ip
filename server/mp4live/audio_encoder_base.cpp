@@ -161,6 +161,7 @@ MediaType get_base_audio_mp4_fileinfo (CAudioProfile *pConfig,
 media_desc_t *create_base_audio_sdp (CAudioProfile *pConfig,
 				bool *mpeg4,
 				bool *isma_compliant,
+				     bool *is3gp,
 				uint8_t *audioProfile,
 				uint8_t **audioConfig,
 				uint32_t *audioConfigLen)
@@ -168,6 +169,7 @@ media_desc_t *create_base_audio_sdp (CAudioProfile *pConfig,
   const char *encoderName = pConfig->GetStringValue(CFG_AUDIO_ENCODER);
 
   if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
+    *is3gp = true;
 #ifdef HAVE_FAAC
     return faac_create_audio_sdp(pConfig, mpeg4,
 				 isma_compliant, 
@@ -192,6 +194,7 @@ media_desc_t *create_base_audio_sdp (CAudioProfile *pConfig,
 #ifdef HAVE_FFMPEG
     return ffmpeg_create_audio_sdp(pConfig, mpeg4,
 				   isma_compliant, 
+				   is3gp,
 				   audioProfile, 
 				   audioConfig,
 				   audioConfigLen);

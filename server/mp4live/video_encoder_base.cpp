@@ -207,6 +207,7 @@ MediaType get_video_mp4_fileinfo_base (CVideoProfile *pConfig,
 media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
 				    bool *createIod,
 				    bool *isma_compliant,
+				    bool *is3gp,
 				    uint8_t *videoProfile,
 				    uint8_t **videoConfig,
 				    uint32_t *videoConfigLen)
@@ -234,6 +235,7 @@ media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
   sdpMediaVideo->fmt = sdpMediaVideoFormat;
 
   if (mtype == MPEG4VIDEOFRAME) {
+    *is3gp = true;
     sdpVideoRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
     memset(sdpVideoRtpMap, 0, sizeof(*sdpVideoRtpMap));
     sdpMediaVideoFormat->media = sdpMediaVideo;
@@ -270,6 +272,7 @@ media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
   } else if (mtype == MPEG2VIDEOFRAME) {
     sdpMediaVideoFormat->fmt = strdup("32");
   } else if (mtype == H263VIDEOFRAME) {
+    *is3gp = true;
     sdpVideoRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
     memset(sdpVideoRtpMap, 0, sizeof(*sdpVideoRtpMap));
     sdpMediaVideoFormat->fmt = strdup("96");
