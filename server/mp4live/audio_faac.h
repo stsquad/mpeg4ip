@@ -49,6 +49,7 @@ bool faac_get_audio_rtp_info(CAudioProfile *pConfig,
 			     uint8_t *audioPayloadBytesPerPacket,
 			     uint8_t *audioPayloadBytesPerFrame,
 			     uint8_t *audioQueueMaxCount,
+           audio_set_rtp_payload_f *audio_set_rtp_payload,
 			     audio_set_rtp_header_f *audio_set_header,
 			     audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
 			     void **ud);

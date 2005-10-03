@@ -205,3 +205,37 @@ extern "C" void MP4AV_LatmGetConfiguration (uint8_t **ppConfig,
   *ppConfig = stream_mux_config;
   *pConfigLength = ix + 3;
 }
+
+extern "C" bool MP4AV_AacGetConfiguration_LATM (
+	u_int8_t** ppConfig,
+	u_int32_t* pConfigLength,
+	u_int8_t profile,
+	u_int32_t samplingRate,
+	u_int8_t channels)
+{
+	/* create the appropriate config string */
+
+	u_int8_t* pConfig = (u_int8_t*)malloc(6);
+
+	if (pConfig == NULL) {
+		return false;
+	}
+
+	u_int8_t samplingRateIndex = MP4AV_AdtsFindSamplingRateIndex(samplingRate);
+
+  // StreamMuxConfig
+  pConfig[0] = 0x40;
+  pConfig[1] = ((profile+1 & 0x10) >> 5);
+
+	pConfig[2] = (((profile + 1) & 0x0f) << 4) | (samplingRateIndex & 0x0f);
+
+  pConfig[3] = (channels << 4);
+  pConfig[4] = 0x3f;
+  pConfig[5] = 0xc0;
+
+
+	*ppConfig = pConfig;
+	*pConfigLength = 6;
+
+	return true;
+}

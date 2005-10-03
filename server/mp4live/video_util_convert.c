@@ -121,3 +121,34 @@ void convert_yyuv_to_yuv420p (uint8_t *dest,
     }
   }
 }
+
+void convert_nv12_to_yuv420p (uint8_t *dest,
+			      const uint8_t *src,
+			      uint32_t Ysize,
+			      uint32_t width, 
+			      uint32_t height)
+{
+  // Y plane
+  uint8_t *u_dest, *v_dest;
+  const uint8_t *uv_src;
+  uint32_t ix, jx;
+
+  memcpy(dest, src, Ysize);
+  width /= 2;
+  height /= 2;
+
+  dest += Ysize;
+  src += Ysize;
+
+  uv_src = src;
+
+  u_dest = dest;
+  v_dest = dest + (width * height);
+
+  for (jx = 0; jx < height; jx++) {
+    for (ix = 0; ix < height; ix++) {
+      *u_dest++ = *uv_src++;
+      *v_dest++ = *uv_src++;
+    }
+  }
+}

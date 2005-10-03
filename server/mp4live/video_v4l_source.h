@@ -120,6 +120,7 @@ class CVideoCapabilities : public CCapabilities {
 public:
 	CVideoCapabilities(const char* deviceName) :
 	  CCapabilities(deviceName) {
+		m_canOpen = false;
 		m_canCapture = false;
 		m_driverName = NULL;
 		m_numInputs = 0;

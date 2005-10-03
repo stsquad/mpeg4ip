@@ -4,6 +4,9 @@
 #include "mpeg4ip.h"
 #include "mp4v2/mp4.h"
 #include <mpeg4ip_bitstream.h>
+#include <getopt.h>
+
+extern void decode_audio (uint8_t *vol, uint32_t len);
 
 static uint8_t tohex (char a)
 { 
@@ -427,86 +430,118 @@ static void decode (uint8_t *vol, uint32_t len)
   }
   return;
 }
+
+uint8_t *hex_to_bin(char *buf) {
+	int len;
+
+  len = strlen(buf);
+  if (len & 0x1) {
+    fprintf(stderr, "odd length VOL\n");
+    exit(1);
+  }
+
+  len /= 2;
+  uint8_t *vol = (uint8_t *)malloc(len), *write;
+  write = vol;
+  int ix;
+  for (ix = 0; ix < len; ix++) {
+    *write = 0;
+    *write = tohex(*buf) << 4;
+    buf++;
+    *write |= tohex(*buf);
+    buf++;
+    write++;
+  }
+	return vol;
+}
   
 int main (int argc, char *argv[])
 {
-  int len = 0;
-  char *allargs = NULL, *step;
-  argc--;
-  argv++;
+  char *audio_config=NULL, *video_config=NULL;
 
-  while (argc > 0 && strcasestr(*argv, ".mp4") != NULL) {
-    MP4FileHandle mp4File;
+	static struct option orig_options[] = {
+	  { "video", 1, 0, 'v' },
+	  { "latm", 1, 0, 'l' },
+	  { "help", 0, 0, 'h' },
+	  { NULL, 0, 0, 0 }
+	};
+	opterr = 0;
+	while (true) {
+	  int c = -1;
+	  int option_index = 0;
+	  
+	  c = getopt_long_only(argc, argv, "a:v:h", orig_options, &option_index);
 
-    mp4File = MP4Read(*argv, MP4_DETAILS_ERROR);
-    if (MP4_IS_VALID_FILE_HANDLE(mp4File)) {
-      MP4TrackId tid;
-      uint32_t ix = 0;
-      do {
-	uint32_t verb = MP4GetVerbosity(mp4File);
-	MP4SetVerbosity(mp4File, verb & ~(MP4_DETAILS_ERROR));
-	tid = MP4FindTrackId(mp4File, ix, MP4_VIDEO_TRACK_TYPE);
-	MP4SetVerbosity(mp4File, verb);
-	if (MP4_IS_VALID_TRACK_ID(tid)) {
-	  uint8_t type = MP4GetTrackEsdsObjectTypeId(mp4File, tid);
-	  if (type == MP4_MPEG4_VIDEO_TYPE) {
-	    uint8_t *foo;
-	    uint32_t bufsize;
-	    MP4GetTrackESConfiguration(mp4File, tid, &foo, &bufsize);
-	    if (foo != NULL && bufsize != 0) {
-	      printf("%s\n", *argv);
-	      decode(foo, bufsize);
-	      free(foo);
-	    } else {
-	      fprintf(stderr, "%s - track %d - can't find esds\n", *argv, tid);
-	    }
-	  } else {
-	    fprintf(stderr, "%s - track %d is not MPEG4 - type %u\n", 
-		    *argv, tid, type);
+	  if (c == -1)
+	    break;
+
+	  switch (c) {
+	  case 'l':	// -l <latm config>
+	    audio_config = strdup(optarg);
+	    break;
+	  case 'v':	// -v <video config>
+	    video_config = strdup(optarg);
+	    break;
+	  case 'h':
+	    fprintf(stderr, 
+		    "Usage: %s [-f config_file] [--automatic] [--headless] [--sdp] [--<config variable>=<value>]\n",
+		    argv[0]);
+	    fprintf(stderr, "Use [--config-vars] to dump configuration variables\n");
+	    exit(-1);
 	  }
-
 	}
-	ix++;
-      } while (MP4_IS_VALID_TRACK_ID(tid));
-    } else {
-      fprintf(stderr, "%s is not a valid mp4 file\n", *argv);
-    }
-    argc--;
-    argv++;
+
+	if(argc > optind+1) {
+		// There are non-option args left, probably file names
+		for(int i=optind; i< argc; i++) {
+			if(strcasestr(argv[i], ".mp4") != NULL) {
+        MP4FileHandle mp4File;
+
+        mp4File = MP4Read(argv[i], MP4_DETAILS_ERROR);
+        if (MP4_IS_VALID_FILE_HANDLE(mp4File)) {
+          MP4TrackId tid;
+          uint32_t ix = 0;
+          do {
+            uint32_t verb = MP4GetVerbosity(mp4File);
+            MP4SetVerbosity(mp4File, verb & ~(MP4_DETAILS_ERROR));
+            tid = MP4FindTrackId(mp4File, ix, MP4_VIDEO_TRACK_TYPE);
+            MP4SetVerbosity(mp4File, verb);
+            if (MP4_IS_VALID_TRACK_ID(tid)) {
+              uint8_t type = MP4GetTrackEsdsObjectTypeId(mp4File, tid);
+              if (type == MP4_MPEG4_VIDEO_TYPE) {
+                uint8_t *foo;
+                uint32_t bufsize;
+                MP4GetTrackESConfiguration(mp4File, tid, &foo, &bufsize);
+                if (foo != NULL && bufsize != 0) {
+                  printf("%s\n", argv[i]);
+                  decode(foo, bufsize);
+                  free(foo);
+                } else {
+                  fprintf(stderr, "%s - track %d - can't find esds\n", argv[i], tid);
+                }
+              } else {
+                fprintf(stderr, "%s - track %d is not MPEG4 - type %u\n", argv[i], tid, type);
+              }
+            }
+            ix++;
+          } while (MP4_IS_VALID_TRACK_ID(tid));
+        } else {
+          fprintf(stderr, "%s is not a valid mp4 file\n", argv[i]);
+        }
+			}
+		}
   }
-  if (argc > 0) {
-	len = 1;
-    while (argc > 0) {
-      len += strlen(*argv);
-	  if (allargs == NULL) {
-		  allargs = (char *)malloc(len);
-		  allargs[0] = '\0';
-	  } else 
-         allargs = (char *)realloc(allargs, len);
-      strcat(allargs, *argv);
-      argv++;
-      argc--;
-    }
-    if ((len - 1) & 0x1) {
-      fprintf(stderr, "odd length VOL\n");
-      exit(1);
-    }
-    len /= 2;
-    uint8_t *vol = (uint8_t *)malloc(len), *write;
-    write = vol;
-    step = allargs;
-    int ix;
-    for (ix = 0; ix < len; ix++) {
-      *write = 0;
-      *write = tohex(*step) << 4;
-      step++;
-      *write |= tohex(*step);
-      step++;
-      write++;
-    }
-  
-    printf("decoding vol \"%s\"\n", allargs);
-    decode(vol, len);
+
+  if (video_config != NULL) {
+		uint8_t *vol = hex_to_bin(video_config);
+    printf("decoding vol \"%s\"\n", video_config);
+    decode(vol, strlen(video_config)/2);
+  }
+
+  if (audio_config != NULL) {
+		uint8_t *vol = hex_to_bin(audio_config);
+    printf("decoding vol \"%s\"\n", audio_config);
+    decode_audio(vol, strlen(audio_config)/2);
   }
 
   return(0);

@@ -67,15 +67,28 @@ MediaType faac_mp4_fileinfo (CAudioProfile *pConfig,
 			     uint8_t *mp4AudioType)
 {
   *mpeg4 = true;
-  *isma_compliant = true;
-  *audioProfile = 0x0f;
-  if (mp4AudioType) *mp4AudioType = MP4_MPEG4_AUDIO_TYPE;
+  if(pConfig->GetBoolValue(CFG_RTP_RFC3016)) {
+    *isma_compliant = false;
+    *audioProfile = 0x0f;      // What does this mean?
+    if (mp4AudioType) *mp4AudioType = MP4_MPEG4_AUDIO_TYPE;
 
-  MP4AV_AacGetConfiguration(audioConfig,
+    // TODO This has to change
+    MP4AV_AacGetConfiguration_LATM(audioConfig,
 			    audioConfigLen,
 			    MP4AV_AAC_LC_PROFILE,
 			    pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE),
 			    pConfig->GetIntegerValue(CFG_AUDIO_CHANNELS));
+  } else {
+    *isma_compliant = true;
+    *audioProfile = 0x0f;
+    if (mp4AudioType) *mp4AudioType = MP4_MPEG4_AUDIO_TYPE;
+
+    MP4AV_AacGetConfiguration(audioConfig,
+			    audioConfigLen,
+			    MP4AV_AAC_LC_PROFILE,
+			    pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE),
+			    pConfig->GetIntegerValue(CFG_AUDIO_CHANNELS));
+  }
   return AACAUDIOFRAME;
 }
 
@@ -92,13 +105,11 @@ media_desc_t *faac_create_audio_sdp (CAudioProfile *pConfig,
   char audioFmtpBuf[512];
 
   faac_mp4_fileinfo(pConfig, mpeg4, isma_compliant, audioProfile, audioConfig,
-		    audioConfigLen, NULL);
+ 	    audioConfigLen, NULL);
 
   sdpMediaAudio = MALLOC_STRUCTURE(media_desc_t);
   memset(sdpMediaAudio, 0, sizeof(*sdpMediaAudio));
 
-  sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
-			 "a=mpeg4-esid:10");
   sdpMediaAudioFormat = MALLOC_STRUCTURE(format_list_t);
   memset(sdpMediaAudioFormat, 0, sizeof(*sdpMediaAudioFormat));
 
@@ -107,28 +118,33 @@ media_desc_t *faac_create_audio_sdp (CAudioProfile *pConfig,
 
   sdpAudioRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
   memset(sdpAudioRtpMap, 0, sizeof(*sdpAudioRtpMap));
-  sdpAudioRtpMap->clock_rate = 
-    pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
-  sdpAudioRtpMap->encode_name = strdup("mpeg4-generic");
-	      
-  char* sConfig = 
-    MP4BinaryToBase16(*audioConfig, *audioConfigLen);
-	      
-  sprintf(audioFmtpBuf,
-	  "streamtype=5; profile-level-id=15; mode=AAC-hbr; config=%s; "
-	  "SizeLength=13; IndexLength=3; IndexDeltaLength=3; Profile=1;",
-	  sConfig); 
+  sdpAudioRtpMap->clock_rate = pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
+
+  char* sConfig = MP4BinaryToBase16(*audioConfig, *audioConfigLen);
+  if(pConfig->GetBoolValue(CFG_RTP_RFC3016)) {
+    sdpAudioRtpMap->encode_name = strdup("MP4A-LATM");
+    sprintf(audioFmtpBuf, "profile-level-id=15;object=2;cpresent=0; config=%s ", sConfig); 
+
+  } else {
+    sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines, "a=mpeg4-esid:10");
+    sdpAudioRtpMap->encode_name = strdup("mpeg4-generic");
+
+    sprintf(audioFmtpBuf,
+	    "streamtype=5; profile-level-id=15; mode=AAC-hbr; config=%s; "
+	    "SizeLength=13; IndexLength=3; IndexDeltaLength=3; Profile=1;",
+	    sConfig); 
+  }
+
   free(sConfig);
-	      
   sdpMediaAudioFormat->fmt_param = strdup(audioFmtpBuf);
   sdpMediaAudioFormat->rtpmap = sdpAudioRtpMap;
-
   sdpMediaAudio->fmt = sdpMediaAudioFormat;
-  
+
   return sdpMediaAudio;
 }
 
 #define AAC_MAX_FRAME_IN_RTP_PAK 8
+// Only used for RFC xxxx format
 static bool faac_add_rtp_header (struct iovec *iov,
 				 int queue_cnt,
 				 void *ud, 
@@ -177,6 +193,38 @@ static bool faac_set_rtp_jumbo_frame (struct iovec *iov,
   return false;
 }
 
+// Compile RTP payload from a queue of frames
+// TODO With the current implementation it is not possible to fragment a frame which is bigger than mtu
+static int faac_rfc3016_set_rtp_payload(CMediaFrame** m_audioQueue,
+ 				      int queue_cnt,
+ 				      struct iovec *iov,
+ 				      void *ud,
+				      bool *mbit)
+{
+  uint32_t data_size;
+  uint8_t latm_hdr_size, *payloadHeader = (uint8_t *)ud;
+
+  *mbit = 1; // Fragmenting not supported
+  // RFC3016 recomends only one frame per rtp packet so queue_cnt will be 1
+  for (int i = 0; i < queue_cnt*2; i+=2) {
+    data_size = m_audioQueue[i]->GetDataLength();
+    latm_hdr_size = (data_size / 255) + 1; 
+
+		for (uint8_t j=0; j<latm_hdr_size; j++) {
+			payloadHeader[j] = 255; 
+		}
+		payloadHeader[latm_hdr_size-1] = data_size % 255; 
+
+    iov[i].iov_base = payloadHeader;
+    iov[i].iov_len  = latm_hdr_size;
+
+    // body of the frame
+    iov[i + 1].iov_base = (uint8_t*)m_audioQueue[i]->GetData();
+    iov[i + 1].iov_len  = m_audioQueue[i]->GetDataLength();
+  }
+  return true;
+}
+
 bool faac_get_audio_rtp_info (CAudioProfile *pConfig,
 			      MediaType *audioFrameType,
 			      uint32_t *audioTimeScale,
@@ -184,6 +232,7 @@ bool faac_get_audio_rtp_info (CAudioProfile *pConfig,
 			      uint8_t *audioPayloadBytesPerPacket,
 			      uint8_t *audioPayloadBytesPerFrame,
 			      uint8_t *audioQueueMaxCount,
+            audio_set_rtp_payload_f *audio_set_rtp_payload,
 			      audio_set_rtp_header_f *audio_set_header,
 			      audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
 			      void **ud)
@@ -193,10 +242,16 @@ bool faac_get_audio_rtp_info (CAudioProfile *pConfig,
   *audioPayloadNumber = 97;
   *audioPayloadBytesPerPacket = 2;
   *audioPayloadBytesPerFrame = 2;
-  *audioQueueMaxCount = AAC_MAX_FRAME_IN_RTP_PAK;
-  *audio_set_header = faac_add_rtp_header;
-  *audio_set_jumbo = faac_set_rtp_jumbo_frame;
-  *ud = malloc(2 + (2 * AAC_MAX_FRAME_IN_RTP_PAK));
+  if(pConfig->GetBoolValue(CFG_RTP_RFC3016)) {
+    *audioQueueMaxCount = 1;
+    *ud = malloc(6); // This should be the maximum lengt of the LATM header
+    *audio_set_rtp_payload = faac_rfc3016_set_rtp_payload;
+  } else {
+    *audioQueueMaxCount = AAC_MAX_FRAME_IN_RTP_PAK;
+    *ud = malloc(2 + (2 * AAC_MAX_FRAME_IN_RTP_PAK));
+    *audio_set_header = faac_add_rtp_header;
+    *audio_set_jumbo = faac_set_rtp_jumbo_frame;
+  }
   return true;
 }
 
@@ -232,19 +287,18 @@ bool CFaacAudioEncoder::Init(void)
 
   m_faacConfig = faacEncGetCurrentConfiguration(m_faacHandle);
 
-  /*
-    debug_message("version = %d", m_faacConfig->version);
-    debug_message("name = %s", m_faacConfig->name);
-    debug_message("allowMidside = %d", m_faacConfig->allowMidside);
-    debug_message("useLfe = %d", m_faacConfig->useLfe);
-    debug_message("useTns = %d", m_faacConfig->useTns);
-    debug_message("bitRate = %lu", m_faacConfig->bitRate);
-    debug_message("bandWidth = %d", m_faacConfig->bandWidth);
-    debug_message("quantqual = %lu", m_faacConfig->quantqual);
-    debug_message("outputFormat = %d", m_faacConfig->outputFormat);
-    debug_message("psymodelidx = %d", m_faacConfig->psymodelidx);
-    debug_message("inputFormat = %d", m_faacConfig->inputFormat);
-  */
+  debug_message("version = %d", m_faacConfig->version);
+  debug_message("name = %s", m_faacConfig->name);
+  debug_message("allowMidside = %d", m_faacConfig->allowMidside);
+  debug_message("useLfe = %d", m_faacConfig->useLfe);
+  debug_message("useTns = %d", m_faacConfig->useTns);
+  debug_message("bitRate = %lu", m_faacConfig->bitRate);
+  debug_message("bandWidth = %d", m_faacConfig->bandWidth);
+  debug_message("quantqual = %lu", m_faacConfig->quantqual);
+  debug_message("outputFormat = %d", m_faacConfig->outputFormat);
+  debug_message("psymodelidx = %d", m_faacConfig->psymodelidx);
+  debug_message("inputFormat = %d", m_faacConfig->inputFormat);
+
   m_faacConfig->mpegVersion = MPEG4;
   m_faacConfig->aacObjectType = LOW;
   m_faacConfig->allowMidside = false;
@@ -252,6 +306,7 @@ bool CFaacAudioEncoder::Init(void)
   m_faacConfig->useTns = false;
   m_faacConfig->inputFormat = FAAC_INPUT_16BIT;
   m_faacConfig->outputFormat = 0;    // raw
+  m_faacConfig->quantqual = 0;    // use abr
 
   m_faacConfig->bitRate = 
     Profile()->GetIntegerValue(CFG_AUDIO_BIT_RATE)

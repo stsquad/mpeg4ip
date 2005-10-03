@@ -40,6 +40,11 @@ extern "C" {
 			       const uint8_t *src, 
 			       uint32_t width, 
 			       uint32_t height);
+  void convert_nv12_to_yuv420p(uint8_t *dest,
+			       const uint8_t *src,
+			       uint32_t Ysize,
+			       uint32_t width, 
+			       uint32_t height);
 #ifdef __cplusplus
 }
 #endif

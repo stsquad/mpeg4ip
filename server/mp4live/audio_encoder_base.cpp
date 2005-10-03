@@ -222,10 +222,14 @@ void create_base_mp4_audio_hint_track (CAudioProfile *pConfig,
   const char *encodingName = pConfig->GetStringValue(CFG_AUDIO_ENCODING);
 
   if (!strcasecmp(encodingName, AUDIO_ENCODING_AAC)) {
-    MP4AV_RfcIsmaHinter(mp4file, 
-			trackId, 
-			false, 
-			mtu);
+    if (pConfig->GetBoolValue(CFG_RTP_RFC3016)) {
+      MP4AV_Rfc3016LatmHinter(mp4file, trackId, mtu);
+    } else {
+      MP4AV_RfcIsmaHinter(mp4file, 
+			  trackId, 
+			  false, 
+			  mtu);
+    }
   } else if (!strcasecmp(encodingName, AUDIO_ENCODING_MP3)) {
     MP4AV_Rfc2250Hinter(mp4file,
 			trackId,
@@ -262,6 +266,7 @@ bool get_base_audio_rtp_info (CAudioProfile *pConfig,
 				   audioPayloadBytesPerPacket,
 				   audioPayloadBytesPerFrame,
 				   audioQueueMaxCount,
+				   audio_set_rtp_payload,
 				   audio_set_header,
 				   audio_set_jumbo,
 				   ud);

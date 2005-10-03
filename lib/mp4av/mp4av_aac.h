@@ -56,6 +56,7 @@ bool MP4AV_AacGetConfiguration(
 	u_int8_t profile,
 	u_int32_t samplingRate,
 	u_int8_t channels);
+
 bool MP4AV_AacGetConfiguration_SBR(
 				   u_int8_t** ppConfig,
 				   u_int32_t* pConfigLength,
@@ -67,6 +68,11 @@ void MP4AV_LatmGetConfiguration(uint8_t **ppConfig,
 				uint32_t *pConfigLength,
 				const uint8_t *AudioSpecificConfig,
 				uint32_t AudioSpecificConfigLen);
+bool MP4AV_AacGetConfiguration_LATM(u_int8_t** ppConfig,
+				    u_int32_t* pConfigLength,
+				    u_int8_t profile,
+				    u_int32_t samplingRate,
+				    u_int8_t channels);
 #ifdef __cplusplus
 }
 #endif

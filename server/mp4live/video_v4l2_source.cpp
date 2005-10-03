@@ -135,6 +135,7 @@ static const uint32_t formats[] = {
   V4L2_PIX_FMT_YUYV,
   V4L2_PIX_FMT_UYVY,
   V4L2_PIX_FMT_YYUV,
+  V4L2_PIX_FMT_NV12,
   V4L2_PIX_FMT_RGB24,
   V4L2_PIX_FMT_BGR24,
 };
@@ -373,6 +374,8 @@ bool CV4LVideoSource::InitDevice(void)
   case V4L2_PIX_FMT_YYUV:
     debug_message("format is YYUV %ux%u", width, height);
     break;
+  case V4L2_PIX_FMT_NV12:
+    debug_message("format is NV12 %ux%u", width, height);
   }
   
   // allocate the desired number of buffers
@@ -768,6 +771,18 @@ void CV4LVideoSource::ProcessVideo(void)
       pV = pU + m_videoSrcUVSize;
       convert_yyuv_to_yuv420p(pY,
 			      (const uint8_t *)m_buffers[index].start,
+			      m_videoSrcWidth,
+			      m_videoSrcHeight);
+      break;
+    case V4L2_PIX_FMT_NV12:
+      mallocedYuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
+      //debug_message("converting to YUV420P from YUYV");
+      pY = mallocedYuvImage;
+      pU = pY + m_videoSrcYSize;
+      pV = pU + m_videoSrcUVSize;
+      convert_nv12_to_yuv420p(pY,
+			      (const uint8_t *)m_buffers[index].start,
+			      m_videoSrcYSize,
 			      m_videoSrcWidth,
 			      m_videoSrcHeight);
       break;
