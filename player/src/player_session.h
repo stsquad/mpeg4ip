@@ -75,7 +75,8 @@ class CPlayerSession {
 		 SDL_sem *master_sem,
 		 const char *name,
 		 control_callback_vft_t *cc_vft,
-		 void *video_persistence = NULL);
+		 void *video_persistence = NULL,
+		 double start_time = 0.0);
   /*
    * API routine - destroy session - free all sub-structures, cleans
    * up rtsp, etc
@@ -223,6 +224,7 @@ class CPlayerSession {
   };
  private:
   void *m_video_connection;
+  double m_start_time_param;
   int m_started_video_connection;
   void process_sdl_events(void);
   int process_msg_queue(int state);
@@ -233,6 +235,9 @@ class CPlayerSession {
   int sync_thread_paused(void);
   int sync_thread_audio_resync(void);
   int sync_thread_done(void);
+  int sync_thread_wait_audio_ready(void);
+  int sync_thread_wait_timed_init(void);
+  bool initialize_timed_sync(uint &failed, bool &any_inited);
   const char *m_session_name;
   const char *m_content_base;
   bool m_paused;

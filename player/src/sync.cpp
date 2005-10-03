@@ -32,7 +32,7 @@
 #include "our_config_file.h"
 
 #define DEBUG_SYNC_STATE 1
-//#define DEBUG_SYNC_MSGS 1
+#define DEBUG_SYNC_MSGS 1
 //#define DEBUG_SYNC_SDL_EVENTS 1
 
 #ifdef _WIN32
@@ -58,6 +58,8 @@ enum {
   SYNC_STATE_AUDIO_RESYNC = 5,
   SYNC_STATE_DONE = 6,
   SYNC_STATE_EXIT = 7,
+  SYNC_STATE_WAIT_AUDIO_READY = 8,
+  SYNC_STATE_WAIT_TIMED_INIT = 9
 };
 
 #ifdef DEBUG_SYNC_STATE
@@ -69,7 +71,9 @@ const char *sync_state[] = {
   "Paused",
   "Audio Resync",
   "Done",
-  "Exit"
+  "Exit",
+  "Wait Audio Ready",
+  "Wait Timed Init",
 };
 #endif
 /*
@@ -160,7 +164,8 @@ int CPlayerSession::process_msg_queue (int state)
       state = SYNC_STATE_PAUSED;
       break;
     case MSG_START_SESSION:
-      state = SYNC_STATE_WAIT_SYNC;
+      if (state != SYNC_STATE_INIT)
+	state = SYNC_STATE_WAIT_SYNC;
       break;
     case MSG_STOP_THREAD:
       state = SYNC_STATE_EXIT;
@@ -192,6 +197,37 @@ int CPlayerSession::process_msg_queue (int state)
 /***************************************************************************
  * Sync thread state handlers
  ***************************************************************************/
+bool CPlayerSession::initialize_timed_sync (uint &failed, bool &any_inited)
+{
+  CTimedSync *ts;
+  bool all_initialized = true;
+  any_inited = false;
+  int ret;
+
+  for (ts = m_timed_sync_list;
+       ts != NULL;
+       ts = ts->GetNext()) {
+    if (ts->is_initialized() == false) {
+      if (ts->get_sync_type() == VIDEO_SYNC) {
+	CVideoSync *vs = (CVideoSync *)ts;
+	vs->set_screen_size(m_screen_scale);
+	if (m_video_count == 1) {
+	  vs->set_fullscreen(m_fullscreen);
+	}
+      }
+      ret = ts->initialize(m_session_name);
+      if (ret <= 0) {
+	all_initialized = false;
+	if (ts->get_sync_type() == VIDEO_SYNC) {
+	  failed |= 2;
+	} else {
+	  failed |= 4;
+	}
+      } else any_inited = true;
+    }
+  }
+  return all_initialized;
+}
 
 /*
  * sync_thread_init - wait until all the sync routines are initialized.
@@ -200,49 +236,29 @@ int CPlayerSession::sync_thread_init (void)
 {
   int ret = 1;
   uint failed = 0;
-  uint media_count = 0, media_initialized = 0;
   CTimedSync *ts;
-
+  bool all_timed_inited, audio_inited = true, any_timed_inited;
   if (m_audio_sync != NULL) {
-    media_count++;
     ret = m_audio_sync->initialize_audio(m_timed_sync_list != NULL);
-    if (ret > 0) {
-      media_initialized++;
-    } else {
+    if (ret <= 0) {
+      audio_inited = false;
       failed |= 1;
+    } else {
+      if (config.GetBoolValue(CONFIG_SHORT_VIDEO_RENDER))
+	return (SYNC_STATE_WAIT_AUDIO_READY);
     }
   }
 
-  for (ts = m_timed_sync_list;
-       ts != NULL && ret >= 0;
-       ts = ts->GetNext()) {
-    media_count++;
-    if (ts->get_sync_type() == VIDEO_SYNC) {
-      CVideoSync *vs = (CVideoSync *)ts;
-      vs->set_screen_size(m_screen_scale);
-      if (m_video_count == 1) {
-	vs->set_fullscreen(m_fullscreen);
-      }
-    }
-    ret = ts->initialize(m_session_name);
-    if (ret > 0) {
-      media_initialized++;
-    } else {
-      if (ts->get_sync_type() == VIDEO_SYNC) {
-	failed |= 2;
-      } else {
-	failed |= 4;
-      }
-    }
-  }
+  all_timed_inited = initialize_timed_sync(failed, any_timed_inited);
       
-  if (media_count > 0 && media_count == media_initialized) {
+
+  if (audio_inited && all_timed_inited) {
     return (SYNC_STATE_WAIT_SYNC); 
   } 
 
-  if (media_count > 0 && media_initialized > 0) {
+  if (audio_inited || any_timed_inited) {
     m_init_tries_made++;
-    if (m_init_tries_made > 250) {
+    if (m_init_tries_made > 500) {
       sync_message(LOG_CRIT, "One media is not initializing; it might not be receiving correctly");
       if ((failed & 0x2) != 0 ) {
 	sync_message(LOG_INFO, "video failed");
@@ -289,7 +305,7 @@ int CPlayerSession::sync_thread_init (void)
     }
   }
 
-  SDL_Delay(20);
+  SDL_SemWaitTimeout(m_sync_sem, 10);
 	
   return (SYNC_STATE_INIT);
 }
@@ -413,6 +429,16 @@ int CPlayerSession::sync_thread_playing (void)
       if (need_audio_resync) {
 	if (m_timed_sync_list) {
 	  // wait for video to play out
+	  if (config.GetBoolValue(CONFIG_SHORT_VIDEO_RENDER)) {
+	    // flush timed sync
+	    for (CTimedSync *ts = m_timed_sync_list;
+		 ts != NULL;
+		 ts = ts->GetNext()) {
+	      ts->flush_sync_buffers();
+	      ts->flush_decode_buffers();
+	    }
+	    return SYNC_STATE_WAIT_AUDIO_READY;
+	  } 
 	  return SYNC_STATE_AUDIO_RESYNC;
 	} else {
 	  // skip right to the audio
@@ -517,6 +543,40 @@ int CPlayerSession::sync_thread_done (void)
     SDL_SemWaitTimeout(m_sync_sem, 10);
   } 
   return (state);
+}
+
+int CPlayerSession::sync_thread_wait_audio_ready (void)
+{
+  int state;
+  state = process_msg_queue(SYNC_STATE_WAIT_AUDIO_READY);
+  if (state == SYNC_STATE_WAIT_AUDIO_READY) {
+    uint64_t astart = 0;
+    if (m_audio_sync->is_audio_ready(astart) == 1) {
+      m_first_time_played = astart;
+      m_current_time = astart;
+      m_waiting_for_audio = 1;
+      m_audio_sync->play_audio();
+      return SYNC_STATE_WAIT_TIMED_INIT;
+    }
+    SDL_Delay(10);
+  }
+  return state;
+}
+
+int CPlayerSession::sync_thread_wait_timed_init (void)
+{
+  int state;
+  state = process_msg_queue(SYNC_STATE_WAIT_TIMED_INIT);
+  if (state == SYNC_STATE_WAIT_TIMED_INIT) {
+    uint failed;
+    bool any_inited;
+    if (initialize_timed_sync(failed, any_inited)) {
+      return SYNC_STATE_PLAYING;
+    }
+    // need to add failure case here.
+    SDL_Delay(10);
+  }
+  return state;
 }
 
 int CPlayerSession::sync_thread_audio_resync (void) 
@@ -627,6 +687,12 @@ int CPlayerSession::sync_thread (int state)
   case SYNC_STATE_DONE:
     newstate = sync_thread_done();
     break;
+  case SYNC_STATE_WAIT_AUDIO_READY:
+    newstate = sync_thread_wait_audio_ready();
+    break;
+  case SYNC_STATE_WAIT_TIMED_INIT:
+    newstate = sync_thread_wait_timed_init();
+    break;
   }
 #ifdef DEBUG_SYNC_STATE
   if (state != newstate)
@@ -637,11 +703,13 @@ int CPlayerSession::sync_thread (int state)
     state = newstate;
     switch (state) {
     case SYNC_STATE_WAIT_SYNC:
+    case SYNC_STATE_WAIT_AUDIO_READY:
       m_session_state = SESSION_BUFFERING;
       break;
     case SYNC_STATE_WAIT_AUDIO:
     case SYNC_STATE_AUDIO_RESYNC:
       break;
+    case SYNC_STATE_WAIT_TIMED_INIT:
     case SYNC_STATE_PLAYING:
       m_session_state = SESSION_PLAYING;
       break;

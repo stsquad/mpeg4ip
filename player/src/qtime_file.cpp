@@ -257,7 +257,7 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
     if (ret >= 0 && ud != NULL) {
       mpeg4_audio_config_t audio_config;
 
-      decode_mpeg4_audio_config(ud, udsize, &audio_config);
+      decode_mpeg4_audio_config(ud, udsize, &audio_config, false);
 
       sample_rate = audio_config.frequency;
       if (audio_object_type_is_aac(&audio_config) != 0) {

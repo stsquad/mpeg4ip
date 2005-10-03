@@ -59,7 +59,8 @@ typedef struct mpeg4_audio_config_t {
 extern "C" {
 void decode_mpeg4_audio_config(const uint8_t *buffer,
 			       uint32_t buf_len,
-			       mpeg4_audio_config_t *mptr);
+			       mpeg4_audio_config_t *mptr,
+			       bool parse_streammux);
 
 int audio_object_type_is_aac(mpeg4_audio_config_t *mptr);
 

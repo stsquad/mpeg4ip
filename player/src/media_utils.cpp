@@ -898,6 +898,7 @@ CPlayerSession *start_session (CMsgQueue *master_queue,
 			       int screen_loc_x,
 			       int screen_loc_y,
 			       int screen_size,
+			       double start_time,
 			       bool start_thread)
 {
   CPlayerSession *psptr;
@@ -910,7 +911,8 @@ CPlayerSession *start_session (CMsgQueue *master_queue,
 			     master_sem, 
 			     name, 
 			     cc_vft,
-			     persist);
+			     persist,
+			     start_time);
   if (psptr == NULL) return NULL;
 
   psptr->set_audio_volume(audio_volume);

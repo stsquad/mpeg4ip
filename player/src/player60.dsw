@@ -509,6 +509,12 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name isma_href_rtp_plugin
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name href_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name mpeg4_iso_plugin
+    End Project Dependency
 }}}
 
 ###############################################################################

@@ -160,17 +160,23 @@ void CPreviewAVMediaFlow::StopVideoPreview (bool delete_it)
 	}
 }
 
-void CPreviewAVMediaFlow::ProcessSDLEvents (void)
+bool CPreviewAVMediaFlow::ProcessSDLEvents (bool process_quit)
 {
+  bool ret = false;
+
   if (m_videoPreview == NULL) 
-    return;
+    return false;
 
   SDL_Event event;
   while (SDL_PollEvent(&event) > 0) {
     switch (event.type) {
     case SDL_QUIT:
-      StopVideoPreview();
-      return;
+      if (process_quit)
+	StopVideoPreview();
+      else
+	ret = true;
+      break;
     }
   }
+  return ret;
 }

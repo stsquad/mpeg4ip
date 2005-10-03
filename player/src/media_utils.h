@@ -93,6 +93,7 @@ CPlayerSession *start_session(CMsgQueue *master_queue,
 			      int screen_loc_x,
 			      int screen_loc_y,
 			      int screen_size,
+			      double start_time = 0,
 			      bool use_thread = true);
 // internal api only
 int parse_name_for_session(CPlayerSession *psptr,

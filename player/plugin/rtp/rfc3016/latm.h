@@ -19,39 +19,31 @@
  *              Bill May        wmay@cisco.com
  */
 /*
- * player_sdp.h - provide sdp translation routines we need
+ * player_rtp_bytestream.h - provides an RTP bytestream for the codecs
+ * to access
  */
-#ifndef __MPEG4_SDP_H__
-#define __MPEG4_SDP_H__ 1
 
-typedef struct fmtp_parse_t {
-  int stream_type;
-  int profile_level_id;
-  uint8_t *config_binary;
-  char *config_ascii;
-  uint32_t config_binary_len;
-  int constant_size;
-  int size_length;
-  int index_length;
-  int index_delta_length;
-  int CTS_delta_length;
-  int DTS_delta_length;
-  int auxiliary_data_size_length;
-  int bitrate;
-  int profile;
-  int ISMACrypIVDeltaLength;
-  int cpresent;
-} fmtp_parse_t;
-  
+#ifndef __LATM_RTP_PLUGIN_H__
+#define __LATM_RTP_PLUGIN_H__ 1
+#include "rtp_plugin.h"
+#include "mp4util/mpeg4_sdp.h"
+#include "mpeg4ip_bitstream.h"
+#include "mpeg4ip_sdl_includes.h"
+//#define LATM_RTP_DUMP_OUTPUT_TO_FILE 1
 
-#ifdef __cplusplus
-extern "C" {
+typedef struct latm_rtp_data_t {
+  rtp_plugin_data_t plug;
+
+#ifdef LATM_RTP_DUMP_OUTPUT_TO_FILE
+  FILE *m_outfile;
 #endif
-  fmtp_parse_t *parse_fmtp_for_mpeg4(const char *bptr, lib_message_func_t);
-  fmtp_parse_t *parse_fmtp_for_rfc3016(const char *bptr, lib_message_func_t);
-  void free_fmtp_parse(fmtp_parse_t *ptr);
-#ifdef __cplusplus
-}
+  uint64_t m_ts;
+  rtp_packet *m_rpak;
+  uint8_t *m_frag_buffer;
+  uint32_t m_frag_buffer_len;
+} latm_rtp_data_t;
+
+#define m_vft plug.vft
+#define m_ifptr plug.ifptr
 #endif
 
-#endif // #ifndef __MPEG4_SDP_H__

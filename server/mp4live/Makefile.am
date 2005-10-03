@@ -40,6 +40,7 @@ endif
 
 libmp4live_la_SOURCES = \
 	audio_encoder_base.cpp \
+	audio_encoder_class.cpp \
 	audio_encoder.h \
 	audio_faac.cpp \
 	audio_faac.h \

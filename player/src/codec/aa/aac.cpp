@@ -44,6 +44,7 @@ static codec_data_t *aac_codec_create (const char *stream_type,
 
 {
   aac_codec_t *aac;
+  bool parse_streammux = false;
 
   aac = (aac_codec_t *)malloc(sizeof(aac_codec_t));
   memset(aac, 0, sizeof(aac_codec_t));
@@ -67,7 +68,12 @@ static codec_data_t *aac_codec_create (const char *stream_type,
     // we should be reading the fmtp statement, and looking at the config.
     // (like we do below in the userdata section...
     aac->m_freq = media_fmt->rtpmap->clock_rate;
-    fmtp = parse_fmtp_for_mpeg4(media_fmt->fmt_param, vft->log_msg);
+    if (strcasecmp(media_fmt->rtpmap->encode_name, "mp4a-latm") == 0) {
+      fmtp = parse_fmtp_for_rfc3016(media_fmt->fmt_param, vft->log_msg);
+      parse_streammux = true;
+    } else {
+      fmtp = parse_fmtp_for_mpeg4(media_fmt->fmt_param, vft->log_msg);
+    }
     if (fmtp != NULL) {
       userdata = fmtp->config_binary;
       userdata_size = fmtp->config_binary_len;
@@ -85,7 +91,7 @@ static codec_data_t *aac_codec_create (const char *stream_type,
   aac->m_object_type = AACMAIN;
   if (userdata != NULL || fmtp != NULL) {
     mpeg4_audio_config_t audio_config;
-    decode_mpeg4_audio_config(userdata, userdata_size, &audio_config);
+    decode_mpeg4_audio_config(userdata, userdata_size, &audio_config, parse_streammux);
     aac->m_object_type = audio_config.audio_object_type;
     aac->m_freq = audio_config.frequency;
     aac->m_chans = audio_config.channels;
@@ -94,7 +100,8 @@ static codec_data_t *aac_codec_create (const char *stream_type,
     }
   }
 
-  aa_message(LOG_INFO, aaclib,"AAC object type is %d", aac->m_object_type);
+  aa_message(LOG_INFO, aaclib,"AAC object type is %d %u", aac->m_object_type,
+	     aac->m_output_frame_size);
   aac->m_info = faacDecOpen();
   faacDecConfiguration config;
   config.defObjectType = aac->m_object_type;
@@ -322,6 +329,7 @@ static int aac_codec_check (lib_message_func_t message,
 			    CConfigSet *pConfig)
 {
   fmtp_parse_t *fmtp = NULL;
+  bool use_streammux = false;
   if (compressor != NULL && 
       strcasecmp(stream_type, "MP4 FILE") == 0 &&
       type != -1) {
@@ -330,6 +338,7 @@ static int aac_codec_check (lib_message_func_t message,
     case MP4_MPEG2_AAC_LC_AUDIO_TYPE:
     case MP4_MPEG2_AAC_SSR_AUDIO_TYPE:
     case MP4_MPEG4_AUDIO_TYPE:
+    case MP4_INVALID_AUDIO_TYPE:
       break;
     default:
       return -1;
@@ -339,21 +348,34 @@ static int aac_codec_check (lib_message_func_t message,
       fptr != NULL && 
       fptr->rtpmap != NULL &&
       fptr->rtpmap->encode_name != NULL) {
-    if ((strcasecmp(fptr->rtpmap->encode_name, "mpeg4-generic") != 0) &&
-        (strcasecmp(fptr->rtpmap->encode_name, "enc-mpeg4-generic") != 0)) {
-      return -1;
-    }
-    if (userdata == NULL) {
-      fmtp = parse_fmtp_for_mpeg4(fptr->fmt_param, message);
-      if (fmtp != NULL) {
-	userdata = fmtp->config_binary;
-	userdata_size = fmtp->config_binary_len;
+    if (strcasecmp(fptr->rtpmap->encode_name, "mp4a-latm") == 0) {
+      fmtp = parse_fmtp_for_rfc3016(fptr->fmt_param, message);
+      if (fmtp == NULL) {
+	return -1;
+      }
+      if (fmtp->cpresent != 0) {
+	return -1;
+      }
+      userdata = fmtp->config_binary;
+      userdata_size = fmtp->config_binary_len;
+      use_streammux = true;
+    } else {
+      if ((strcasecmp(fptr->rtpmap->encode_name, "mpeg4-generic") != 0) &&
+	  (strcasecmp(fptr->rtpmap->encode_name, "enc-mpeg4-generic") != 0)) {
+	return -1;
+      }
+      if (userdata == NULL) {
+	fmtp = parse_fmtp_for_mpeg4(fptr->fmt_param, message);
+	if (fmtp != NULL) {
+	  userdata = fmtp->config_binary;
+	  userdata_size = fmtp->config_binary_len;
+	}
       }
     }
   }
   if (userdata != NULL) {
     mpeg4_audio_config_t audio_config;
-    decode_mpeg4_audio_config(userdata, userdata_size, &audio_config);
+    decode_mpeg4_audio_config(userdata, userdata_size, &audio_config, use_streammux);
     //    message(LOG_DEBUG, "aac", "audio type is %d", audio_config.audio_object_type);
     if (fmtp != NULL) free_fmtp_parse(fmtp);
     

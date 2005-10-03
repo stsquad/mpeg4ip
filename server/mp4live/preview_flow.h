@@ -19,7 +19,8 @@ class CPreviewAVMediaFlow : public CAVMediaFlow {
   void Stop(void);
   void StartVideoPreview(void);
   void StopVideoPreview(bool delete_it = true);
-  void ProcessSDLEvents(void);
+  virtual bool ProcessSDLEvents(bool process_quit = true);
+  bool doingPreview(void) { return m_videoPreview != NULL; };
  protected:
   void CreatePreview(void);
   void ConnectPreview(bool create_encoder = false);

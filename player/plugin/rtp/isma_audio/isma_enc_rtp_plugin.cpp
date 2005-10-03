@@ -120,7 +120,7 @@ rtp_plugin_data_t *isma_rtp_plugin_create (format_list_t *media_fmt,
   mpeg4_audio_config_t audio_config;
   decode_mpeg4_audio_config(fmtp->config_binary,
 			    fmtp->config_binary_len,
-			    &audio_config);
+			    &audio_config, false);
   if (audio_object_type_is_aac(&audio_config)) {
     iptr->m_rtp_ts_add = audio_config.codec.aac.frame_len_1024 != 0 ? 1024 : 960;
   } else {

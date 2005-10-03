@@ -105,7 +105,7 @@ static codec_data_t *celp_codec_create (const char *stream_type,
     celp_message(LOG_DEBUG, celplib, "config len %d %02x %02x %02x %02x", 
 		 userdata_size, userdata[0], userdata[1], userdata[2], 
 		 userdata[3]);
-    decode_mpeg4_audio_config(userdata, userdata_size, &audio_config);
+    decode_mpeg4_audio_config(userdata, userdata_size, &audio_config, false);
     celp->m_object_type = audio_config.audio_object_type;
     celp->m_freq = audio_config.frequency;
     celp->m_chans = audio_config.channels;
@@ -396,7 +396,7 @@ static int celp_codec_check (lib_message_func_t message,
   }
   if (userdata != NULL) {
     mpeg4_audio_config_t audio_config;
-    decode_mpeg4_audio_config(userdata, userdata_size, &audio_config);
+    decode_mpeg4_audio_config(userdata, userdata_size, &audio_config, false);
     if (fmtp != NULL) free_fmtp_parse(fmtp);
     if (audio_object_type_is_celp(&audio_config) == 0) {
       return -1;

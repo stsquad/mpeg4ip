@@ -209,6 +209,10 @@ bool CTimedSync::play_at (uint64_t current_time,
     } else {
       m_skipped_render++;
       m_consec_skipped++;
+#if 0
+      message(LOG_DEBUG, "ts", "skipped "U64" current "U64,
+	      m_play_this_at[m_play_index], current_time);
+#endif
     }
 #else
     if ((play_this_at + m_msec_per_frame) > current_time) {

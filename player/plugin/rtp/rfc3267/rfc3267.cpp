@@ -121,6 +121,7 @@ static bool start_next_frame (rtp_plugin_data_t *pifptr,
 			      void **userdata)
 {
   rfc3267_data_t *iptr = (rfc3267_data_t *)pifptr;
+  uint64_t uts = 0;
   uint64_t timetick;
 
 #ifdef DEBUG_RFC3267
@@ -151,6 +152,7 @@ static bool start_next_frame (rtp_plugin_data_t *pifptr,
     } while (iptr->m_pak_on == NULL);
     iptr->m_pak_frame_on = 0;
     iptr->m_pak_frame_offset++;  
+    uts = iptr->m_pak_on->pd.rtp_pd_timestamp;
 #ifdef DEBUG_RFC3267
     rfc3267_message(LOG_DEBUG, rfc3267rtp, "start %p frame %u offset %u", 
 		    iptr->m_pak_on, iptr->m_pak_frame_on, 
@@ -196,7 +198,7 @@ static bool start_next_frame (rtp_plugin_data_t *pifptr,
     iptr->m_vft->rtp_ts_to_msec(iptr->m_ifptr, 
 				iptr->m_ts,
 				iptr->m_pak_on ?
-				iptr->m_pak_on->pd.rtp_pd_timestamp : 0,
+				iptr->m_pak_on->pd.rtp_pd_timestamp : uts,
 				0);
   ts->audio_freq_timestamp = iptr->m_ts;
   ts->msec_timestamp = timetick;

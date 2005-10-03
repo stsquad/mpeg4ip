@@ -40,6 +40,11 @@
  * 	ExtensionFlag 			1 bit (always 0)
  */
 
+extern "C" uint8_t MP4AV_AacConfigGetAudioObjectType (uint8_t *pConfig)
+{
+  return pConfig[0] >> 3;
+}
+
 extern "C" u_int8_t MP4AV_AacConfigGetSamplingRateIndex(u_int8_t* pConfig)
 {
 	return ((pConfig[0] << 1) | (pConfig[1] >> 7)) & 0xF;
@@ -176,4 +181,27 @@ extern "C" bool MP4AV_AacGetConfiguration_SBR(
   *pConfigLength = 5;
 
   return true;
+}
+
+extern "C" void MP4AV_LatmGetConfiguration (uint8_t **ppConfig,
+					    uint32_t *pConfigLength,
+					    const uint8_t *AudioSpecificConfig,
+					    uint32_t AudioSpecificConfigLen)
+{
+  *ppConfig = NULL;
+  *pConfigLength = 0;
+  uint32_t ix;
+  uint8_t *stream_mux_config = (uint8_t *)malloc(AudioSpecificConfigLen + 2 + 3);
+  if (stream_mux_config == NULL) return;
+
+  stream_mux_config[0] = 0x80;
+  stream_mux_config[1] = 0;
+  for (ix = 0; ix < AudioSpecificConfigLen; ix++) {
+    stream_mux_config[ix + 1] |= (AudioSpecificConfig[ix] >> 7) & 0x1;
+    stream_mux_config[ix + 2] = AudioSpecificConfig[ix] << 1;
+  }
+  stream_mux_config[ix + 2] = 0x3f;
+  stream_mux_config[ix + 3] = 0xc0;
+  *ppConfig = stream_mux_config;
+  *pConfigLength = ix + 3;
 }

@@ -31,6 +31,8 @@
 extern "C" {
 #endif
 
+uint8_t MP4AV_AacConfigGetAudioObjectType(uint8_t *pConfig);
+
 u_int8_t MP4AV_AacConfigGetSamplingRateIndex(
 	u_int8_t* pConfig);
 
@@ -61,6 +63,10 @@ bool MP4AV_AacGetConfiguration_SBR(
 				   u_int32_t samplingRate,
 				   u_int8_t channels);
 
+void MP4AV_LatmGetConfiguration(uint8_t **ppConfig,
+				uint32_t *pConfigLength,
+				const uint8_t *AudioSpecificConfig,
+				uint32_t AudioSpecificConfigLen);
 #ifdef __cplusplus
 }
 #endif

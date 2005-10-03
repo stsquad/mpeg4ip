@@ -150,7 +150,7 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
       } else if (ATOMID(type) == ATOMID("mpod")) {
 	pAtom = new MP4TrefTypeAtom(type);
       } else if (ATOMID(type) == ATOMID("mp4a")) {
-	pAtom = new MP4Mp4aAtom();
+	pAtom = new MP4SoundAtom("mp4a");
       } else if (ATOMID(type) == ATOMID("mp4s")) {
 	pAtom = new MP4Mp4sAtom();
       } else if (ATOMID(type) == ATOMID("mp4v")) {

@@ -109,8 +109,11 @@ static char* PrintAudioInfo(
 	} else if (strcasecmp(media_data_name, "mp4a") == 0) {
 	    
 	  type = MP4GetTrackEsdsObjectTypeId(mp4File, trackId);
-
 	  switch (type) {
+	  case MP4_INVALID_AUDIO_TYPE:
+	    typeName = "AAC from .mov";
+	    foundType = true;
+	    break;
 	  case MP4_MPEG4_AUDIO_TYPE:  {
 	    u_int8_t* pAacConfig = NULL;
 	    u_int32_t aacConfigLength;

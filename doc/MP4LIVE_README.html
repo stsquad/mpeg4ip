@@ -434,7 +434,10 @@ entered, <code>A&lt;http://www.cisco.com&gt;</code> will be generated.
 <P>
 It is possible to create content for QT 6.0 and Real One with the 
 Envivio plug in.  You must create with the audio encoding set to 
-AAC for both of these.  
+AAC for both of these.
+<p>
+Quicktime does not seem to like 7350Hz Sampling frequency; do not use
+this if you want interoperability with Quicktime.  
 <P>
 If you want to stream (using the instructions below), you must have
 Envivio version 1.2.  Download Real One, then download Envivio TV
@@ -446,6 +449,10 @@ If you want to stream mpeg2 to the QT player (with the mpeg2 add-on), you
 will need to broadcast MPEG2 video and MPEG layer 2 audio.  For both of 
 these, ffmpeg is required.  Make sure to use the rtpUseMp3RtpPayload14=1
 configuration setting.
+<p>
+September, 2005 note: it appears that Quicktime 7.0 will allow streaming
+of various codecs; I was able to get mpeg-4 video in conjunction with
+G.711.  You can try various codecs yourself.
 <p>
 <a href="#top">Back to top</a>
 <P>

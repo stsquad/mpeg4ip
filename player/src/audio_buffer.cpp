@@ -25,6 +25,7 @@
 #include "audio_buffer.h"
 #include "player_session.h"
 #include "player_util.h"
+#include "our_config_file.h"
 
 //#define DEBUG_AUDIO_FILL 1
 //#define DEBUG_AUDIO_CALLBACK 1
@@ -208,6 +209,7 @@ void CBufferAudioSync::set_config (uint32_t freq,
 				   uint32_t samples_per_frame)
 {
   if (m_audio_configured == false) {
+    audio_message(LOG_DEBUG, "audio configure");
     m_freq = freq;
     m_decode_format = format;
     m_channels = chans;
@@ -238,8 +240,11 @@ void CBufferAudioSync::set_config (uint32_t freq,
     m_bytes_per_sample_input *= m_channels;
 
     if (samples_per_frame == 0) {
+      if (config.get_config_value(CONFIG_LIMIT_AUDIO_SDL_BUFFER) > 1) {
+	m_samples_per_frame = config.get_config_value(CONFIG_LIMIT_AUDIO_SDL_BUFFER);
+      } else 
+	m_samples_per_frame = m_freq / 20; // estimate for inserting silence
       m_sample_buffer_size = m_freq;
-      m_samples_per_frame = m_freq / 20; // estimate for inserting silence
     } else {
       m_sample_buffer_size = 32 * m_samples_per_frame;
     }
@@ -818,7 +823,7 @@ bool CBufferAudioSync::audio_buffer_callback (uint8_t *outbuf,
     m_total_samples_played += 256 * 6;
   } else {
     bool done = false;
-    if (m_filled_bytes / m_bytes_per_sample_input <=
+    if (m_filled_bytes / m_bytes_per_sample_input <
 	len_bytes / m_bytes_per_sample_output) {
       audio_message(LOG_ERR, 
 		    "filled bytes less than requested: %u (%u) req %u (%u)",

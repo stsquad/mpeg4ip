@@ -85,6 +85,7 @@ class CTimedSync : public CSync
   virtual bool is_ready(uint64_t &disptime) = 0;
   virtual void flush(void) {} ;
   virtual bool active_at_start(void) { return true; };
+  bool is_initialized (void) { return m_initialized; };
  protected:
   virtual void render(uint32_t play_index) = 0;
   const char *m_name;

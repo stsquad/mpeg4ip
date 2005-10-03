@@ -254,11 +254,27 @@ FMTP_PARSE_FUNC(fmtp_key)
   return (fmtp_advance_to_next(ptr));
 }
 
-struct {
+FMTP_PARSE_FUNC(fmtp_object)
+{
+  return (fmtp_advance_to_next(ptr));
+}
+
+FMTP_PARSE_FUNC(fmtp_cpresent)
+{
+  const char *ret;
+  ret = fmtp_parse_number(ptr, &fptr->cpresent);
+  if (ret == NULL) {
+    ret = fmtp_advance_to_next(ptr);
+  }
+  return (ret);
+}
+
+
+struct fmtp_parse_type_ {
   const char *name;
   uint32_t namelen;
   const char *(*routine)(const char *, fmtp_parse_t *, lib_message_func_t);
-} fmtp_types[] = 
+} fmtp_isma_types[] = 
 {
   TTYPE("streamtype", fmtp_streamtype),
   TTYPE("profile-level-id", fmtp_profile_level_id),
@@ -281,9 +297,17 @@ struct {
   TTYPE("ISMACrypKeyIndicatorPerAU", fmtp_keyindicatorperau),
   TTYPE("ISMACrypKey", fmtp_key),
   {NULL, 0, NULL},
-}; 
+}, fmtp_3016_types[] = {
+  TTYPE("profile-level-id", fmtp_profile_level_id),
+  TTYPE("config", fmtp_config),
+  TTYPE("object", fmtp_object),
+  TTYPE("cpresent", fmtp_cpresent),
+  { NULL, 0, NULL},
+};
 
-fmtp_parse_t *parse_fmtp_for_mpeg4 (const char *optr, lib_message_func_t message)
+static fmtp_parse_t *parse_fmtp_for_table (struct fmtp_parse_type_ *fmtp_types,
+					   const char *optr, 
+					   lib_message_func_t message)
 {
   int ix;
   const char *bptr;
@@ -310,7 +334,7 @@ fmtp_parse_t *parse_fmtp_for_mpeg4 (const char *optr, lib_message_func_t message
   ptr->auxiliary_data_size_length = 0;
   ptr->bitrate = -1;
   ptr->profile = -1;
-
+  ptr->cpresent = 1;
   do {
     ADV_SPACE(bptr);
     for (ix = 0; fmtp_types[ix].name != NULL; ix++) {
@@ -344,6 +368,17 @@ fmtp_parse_t *parse_fmtp_for_mpeg4 (const char *optr, lib_message_func_t message
     return (NULL);
   }
   return (ptr);
+}
+
+fmtp_parse_t *parse_fmtp_for_mpeg4 (const char *optr, lib_message_func_t message)
+{
+  return parse_fmtp_for_table(fmtp_isma_types, optr, message);
+}
+
+fmtp_parse_t *parse_fmtp_for_rfc3016 (const char *optr, 
+				      lib_message_func_t message)
+{
+  return parse_fmtp_for_table(fmtp_3016_types, optr, message);
 }
 
 void free_fmtp_parse (fmtp_parse_t *ptr)

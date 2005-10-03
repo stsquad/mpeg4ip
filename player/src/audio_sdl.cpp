@@ -128,7 +128,8 @@ int CSDLAudioSync::InitializeHardware (void)
 #endif
 
   if (config.get_config_value(CONFIG_LIMIT_AUDIO_SDL_BUFFER) > 1) {
-    sample_size = config.get_config_value(CONFIG_LIMIT_AUDIO_SDL_BUFFER);
+    sample_size = MAX(config.get_config_value(CONFIG_LIMIT_AUDIO_SDL_BUFFER),
+		      sample_size);
   } else {
     if (config.get_config_value(CONFIG_LIMIT_AUDIO_SDL_BUFFER) > 0 &&
 	sample_size > 4096) 

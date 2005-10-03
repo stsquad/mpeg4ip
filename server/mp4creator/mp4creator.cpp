@@ -648,9 +648,9 @@ int main(int argc, char** argv)
     }
     bool is3GPP = Is3GPP(mp4File);
     
+    MP4Close(mp4File);
     if (is3GPP || (force3GPCompliance)) {
       // If we created the file, CreateEX already takes care of this...
-      MP4Close(mp4File);
       MP4Make3GPCompliant(mp4FileName,
                           Verbosity,
                           p3gppSupportedBrands[0],
@@ -658,7 +658,6 @@ int main(int argc, char** argv)
                           p3gppSupportedBrands,
                           sizeof(p3gppSupportedBrands) / sizeof(p3gppSupportedBrands[0]));
     } 
-    MP4Close(mp4File);
   } else if (doEncrypt) { 
     // just encrypting, not creating nor hinting, but may already be hinted
     if (!mp4FileExists) {
@@ -1066,7 +1065,15 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
       u_int8_t audioType = MP4GetTrackEsdsObjectTypeId(mp4File, mediaTrackId);
 
       switch (audioType) {
+      case MP4_INVALID_AUDIO_TYPE:
       case MP4_MPEG4_AUDIO_TYPE:
+	if (payloadName && 
+	    (strcasecmp(payloadName, "latm") == 0 ||
+	     strcasecmp(payloadName, "mp4a-latm") == 0)) {
+	  rc = MP4AV_Rfc3016LatmHinter(mp4File, mediaTrackId, 
+				       maxPayloadSize);
+	  break;
+	}
       case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
       case MP4_MPEG2_AAC_LC_AUDIO_TYPE:
       case MP4_MPEG2_AAC_SSR_AUDIO_TYPE:
@@ -1269,8 +1276,11 @@ void ExtractTrack (MP4FileHandle mp4File, MP4TrackId trackId,
     prependES = true;
   } else if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
 
-    if (strcmp(media_data_name, "mp4a") == 0 &&
-	MP4_IS_AAC_AUDIO_TYPE(MP4GetTrackEsdsObjectTypeId(mp4File, trackId))) {
+    if (strcmp(media_data_name, "mp4a") == 0) {
+      uint8_t type = 	
+	MP4GetTrackEsdsObjectTypeId(mp4File, trackId);
+      if (MP4_IS_AAC_AUDIO_TYPE(type) || 
+	  type == MP4_MPEG4_INVALID_AUDIO_TYPE)
       prependADTS = true;
     } else if (strcmp(media_data_name, "sawb") == 0) {
       amrType = AMR_TYPE_AMRWB;

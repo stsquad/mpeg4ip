@@ -59,13 +59,19 @@ extern "C" int audio_object_type_is_celp (mpeg4_audio_config_t *mptr)
 
 extern "C" void decode_mpeg4_audio_config (const uint8_t *buffer, 
 					   uint32_t buf_len,
-					   mpeg4_audio_config_t *mptr)
+					   mpeg4_audio_config_t *mptr,
+					   bool parse_streammux)
 {
   CBitstream bit;
-  uint32_t ret;
+  uint32_t ret = 0;
 
+    
   bit.init(buffer, buf_len * 8);
 
+  if (parse_streammux) {
+    // skip 15 bits
+    if (bit.getbits(15, &ret) < 0) return;
+  }
   if (bit.getbits(5, &ret) < 0)
     return;
 

@@ -15,8 +15,7 @@ prog_libadd = \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
-	libmpeg2_program.la \
-	@SDL_LIBS@ 
+	libmpeg2_program.la 
 
 mpeg_ps_info_SOURCES = ps_info.cpp
 mpeg_ps_info_LDADD = $(prog_libadd)
@@ -29,8 +28,7 @@ mpeg2ps_test_LDADD = libmpeg2_program.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
-	libmpeg2_program.la \
-	@SDL_LIBS@ 
+	libmpeg2_program.la 
 
 EXTRA_DIST=libmpeg2ps.dsp
 

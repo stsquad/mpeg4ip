@@ -213,7 +213,7 @@ int process_sdl_key_events (CPlayerSession *psptr,
  * set persist to the value, when you want to re-use.  Remember to delete
  */
 static void *main_start_session (const char *name, int max_loop, int grab = 0, 
-				 void *persist = NULL)
+				 void *persist = NULL, double start_time = 0.0)
 {
   char buffer[80];
   bool done = false;
@@ -234,7 +234,8 @@ static void *main_start_session (const char *name, int max_loop, int grab = 0,
 			config.get_config_value(CONFIG_VOLUME),
 			100, 
 			100,
-			screen_size);
+			screen_size,
+			start_time);
 
   if (psptr == NULL) done = true;
 
@@ -302,8 +303,14 @@ static void *main_start_session (const char *name, int max_loop, int grab = 0,
   return (persist);
 }
 
-static const char *usage= "[--help] [--version] [--loop=count] [--<config variable>=<value>] media-to-play\n"
-"Use --config-vars to display configuration file variables\n";
+static const char *usage= "[options] media-to-play\n"
+"options are:\n"
+"  --help                      - show this message\n"
+"  --version                   - show version and exit\n"
+"  --loop=count                - loop <count> times\n"
+"  --start-time=<value>        - start at time <value>\n"
+"  --<config variable>=<value> - set configuration variable to value\n"
+"  --config-vars               - display configuration variables and exit";
 
 int main (int argc, char **argv)
 {
@@ -312,11 +319,13 @@ int main (int argc, char **argv)
   char *name;
   char buffer[FILENAME_MAX];
   char *home = getenv("HOME");
+  double start_time;
   static struct option orig_options[] = {
     { "version", 0, 0, 'v' },
     { "help", 0, 0, 'h'},
     { "config-vars", 0, 0, 'c'},
     { "loop", optional_argument, 0, 'l'},
+    { "start-time", required_argument, 0, 's'},
     { NULL, 0, 0, 0 }
   };
   bool have_unknown_opts = false;
@@ -350,6 +359,13 @@ int main (int argc, char **argv)
       fprintf(stderr, "Usage: %s %s", argv[0], usage);
       exit(-1);
 
+    case 's':
+      if (sscanf(optarg, "%lg", &start_time) != 1) {
+	fprintf(stderr, "%s: invalid start time %s\n", 
+		argv[0], optarg);
+	exit(1);
+      }
+      break;
     case 'c':
       config.DisplayHelp();
       exit(0);
@@ -493,7 +509,7 @@ int main (int argc, char **argv)
       }
     }
   } else {
-    main_start_session(name, max_loop, 0, persist);
+     main_start_session(name, max_loop, 0, persist, start_time);
   }
   // remove invalid global ports
   if (persist != NULL) {

@@ -28,7 +28,6 @@ libmp4v2_la_SOURCES = \
 	atom_mdat.cpp \
 	atom_mdhd.cpp \
 	atom_meta.cpp \
-	atom_mp4a.cpp \
 	atom_mp4s.cpp \
 	atom_mp4v.cpp \
 	atom_mvhd.cpp \

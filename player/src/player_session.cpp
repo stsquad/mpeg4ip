@@ -44,9 +44,11 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
 				SDL_sem *master_sem,
 				const char *name,
 				control_callback_vft_t *cc_vft,
-				void *video_persistence)
+				void *video_persistence,
+				double start_time)
 {
   m_cc_vft = cc_vft;
+  m_start_time_param = start_time;
   m_sdp_info = NULL;
   m_my_media = NULL;
   m_rtsp_client = NULL;
@@ -233,7 +235,7 @@ bool CPlayerSession::start_session_work (void)
 			       m_cc_vft);
 
   if (ret >= 0) {
-    if (play_all_media(TRUE, 0.0) < 0) {
+    if (play_all_media(TRUE, m_start_time_param) < 0) {
       err = true;
     }
     if (err == false) {

@@ -132,6 +132,12 @@ if `aclocal $ACLOCAL_FLAGS`; then
     ACLOCAL_FLAGS="-I $pwd/doc $ACLOCAL_FLAGS"
     aclocal $ACLOCAL_FLAGS
   fi
+  if grep AM_PATH_ALSA aclocal.m4; then
+     echo
+  else
+     ACLOCAL_FLAGS="-I $pwd/util $ACLOCAL_FLAGS"
+     aclocal $ACLOCAL_FLAGS
+  fi
 else
   if `aclocal -I $pwd/doc`; then
     ACLOCAL_FLAGS="-I $pwd/doc $ACLOCAL_FLAGS"

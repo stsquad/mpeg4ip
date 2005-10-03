@@ -40,6 +40,11 @@ MP4SoundAtom::MP4SoundAtom(const char *atomid)
 		    new MP4Integer16Property("packetSize"));
 	AddProperty( /* 7 */
 		    new MP4Integer32Property("timeScale"));
+
+	if (ATOMID(atomid) == ATOMID("mp4a")) {
+	  AddReserved("reserved3", 2); /* 8 */
+	  ExpectChildAtom("esds", Required, OnlyOne);
+	}
 }
 
 void MP4SoundAtom::AddProperties (uint8_t version)
@@ -62,16 +67,19 @@ void MP4SoundAtom::Generate()
 	((MP4Integer16Property*)m_pProperties[1])->SetValue(1);
 
 	// property reserved2 has non-zero fixed values
-	static u_int8_t reserved2[16] = {
+	((MP4Integer16Property*)m_pProperties[2])->SetValue(0);
+	static u_int8_t reserved2[6] = {
 		0x00, 0x00, 0x00, 0x00, 
-		0x00, 0x00, 0x00, 0x00, 
-		0x00, 0x02, 0x00, 0x10,
-		0x00, 0x00, 0x00, 0x00, 
+		0x00, 0x00, 
 	};
-	m_pProperties[2]->SetReadOnly(false);
-	((MP4BytesProperty*)m_pProperties[2])->
+	m_pProperties[3]->SetReadOnly(false);
+	((MP4BytesProperty*)m_pProperties[3])->
 		SetValue(reserved2, sizeof(reserved2));
-	m_pProperties[2]->SetReadOnly(true);
+	m_pProperties[3]->SetReadOnly(true);
+	((MP4Integer16Property*)m_pProperties[4])->SetValue(2);
+	((MP4Integer16Property*)m_pProperties[5])->SetValue(0x0010);
+	((MP4Integer16Property*)m_pProperties[6])->SetValue(0);
+
 }
 
 void MP4SoundAtom::Read()
@@ -79,4 +87,8 @@ void MP4SoundAtom::Read()
   ReadProperties(0, 3); // read first 3 properties
   AddProperties(((MP4IntegerProperty *)m_pProperties[2])->GetValue());
   ReadProperties(3); // continue
+  if (m_pChildAtomInfos.Size() > 0) {
+    ReadChildAtoms();
+  }
+  Skip();
 }

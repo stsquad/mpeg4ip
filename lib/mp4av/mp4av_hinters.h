@@ -87,6 +87,10 @@ bool MP4AV_Rfc3016Hinter(
 	MP4TrackId mediaTrackId, 
 	u_int16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE));
 
+bool MP4AV_Rfc3016LatmHinter(MP4FileHandle mp4File, 
+			     MP4TrackId mediaTrackId, 
+			     u_int16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE));
+
 bool G711Hinter(MP4FileHandle mp4file, 
 		MP4TrackId trackid,
 		uint16_t maxPayloadSize);

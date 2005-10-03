@@ -31,7 +31,6 @@
 #include "SDL_syswm.h"
 #include "our_config_file.h"
 
-//#define VIDEO_SYNC_PLAY 2
 //#define VIDEO_SYNC_FILL 1
 //#define SWAP_UV 1
 
@@ -295,6 +294,10 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
 				   SDL_YV12_OVERLAY, 
 				   m_screen);
     }
+  if (m_image_w > m_image->pitches[0]) {
+    video_message(LOG_ERR, "Window returned width of %u %u requested", 
+		  m_image->pitches[0], m_image_w);
+  }
   if (m_name && strlen(m_name) != 0) {
     SDL_WM_SetCaption(m_name, NULL);
   }
@@ -354,7 +357,7 @@ void CSDLVideo::display_image (uint8_t *y, uint8_t *u, uint8_t *v)
 	to = (uint8_t *)m_image->pixels[0];
 	from = y;
 	for (ix = 0; ix < height; ix++) {
-	  memcpy(to, from, width);
+	  memcpy(to, from, MIN(width, m_image->pitches[0]));
 	  to += m_image->pitches[0];
 	  from += width;
 	}
@@ -380,7 +383,7 @@ void CSDLVideo::display_image (uint8_t *y, uint8_t *u, uint8_t *v)
 	to = (uint8_t *)m_image->pixels[V];
 	from = v;
 	for (ix = 0; ix < height; ix++) {
-	  memcpy(to, from, width);
+	  memcpy(to, from, MIN(m_image->pitches[V], width));
 	  to += m_image->pitches[V];
 	  from += width;
 	}
@@ -393,7 +396,7 @@ void CSDLVideo::display_image (uint8_t *y, uint8_t *u, uint8_t *v)
 	to = (uint8_t *)m_image->pixels[U];
 	from = u;
 	for (ix = 0; ix < height; ix++) {
-	  memcpy(to, from, width);
+	  memcpy(to, from, MIN(width, m_image->pitches[U]));
 	  to += m_image->pitches[U];
 	  from += width;
 	}
@@ -437,7 +440,7 @@ void CSDLVideo::blank_image (void)
     // we need to copy a row at a time
     to = (uint8_t *)m_image->pixels[0];
     for (ix = 0; ix < height; ix++) {
-      memset(to, BLANK_Y, width);
+      memset(to, BLANK_Y, MIN(width, m_image->pitches[0]));
       to += m_image->pitches[0];
     }
   } else {
@@ -462,7 +465,7 @@ void CSDLVideo::blank_image (void)
   if (width != m_image->pitches[V]) {
     to = (uint8_t *)m_image->pixels[V];
     for (ix = 0; ix < height; ix++) {
-      memset(to, BLANK_U, width);
+      memset(to, BLANK_U, MIN(width, m_image->pitches[V]));
       to += m_image->pitches[V];
     }
   } else {
@@ -473,7 +476,7 @@ void CSDLVideo::blank_image (void)
   if (width != m_image->pitches[U]) {
     to = (uint8_t *)m_image->pixels[U];
     for (ix = 0; ix < height; ix++) {
-      memset(to, BLANK_V, width);
+      memset(to, BLANK_V, MIN(m_image->pitches[U],width));
       to += m_image->pitches[U];
     }
   } else {
@@ -570,6 +573,7 @@ void CSDLVideoSync::configure (int w, int h, double aspect_ratio)
     m_v_buffer[ix] = (uint8_t *)malloc(w/2 * h/2 * sizeof(uint8_t));
   }
   m_config_set = true;
+  video_message(LOG_DEBUG, "video configured");
 }
 
 /*

@@ -57,6 +57,7 @@ static const u_int32_t durationUnitsValues[] = {
 //static u_int64_t StartFileSize;
 //static u_int64_t StopFileSize;
 
+static void on_VideoPreview(GtkToggleButton *togglebutton, gpointer user_data);
 
 CMediaStream *GetSelectedStream (void)
 {
@@ -192,6 +193,14 @@ static gint status_timer (gpointer raw)
 	const struct tm *local;
 	char buffer[80];
 	GtkWidget *temp;
+
+	if (AVFlow->ProcessSDLEvents(false)) {
+	  on_VideoPreview(NULL, GINT_TO_POINTER(2));
+	}
+
+	if (started == false) {
+	  return AVFlow->doingPreview(); 
+	}
 
 	Timestamp now = GetTimestamp();
 	secs = (time_t)GetSecsFromTimestamp(now);
@@ -1434,7 +1443,9 @@ on_VideoPreview                        (GtkToggleButton *togglebutton,
   if (inpreview) return;
   inpreview = true;
 
-  bool raw_toggled = (GPOINTER_TO_INT(user_data) == 0);
+  int type = GPOINTER_TO_INT(user_data);
+
+  int raw_toggled = (GPOINTER_TO_INT(user_data) == 0);
   GtkWidget *raw, *stream;
   raw = lookup_widget(MainWindow, "VideoSourcePreview");
   stream = lookup_widget(MainWindow, "StreamVideoPreview");
@@ -1444,8 +1455,8 @@ on_VideoPreview                        (GtkToggleButton *togglebutton,
   raw_set = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(raw));
   stream_set = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(stream));
 
-  if (raw_set == false && stream_set == false) {
-    if (MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+  if (type == 2 || (raw_set == false && stream_set == false)) {
+    if (type != 2 && MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
       stream_name = MyConfig->GetStringValue(CONFIG_VIDEO_PREVIEW_STREAM);
       if (raw_toggled == false &&
 	  stream_name && strcmp(stream_name, SelectedStream) != 0) {
@@ -1455,6 +1466,10 @@ on_VideoPreview                        (GtkToggleButton *togglebutton,
       }
       
     }
+    if (raw_set) 
+      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(raw), false);
+    if (stream_set) 
+      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(stream), false);
     MyConfig->SetBoolValue(CONFIG_VIDEO_PREVIEW, false);
     AVFlow->StopVideoPreview();
   } else {
@@ -1489,6 +1504,9 @@ on_VideoPreview                        (GtkToggleButton *togglebutton,
     MyConfig->SetStringValue(CONFIG_VIDEO_PREVIEW_STREAM,
 			     raw_set  ? NULL : SelectedStream);
     AVFlow->StartVideoPreview();
+    if (started == false) {
+	status_timer_id = gtk_timeout_add(1000, status_timer, MainWindow);
+    }
   }
   inpreview = false;
 }
@@ -1705,7 +1723,9 @@ void DoStart()
 
 void DoStop()
 {
+  if (AVFlow->doingPreview() == false) {
 	gtk_timeout_remove(status_timer_id);
+  }
 	GtkWidget *statusbar = lookup_widget(MainWindow, "statusbar1");
 	gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
 	gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
