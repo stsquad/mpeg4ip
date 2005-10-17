@@ -354,6 +354,7 @@ bool CFfmpegVideoEncoder::GetEsConfig (uint8_t **ppEsConfig,
   if (m_media_frame == MPEG4VIDEOFRAME) {
     RemoveUserdataFromVol(ppEsConfig, pEsConfigLen);
   }
+  StopEncoder();
   return true;
 }
 #endif

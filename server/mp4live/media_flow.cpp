@@ -902,7 +902,7 @@ bool CAVMediaFlow::AddStream (const char *name)
   return true;
 }
 
-bool CAVMediaFlow::DeleteStream (const char *name)
+bool CAVMediaFlow::DeleteStream (const char *name, bool remove_file)
 {
   char filename[PATH_MAX];
 
@@ -922,7 +922,9 @@ bool CAVMediaFlow::DeleteStream (const char *name)
   m_stream_list->RemoveEntryFromList(ms);
   strcpy(filename, ms->GetFileName());
   delete ms; // this will write the file settings
-  unlink(filename);
+  if (remove_file) {
+    unlink(filename);
+  }
   ValidateAndUpdateStreams();
   return true;
 }

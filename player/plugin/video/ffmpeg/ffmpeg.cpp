@@ -91,6 +91,9 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
     if (strcasecmp(compressor, "vssh") == 0) {
       return CODEC_ID_H264;
     }
+    if (strcasecmp(compressor, "H263") == 0) {
+      return CODEC_ID_H263;
+    }
     if (strcasecmp(compressor, "mjpg") == 0) {
       return CODEC_ID_MJPEG;
     }

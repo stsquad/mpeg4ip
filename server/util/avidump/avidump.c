@@ -52,6 +52,17 @@ static struct {
   { NULL, 0}, 
 };
 
+static dump_video_sizes (avi_t* aviFile)
+{
+  long frames = AVI_video_frames(aviFile);
+  long ix;
+
+  for (ix = 0; ix < frames; ix++) {
+    fprintf(stdout, "    frame %lu size %lu\n", ix + 1, AVI_frame_size(aviFile, ix));
+  }
+}
+
+static const char *usage=":[--video-track-dump] <filename> ...\n";
 /*
  *avidump
  * required arg1 should be file to check
@@ -64,6 +75,7 @@ int main(int argc, char** argv)
   uint32_t numVideoFrames;
   int ix, format;
   const char *aname;
+  bool dump_video_track = false;
   
   /* begin process command line */
   progName = argv[0];
@@ -73,6 +85,7 @@ int main(int argc, char** argv)
     static struct option long_options[] = {
       { "version", 0, 0, 'V'},
       { "help", 0, 0, '?'},
+      { "video-track-dump", 0, 0, 'v'},
       { NULL, 0, 0, 0 }
     };
 
@@ -84,12 +97,15 @@ int main(int argc, char** argv)
 
     switch (c) {
     case '?':
-      fprintf(stderr, "%s <filename>", progName);
+      fprintf(stderr, "%s%s\n", progName, usage); 
       return (0);
     case 'V':
       fprintf(stderr, "%s - %s version %s\n", progName,
 	      MPEG4IP_PACKAGE, MPEG4IP_VERSION);
       return (0);
+    case 'v':
+      dump_video_track = true;
+      break;
     default:
       fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
 	      progName, c);
@@ -99,8 +115,8 @@ int main(int argc, char** argv)
   /* check that we have at least two non-option arguments */
   if ((argc - optind) < 1) {
     fprintf(stderr, 
-	    "usage: %s <avi-file> ...\n",
-	    progName);
+	    "usage: %s%s\n",
+	    progName, usage);
     exit(1);
   }
 
@@ -134,6 +150,8 @@ int main(int argc, char** argv)
       fprintf(stdout, "   Number of frames: %u\n", numVideoFrames);
       fprintf(stdout, "   Video height    : %d\n", AVI_video_height(aviFile));
       fprintf(stdout, "   Video width     : %d\n", AVI_video_width(aviFile));
+      if (dump_video_track) 
+	dump_video_sizes(aviFile);
     } else {
       fprintf(stdout, "No video frames\n");
     }
@@ -155,7 +173,7 @@ int main(int argc, char** argv)
       fprintf(stdout, "   Audio sample rate: %ld\n", AVI_audio_rate(aviFile));
       fprintf(stdout, "   Audio bytes: %ld\n", AVI_audio_bytes(aviFile));
     } else {
-      fprintf(stdout, "No audio bytes\n");
+      fprintf(stdout, "No audio track\n");
     }
     /* cleanup */
     AVI_close(aviFile);

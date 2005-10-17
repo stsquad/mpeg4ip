@@ -15,6 +15,8 @@ SUBDIRS = codec win_client win_common win_gui
 noinst_LTLIBRARIES = libmp4playerutils.la libmp4player.la libmp4syncbase.la \
 	libmp4syncsdl.la libmp4decode_plugin.la
 
+lib_LTLIBRARIES = libmp4sdlvideo.la
+
 libmp4playerutils_la_SOURCES = \
 	our_bytestream.h \
 	our_bytestream_file.cpp \
@@ -52,12 +54,16 @@ else
   ADD_CFLAGS=
 endif
 
+libmp4sdlvideo_la_SOURCES = \
+	video_sdl.cpp \
+	video_sdl.h
+
 libmp4syncsdl_la_SOURCES = \
 	audio_buffer.cpp \
 	audio_buffer.h \
 	$(SDL_AUDIO_SRC) \
-	video_sdl.cpp \
-	video_sdl.h 
+	video_sdl_sync.cpp \
+	video_sdl_sync.h 
 
 include_HEADERS = \
 	codec_plugin.h \
@@ -142,7 +148,26 @@ gmp4player_SOURCES = \
 	gui_utils.h \
 	gui_xpm.h
 
-INCLUDES = -I$(srcdir) -I$(top_srcdir)/common/video/mpeg4 -I$(srcdir)/codec -I$(srcdir)/codec/mpeg4 -I$(srcdir)/../lib -I$(srcdir)/../lib/audio $(SDL_AUDIO_INC) -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/lib/ismacryp -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/lib/mpeg2ps -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/utils -I$(top_srcdir)/lib/audio @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@  
+INCLUDES = \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/player/lib \
+	-I$(top_srcdir)/player/lib/audio \
+	-I$(top_srcdir)/player/lib/libhttp \
+	-I$(top_srcdir)/player/lib/rtsp \
+	$(SDL_AUDIO_INC) \
+	-I$(top_srcdir)/lib \
+	-I$(top_srcdir)/lib/avi \
+	-I$(top_srcdir)/lib/ismacryp \
+	-I$(top_srcdir)/lib/mp4av \
+	-I$(top_srcdir)/lib/mp4 \
+	-I$(top_srcdir)/lib/mp4v2 \
+	-I$(top_srcdir)/lib/mpeg2ps \
+	-I$(top_srcdir)/lib/msg_queue \
+	-I$(top_srcdir)/lib/rtp \
+	-I$(top_srcdir)/lib/sdp \
+	-I$(top_srcdir)/lib/utils \
+	-I$(top_srcdir)/lib/audio \
+	@GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@  
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\" $(ADD_CFLAGS)
 
@@ -175,6 +200,7 @@ mp4player_LDADD = \
 	libmp4player.la \
 	libmp4syncbase.la \
 	libmp4syncsdl.la \
+	libmp4sdlvideo.la \
 	libmp4syncbase.la \
 	libmp4playerutils.la \
 	$(top_builddir)/lib/audio/libaudio.la \

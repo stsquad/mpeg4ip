@@ -51,7 +51,7 @@ public:
 	void SetConfig(CLiveConfig* pConfig) {
 		m_pConfig = pConfig;
 	}
-
+	CLiveConfig *GetConfig(void) { return m_pConfig; };
 	virtual bool GetStatus(u_int32_t valueName, void* pValue);
 
 protected:
@@ -100,7 +100,7 @@ public:
 	bool ReadStreams(void);
 	void ValidateAndUpdateStreams(void);
 	bool AddStream(const char *name);
-	bool DeleteStream(const char *name);
+	bool DeleteStream(const char *name, bool remove_file = true);
 	void RestartFileRecording(void);
 protected:
 	//void AddSink(CMediaSink* pSink);

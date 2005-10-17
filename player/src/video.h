@@ -95,5 +95,4 @@ extern void FrameDoubler(u_int8_t* pSrcPlane, u_int8_t* pDstPlane,
 video_vft_t *get_video_vft(void);
 
 CVideoSync *create_video_sync(CPlayerSession *psptr);
-void DestroyVideoPersistence(void *persist);
 #endif

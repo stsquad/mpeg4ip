@@ -160,6 +160,7 @@ bool CV4LVideoSource::InitDevice(void)
 
   // query device capabilities
   struct v4l2_capability capability;
+  memset(&capability, 0, sizeof(capability));
   rc = ioctl(m_videoDevice, VIDIOC_QUERYCAP, &capability);
   if (rc < 0) {
     error_message("Failed to query video capabilities for %s", deviceName);
@@ -257,6 +258,7 @@ bool CV4LVideoSource::InitDevice(void)
         ((videoFrequencyKHz / 1000) << 4) | ((videoFrequencyKHz % 1000) >> 6);
 
       struct v4l2_frequency frequency;
+      memset(&frequency, 0, sizeof(frequency));
       frequency.tuner = tuner.index;
       frequency.type = tuner.type;
       frequency.frequency = videoFrequencyTuner;
@@ -381,6 +383,7 @@ bool CV4LVideoSource::InitDevice(void)
   // allocate the desired number of buffers
   m_release_index_mask = 0;
   struct v4l2_requestbuffers reqbuf;
+  memset(&reqbuf, 0, sizeof(reqbuf));
   reqbuf.count = MIN(m_pConfig->GetIntegerValue(CONFIG_VIDEO_CAP_BUFF_COUNT),
 		     32);
   reqbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -447,6 +450,7 @@ bool CV4LVideoSource::InitDevice(void)
     goto failure;
   }
 
+#if 0
   // start video capture again
   rc = ioctl(m_videoDevice, VIDIOC_STREAMON, &buftype);
   if (rc < 0) {
@@ -454,6 +458,7 @@ bool CV4LVideoSource::InitDevice(void)
     perror("Again Reason");
     goto failure;
   }
+#endif
 
   return true;
 
@@ -526,6 +531,7 @@ bool CV4LVideoSource::SetPictureControls()
 
   int rc;
   struct v4l2_control control;
+  memset(&control, 0, sizeof(control));
 /*
   //autoexposure
   control.id = V4L2_CID_AUTOGAIN;
@@ -894,6 +900,7 @@ bool CVideoCapabilities::ProbeDevice()
 
   // query device capabilities
   struct v4l2_capability capability;
+  memset(&capability, 0, sizeof(capability));
   rc = ioctl(videoDevice, VIDIOC_QUERYCAP, &capability);
   if (rc < 0) {
     error_message("Failed to query video capabilities for %s", m_deviceName);

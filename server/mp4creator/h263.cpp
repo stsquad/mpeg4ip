@@ -20,6 +20,7 @@
  *
  * Contributor(s): 
  *              Ximpo Group Ltd.		mp4v2@ximpo.com
+ *              Bill May wmay@cisco.com
  */
 
 
@@ -78,12 +79,6 @@ static MP4Duration CalculateDuration(u_int8_t   trDiff);
 static bool GetWidthAndHeight(  u_int8_t        fmt,
                                 u_int16_t      *width,
                                 u_int16_t      *height);
-#define H263_STATE_INIT 'a'
-#define H263_STATE_1 'b'
-#define H263_STATE_2 'c'
-#define H263_STATE_3 'd'
-
-static char   states[3][256];
 /*
  * H263Creator - Main function
  * Inputs:
@@ -113,7 +108,6 @@ MP4TrackId H263Creator(MP4FileHandle outputFileHandle,
   memset(&nextInfo, 0, sizeof(nextInfo));
   memset(&currentInfo, 0, sizeof(currentInfo));
   memset(&maxBitrateCtx, 0, sizeof(maxBitrateCtx));
-  memset(states, H263_STATE_INIT, sizeof(states));
   u_int8_t       frameBuffer[H263_BUFFER_SIZE]; // The input buffer
                  // Pointer which tells LoadNextH263Object where to read data to
   u_int8_t*      pFrameBuffer = frameBuffer + H263_REQUIRE_HEADER_SIZE_BYTES;
@@ -260,25 +254,18 @@ static int LoadNextH263Object(  FILE           *inputFileHandle,
   // This table and the following loop implements a state machine enabling
   // us to read bytes from the file untill (and inclusing) the requested 
   // start code (00 00 8X) is found
-  int8_t        row = 0;
+  //  int8_t        row = 0;
   u_int8_t     *bufferStart = frameBuffer;
   // The buffer end which will allow the loop to leave place for
   // the additionalBytesNeeded
   u_int8_t     *bufferEnd = frameBuffer + *frameBufferSize -
                                               additionalBytesNeeded - 1;
+  uint32_t loaded;
 
-  // Initialize the states array, if it hasn't been initialized yet...
-  if (!states[0][0]) {
-    // One 00 was read
-    states[0][0] = H263_STATE_1;
-    // Two sequential 0x00 ware read
-    states[1][0] = states[2][0] = H263_STATE_2;
-    // A full start code was read
-    states[2][128] = states[2][129] = states[2][130] = states[2][131] = H263_STATE_3;
-  }
 
   // Read data from file into the output buffer until either a start code
   // is found, or the end of file has been reached.
+  loaded = 0;
   do {
     if (fread(frameBuffer, 1, 1, inputFileHandle) != 1){
       // EOF or other error before we got a start code
@@ -286,9 +273,12 @@ static int LoadNextH263Object(  FILE           *inputFileHandle,
       *frameBufferSize = frameBuffer - bufferStart;
       return 1;
     }
+    loaded <<= 8;
+    loaded |= *frameBuffer++;
   } while ((frameBuffer < bufferEnd) &&                    // We have place in the buffer
-           ((row = states[row][*(frameBuffer++)]) != H263_STATE_3)); // Start code was not found
-  if (row != -1) {
+	   (loaded & 0xfffffc) != 0x80);
+
+  if ((loaded & 0xfffff0) != 0x80) {
     uint32_t diff = bufferEnd - bufferStart + additionalBytesNeeded;
     fprintf(stderr, "%s: Buffer too small (%u)\n",
             ProgName, diff);
@@ -298,7 +288,7 @@ static int LoadNextH263Object(  FILE           *inputFileHandle,
   // Cool ... now we have a start code
   *ppNextHeader = frameBuffer - H263_STARTCODE_SIZE_BYTES;
   *frameBufferSize = frameBuffer - bufferStart + additionalBytesNeeded;
-
+  //printf("buffer %u\n", *frameBufferSize);
   // Now we just have to read the additionalBytesNeeded
   if(fread(frameBuffer, additionalBytesNeeded, 1, inputFileHandle) != 1) {
     /// We got a start code but can't read additionalBytesNeeded ... that's a fatal error
