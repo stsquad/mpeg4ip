@@ -472,7 +472,8 @@ int main (int argc, char **argv)
   const char *suffix = strrchr(name, '.');
 
     void *persist = NULL;
-#ifdef darwin
+#if 1 
+    //def darwin
  CSDLVideo *sdl_video = new CSDLVideo();
   sdl_video->set_image_size(176, 144, 1.0);
   sdl_video->set_screen_size(0, 2);

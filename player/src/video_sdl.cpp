@@ -61,6 +61,7 @@ CSDLVideo::CSDLVideo(int initial_x, int initial_y, uint32_t mask)
 {
   char buf[32];
   const SDL_VideoInfo *video_info;
+  m_mutex = SDL_CreateMutex();
   m_image = NULL;
   m_screen = NULL;
   m_pos_x = initial_x;
@@ -238,6 +239,7 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
   video_message(LOG_DEBUG, "Setting video mode %d %d %x %g", 
 		win_w, win_h, mask, m_aspect_ratio);
   m_fullscreen = fullscreen;
+  SDL_LockMutex(m_mutex);
   if (m_image) {
     SDL_FreeYUVOverlay(m_image);
     m_image = NULL;
@@ -254,6 +256,7 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
     m_screen = SDL_SetVideoMode(win_w, win_h, m_video_bpp, mask);
     if (m_screen == NULL) {
       video_message(LOG_CRIT, "sdl error message is %s", SDL_GetError());
+      SDL_Delay(1000);
       abort();
     }
   }
@@ -304,6 +307,7 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
   if (m_name && strlen(m_name) != 0) {
     SDL_WM_SetCaption(m_name, NULL);
   }
+  SDL_UnlockMutex(m_mutex);
   m_old_win_w = win_w;
   m_old_win_h = win_h;
   m_old_w = m_image_w;
@@ -324,8 +328,10 @@ void CSDLVideo::display_image (const uint8_t *y, const uint8_t *u,
   if (yStride == 0) yStride = m_image_w;
   if (uvStride == 0)  uvStride = m_image_w / 2;
 
+  SDL_LockMutex(m_mutex);
   if (SDL_LockYUVOverlay(m_image)) {
     video_message(LOG_ERR, "Failed to lock image");
+    SDL_UnlockMutex(m_mutex);
     return;
   } 
 
@@ -420,6 +426,7 @@ void CSDLVideo::display_image (const uint8_t *y, const uint8_t *u,
   SDL_UnlockYUVOverlay(m_image);
   // Actually display the video
   int rval = SDL_DisplayYUVOverlay(m_image, &m_dstrect);
+  SDL_UnlockMutex(m_mutex);
 #ifndef darwin
 #define CORRECT_RETURN 0
 #else

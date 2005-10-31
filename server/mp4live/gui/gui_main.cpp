@@ -2242,7 +2242,7 @@ static GtkWidget *create_MainWindow (void)
   GtkTreeViewColumn *column;
   column = gtk_tree_view_column_new_with_attributes("Stream",
 						    rend,
-						    "text", 0, NULL);
+						    "text", 0, (void *)NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(StreamTreeView), column);
 
   hbuttonbox1 = gtk_hbutton_box_new();

@@ -314,9 +314,11 @@ void CSDLVideoSync::do_video_resize (int pixel_width,
 				     int max_height)
 {
 
-  m_sdl_video->set_screen_size(m_fullscreen, m_video_scale, 
-			       pixel_width, pixel_height,
-			       max_width, max_height);
+  if (m_sdl_video != NULL) {
+    m_sdl_video->set_screen_size(m_fullscreen, m_video_scale, 
+				 pixel_width, pixel_height,
+				 max_width, max_height);
+  }
 }
 
 static void c_video_configure (void *ifptr,

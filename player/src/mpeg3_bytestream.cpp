@@ -130,6 +130,7 @@ bool CMpeg3VideoByteStream::skip_next_frame (frame_timestamp_t *pts,
 
 void CMpeg3VideoByteStream::play (uint64_t start)
 {
+  player_debug_message("mpeg3 play "U64, start);
   m_play_start_time = start;
 
   set_timebase(start);

@@ -48,7 +48,8 @@ typedef enum {
 
 typedef enum {
   MPEG_VIDEO_MPEG1 = 0,
-  MPEG_VIDEO_MPEG2 = 1
+  MPEG_VIDEO_MPEG2 = 1,
+  MPEG_VIDEO_H264 = 2,
 } mpeg2ps_video_type_t;
 
 #ifdef __cplusplus 

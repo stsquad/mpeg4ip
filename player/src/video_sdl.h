@@ -55,6 +55,7 @@ class CSDLVideo {
   SDL_Surface *m_screen;
   SDL_Overlay *m_image;
   SDL_Rect m_dstrect;
+  SDL_mutex *m_mutex;
   int m_video_bpp;
   const char *m_name;
   unsigned int m_image_w, m_image_h, m_old_w, m_old_h;

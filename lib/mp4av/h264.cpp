@@ -159,7 +159,7 @@ extern "C" uint8_t h264_nal_unit_type (const uint8_t *buffer)
   return buffer[offset] & 0x1f;
 }
 
-extern "C" int h264_nal_unit_type_is_slice (uint8_t type)
+extern "C" int h264_nal_unit_type_is_slice (const uint8_t type)
 {
   if (type >= H264_NAL_TYPE_NON_IDR_SLICE && 
       type <= H264_NAL_TYPE_IDR_SLICE) {
@@ -637,7 +637,7 @@ uint32_t h264_read_sei_value (const uint8_t *buffer, uint32_t *size)
   return ret;
 }
 
-extern "C" const char *h264_get_slice_name (uint8_t slice_type)
+extern "C" const char *h264_get_slice_name (const uint8_t slice_type)
 {
   if (H264_TYPE_IS_P(slice_type)) return "P";  
   if (H264_TYPE_IS_B(slice_type)) return "B";  
@@ -645,4 +645,28 @@ extern "C" const char *h264_get_slice_name (uint8_t slice_type)
   if (H264_TYPE_IS_SI(slice_type)) return "SI";
   if (H264_TYPE_IS_SP(slice_type)) return "SP";
   return "UNK";
+}
+
+extern "C" bool h264_access_unit_is_sync (const uint8_t *pNal, uint32_t len)
+{
+  uint8_t nal_type;
+  h264_decode_t dec;
+  uint32_t offset;
+  do {
+    nal_type = h264_nal_unit_type(pNal);
+    if (nal_type == H264_NAL_TYPE_SEQ_PARAM) return true;
+    if (nal_type == H264_NAL_TYPE_PIC_PARAM) return true;
+    if (nal_type == H264_NAL_TYPE_IDR_SLICE) return true;
+    if (h264_nal_unit_type_is_slice(nal_type)) {
+      if (h264_read_slice_info(pNal, len, &dec) < 0) return false;
+      if (H264_TYPE_IS_I(dec.slice_type) ||
+	  H264_TYPE_IS_SI(dec.slice_type)) return true;
+      return false;
+    }
+    offset = h264_find_next_start_code(pNal, len);
+    if (offset == 0 || offset > len) return false;
+    pNal += offset;
+    len -= offset;
+  } while (len > 0);
+  return false;
 }

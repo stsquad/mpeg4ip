@@ -25,6 +25,7 @@
 #include "mpeg2_ps.h"
 #include "mpeg2ps_private.h"
 #include <mp4av.h>
+#include <mp4av_h264.h>
 
 //#define DEBUG_LOC 1
 //#define DEBUG_STATE 1
@@ -593,6 +594,135 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
   }
   return FALSE;
 }
+
+static bool 
+mpeg2ps_stream_find_h264_video_frame (mpeg2ps_stream_t *sptr)
+{
+  uint32_t offset;
+  bool have_pict;
+  bool started_new_pes = false;
+  uint32_t start;
+  uint8_t nal_type;
+  /*
+   * First thing - determine if we have enough bytes to read the header.
+   * if we do, we have the correct timestamp.  If not, we read the new
+   * pes, so we'd want to use the timestamp we read.
+   */
+  sptr->frame_ts = sptr->next_pes_ts; 
+  if (sptr->pes_buffer_size <= sptr->pes_buffer_on + 4) {
+    if (sptr->pes_buffer_size != sptr->pes_buffer_on)
+      started_new_pes = true;
+    if (mpeg2ps_stream_read_next_pes_buffer(sptr) == FALSE) {
+      return FALSE;
+    }
+  }
+  if (h264_is_start_code(sptr->pes_buffer + sptr->pes_buffer_on) == false) {
+    do {
+      uint32_t offset = h264_find_next_start_code(sptr->pes_buffer +
+						  sptr->pes_buffer_on, 
+						  sptr->pes_buffer_size -
+						  sptr->pes_buffer_on);
+      if (offset == 0) {
+	if (sptr->pes_buffer_size > 3)
+	  sptr->pes_buffer_on = sptr->pes_buffer_size - 3;
+	else {
+	  sptr->pes_buffer_on = sptr->pes_buffer_size;
+	  started_new_pes = true;
+	}
+	if (mpeg2ps_stream_read_next_pes_buffer(sptr) == FALSE) {
+	  return FALSE;
+	}
+      } else
+	sptr->pes_buffer_on += offset;
+    } while (h264_is_start_code(sptr->pes_buffer + sptr->pes_buffer_on) == false);
+  }
+
+  if (started_new_pes) {
+    // nothing...  we've copied the timestamp already.
+  } else {
+    // we found the new start, but we pulled in a new pes header before
+    // starting.  So, we want to use the header that we read.
+    sptr->frame_ts = sptr->next_pes_ts; // set timestamp after searching
+    // clear timestamp indication
+    sptr->next_pes_ts.have_pts = sptr->next_pes_ts.have_dts = FALSE;
+  }
+#if 0
+  printf("header %x at %d\n", scode, sptr->pes_buffer_on);
+#endif
+
+  have_pict = false;
+
+  start = 4 + sptr->pes_buffer_on;
+  while (1) {
+    
+    if ((offset = h264_find_next_start_code(sptr->pes_buffer + start, 
+					    sptr->pes_buffer_size - start))
+	== 0) {
+      start = sptr->pes_buffer_size - 4;
+      start -= sptr->pes_buffer_on;
+      sptr->pict_header_offset -= sptr->pes_buffer_on;
+      if (mpeg2ps_stream_read_next_pes_buffer(sptr) == FALSE) {
+	return FALSE;
+      }
+      start += sptr->pes_buffer_on;
+      sptr->pict_header_offset += sptr->pes_buffer_on;
+    } else {
+#if 0
+      printf("2header %x at %d\n", scode, start);
+#endif
+
+      start += offset;
+      nal_type = h264_nal_unit_type(sptr->pes_buffer + start);
+      if (have_pict == FALSE) {
+	if (h264_nal_unit_type_is_slice(nal_type)) {
+	  have_pict = true;
+	  sptr->pict_header_offset = start;
+	}
+      } else {
+	if (H264_NAL_TYPE_ACCESS_UNIT == nal_type) {
+	  sptr->frame_len = start - sptr->pes_buffer_on;
+	  sptr->have_frame_loaded = true;
+	  return TRUE;
+	}
+      }
+      start += 4;
+    }
+  }
+  return FALSE;
+}
+
+static bool 
+mpeg2ps_stream_figure_out_video_type (mpeg2ps_stream_t *sptr) 
+{
+  bool started_new_pes = false;
+
+  /*
+   * First thing - determine if we have enough bytes to read the header.
+   * if we do, we have the correct timestamp.  If not, we read the new
+   * pes, so we'd want to use the timestamp we read.
+   */
+  sptr->frame_ts = sptr->next_pes_ts; 
+  if (sptr->pes_buffer_size <= sptr->pes_buffer_on + 5) {
+    if (sptr->pes_buffer_size != sptr->pes_buffer_on)
+      started_new_pes = true;
+    if (mpeg2ps_stream_read_next_pes_buffer(sptr) == FALSE) {
+      return FALSE;
+    }
+  }
+
+  if (h264_is_start_code(sptr->pes_buffer + sptr->pes_buffer_on) &&
+      h264_nal_unit_type(sptr->pes_buffer + sptr->pes_buffer_on) == 
+      H264_NAL_TYPE_ACCESS_UNIT) {
+    sptr->have_h264 = true;
+    sptr->determined_type = true;
+    return mpeg2ps_stream_find_h264_video_frame(sptr);
+  } 
+  // figure it's mpeg2
+  sptr->have_h264 = false;
+  sptr->determined_type = true;
+  return mpeg2ps_stream_find_mpeg_video_frame(sptr);
+}
+
 static bool mpeg2ps_stream_find_lpcm_frame (mpeg2ps_stream_t *sptr)
 {
   uint8_t frames;
@@ -788,15 +918,38 @@ static bool mpeg2ps_stream_read_frame (mpeg2ps_stream_t *sptr,
 {
   //  bool done = FALSE;
   if (sptr->is_video) {
-    if (mpeg2ps_stream_find_mpeg_video_frame(sptr)) {
-      *buffer = sptr->pes_buffer + sptr->pes_buffer_on;
-      *buflen = sptr->frame_len;
-      if (advance_pointers) {
-	sptr->pes_buffer_on += sptr->frame_len;
+    if (sptr->determined_type == false) {
+      if (mpeg2ps_stream_figure_out_video_type(sptr)) {
+	*buffer = sptr->pes_buffer + sptr->pes_buffer_on;
+	*buflen = sptr->frame_len;
+	if (advance_pointers) {
+	  sptr->pes_buffer_on += sptr->frame_len;
+	}
+	return TRUE;
       }
-      return TRUE;
-    }
+      return FALSE;
+    } else {
+      if (sptr->have_h264) {
+	if (mpeg2ps_stream_find_h264_video_frame(sptr)) {
+	  *buffer = sptr->pes_buffer + sptr->pes_buffer_on;
+	  *buflen = sptr->frame_len;
+	  if (advance_pointers) {
+	    sptr->pes_buffer_on += sptr->frame_len;
+	  }
+	  return TRUE;
+	}
+      } else {
+	if (mpeg2ps_stream_find_mpeg_video_frame(sptr)) {
+	  *buffer = sptr->pes_buffer + sptr->pes_buffer_on;
+	  *buflen = sptr->frame_len;
+	  if (advance_pointers) {
+	    sptr->pes_buffer_on += sptr->frame_len;
+	  }
+	  return TRUE;
+	}
+      }
     return FALSE;
+    }
   } else if (sptr->m_stream_id == 0xbd) {
     // would need to handle LPCM here
     if (sptr->m_substream_id >= 0xa0) {
@@ -836,24 +989,30 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
 				 uint32_t buflen)
 {
   if (sptr->is_video) {
-    if (MP4AV_Mpeg3ParseSeqHdr(buffer, buflen,
-			       &sptr->have_mpeg2,
-			       &sptr->h,
-			       &sptr->w,
-			       &sptr->frame_rate,
-			       &sptr->bit_rate,
-			       NULL,
-			       &sptr->mpeg2_profile) < 0) {
-      mpeg2ps_message(LOG_ERR, "Can't parse sequence header in first frame - stream\n",
-	     sptr->m_stream_id);
-      sptr->m_stream_id = 0;
-      sptr->m_fd = FDNULL;
+    if (sptr->have_h264) {
+      mpeg2ps_message(LOG_ERR, "need to info h264");
+      sptr->ticks_per_frame = 90000 / 30;
+      
+    } else {
+      if (MP4AV_Mpeg3ParseSeqHdr(buffer, buflen,
+				 &sptr->have_mpeg2,
+				 &sptr->h,
+				 &sptr->w,
+				 &sptr->frame_rate,
+				 &sptr->bit_rate,
+				 NULL,
+				 &sptr->mpeg2_profile) < 0) {
+	mpeg2ps_message(LOG_ERR, "Can't parse sequence header in first frame - stream\n",
+			sptr->m_stream_id);
+	sptr->m_stream_id = 0;
+	sptr->m_fd = FDNULL;
+      }
+      
+      sptr->ticks_per_frame = (uint64_t)(90000.0 / sptr->frame_rate);
+      mpeg2ps_message(LOG_INFO,"stream %x - %u x %u, %g at %g "U64,
+		      sptr->m_stream_id, sptr->w, sptr->h, sptr->bit_rate,
+		      sptr->frame_rate, sptr->ticks_per_frame);
     }
-
-    sptr->ticks_per_frame = (uint64_t)(90000.0 / sptr->frame_rate);
-    mpeg2ps_message(LOG_INFO,"stream %x - %u x %u, %g at %g "U64,
-		  sptr->m_stream_id, sptr->w, sptr->h, sptr->bit_rate,
-		  sptr->frame_rate, sptr->ticks_per_frame);
     return;
   }
 
@@ -1366,6 +1525,9 @@ const char *mpeg2ps_get_video_stream_name (mpeg2ps_t *ps, uint streamno)
   if (invalid_video_streamno(ps, streamno)) {
     return 0;
   }
+  if (ps->video_streams[streamno]->have_h264) {
+    return "h264-asdf";
+  }
   if (ps->video_streams[streamno]->have_mpeg2) {
     return mpeg2_type(ps->video_streams[streamno]->mpeg2_profile);
   }
@@ -1378,6 +1540,8 @@ mpeg2ps_video_type_t mpeg2ps_get_video_stream_type (mpeg2ps_t *ps,
   if (invalid_video_streamno(ps, streamno)) {
     return MPEG_AUDIO_UNKNOWN;
   }
+  if (ps->video_streams[streamno]->have_h264) return MPEG_VIDEO_H264;
+
   return ps->video_streams[streamno]->have_mpeg2 ? MPEG_VIDEO_MPEG2 : 
     MPEG_VIDEO_MPEG1;
 }
@@ -1418,6 +1582,9 @@ uint8_t mpeg2ps_get_video_stream_mp4_type (mpeg2ps_t *ps, uint streamno)
 {
   if (invalid_video_streamno(ps, streamno)) {
     return 0;
+  }
+  if (ps->video_streams[streamno]->have_h264) {
+    return MP4_PRIVATE_VIDEO_TYPE;
   }
   if (ps->video_streams[streamno]->have_mpeg2) {
     return mpeg2_profile_to_mp4_track_type(ps->video_streams[streamno]->mpeg2_profile);
@@ -1613,12 +1780,13 @@ bool mpeg2ps_get_video_frame(mpeg2ps_t *ps, uint streamno,
   if (sptr->have_frame_loaded == false) {
     // if we don't have the frame in the buffer (like after a seek), 
     // read the next frame
-    if (mpeg2ps_stream_find_mpeg_video_frame(sptr) == false) {
+    if (mpeg2ps_stream_read_frame(sptr, buffer, buflen, false) == false) {
       return false;
     }
+  } else {
+    *buffer = sptr->pes_buffer + sptr->pes_buffer_on;
+    *buflen = sptr->frame_len;
   }
-  *buffer = sptr->pes_buffer + sptr->pes_buffer_on;
-  *buflen = sptr->frame_len;
   // determine frame type
   if (frame_type != NULL) {
     *frame_type = MP4AV_Mpeg3PictHdrType(sptr->pes_buffer + 
@@ -1656,7 +1824,10 @@ bool mpeg2ps_get_audio_frame(mpeg2ps_t *ps, uint streamno,
   if (sptr->have_frame_loaded == false) {
     if (mpeg2ps_stream_read_frame(sptr, buffer, buflen, false) == false) 
       return false;
-  } 
+  } else {
+    *buffer = sptr->pes_buffer + sptr->pes_buffer_on;
+    *buflen = sptr->frame_len;
+  }
   
   if (timestamp != NULL || freq_timestamp != NULL) {
     ts = stream_convert_frame_ts_to_msec(sptr, 
@@ -1880,16 +2051,30 @@ bool mpeg2ps_seek_video_frame (mpeg2ps_t *ps, uint streamno,
   /*
    * read forward until we find the next I frame
    */
-  frame_type = MP4AV_Mpeg3PictHdrType(sptr->pes_buffer + 
-				      sptr->pict_header_offset);
-  while (frame_type != 1) {
-    advance_frame(sptr);
-    if (mpeg2ps_stream_read_frame(sptr, &buffer, &buflen, false) == false) 
-      return false;
+  if (sptr->have_h264) {
+    
+    while (h264_access_unit_is_sync(sptr->pes_buffer + 
+				    sptr->pict_header_offset,
+				    sptr->pes_buffer_size - 
+				    sptr->pict_header_offset) == false) {
+      advance_frame(sptr);
+      if (mpeg2ps_stream_read_frame(sptr, &buffer, &buflen, false) == false)
+	return false;
+      msec_ts = stream_convert_frame_ts_to_msec(sptr, TS_MSEC, ps->first_dts, NULL);
+      mpeg2ps_message(LOG_DEBUG, "read ts "U64, msec_ts);
+    }
+  } else {
     frame_type = MP4AV_Mpeg3PictHdrType(sptr->pes_buffer + 
 					sptr->pict_header_offset);
-    msec_ts = stream_convert_frame_ts_to_msec(sptr, TS_MSEC, ps->first_dts, NULL);
-    mpeg2ps_message(LOG_DEBUG, "read ts "U64" type %d", msec_ts, frame_type);
+    while (frame_type != 1) {
+      advance_frame(sptr);
+      if (mpeg2ps_stream_read_frame(sptr, &buffer, &buflen, false) == false) 
+	return false;
+      frame_type = MP4AV_Mpeg3PictHdrType(sptr->pes_buffer + 
+					  sptr->pict_header_offset);
+      msec_ts = stream_convert_frame_ts_to_msec(sptr, TS_MSEC, ps->first_dts, NULL);
+      mpeg2ps_message(LOG_DEBUG, "read ts "U64" type %d", msec_ts, frame_type);
+    }
   }
   return true;
 }

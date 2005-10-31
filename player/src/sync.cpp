@@ -133,13 +133,20 @@ void CPlayerSession::process_sdl_events (void)
 				       m_master_msg_queue_sem);
       break;
     case SDL_MOUSEBUTTONUP:
-      if (event.button.which == 0) {
-	// add callback here.
-	if (m_mouse_click_callback != NULL) {
-	  (m_mouse_click_callback)(m_mouse_click_callback_ud, 
-				   event.button.x,
-				   event.button.y);
-	}
+      if (event.button.which == 0 &&
+	  m_mouse_click_callback != NULL) {
+	(m_mouse_click_callback)(m_mouse_click_callback_ud, 
+				 event.button.x,
+				 event.button.y);
+      } else {
+	sdl_mouse_msg_t mouse_msg;
+	mouse_msg.button = event.button.which;
+	mouse_msg.x = event.button.x;
+	mouse_msg.y = event.button.y;
+	m_master_msg_queue->send_message(MSG_SDL_MOUSE_EVENT, 
+					 (uint8_t *)&mouse_msg,
+					 sizeof(mouse_msg),
+					 m_master_msg_queue_sem);
       }
       break;
     default:
@@ -693,6 +700,9 @@ int CPlayerSession::sync_thread (int state)
   case SYNC_STATE_WAIT_TIMED_INIT:
     newstate = sync_thread_wait_timed_init();
     break;
+  case SYNC_STATE_EXIT:
+    newstate = SYNC_STATE_EXIT;
+    break;
   }
 #ifdef DEBUG_SYNC_STATE
   if (state != newstate)
@@ -759,7 +769,9 @@ int c_sync_thread (void *data)
   CPlayerSession *p;
   int state = SYNC_STATE_INIT;
   p = (CPlayerSession *)data;
-  p->start_session_work();
+  if (p->start_session_work() == false) {
+    state = SYNC_STATE_EXIT;
+  }
   do {
    state = p->sync_thread(state);
   } while (state != SYNC_STATE_EXIT);

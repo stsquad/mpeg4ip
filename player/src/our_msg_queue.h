@@ -24,7 +24,7 @@
 #ifndef __OUR_MSG_QUEUE_H__
 #define __OUR_MSG_QUEUE_H__ 1
 
-#include "msg_queue/msg_queue.h"
+#include "msg_queue.h"
 
 #define MSG_SESSION_FINISHED 1
 #define MSG_PAUSE_SESSION 2
@@ -37,10 +37,17 @@
 #define MSG_SESSION_ERROR 9
 #define MSG_SESSION_WARNING 10
 #define MSG_SESSION_STARTED 11
-#define MSG_OUR_LAST_MESSAGE 12
+#define MSG_AUDIO_CONFIGURED 12
+#define MSG_SDL_MOUSE_EVENT 13
+#define MSG_OUR_LAST_MESSAGE 14
+
 typedef struct sdl_event_msg_t {
   SDLKey sym;
   SDLMod mod;
 } sdl_event_msg_t;
 
+typedef struct sdl_mouse_msg_t {
+  uint8_t button;
+  uint16_t x, y;
+} sdl_mouse_msg_t;
 #endif

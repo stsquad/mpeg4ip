@@ -24,6 +24,7 @@
 #include "mpeg2dec.h"
 #include "mp4av.h"
 #include <mpeg2t/mpeg2t_defines.h>
+#include <mpeg2ps/mpeg2_ps.h>
 
 //#define DEBUG_MPEG2DEC_FRAME 1
 
@@ -246,7 +247,8 @@ static int mpeg2dec_codec_check (lib_message_func_t message,
     }
   }
   if (strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0) {
-    return ret_val;
+    if (type == MPEG_VIDEO_MPEG1 || type == MPEG_VIDEO_MPEG2)
+      return ret_val;
   }
   if (strcasecmp(stream_type, STREAM_TYPE_MPEG2_TRANSPORT_STREAM) == 0) {
     if ((type == MPEG2T_ST_MPEG_VIDEO) ||

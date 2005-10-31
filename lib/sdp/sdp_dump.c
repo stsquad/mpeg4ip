@@ -153,6 +153,7 @@ static void key_dump (key_desc_t *sptr)
   case KEY_TYPE_URI:
     printf("Key: uri : %s", sptr->key);
     break;
+  case KEY_TYPE_NONE:
   default:
     break;
   }

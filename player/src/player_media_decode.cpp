@@ -196,8 +196,7 @@ int CPlayerMedia::decode_thread (void)
      * this is our main decode loop
      */
 #ifdef DEBUG_DECODE
-    media_message(LOG_DEBUG, "%s Into decode loop",
-		  is_video() ? "video" : "audio");
+    media_message(LOG_DEBUG, "%s Into decode loop", get_name());
 #endif
     while ((thread_stop == 0) && decoding) {
       parse_decode_message(thread_stop, decoding);
@@ -323,8 +322,8 @@ int CPlayerMedia::decode_thread (void)
       lasttime = ourtime;
       have_frame_ts = true;
 #ifdef DEBUG_DECODE
-      media_message(LOG_DEBUG, "Decoding %c frame " U64, 
-		    m_is_video ? 'v' : 'a', ourtime.msec_timestamp);
+      media_message(LOG_DEBUG, "Decoding %s frame " U64, get_name(),
+		    ourtime.msec_timestamp);
 #endif
       if (frame_buffer != NULL && frame_len != 0) {
 	int sync_frame;
@@ -336,8 +335,8 @@ int CPlayerMedia::decode_thread (void)
 				       frame_len,
 				       ud);
 #ifdef DEBUG_DECODE
-	media_message(LOG_DEBUG, "Decoding %c frame return %d", 
-		      m_is_video ? 'v' : 'a', ret);
+	media_message(LOG_DEBUG, "Decoding %s frame return %d", 
+		      get_name(), ret);
 #endif
 	if (ret > 0) {
 	  frames_decoded++;

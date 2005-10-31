@@ -1030,7 +1030,7 @@ static struct {
   { "quality", sizeof("quality"), TRUE, TRUE, sdp_decode_parse_a_int, 1},
   { "framerate", sizeof("framerate"), TRUE, TRUE, sdp_decode_parse_a_frame, 0},
   { "range", sizeof("range"), TRUE, TRUE, sdp_decode_parse_a_range, 0 },
-  { NULL, 0, FALSE, FALSE, NULL },
+  { NULL, 0, FALSE, FALSE, NULL, 0 },
 };
 
 /*

@@ -104,6 +104,8 @@ typedef struct mpeg2ps_stream_t
   // video stuff
   uint32_t h, w;
   double frame_rate;
+  bool determined_type;
+  bool have_h264;
   int have_mpeg2;
   double bit_rate;
   uint64_t ticks_per_frame;

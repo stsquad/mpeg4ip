@@ -104,7 +104,7 @@ uint32_t h264_find_next_start_code(const uint8_t *pBuf,
 
   uint8_t h264_nal_unit_type(const uint8_t *buffer);
 
-  int h264_nal_unit_type_is_slice(uint8_t nal_type);
+  int h264_nal_unit_type_is_slice(const uint8_t nal_type);
   int h264_find_slice_type(const uint8_t *buffer, 
 			   uint32_t buflen, 
 			   uint8_t *slice_type, 
@@ -124,8 +124,9 @@ uint32_t h264_find_next_start_code(const uint8_t *pBuf,
 
   bool h264_slice_is_idr(h264_decode_t *dec);
 
-  const char *h264_get_slice_name(uint8_t slice_type);
+  const char *h264_get_slice_name(const uint8_t slice_type);
 
+  bool h264_access_unit_is_sync(const uint8_t *pNal, uint32_t len);
 #ifdef __cplusplus
  }
 #endif

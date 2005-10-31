@@ -52,7 +52,7 @@ static int create_mpeg3_video (video_query_t *vq,
   plugin = check_for_video_codec(STREAM_TYPE_MPEG_FILE,
 				 "mp2v",
 				 NULL,
-				 -1,
+				 vq->type,
 				 -1,
 				 NULL,
 				 0,
@@ -206,7 +206,7 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
     plugin = check_for_video_codec(STREAM_TYPE_MPEG_FILE,
 				   "mp2v",
 				   NULL,
-				   -1,
+				   mpeg2ps_get_video_stream_type(file, 0),
 				   -1,
 				   NULL,
 				   0,
@@ -244,7 +244,7 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
     vq[video_offset].track_id = ix;
     vq[video_offset].stream_type = STREAM_TYPE_MPEG_FILE;
     vq[video_offset].compressor = "mp2v";
-    //vq[video_offset].type = mpeg3_video_layer(file, ix);
+    vq[video_offset].type = mpeg2ps_get_video_stream_type(file, ix);
     vq[video_offset].profile = -1;
     vq[video_offset].fptr = NULL;
     vq[video_offset].h = mpeg2ps_get_video_stream_height(file, ix);

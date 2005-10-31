@@ -197,7 +197,15 @@ int main(int argc, char** argv)
 	} else {
 	  memcpy(outfilename, infilename, suffix_len);
 	}
-	strcpy(outfilename + suffix_len, ".m2v");
+	mpeg2ps_video_type_t video_type = 
+	  mpeg2ps_get_video_stream_type(infile, video_stream);
+	switch (video_type) {
+	case MPEG_VIDEO_H264:
+	  strcpy(outfilename + suffix_len, ".264");
+	  break;
+	default:
+	  strcpy(outfilename + suffix_len, ".m2v");
+	}
       
 	outfile = fopen(outfilename, FOPEN_WRITE_BINARY);
 	cnt = 0;

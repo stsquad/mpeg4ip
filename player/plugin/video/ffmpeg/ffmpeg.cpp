@@ -28,6 +28,7 @@
 #include <mpeg2t/mpeg2t_defines.h>
 #include "mp4util/mpeg4_sdp.h"
 #include "mp4util/h264_sdp.h"
+#include <mpeg2ps/mpeg2_ps.h>
 
 static SConfigVariable MyConfigVariables[] = {
   CONFIG_BOOL(CONFIG_USE_FFMPEG, "UseFFmpeg", false),
@@ -74,6 +75,7 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
     return CODEC_ID_NONE;
   }
   if (strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0) {
+    if (type == MPEG_VIDEO_H264) return CODEC_ID_H264;
     return CODEC_ID_MPEG2VIDEO;
   }
 
@@ -201,6 +203,8 @@ static codec_data_t *ffmpeg_create (const char *stream_type,
       open_codec = ffmpeg_find_h264_size(ffmpeg, userdata, ud_size);
       ffmpeg_message(LOG_DEBUG, "ffmpeg", "open codec is %d", open_codec);
       run_userdata = true;
+    } else {
+      open_codec = false;
     }
     break;
   case CODEC_ID_MPEG4: {
@@ -400,6 +404,10 @@ static int ffmpeg_decode (codec_data_t *ptr,
 	return buflen;
       }
       ffmpeg->m_codec_opened = true;
+      ffmpeg_message(LOG_ERR, "ffmpeg", "opened codec");
+    } else {
+      ffmpeg_message(LOG_ERR, "ffmpeg", "no open %u "U64, buflen, ts);
+      return buflen;
     }
   }
 

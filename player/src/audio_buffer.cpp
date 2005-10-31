@@ -257,6 +257,7 @@ void CBufferAudioSync::set_config (uint32_t freq,
     m_msec_per_frame = (m_samples_per_frame * 1000);
     m_msec_per_frame /= m_freq;
     m_audio_configured = true;
+    m_psptr->send_sync_thread_a_message(MSG_AUDIO_CONFIGURED);
   }
 }
 

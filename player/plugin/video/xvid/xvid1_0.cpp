@@ -340,7 +340,7 @@ static int xvid_decode (codec_data_t *ptr,
   xvid_dec_stats_t stats;
   do {
     memset(&dec, 0, sizeof(dec));
-    memset(&stats, 0, sizeof(dec));
+    memset(&stats, 0, sizeof(stats));
 	   
     dec.version = XVID_VERSION;
     dec.bitstream = buffer;
