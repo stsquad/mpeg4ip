@@ -90,6 +90,7 @@
 #define VIDEO_FILTER_NONE      "none"
 #define VIDEO_FILTER_DEINTERLACE "deinterlace - blend"
 #define VIDEO_FILTER_DECIMATE  "deinterlace - decimate"
+#define VIDEO_FILTER_FFMPEG_DEINTERLACE_INPLACE "deinterlace - ffmpeg inplace"
 
 // to decide if we overwrite or not
 #define FILE_MP4_OVERWRITE 1

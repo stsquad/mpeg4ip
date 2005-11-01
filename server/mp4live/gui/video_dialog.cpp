@@ -54,6 +54,9 @@ static const char* aspectNames[] = {
 };
 static const char *profilefilterNames[] = {
   VIDEO_FILTER_NONE, VIDEO_FILTER_DEINTERLACE,
+#ifdef HAVE_FFMPEG
+  VIDEO_FILTER_FFMPEG_DEINTERLACE_INPLACE,
+#endif
 };
 
 static bool ValidateAndSave(void)

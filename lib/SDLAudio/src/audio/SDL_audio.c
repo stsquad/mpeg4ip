@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audio.c,v 1.4 2005/01/17 20:46:08 wmaycisco Exp $";
+ "@(#) $Id: SDL_audio.c,v 1.5 2005/11/01 20:13:18 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -137,7 +137,7 @@ static int SDL_RunAudio(void *audiop)
 		return(-1);
 	}
 	D(bug("OpenAudio...OK\n"));
-#endif
+#endif 
 
 	/* Perform any thread setup */
 	if ( audio->ThreadInit ) {
@@ -168,7 +168,9 @@ static int SDL_RunAudio(void *audiop)
 		silence = audio->spec.silence;
 		stream_len = audio->spec.size;
 	}
-	stream = audio->fake_stream;
+	stream = audio->GetAudioBuf(audio);
+	if (stream == NULL) 
+	  stream = audio->fake_stream;
 
 #ifdef ENABLE_AHI
 	SDL_mutexV(audio->mixer_lock);
@@ -441,7 +443,7 @@ int Our_SDL_OpenAudio(SDL_AudioSpec *desired, SDL_AudioSpec *obtained)
 		return(-1);
 	}
 
-	while(!audio_configured)
+	while(!audio_configured) 
 		SDL_Delay(100);
 #endif
 

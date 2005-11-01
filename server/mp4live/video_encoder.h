@@ -60,6 +60,11 @@ class CTimestampPush {
   uint m_in, m_out, m_max;
 };
 
+typedef enum VIDEO_FILTERS {
+  VF_NONE,
+  VF_DEINTERLACE,
+  VF_FFMPEG_DEINTERLACE_INPLACE,
+} VIDEO_FILTERS;
 
 class CVideoEncoder : public CMediaCodec {
 public:
@@ -152,7 +157,7 @@ public:
   u_int32_t		m_videoSrcUVCrop;
 
   // video destination info
-  bool                    m_videoFilterInterlace;
+  VIDEO_FILTERS         m_videoFilter;
   MediaType		m_videoDstType;
   float			m_videoDstFrameRate;
   Duration		m_videoDstFrameDuration;

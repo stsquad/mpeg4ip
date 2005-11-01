@@ -24,6 +24,14 @@
 #include "video_encoder.h"
 #include "video_encoder_base.h"
 #include "video_util_filter.h"
+#ifdef HAVE_FFMPEG
+#ifdef HAVE_FFMPEG_INSTALLED
+#include <ffmpeg/avcodec.h>
+#else
+#include <avcodec.h>
+#endif
+#endif
+
 // Video encoder initialization
 
 CVideoEncoder::CVideoEncoder(CVideoProfile *vp,
@@ -58,10 +66,14 @@ int CVideoEncoder::ThreadMain(void)
 
   const char *videoFilter;
   videoFilter = Profile()->GetStringValue(CFG_VIDEO_FILTER);
-  m_videoFilterInterlace = 
-    (strncasecmp(videoFilter, 
-		 VIDEO_FILTER_DEINTERLACE, 
-		 strlen(VIDEO_FILTER_DEINTERLACE)) == 0);
+  m_videoFilter = VF_NONE;
+  if (strcasecmp(videoFilter, VIDEO_FILTER_DEINTERLACE) == 0) {
+    m_videoFilter = VF_DEINTERLACE;
+#ifdef HAVE_FFMPEG
+  } else if (strcasecmp(videoFilter, VIDEO_FILTER_FFMPEG_DEINTERLACE_INPLACE) == 0) {
+    m_videoFilter = VF_FFMPEG_DEINTERLACE_INPLACE;
+#endif
+  }
   m_videoDstFrameRate = Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE);
   m_videoDstFrameDuration = 
     (Duration)(((float)TimestampTicks / m_videoDstFrameRate) + 0.5);
@@ -341,7 +353,7 @@ void CVideoEncoder::ProcessVideoYUVFrame(CMediaFrame *pFrame)
   }
   // this has to be rewritten to not mess with the original YUV, 
   // since it has to be done after the resizer.
-  if (m_videoFilterInterlace) {
+  if (m_videoFilter != VF_NONE) {
     if (mallocedYuvImage == NULL) {
       u_int8_t* YUV = (u_int8_t*)Malloc(m_videoDstYUVSize);
 		
@@ -359,8 +371,27 @@ void CVideoEncoder::ProcessVideoYUVFrame(CMediaFrame *pFrame)
       uvStride = yStride / 2;
       // need to copy
     }
-    video_filter_interlace((uint8_t *)yImage, 
-			   (uint8_t *)yImage + m_videoDstYSize, yStride);
+    switch (m_videoFilter) {
+    case VF_DEINTERLACE:
+      video_filter_interlace((uint8_t *)yImage, 
+			     (uint8_t *)yImage + m_videoDstYSize, yStride);
+      break;
+#ifdef HAVE_FFMPEG
+    case VF_FFMPEG_DEINTERLACE_INPLACE: {
+      AVPicture src;
+      avpicture_fill(&src, (uint8_t *)yImage, PIX_FMT_YUV420P, m_videoDstWidth, m_videoDstHeight);
+      avpicture_deinterlace(&src, &src, PIX_FMT_YUV420P, 
+			    m_videoDstWidth, m_videoDstHeight);
+      break;
+    }
+#else
+    case VF_FFMPEG_DEINTERLACE_INPLACE:
+#endif
+    case VF_NONE:
+    default:
+      break;
+    //debug_message("ffmpeg_deinterlace");
+    }
   }
   // if we want encoded video frames
   // this checkr really doesnt need to be here
