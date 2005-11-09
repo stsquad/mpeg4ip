@@ -990,6 +990,26 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
 {
   if (sptr->is_video) {
     if (sptr->have_h264) {
+      bool found_seq = false;
+      do {
+	if (h264_nal_unit_type(buffer) == H264_NAL_TYPE_SEQ_PARAM) {
+	  h264_decode_t dec;
+	  found_seq = true;
+	  if (h264_read_seq_info(buffer, buflen, &dec) >= 0) {
+	    sptr->video_profile = dec.profile;
+	    sptr->video_level = dec.level;
+	    sptr->w = dec.pic_width;
+	    sptr->h = dec.pic_height;
+	  }
+	} else {
+	  uint32_t offset = h264_find_next_start_code(buffer, buflen);
+	  if (offset == 0) buflen = 0;
+	  else {
+	    buffer += offset;
+	    buflen -= offset;
+	  }
+	}
+      } while (found_seq == false && buflen > 0);
       mpeg2ps_message(LOG_ERR, "need to info h264");
       sptr->ticks_per_frame = 90000 / 30;
       
@@ -1001,7 +1021,7 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
 				 &sptr->frame_rate,
 				 &sptr->bit_rate,
 				 NULL,
-				 &sptr->mpeg2_profile) < 0) {
+				 &sptr->video_profile) < 0) {
 	mpeg2ps_message(LOG_ERR, "Can't parse sequence header in first frame - stream\n",
 			sptr->m_stream_id);
 	sptr->m_stream_id = 0;
@@ -1520,18 +1540,19 @@ static bool invalid_video_streamno (mpeg2ps_t *ps, uint streamno)
   return false;
 }
 
-const char *mpeg2ps_get_video_stream_name (mpeg2ps_t *ps, uint streamno)
+char *mpeg2ps_get_video_stream_name (mpeg2ps_t *ps, uint streamno)
 {
   if (invalid_video_streamno(ps, streamno)) {
-    return 0;
+    return NULL;
   }
   if (ps->video_streams[streamno]->have_h264) {
-    return "h264-asdf";
+    return h264_get_profile_level_string(ps->video_streams[streamno]->video_profile,
+					 ps->video_streams[streamno]->video_level);
   }
   if (ps->video_streams[streamno]->have_mpeg2) {
-    return mpeg2_type(ps->video_streams[streamno]->mpeg2_profile);
+    return strdup(mpeg2_type(ps->video_streams[streamno]->video_profile));
   }
-  return "Mpeg-1";
+  return strdup("Mpeg-1");
 }
 
 mpeg2ps_video_type_t mpeg2ps_get_video_stream_type (mpeg2ps_t *ps, 
@@ -1587,7 +1608,7 @@ uint8_t mpeg2ps_get_video_stream_mp4_type (mpeg2ps_t *ps, uint streamno)
     return MP4_PRIVATE_VIDEO_TYPE;
   }
   if (ps->video_streams[streamno]->have_mpeg2) {
-    return mpeg2_profile_to_mp4_track_type(ps->video_streams[streamno]->mpeg2_profile);
+    return mpeg2_profile_to_mp4_track_type(ps->video_streams[streamno]->video_profile);
   } 
   return MP4_MPEG1_VIDEO_TYPE;
 }

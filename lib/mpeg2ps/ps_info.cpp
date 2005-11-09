@@ -95,13 +95,26 @@ int main(int argc, char** argv)
       printf("   No streams\n");
     } else {
       for (ix = 0; ix < max; ix++) {
-	printf("   stream %d: %s %ux%u, %.0f @ %.2f frames per second\n",
+	char *name = 
+	  mpeg2ps_get_video_stream_name(ps, ix);
+	printf("   stream %d: %s %ux%u", 
 	       ix,
-	       mpeg2ps_get_video_stream_name(ps, ix),
+	       name,
 	       mpeg2ps_get_video_stream_width(ps, ix),
-	       mpeg2ps_get_video_stream_height(ps, ix),
-	       mpeg2ps_get_video_stream_bitrate(ps, ix),
-	       mpeg2ps_get_video_stream_framerate(ps, ix));
+	       mpeg2ps_get_video_stream_height(ps, ix));
+	free(name);
+	double brate, framerate;
+	brate = mpeg2ps_get_video_stream_bitrate(ps, ix);
+	framerate = mpeg2ps_get_video_stream_framerate(ps, ix);
+	if (brate != 0.0 && framerate != 0.0) {
+	  printf(", %.0f @ %.2f frames per second", brate, framerate);
+	} else if (brate != 0.0) {
+	  printf(", %.0f", brate); 
+	} else if (framerate != 0.0) {
+	  printf("%.2f frames per second", framerate);
+	}
+	    
+	printf("\n");
       }
     }
     printf(" Audio streams:\n");

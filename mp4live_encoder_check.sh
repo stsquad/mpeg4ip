@@ -1,5 +1,18 @@
 #!/bin/sh
 
+if grep HAVE_MP4LIVE mpeg4ip_config.h | grep define > /dev/null; then
+  echo
+else
+   echo "MP4Live is not installed (requires V4L2 - check log)"
+   exit
+fi
+
+if grep HAVE_GTK mpeg4ip_config.h | grep define > /dev/null; then
+   echo
+else 
+   echo "You do not have GTK libraries installed; there will be no mp4live gui"
+fi
+
 echo
 echo "Mp4live encoder report:"
 have_ffmpeg=no

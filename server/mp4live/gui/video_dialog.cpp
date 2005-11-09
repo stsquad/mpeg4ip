@@ -64,7 +64,7 @@ static bool ValidateAndSave(void)
   GtkWidget *wid;
 
   // if previewing, stop video source
-  AVFlow->StopVideoPreview();
+  //AVFlow->StopVideoPreview();
 
   wid = lookup_widget(VideoSourceDialog, "VideoSourceFilter");
   
@@ -145,7 +145,8 @@ static bool ValidateAndSave(void)
 
     // restart video source
     if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-      AVFlow->StartVideoPreview();
+      //AVFlow->StartVideoPreview();
+      AVFlow->RestartVideo();
     }
 
     MainWindowDisplaySources();

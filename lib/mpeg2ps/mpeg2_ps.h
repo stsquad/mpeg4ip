@@ -82,8 +82,9 @@ extern "C" {
   uint32_t mpeg2ps_get_video_stream_count(mpeg2ps_t *ps);
   /*
    * mpeg2ps_get_video_stream_name - returns display name for stream
+   * must free after use
    */
-  const char *mpeg2ps_get_video_stream_name(mpeg2ps_t *ps, 
+  char *mpeg2ps_get_video_stream_name(mpeg2ps_t *ps, 
 					    uint streamno);
   /*
    * mpeg2ps_get_video_stream_type - returns enum type for stream

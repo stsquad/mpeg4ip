@@ -104,7 +104,6 @@ libmp4live_la_SOURCES = \
 	video_util_rgb.cpp \
 	video_util_tv.h \
 	video_util_tv.cpp \
-	video_v4l_source.cpp \
 	video_v4l_source.h \
 	video_v4l2_source.cpp \
 	video_v4l2_source.h \
@@ -169,4 +168,4 @@ mp4live_LDADD = \
 	@SDL_LIBS@ $(GUILIBS) @FFMPEG_LIB@ @LIBVORBIS_LIB@ $(XVID_LIB) \
 	@X264_LIB@ 
 
-EXTRA_DIST = $(ed2) 
+EXTRA_DIST = $(ed2) video_v4l_source.cpp 

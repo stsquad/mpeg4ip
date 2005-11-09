@@ -313,6 +313,8 @@ int main(int argc, char** argv)
 	error_message("%s version %s %s", argv[0], MPEG4IP_VERSION,
 		      get_linux_video_type());
 #ifndef HAVE_GTK
+	error_message("You may be expecting a GUI at this point, but you "
+		      "have not installed GTK-2.0 development libraries");
 	rc = nogui_main(pConfig);
 #else
 	if (headless) {

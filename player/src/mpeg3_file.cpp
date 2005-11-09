@@ -73,9 +73,14 @@ static int create_mpeg3_video (video_query_t *vq,
 
   char buffer[80];
   int bitrate;
-  ret = snprintf(buffer, 80, "%s Video, %d x %d, %g",
-		 mpeg2ps_get_video_stream_name(vfile, vq->track_id),
-		 vinfo->width, vinfo->height, vq->frame_rate);
+  char *name = mpeg2ps_get_video_stream_name(vfile, vq->track_id);
+  ret = snprintf(buffer, 80, "%s Video, %d x %d",
+		 name,
+		 vinfo->width, vinfo->height);
+  free(name);
+  if (vq->frame_rate != 0.0) {
+    ret += snprintf(buffer + ret, 80 - ret, ", %g", vq->frame_rate);
+  }
   bitrate = 
     (int)(mpeg2ps_get_video_stream_bitrate(vfile, vq->track_id) / 1000.0);
   if (bitrate > 0) {

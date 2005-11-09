@@ -127,6 +127,10 @@ uint32_t h264_find_next_start_code(const uint8_t *pBuf,
   const char *h264_get_slice_name(const uint8_t slice_type);
 
   bool h264_access_unit_is_sync(const uint8_t *pNal, uint32_t len);
+
+  // note - must free string
+  char *h264_get_profile_level_string(const uint8_t profile, 
+				      const uint8_t level);
 #ifdef __cplusplus
  }
 #endif

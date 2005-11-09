@@ -709,6 +709,14 @@ int parse_name_for_session (CPlayerSession *psptr,
   }
 
 
+  if (strcasecmp(suffix, ".m4v") == 0) {
+    err = create_media_for_mp4_file(psptr, 
+				    name, 
+				    have_audio_driver, 
+				    cc_vft);
+  }
+  if (err < 0) {
+      
   if (strcasecmp(suffix, ".sdp") == 0) {
     err = create_media_from_sdp_file(psptr, 
 				     name, 
@@ -804,6 +812,7 @@ int parse_name_for_session (CPlayerSession *psptr,
       }
       err = 0;
     }
+  }
   }
   
   if (err >= 0) {

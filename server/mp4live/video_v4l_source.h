@@ -32,9 +32,10 @@
 
 const char *get_linux_video_type(void);
 
-#ifdef HAVE_LINUX_VIDEODEV2_H
+#if 1
 #include "video_v4l2_source.h"
 #else
+// note - we no longer support v4l interfaces
 class CV4LVideoSource : public CMediaSource {
 public:
 	CV4LVideoSource() : CMediaSource() {

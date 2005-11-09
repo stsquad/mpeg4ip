@@ -109,7 +109,8 @@ typedef struct mpeg2ps_stream_t
   int have_mpeg2;
   double bit_rate;
   uint64_t ticks_per_frame;
-  uint8_t mpeg2_profile;
+  uint8_t video_profile;
+  uint8_t video_level;
   uint8_t audio_private_stream_info[6];
   bool lpcm_read_offset;
 } mpeg2ps_stream_t;

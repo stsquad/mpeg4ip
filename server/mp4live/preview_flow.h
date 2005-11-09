@@ -21,6 +21,7 @@ class CPreviewAVMediaFlow : public CAVMediaFlow {
   void StopVideoPreview(bool delete_it = true);
   virtual bool ProcessSDLEvents(bool process_quit = true);
   bool doingPreview(void) { return m_videoPreview != NULL; };
+  void RestartVideo(void);
  protected:
   void CreatePreview(void);
   void ConnectPreview(bool create_encoder = false);

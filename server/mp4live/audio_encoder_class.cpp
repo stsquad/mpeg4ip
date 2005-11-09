@@ -400,7 +400,7 @@ void CAudioEncoder::ProcessAudioFrame(CMediaFrame *pFrame)
        * and increment the srcFrameTimestamp
        */
       m_audioPreEncodingBufferLength -= pcmDataLength;
-      memcpy(
+      memmove(
 	     &m_audioPreEncodingBuffer[0],
 	     &m_audioPreEncodingBuffer[pcmDataLength],
 	     m_audioPreEncodingBufferLength);

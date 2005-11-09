@@ -670,3 +670,45 @@ extern "C" bool h264_access_unit_is_sync (const uint8_t *pNal, uint32_t len)
   } while (len > 0);
   return false;
 }
+
+extern "C" char *h264_get_profile_level_string (const uint8_t profile, 
+						const uint8_t level)
+{
+  char profileb[20], levelb[20];
+  if (profile == 66) {
+    strcpy(profileb, "Baseline");
+  } else if (profile == 77) {
+    strcpy(profileb, "Main");
+  } else if (profile == 88) {
+    strcpy(profileb, "Extended");
+  } else if (profile == 100) {
+    strcpy(profileb, "High");
+  } else if (profile == 110) {
+    strcpy(profileb, "High 10");
+  } else if (profile == 122) {
+    strcpy(profileb, "High 4:2:2");
+  } else if (profile == 144) {
+    strcpy(profileb, "High 4:4:4");
+  } else {
+    sprintf(profileb, "Unknown Profile %x", profile);
+  } 
+  switch (level) {
+  case 10: case 20: case 30: case 40: case 50:
+    sprintf(levelb, "%u", level / 10);
+    break;
+  case 11: case 12: case 13:
+  case 21: case 22:
+  case 31: case 32:
+  case 41: case 42:
+  case 51:
+    sprintf(levelb, "%u.%u", level / 10, level % 10);
+    break;
+  default:
+    sprintf(levelb, "unknown level %x", level);
+    break;
+  }
+  char *typebuffer = 
+    (char *)malloc(1 + strlen("H.264 @") + strlen(profileb) + strlen(levelb));
+  sprintf(typebuffer, "H.264 %s@%s", profileb, levelb);
+  return typebuffer;
+}

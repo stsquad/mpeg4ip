@@ -106,6 +106,9 @@ void CPreviewAVMediaFlow::StartVideoPreview(void)
 
 	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW) == false) {
 	  debug_message("preview is false");
+	  if (m_videoSource != NULL) {
+	    m_videoSource->Stop();
+	  }
 	  return;
 	}
 
@@ -179,4 +182,19 @@ bool CPreviewAVMediaFlow::ProcessSDLEvents (bool process_quit)
     }
   }
   return ret;
+}
+
+void CPreviewAVMediaFlow::RestartVideo (void)
+{
+  bool have_preview = m_videoPreview != NULL;
+  debug_message("in restart video");
+  if (have_preview || m_started) {
+    if (m_videoSource != NULL) {
+      m_videoSource->Stop();
+      m_videoSource->Start();
+    }
+  }
+  if (have_preview) {
+    StartVideoPreview();
+  }
 }

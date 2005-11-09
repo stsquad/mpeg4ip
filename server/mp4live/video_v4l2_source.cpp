@@ -22,7 +22,6 @@
  */
 
 #include "mp4live.h"
-#ifdef HAVE_LINUX_VIDEODEV2_H
 #include <sys/mman.h>
 
 #include "video_v4l_source.h"
@@ -61,7 +60,10 @@ int CV4LVideoSource::ThreadMain(void)
       if (pMsg != NULL) {
         switch (pMsg->get_value()) {
         case MSG_NODE_STOP_THREAD:
-          DoStopCapture();	// ensure things get cleaned up
+          while (DoStopCapture() == false) {
+	    SDL_Delay(10);	// ensure things get cleaned up
+	    debug_message("waiting for stop thread");
+	  }
           delete pMsg;
 	  debug_message("v4l2 thread exit");
           return 0;
@@ -70,6 +72,7 @@ int CV4LVideoSource::ThreadMain(void)
 	  debug_message("v4l2 thread start capture");
           break;
         case MSG_NODE_STOP:
+	  debug_message("v4l2 thread stop capture");
           DoStopCapture();
           break;
         }
@@ -85,6 +88,8 @@ int CV4LVideoSource::ThreadMain(void)
         DoStopCapture();
         break;
       }
+    } else {
+      DoStopCapture();
     }
   }
 
@@ -97,19 +102,28 @@ void CV4LVideoSource::DoStartCapture(void)
   if (m_source) {
     return;
   }
+  if (m_v4l_mutex == NULL) 
   m_v4l_mutex = SDL_CreateMutex();
+
   if (!Init()) return;
   m_source = true;
 }
 
-void CV4LVideoSource::DoStopCapture(void)
+bool CV4LVideoSource::DoStopCapture(void)
 {
-  if (!m_source) return;
-  //  DoStopVideo();
+  if (m_source) {
+    debug_message("dostopcapture - releasing device");
   ReleaseDevice();
+  }
   m_source = false;
+  if (ReleaseBuffers() == false) {
+    debug_message("releasebuffers false");
+    return false;
+  }
+
   SDL_DestroyMutex(m_v4l_mutex);
   m_v4l_mutex = NULL;
+  return true;
 }
 bool CV4LVideoSource::Init(void)
 {
@@ -143,6 +157,21 @@ static const uint32_t formats[] = {
 bool CV4LVideoSource::InitDevice(void)
 {
   int rc;
+  SDL_LockMutex(m_v4l_mutex);
+  if (m_buffers != NULL) {
+    unreleased_capture_buffers_t *p = 
+      MALLOC_STRUCTURE(unreleased_capture_buffers_t);
+    debug_message("creating unreleased capture buffer, version %u", 
+		  m_hardware_version);
+    p->buffer_list = m_buffers;
+    m_buffers = NULL;
+    p->hardware_version = m_hardware_version;
+    p->next = m_unreleased_buffers_list;
+    m_unreleased_buffers_list = p;
+  }
+  m_hardware_version++;
+  SDL_UnlockMutex(m_v4l_mutex);
+
   const char* deviceName = m_pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME);
   int buftype = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   bool pass = false;
@@ -487,16 +516,32 @@ void CV4LVideoSource::ReleaseDevice()
     error_message("Failed to stop video capture");
   }
 
-  // release device resources
-  for (uint32_t i = 0; i < m_buffers_count; i++) {
-    if (m_buffers[i].start)
-      munmap(m_buffers[i].start, m_buffers[i].length);
-  }
-  free(m_buffers);
-  m_buffers = NULL;
 
   close(m_videoDevice);
   m_videoDevice = -1;
+}
+bool CV4LVideoSource::ReleaseBuffers (void)
+{
+  if (m_buffers == NULL) return true;
+  ReleaseFrames();
+  // release device resources
+  bool have_buffers = false;
+  for (uint32_t i = 0; i < m_buffers_count; i++) {
+    if (m_buffers[i].start) {
+      if (m_buffers[i].in_use) {
+	have_buffers = true;
+	error_message("buffer %u still in use", i);
+      } else {
+      munmap(m_buffers[i].start, m_buffers[i].length);
+	m_buffers[i].start = NULL;
+      }
+    }
+  }
+  if (have_buffers) return false;
+  error_message("All buffers released");
+  free(m_buffers);
+  m_buffers = NULL;
+  return true;
 }
 	
 void CV4LVideoSource::SetVideoAudioMute(bool mute)
@@ -512,6 +557,7 @@ void CV4LVideoSource::SetVideoAudioMute(bool mute)
   struct v4l2_control control;
 
   control.id = V4L2_CID_AUDIO_MUTE;
+  control.value = 0;
   rc = ioctl(m_videoDevice, VIDIOC_G_CTRL, &control);
   if (rc < 0) {
     error_message("V4L2_CID_AUDIO_MUTE not supported");
@@ -644,10 +690,48 @@ void c_ReleaseFrame (void *f)
     CHECK_AND_FREE(yuv->y);
   } else {
     CV4LVideoSource *s = (CV4LVideoSource *)yuv->hardware;
-    s->IndicateReleaseFrame(yuv->hardware_index);
+    if (s->IsHardwareVersion(yuv->hardware_version)) {
+      s->IndicateReleaseFrame(yuv->hardware_index);
+    } else {
+      // need to free the buffer
+      //munmap(yuv->y, )
+      // hit the semaphore...
+      s->ReleaseOldFrame(yuv->hardware_version, yuv->hardware_index);
+    }
   }
   free(yuv);
 }
+
+void CV4LVideoSource::ReleaseOldFrame (uint hardware_version, 
+ 				       uint8_t index)
+{
+  SDL_LockMutex(m_v4l_mutex);
+  unreleased_capture_buffers_t *p = m_unreleased_buffers_list, *q = NULL;
+  while (p != NULL && p->hardware_version != hardware_version) {
+    q = p; 
+    p = p->next;
+  }
+  if (p != NULL) {
+    debug_message("release version %u index %u", 
+ 		  hardware_version, index);
+    p->buffer_list[index].in_use = false;
+    munmap(p->buffer_list[index].start, p->buffer_list[index].length);
+    p->buffer_list[index].start = NULL;
+    bool have_one = false;
+    for (uint32_t ix = 0; ix < m_buffers_count && have_one == false; ix++) {
+      have_one = p->buffer_list[index].start != NULL;
+    }
+    if (have_one) {
+      q->next = p->next;
+      free(p->buffer_list);
+      free(p);
+    }
+  } else
+    debug_message("couldn't release version %u index %u", 
+ 		  hardware_version, index);
+  SDL_UnlockMutex(m_v4l_mutex);
+}
+ 
 
 /*
  * Use the m_release_index_mask to indicate which indexes need to
@@ -673,38 +757,42 @@ void CV4LVideoSource::ReleaseFrames (void)
 	error_message("frame return");
       }
       struct v4l2_buffer buffer;
-      buffer.index = index;
-      buffer.memory = V4L2_MEMORY_MMAP;
-      buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+      m_buffers[index].in_use = false;
+      if (m_source) {
+	buffer.index = index;
+	buffer.memory = V4L2_MEMORY_MMAP;
+	buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	buffer.flags = 0;
 
-      // it appears that some cards, some drivers require a QUERYBUF
-      // before the QBUF.  This code is designed to do so, but only if
-      // we need to
-      if (m_use_alternate_release) {
-	rc = ioctl(m_videoDevice, VIDIOC_QUERYBUF, &buffer);
-	if (rc < 0) {
-	  error_message("Failed to query video capture buffer status");
-	}
-      }
-      rc = ioctl(m_videoDevice, VIDIOC_QBUF, &buffer);
-      if (rc < 0) {
+	// it appears that some cards, some drivers require a QUERYBUF
+	// before the QBUF.  This code is designed to do so, but only if
+	// we need to
 	if (m_use_alternate_release) {
-	  error_message("Could not enqueue buffer to video capture queue");
-	} else {
 	  rc = ioctl(m_videoDevice, VIDIOC_QUERYBUF, &buffer);
 	  if (rc < 0) {
 	    error_message("Failed to query video capture buffer status");
 	  }
-	  rc = ioctl(m_videoDevice, VIDIOC_QBUF, &buffer);
-	  if (rc < 0) {
-	    error_message("Failed to query video capture buffer status");
+	}
+	rc = ioctl(m_videoDevice, VIDIOC_QBUF, &buffer);
+	if (rc < 0) {
+	  if (m_use_alternate_release) {
+	    error_message("Could not enqueue buffer to video capture queue");
 	  } else {
-	    m_use_alternate_release = true;
+	    rc = ioctl(m_videoDevice, VIDIOC_QUERYBUF, &buffer);
+	    if (rc < 0) {
+	      error_message("Failed to query video capture buffer status");
+	    }
+	    rc = ioctl(m_videoDevice, VIDIOC_QBUF, &buffer);
+	    if (rc < 0) {
+	      error_message("Failed to query video capture buffer status");
+	    } else {
+	      m_use_alternate_release = true;
+	    }
 	  }
 	}
-      }
-      //      debug_message("rel %d", index);
-    } 
+	//      debug_message("rel %d", index);
+      } 
+    }
     index_mask <<= 1;
     index++;
   }
@@ -721,6 +809,8 @@ void CV4LVideoSource::ProcessVideo(void)
     if (index == -1) {
       return;
     }
+    m_buffers[index].in_use = true;
+    //debug_message("buffer %u in use", index);
 
     u_int8_t* mallocedYuvImage = NULL;
     u_int8_t* pY;
@@ -821,6 +911,7 @@ void CV4LVideoSource::ProcessVideo(void)
     yuv->w = m_videoSrcWidth;
     yuv->h = m_videoSrcHeight;
     yuv->hardware = this;
+    yuv->hardware_version = m_hardware_version;
     yuv->hardware_index = index;
     if (m_videoWantKeyFrame && frameTimestamp >= m_audioStartTimestamp) {
       yuv->force_iframe = true;
@@ -1005,4 +1096,3 @@ void CVideoCapabilities::Display (CLiveConfig *pConfig,
 	     );
   }
 }
-#endif

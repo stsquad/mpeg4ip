@@ -108,7 +108,7 @@ static const char *lockouts[] = {
   "TextEnabled",
   "TextSourceMenu",
 #endif
-  "VideoSourceMenu", // not if we want to switch sources mid stream
+  //"VideoSourceMenu", // not if we want to switch sources mid stream
   "AudioSourceMenu",
   "Duration", 
   "DurationType",

@@ -60,6 +60,7 @@ typedef struct yuv_media_frame_t {
   uint16_t y_stride;
   uint16_t uv_stride;
   void *hardware;
+  uint hardware_version;
   uint8_t  hardware_index;
   bool free_y;
   bool force_iframe;

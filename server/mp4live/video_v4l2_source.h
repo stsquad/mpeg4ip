@@ -31,9 +31,15 @@ class CV4LVideoSource : public CMediaSource {
   CV4LVideoSource() : CMediaSource() {
     m_videoDevice = -1;
     m_buffers = NULL;
+    m_unreleased_buffers_list = NULL;
     m_decimate_filter = false;
     m_use_alternate_release = false;
+    m_hardware_version = 0;
   }
+
+  bool IsHardwareVersion (uint version) {
+    return version == m_hardware_version;
+  };
 
   static bool InitialVideoProbe(CLiveConfig* pConfig);
 
@@ -56,13 +62,15 @@ class CV4LVideoSource : public CMediaSource {
       SDL_SemPost(m_myMsgQueueSemaphore);
   };
 
+  void ReleaseOldFrame(uint hardware_version, uint8_t index);
  protected:
   int ThreadMain(void);
   void DoStartCapture(void);
-  void DoStopCapture(void);
+  bool DoStopCapture(void);
   bool Init(void);
   bool InitDevice(void);
   void ReleaseDevice(void);
+  bool ReleaseBuffers(void);
   void ProcessVideo(void);
   int8_t AcquireFrame(Timestamp &frameTimestamp);
   void ReleaseFrames(void);
@@ -74,9 +82,18 @@ class CV4LVideoSource : public CMediaSource {
   typedef struct {
     void* start;
     __u32 length;
+    bool in_use;
   } capture_buffer_t;
 
+  typedef struct unreleased_capture_buffers_t {
+    struct unreleased_capture_buffers_t *next;
+    uint hardware_version;
+    capture_buffer_t *buffer_list;
+  };
+    
+  uint m_hardware_version;
   capture_buffer_t* m_buffers;
+  unreleased_capture_buffers_t *m_unreleased_buffers_list;
   uint32_t m_buffers_count;
   
   Timestamp m_videoCaptureStartTimestamp;

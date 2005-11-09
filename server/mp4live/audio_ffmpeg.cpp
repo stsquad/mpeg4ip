@@ -446,7 +446,6 @@ CFfmpegAudioEncoder::CFfmpegAudioEncoder(CAudioProfile *ap,
 bool CFfmpegAudioEncoder::Init (void)
 {
   const char *encoding = Profile()->GetStringValue(CFG_AUDIO_ENCODING);
-  uint32_t samplingRate = Profile()->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
 
   avcodec_init();
   avcodec_register_all();
@@ -462,6 +461,7 @@ bool CFfmpegAudioEncoder::Init (void)
     m_media_frame = ULAWAUDIOFRAME;
   } else if (strcasecmp(encoding, AUDIO_ENCODING_AMR) == 0) {
 #ifdef MAY_HAVE_AMR_CODEC
+    uint32_t samplingRate = Profile()->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
     if (samplingRate == 8000) {
       m_codec = avcodec_find_encoder(CODEC_ID_AMR_NB);
       m_media_frame= AMRNBAUDIOFRAME;
