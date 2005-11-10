@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: faad2.cpp,v 1.7 2004/11/19 23:24:09 wmaycisco Exp $
+** $Id: faad2.cpp,v 1.8 2005/11/10 22:03:19 wmaycisco Exp $
 **/
 #include "faad2.h"
 #include <mpeg4_audio_config.h>
@@ -363,7 +363,7 @@ static int aac_codec_check (lib_message_func_t message,
   }
   if (userdata != NULL) {
     mpeg4_audio_config_t audio_config;
-    decode_mpeg4_audio_config(userdata, userdata_size, &audio_config);
+    decode_mpeg4_audio_config(userdata, userdata_size, &audio_config, false);
     //    message(LOG_DEBUG, "aac", "audio type is %d", audio_config.audio_object_type);
     if (fmtp != NULL) free_fmtp_parse(fmtp);
     

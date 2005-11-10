@@ -29,6 +29,7 @@
 #include "SDL_syswm.h"
 #include "our_config_file.h"
 #include "mpeg4ip_utils.h"
+#include "player_util.h"
 
 //#define VIDEO_SYNC_FILL 1
 //#define SWAP_UV 1

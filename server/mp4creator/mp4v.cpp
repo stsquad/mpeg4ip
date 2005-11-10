@@ -514,7 +514,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
                 // deal with rendering time offsets
                 // that can occur when B frames are being used
                 // which is the case for all profiles except Simple Profile
-		haveBframes |= prevVopType == VOP_TYPE_B;
+		haveBframes |= (prevVopType == VOP_TYPE_B);
 
 		if ( lastFrame ) {
 		  // finish read frames

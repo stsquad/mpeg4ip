@@ -13,9 +13,7 @@ SUFFIXES = .asm
 SUBDIRS = codec win_client win_common win_gui
 
 noinst_LTLIBRARIES = libmp4playerutils.la libmp4player.la libmp4syncbase.la \
-	libmp4syncsdl.la libmp4decode_plugin.la
-
-lib_LTLIBRARIES = libmp4sdlvideo.la
+	libmp4syncsdl.la libmp4decode_plugin.la libmp4sdlvideo.la
 
 libmp4playerutils_la_SOURCES = \
 	our_bytestream.h \

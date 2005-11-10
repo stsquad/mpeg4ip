@@ -35,7 +35,7 @@
 class CSDLVideo {
  public:
   CSDLVideo(int initial_x = 0, int initial_y = 0, uint32_t mask = 0);
-  ~CSDLVideo(void);
+  virtual ~CSDLVideo(void);
   void set_name(const char *name);
   void set_image_size(unsigned int w, unsigned int h,
 		      double aspect_ratio);
@@ -43,13 +43,13 @@ class CSDLVideo {
 		       int pixel_width = -1, int pixel_height = -1,
 		       int max_width = -1, int max_height = -1);
 
-  void display_image(const uint8_t *y, const uint8_t *u, const uint8_t *v, 
+  virtual void display_image(const uint8_t *y, const uint8_t *u, const uint8_t *v, 
 		     uint32_t yStride = 0, uint32_t uvStride = 0);
   void blank_image(void);
   void set_cursor(bool setit);
   uint get_width (void) { return m_image_w; };
   uint get_height (void) { return m_image_h; };
- private:
+ protected:
   int m_pos_x, m_pos_y;
   uint32_t m_mask;
   SDL_Surface *m_screen;

@@ -504,7 +504,7 @@ void CheckStreamMuxConfig (CBitstream *bs) {
         progSIndx[streamCnt] = prog;
         laySIndx[streamCnt] = lay;
         streamID [ prog][ lay] = streamCnt++;
-        if ( prog == 0 & lay == 0 ) {
+        if ( prog == 0 && lay == 0 ) {
           CheckAudioSpecificConfig(bs);
         } else {
           temp = bs->GetBits(1);

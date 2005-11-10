@@ -4,7 +4,7 @@
 #include "mpeg4ip.h"
 #include "mp4v2/mp4.h"
 #include <mpeg4ip_bitstream.h>
-#include <getopt.h>
+#include <mpeg4ip_getopt.h>
 
 extern void decode_audio (uint8_t *vol, uint32_t len);
 
