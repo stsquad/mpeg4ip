@@ -47,6 +47,14 @@ static uint32_t *faac_bitrates_for_samplerate (uint32_t samplerate,
   return ret;
 }
 
+GUI_BOOL(gui_rfc3016, CFG_RTP_RFC3016, "Transmit AAC using RFC-3016 (LATM - for 3gp)");
+
+DECLARE_TABLE(faac_gui_options) = {
+  TABLE_GUI(gui_rfc3016),
+};
+
+DECLARE_TABLE_FUNC(faac_gui_options);
+
 audio_encoder_table_t faac_audio_encoder_table = {
   "AAC - FAAC", 
   AUDIO_ENCODER_FAAC,
@@ -55,7 +63,7 @@ audio_encoder_table_t faac_audio_encoder_table = {
   NUM_ELEMENTS_IN_ARRAY(samplingRateAllValues),
   faac_bitrates_for_samplerate,
   2,
-  NULL
+  TABLE_FUNC(faac_gui_options)
 };
 
 MediaType faac_mp4_fileinfo (CAudioProfile *pConfig,

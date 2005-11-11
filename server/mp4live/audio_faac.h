@@ -93,6 +93,7 @@ protected:
 };
 
 extern audio_encoder_table_t faac_audio_encoder_table;
+EXTERN_TABLE_F(faac_gui_options);
 #endif
 #endif /* __AUDIO_FAAC_H__ */
 

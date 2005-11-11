@@ -98,10 +98,6 @@ int main(int argc, char** argv)
 		    fprintf(stdout, " Metadata Writer: %s\n", value);
 		    free(value);
 		  }
-		  if (MP4GetMetadataComment(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, " Metadata Comment: %s\n", value);
-		    free(value);
-		  }
 		  if (MP4GetMetadataTool(mp4file, &value) && value != NULL) {
 		    fprintf(stdout, " Metadata Tool: %s\n", value);
 		    free(value);

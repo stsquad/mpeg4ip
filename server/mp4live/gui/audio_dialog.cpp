@@ -802,6 +802,7 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
   gtk_widget_show(alignment19);
   gtk_container_add(GTK_CONTAINER(AudioEncoderSettingsButton), alignment19);
 
+
   hbox73 = gtk_hbox_new(FALSE, 2);
   gtk_widget_show(hbox73);
   gtk_container_add(GTK_CONTAINER(alignment19), hbox73);
@@ -841,6 +842,13 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
 		   audio_encoder_table_size,
 		   table_index);
 
+  bool enable_settings;
+  if (audio_encoder_table[table_index]->get_gui_options == NULL) {
+    enable_settings = false;
+  } else {
+    enable_settings = (audio_encoder_table[table_index]->get_gui_options)(NULL, NULL);
+  }
+  gtk_widget_set_sensitive(AudioEncoderSettingsButton, enable_settings);
 
   label98 = gtk_label_new(_("Encoding:"));
   gtk_widget_show(label98);

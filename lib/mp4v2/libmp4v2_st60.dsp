@@ -161,10 +161,6 @@ SOURCE=.\atom_meta.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\atom_mp4a.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\atom_mp4s.cpp
 # End Source File
 # Begin Source File

@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(mpeg4ip, 1.4)
+AC_INIT(mpeg4ip, 1.4.1)
 AM_CONFIG_HEADER(mpeg4ip_config.h)
 dnl Prevent user from running just ./configure
 AC_CHECK_FILE(./bootstrapped, [did_bootstrap=yes], [did_bootstrap=no])
@@ -513,6 +513,14 @@ AC_SUBST(FFMPEG_INC)
 AC_SUBST(FFMPEG_LIB)
 AM_CONDITIONAL(HAVE_FFMPEG, [test x$have_ffmpeg = xtrue])
 
+LAME_LIB=
+FAAC_LIB=
+X264_LIB=
+
+if test x$have_mp4live = xtrue; then
+
+dnl mp4live test
+
 AC_ARG_ENABLE(mp3lame,
 [AC_HELP_STRING([--disable-mp3lame],[disable use of installed lame library])],
 [ case "${enableval}" in
@@ -537,7 +545,6 @@ if test x$have_lame = xtrue; then
 else
    LAME_LIB=
 fi
-AC_SUBST(LAME_LIB)
 
 AC_ARG_ENABLE(faac,
 [AC_HELP_STRING([--disable-faac],[disable use of installed faac library])],
@@ -563,7 +570,6 @@ if test x$have_faac = xtrue; then
 else
    FAAC_LIB=
 fi
-AC_SUBST(FAAC_LIB)
 
 AC_ARG_ENABLE(x264,
 [AC_HELP_STRING([--disable-x264],[disable use of installed x264 library])],
@@ -579,7 +585,7 @@ if test x$disable_it = xyes; then
   AC_MSG_NOTICE([disabling x264 library])
 else
   saved_LIBS="$LIBS"
-  LIBS="$LIBS -lm -lz"
+  LIBS="$LIBS -lm -lz -lpthread"
   AC_CHECK_LIB(x264, x264_encoder_open, [have_x264=true], [have_x264=false])
   LIBS=$saved_LIBS
 fi
@@ -590,6 +596,11 @@ else
    X264_LIB=
 fi
 
+dnl - end of mp4live test
+fi
+
+AC_SUBST(LAME_LIB)
+AC_SUBST(FAAC_LIB)
 AC_SUBST(X264_LIB)
 AM_CONDITIONAL(HAVE_X264, [test x$have_x264 = xtrue])
 	   
