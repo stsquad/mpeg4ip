@@ -739,7 +739,8 @@ static char *udp_host_addr6(socket_udp *s)
 	int 			 gai_err, newsock;
 	struct addrinfo 	 hints, *ai;
 	struct sockaddr_in6 	 local, addr6;
-	int len = sizeof(local), result = 0;
+	socklen_t len = sizeof(local);
+	int result = 0;
 
 	newsock=socket(AF_INET6, SOCK_DGRAM,0);
     memset ((char *)&addr6, 0, len);

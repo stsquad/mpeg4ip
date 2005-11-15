@@ -66,6 +66,11 @@ static int rtsp_lookup_server_address (rtsp_client_t *info)
 	       info->server_name, h_errno);
     return h_errno;
   }
+  if (info->addr_info->ai_family == AF_INET) {
+    // set this, in case we need it later
+    info->server_addr.s_addr = 
+      ((struct sockaddr_in *)(info->addr_info->ai_addr))->sin_addr.s_addr;
+  }
 #else
 #if defined(_WIN32) || !defined(HAVE_INET_NTOA)
   info->server_addr.s_addr = inet_addr(server_name);

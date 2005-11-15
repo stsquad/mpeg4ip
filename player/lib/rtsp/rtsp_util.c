@@ -387,26 +387,23 @@ struct in_addr rtsp_get_server_ip_address (rtsp_session_t *session)
 //  dan works for IPv6 servers
 char  *rtsp_get_server_ip_address_string (rtsp_session_t *session)
 { 
-  char *str = NULL;
-  char *ret;
-
 #ifdef HAVE_IPv6
-  if (session->parent->addr_info->ai_family == AF_INET6) {
-    struct sockaddr_in6 *ip6_sock =
-      (struct sockaddr_in6 *)session->parent->addr_info->ai_addr;
-    str = (char *)malloc(INET6_ADDRSTRLEN +1);
-    if (inet_ntop(session->parent->addr_info->ai_family, 
-		   &ip6_sock->sin6_addr,
-		   str, 
-		   INET6_ADDRSTRLEN) != NULL) {
-    } else {
-      rtsp_debug(LOG_CRIT, "Could not translate IPv6 source address");
-      strcpy(str, "oops");
-    }
-    return str; 
+  bool is_ipv6	= (session->parent->addr_info->ai_family == AF_INET6);
+  socklen_t buf_len = 1 + is_ipv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN;
+  char * buf	= (char *)malloc(buf_len);
+  void *in_addr = is_ipv6
+    ? (void *)&((struct sockaddr_in6 *)session->parent->addr_info->ai_addr)->sin6_addr
+    : (void *)&((struct sockaddr_in *)session->parent->addr_info->ai_addr)->sin_addr;
+  if (inet_ntop(session->parent->addr_info->ai_family,
+		in_addr, buf, buf_len) == NULL) {
+    rtsp_debug(LOG_CRIT, "Could not translate IPv%d source address (%s)",
+	       is_ipv6 ? 6 : 4, strerror(errno));
+    strcpy(buf, "oops");
   }
-#endif
-  ret = inet_ntoa(session->parent->server_addr);
-  str = strdup(ret);
+  return buf; 
+#else
+  char *ret = inet_ntoa(session->parent->server_addr);
+  char *str = strdup(ret);
   return str; 
+#endif
 }

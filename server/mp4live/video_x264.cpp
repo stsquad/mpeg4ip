@@ -31,10 +31,17 @@
 
 static config_index_t CFG_X264_USE_CABAC;
 static config_index_t CFG_X264_USE_CBR;
-
+static config_index_t CFG_X264_BIT_RATE_TOLERANCE;
+static config_index_t CFG_X264_USE_VBV;
+static config_index_t CFG_X264_VBV_BITRATE_MULT;
+static config_index_t CFG_X264_VBV_BUFFER_SIZE_MULT;
 static SConfigVariable X264EncoderVariables[] = {
   CONFIG_BOOL(CFG_X264_USE_CABAC, "x264UseCabac", true),
   CONFIG_BOOL(CFG_X264_USE_CBR, "x264UseCbr", true),
+  CONFIG_FLOAT(CFG_X264_BIT_RATE_TOLERANCE, "x264BitRateTolerance", 1.0),
+  CONFIG_BOOL(CFG_X264_USE_VBV, "x264UseVbv", false),
+  CONFIG_FLOAT(CFG_X264_VBV_BITRATE_MULT, "x264VbvBitRateMult", 1.0),
+  CONFIG_FLOAT(CFG_X264_VBV_BUFFER_SIZE_MULT, "x264VbvBufferSizeMult", 10.0),
 };
 
 GUI_BOOL(gui_cabac, CFG_X264_USE_CABAC, "Use Cabac");
@@ -42,11 +49,25 @@ GUI_BOOL(gui_cbr, CFG_X264_USE_CBR, "Use CBR");
 GUI_BOOL(gui_bframe, CFG_VIDEO_USE_B_FRAMES, "Use B Frames");
 GUI_INT_RANGE(gui_bframenum, CFG_VIDEO_NUM_OF_B_FRAMES, "Number of B frames", 1, 4);
 
+GUI_FLOAT_RANGE(gui_brate, CFG_X264_BIT_RATE_TOLERANCE, "Bit Rate Tolerance", 
+		.01, 100.0);
+
+GUI_BOOL(gui_vbv, CFG_X264_USE_VBV, "Use VBV Settings");
+GUI_FLOAT_RANGE(gui_vbvm, CFG_X264_VBV_BITRATE_MULT, 
+		"VBV Bit Rate Multiplier", 1.0, 2.0);
+GUI_FLOAT_RANGE(gui_vbv2, CFG_X264_VBV_BUFFER_SIZE_MULT,
+		"VBV Buffer Size Multiplier", 0.0001, 100.0);
+
+
 DECLARE_TABLE(x264_gui_options) = {
   TABLE_GUI(gui_cabac),
   TABLE_GUI(gui_cbr),
   TABLE_GUI(gui_bframe),
   TABLE_GUI(gui_bframenum),
+  TABLE_GUI(gui_brate),
+  TABLE_GUI(gui_vbv),
+  TABLE_GUI(gui_vbvm),
+  TABLE_GUI(gui_vbv2),
 };
 DECLARE_TABLE_FUNC(x264_gui_options);
 
@@ -120,12 +141,23 @@ bool CX264VideoEncoder::Init (void)
     m_param.i_bframe = 0;
   m_param.rc.i_bitrate = Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE);
   m_param.rc.b_cbr = Profile()->GetBoolValue(CFG_X264_USE_CBR) ? 1 : 0;
+  m_param.rc.f_rate_tolerance = Profile()->GetFloatValue(CFG_X264_BIT_RATE_TOLERANCE);
+  if (Profile()->GetBoolValue(CFG_X264_USE_VBV)) {
+    m_param.rc.i_vbv_max_bitrate = (int)
+      ((float)m_param.rc.i_bitrate * 
+       Profile()->GetFloatValue(CFG_X264_VBV_BITRATE_MULT));
+    float calc;
+    calc = m_param.rc.i_bitrate;
+    calc *= Profile()->GetFloatValue(CFG_X264_VBV_BUFFER_SIZE_MULT);
+    calc /= Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE);
+    m_param.rc.i_vbv_buffer_size = (int)calc;
+  }
   //m_param.rc.b_stat_write = 0;
   //m_param.analyse.inter = 0;
   m_param.analyse.b_psnr = 0;
   m_param.b_cabac = Profile()->GetBoolValue(CFG_X264_USE_CABAC) ? 1 : 0;
   m_param.pf_log = x264_log;
-  
+
   m_h = x264_encoder_open(&m_param);
   if (m_h == NULL) {
     error_message("Couldn't init x264 encoder");

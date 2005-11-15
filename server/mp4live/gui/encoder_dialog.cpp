@@ -127,12 +127,12 @@ static GtkWidget *CreateFloat (CConfigEntry *pConfig,
 
   if (bptr->type == GUI_TYPE_FLOAT) {
     adj = gtk_adjustment_new(pConfig->GetFloatValue(*bptr->index),
-			     0, 1e+11, 1, 10, 10);
+			     0, 1e+11, .1, 1, 1);
   } else {
     encoder_gui_options_float_range_t *iptr =
       (encoder_gui_options_float_range_t *)bptr;
     adj = gtk_adjustment_new(pConfig->GetFloatValue(*bptr->index),
-			     iptr->min_range, iptr->max_range, 1, 5, 5);
+			     iptr->min_range, iptr->max_range, .1, 1, 1);
   }
   spin = gtk_spin_button_new(GTK_ADJUSTMENT(adj), 1, 4);
   gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(spin), TRUE);
