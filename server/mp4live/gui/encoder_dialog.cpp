@@ -63,7 +63,7 @@ on_EncoderSettingsDialog_response         (GtkWidget       *dialog,
       case GUI_TYPE_FLOAT:
       case GUI_TYPE_FLOAT_RANGE:
 	pConfig->SetFloatValue(*bptr->index,
-			       gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(action)));
+			       gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(action)));
 	break;
       case GUI_TYPE_STRING: 
 	str = gtk_entry_get_text(GTK_ENTRY(action));
