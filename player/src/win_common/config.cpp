@@ -34,7 +34,8 @@ int CConfigSet::ReadVariablesFromRegistry (const char *reg_name,
 	    buflen = sizeof(buff);
 	    result = newrk.QueryValue(buff, m_variables[ix].m_sName,
 				      &buflen);
-	    if (result == ERROR_SUCCESS) {
+	    if (result == ERROR_SUCCESS && *buff != 0) {
+		  if (buff[0] == '\"' &&  buff[1] == '\"') break;
 	      this->SetStringValue(ix, buff);
 	    }
 	    break;
