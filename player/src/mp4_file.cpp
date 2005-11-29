@@ -444,7 +444,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
     if (strcasecmp(media_data_name, "mp4v") == 0 ||
 	strcasecmp(media_data_name, "encv") == 0) {
       uint8_t video_type = MP4GetTrackEsdsObjectTypeId(m_mp4file, trackId);
-      uint8_t profileID = MP4GetVideoProfileLevel(m_mp4file);
+      uint8_t profileID = MP4GetVideoProfileLevel(m_mp4file, trackId);
       mp4f_message(LOG_DEBUG, "MP4 - got track %x profile ID %d", 
 		 trackId, profileID);
       MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));

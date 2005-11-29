@@ -356,7 +356,8 @@ u_int8_t MP4GetSceneProfileLevel(MP4FileHandle hFile);
 
 bool MP4SetSceneProfileLevel(MP4FileHandle hFile, u_int8_t value);
 
-u_int8_t MP4GetVideoProfileLevel(MP4FileHandle hFile);
+u_int8_t MP4GetVideoProfileLevel(MP4FileHandle hFile,
+				 MP4TrackId trackId DEFAULT(MP4_INVALID_TRACK_ID));
 
 bool MP4SetVideoProfileLevel(MP4FileHandle hFile, u_int8_t value);
 

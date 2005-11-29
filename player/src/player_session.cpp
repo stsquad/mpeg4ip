@@ -90,7 +90,8 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   // if we are passed a persistence, it is grabbed...
   m_video_persistence = video_persistence;
   m_grabbed_video_persistence = m_video_persistence != NULL;
-  m_init_tries_made = 0;
+  m_init_tries_made_with_media = 0;
+  m_init_tries_made_with_no_media = 0;
   m_message[0] = '\0';
   m_stop_processing = SDL_CreateSemaphore(0);
   m_audio_count = m_video_count = m_text_count = 0;

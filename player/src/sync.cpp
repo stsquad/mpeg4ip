@@ -231,7 +231,7 @@ bool CPlayerSession::initialize_timed_sync (uint &failed, bool &any_inited)
 	  failed |= 4;
 	}
       } else any_inited = true;
-    }
+    } else any_inited = true;
   }
   return all_initialized;
 }
@@ -244,7 +244,7 @@ int CPlayerSession::sync_thread_init (void)
   int ret = 1;
   uint failed = 0;
   CTimedSync *ts;
-  bool all_timed_inited, audio_inited = true, any_timed_inited;
+  bool all_timed_inited, audio_inited = false, any_timed_inited;
   if (m_audio_sync != NULL) {
     ret = m_audio_sync->initialize_audio(m_timed_sync_list != NULL);
     if (ret <= 0) {
@@ -259,13 +259,14 @@ int CPlayerSession::sync_thread_init (void)
   all_timed_inited = initialize_timed_sync(failed, any_timed_inited);
       
 
-  if (audio_inited && all_timed_inited) {
+  if ((m_audio_sync == NULL || audio_inited) && 
+      all_timed_inited) {
     return (SYNC_STATE_WAIT_SYNC); 
   } 
 
-  if (audio_inited || any_timed_inited) {
-    m_init_tries_made++;
-    if (m_init_tries_made > 500) {
+  if ((m_audio_sync != NULL && audio_inited) || any_timed_inited) {
+    m_init_tries_made_with_no_media++;
+    if (m_init_tries_made_with_no_media > 5 * 100) {
       sync_message(LOG_CRIT, "One media is not initializing; it might not be receiving correctly");
       if ((failed & 0x2) != 0 ) {
 	sync_message(LOG_INFO, "video failed");
@@ -279,7 +280,14 @@ int CPlayerSession::sync_thread_init (void)
 
       ret = -1;
     }
+  }  else {
+    m_init_tries_made_with_no_media++;
+    if (m_init_tries_made_with_no_media > 30 * 100) {
+      sync_message(LOG_CRIT, "No media has been initialized or received");
+      ret = -1;
+    }
   }
+		 
   if (ret == -1) {
     sync_message(LOG_CRIT, "Fatal error while initializing hardware");
     ts = m_timed_sync_list;

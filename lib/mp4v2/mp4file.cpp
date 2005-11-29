@@ -2502,7 +2502,8 @@ bool MP4File::GetTrackH264SeqPictHeaders (MP4TrackId trackId,
 
   *ppSeqHeaderSize = pSeqHeaderSize;
   for (count = 0; count < pSeqCount->GetValue(); count++) {
-    pSeqVal->GetValue(&(ppSeqHeader[count]), &(pSeqHeaderSize[count]));
+    pSeqVal->GetValue(&(ppSeqHeader[count]), &(pSeqHeaderSize[count]),
+		      count);
   }
   ppSeqHeader[count] = NULL;
   pSeqHeaderSize[count] = 0;
@@ -2526,7 +2527,8 @@ bool MP4File::GetTrackH264SeqPictHeaders (MP4TrackId trackId,
   *ppPictHeaderSize = pPictHeaderSize;
 
   for (count = 0; count < pPictCount->GetValue(); count++) {
-    pPictVal->GetValue(&(ppPictHeader[count]), &(pPictHeaderSize[count]));
+    pPictVal->GetValue(&(ppPictHeader[count]), &(pPictHeaderSize[count]),
+		       count);
   }
   ppPictHeader[count] = NULL;
   pPictHeaderSize[count] = 0;

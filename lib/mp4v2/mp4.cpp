@@ -295,7 +295,8 @@ extern "C" bool MP4SetSceneProfileLevel(MP4FileHandle hFile, u_int8_t value)
 	return false;
 }
 
-extern "C" u_int8_t MP4GetVideoProfileLevel(MP4FileHandle hFile)
+extern "C" u_int8_t MP4GetVideoProfileLevel(MP4FileHandle hFile,
+					    MP4TrackId trackId)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
@@ -305,6 +306,32 @@ extern "C" u_int8_t MP4GetVideoProfileLevel(MP4FileHandle hFile)
 			PRINT_ERROR(e);
 			delete e;
 		}
+		if (MP4_IS_VALID_TRACK_ID(trackId)) {
+		  uint8_t *foo;
+		  uint32_t bufsize;
+		  uint8_t type;
+		  // for mpeg4 video tracks, try to look for the VOSH header,
+		  // which has this info.
+		  type = MP4GetTrackEsdsObjectTypeId(hFile, trackId);
+		  if (type == MP4_MPEG4_VIDEO_TYPE) {
+		    MP4GetTrackESConfiguration(hFile, 
+					       trackId,
+					       &foo, 
+					       &bufsize);
+		    uint8_t *ptr = foo;
+		    while (bufsize > 0) {
+		      if (htonl(*(uint32_t *)ptr) == 0x1b0) {
+			uint8_t ret = ptr[4];
+			free(foo);
+			return ret;
+		      }
+		      ptr++;
+		      bufsize--;
+		    }
+		    free(foo);
+		  }
+		}
+		  
 	}
 	return 0;
 }

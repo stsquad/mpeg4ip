@@ -290,7 +290,8 @@ class CPlayerSession {
   bool m_grabbed_video_persistence;
   int m_max_width;
   int m_max_height;
-  uint m_init_tries_made;
+  uint m_init_tries_made_with_media;
+  uint m_init_tries_made_with_no_media;
   char m_message[512];
   control_callback_vft_t *m_cc_vft;
   SDL_sem *m_stop_processing;
