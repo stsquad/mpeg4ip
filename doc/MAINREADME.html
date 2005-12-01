@@ -1108,6 +1108,16 @@ these by removing the l when you get the warning.
   Neither QT or Real appear to understand mpeg1/2 or mp3 content in a .mp4
   container file for local playback.
 </li>
+<li>
+mp4live will not work with an audio only stream that needs to take
+its output from a TV tuner - we will not enable the TV tuner output.
+<br>
+To make this work, try issuing the following commands before running mp4live:
+<br>
+<code>v4lctl -c &lt;video device&gt; mute off</code>
+<br>
+<code>v4lctl -c &lt;video device&gt; volume 100%</code>
+</li>
 </ul>
 <P>
 <div id="contrib">

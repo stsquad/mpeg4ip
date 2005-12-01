@@ -197,6 +197,9 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
     offset += sizeLength;
     remaining -= sizeLength;
     if (nal_size > maxPayloadSize) {
+      /*
+       * We have fragmentation of a NAL here
+       */
 #ifdef DEBUG_H264_HINT
       printf("fragmentation units\n");
 #endif
@@ -243,19 +246,30 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
 	// we have a remaining NAL
 	uint32_t next_nal_size = 
 	  h264_get_nal_size(pSampleBuffer + next_size_offset, sizeLength);
+#ifdef DEBUG_H264_HINT
+	printf("next nal size %u\n", next_nal_size);
+#endif
 	if (next_nal_size + nal_size + 4 + 1 <= maxPayloadSize) {
 	  have_stap = true;
 	} 
       } 
       if (have_stap == false) {
+	// we have to fit this nal into a packet - the next one is too big
+#ifdef DEBUG_H264_HINT
+	printf("have single NAL packet \n");
+#endif
 	MP4AddRtpPacket(mp4File, hintTrackId, next_size_offset >= remaining);
 	MP4AddRtpSampleData(mp4File, hintTrackId, sampleId, 
 			    offset, nal_size);
 	offset += nal_size;
 	remaining -= nal_size;
       } else {
+	// we can fit multiple NALs into this packet
 	uint32_t bytes_in_stap = 1 + 2 + nal_size;
 	uint8_t max_nri = pSampleBuffer[offset] & 0x70;
+#ifdef DEBUG_H264_HINT
+	printf("Start processing stap\n");
+#endif
 	while (next_size_offset < remaining && bytes_in_stap < maxPayloadSize) {
 	  uint8_t nri;
 	  nri = pSampleBuffer[next_size_offset + sizeLength] & 0x70;
@@ -265,9 +279,18 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
 	    h264_get_nal_size(pSampleBuffer + next_size_offset, sizeLength);
 	  bytes_in_stap += 2 + next_nal_size;
 	  next_size_offset += sizeLength + next_nal_size;
+#ifdef DEBUG_H264_HINT
+	  printf("next nal %u bytes in stap %u next offset %u\n",
+		 next_nal_size, bytes_in_stap, next_size_offset);
+#endif
 	}
 	bool last;
-	if (next_size_offset <= remaining && bytes_in_stap <= maxPayloadSize) {
+#ifdef DEBUG_H264_HINT
+	printf("done - next_size offset %u remain %u bytes %u\n",
+	       next_size_offset, remaining, bytes_in_stap);
+#endif
+	if (next_size_offset >= (offset +  remaining) && 
+	    bytes_in_stap <= maxPayloadSize) {
 	  // stap is last frame
 	  last = true;
 	} else last = false;
