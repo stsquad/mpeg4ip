@@ -126,7 +126,7 @@ static void DumpTrack (MP4FileHandle mp4file, MP4TrackId tid,
   uint64_t msectime;
   const char *media_data_name;
   uint32_t len_size = 0;
-
+  uint8_t video_type = MP4GetTrackEsdsObjectTypeId(mp4file, tid);
   numSamples = MP4GetTrackNumberOfSamples(mp4file, tid);
   max_frame_size = MP4GetTrackMaxSampleSize(mp4file, tid) + 4;
   media_data_name = MP4GetTrackMediaDataName(mp4file, tid);
@@ -170,7 +170,8 @@ static void DumpTrack (MP4FileHandle mp4file, MP4TrackId tid,
 	   sampleTime, msectime);
     if (dump_rend) printf(" %6"U64F, sampleRenderingOffset);
     if (strcasecmp(media_data_name, "mp4v") == 0) {
-      ParseMpeg4(temp, this_frame_size, dump_off);
+      if (MP4_IS_MPEG4_VIDEO_TYPE(video_type))
+	ParseMpeg4(temp, this_frame_size, dump_off);
     } else if (strcasecmp(media_data_name, "avc1") == 0) {
       ParseH264(temp, this_frame_size, len_size, dump_off);
     }

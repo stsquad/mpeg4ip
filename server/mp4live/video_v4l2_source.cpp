@@ -113,7 +113,13 @@ bool CV4LVideoSource::DoStopCapture(void)
 {
   if (m_source) {
     debug_message("dostopcapture - releasing device");
-  ReleaseDevice();
+    ReleaseDevice();
+#ifdef CAPTURE_RAW
+    if (m_rawfile) {
+      fclose(m_rawfile);
+      m_rawfile = NULL;
+    }
+#endif
   }
   m_source = false;
   if (ReleaseBuffers() == false) {
@@ -144,8 +150,8 @@ bool CV4LVideoSource::Init(void)
 }
 
 static const uint32_t formats[] = {
-  V4L2_PIX_FMT_YVU420,
   V4L2_PIX_FMT_YUV420,
+  V4L2_PIX_FMT_YVU420,
   V4L2_PIX_FMT_YUYV,
   V4L2_PIX_FMT_UYVY,
   V4L2_PIX_FMT_YYUV,
@@ -157,6 +163,9 @@ static const uint32_t formats[] = {
 bool CV4LVideoSource::InitDevice(void)
 {
   int rc;
+#ifdef CAPTURE_RAW
+  m_rawfile = fopen("raw.yuv", FOPEN_WRITE_BINARY);
+#endif
   SDL_LockMutex(m_v4l_mutex);
   if (m_buffers != NULL) {
     unreleased_capture_buffers_t *p = 
@@ -811,6 +820,10 @@ void CV4LVideoSource::ProcessVideo(void)
     }
     m_buffers[index].in_use = true;
     //debug_message("buffer %u in use", index);
+
+#ifdef CAPTURE_RAW
+    fwrite(m_buffers[index].start, m_videoSrcYUVSize, 1, m_rawfile);
+#endif
 
     u_int8_t* mallocedYuvImage = NULL;
     u_int8_t* pY;

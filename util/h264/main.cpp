@@ -1,7 +1,28 @@
+/*
+ * The contents of this file are subject to the Mozilla Public
+ * License Version 1.1 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of
+ * the License at http://www.mozilla.org/MPL/
+ * 
+ * Software distributed under the License is distributed on an "AS
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * rights and limitations under the License.
+ * 
+ * The Original Code is MPEG4IP.
+ * 
+ * The Initial Developer of the Original Code is Cisco Systems Inc.
+ * Portions created by Cisco Systems Inc. are
+ * Copyright (C) Cisco Systems Inc. 2005.  All Rights Reserved.
+ * 
+ * Contributor(s): 
+ *		Bill May wmay@cisco.com
+ */
 #include "mpeg4ip.h"
-#include <mpeg4ip_bitstream.h>
+#include "mpeg4ip_getopt.h"
+#include "mpeg4ip_bitstream.h"
 #include <math.h>
-#include <mp4av_h264.h>
+#include "mp4av_h264.h"
 
 #define H264_START_CODE 0x000001
 #define H264_PREVENT_3_BYTE 0x000003
@@ -874,6 +895,42 @@ bool compare_boundary (h264_decode_t *prev, h264_decode_t *on)
 int main (int argc, char **argv)
 {
 #define MAX_BUFFER 65536
+  const char* usageString = 
+    "[-version] <file-name>\n";
+  const char *ProgName = argv[0];
+  while (true) {
+    int c = -1;
+    int option_index = 0;
+    static struct option long_options[] = {
+      { "version", 0, 0, 'v' },
+      { NULL, 0, 0, 0 }
+    };
+
+    c = getopt_long_only(argc, argv, "v",
+			 long_options, &option_index);
+
+    if (c == -1)
+      break;
+
+    switch (c) {
+    case '?':
+      fprintf(stderr, "usage: %s %s", ProgName, usageString);
+      exit(0);
+    case 'v':
+      fprintf(stderr, "%s - %s version %s\n", 
+	      ProgName, MPEG4IP_PACKAGE, MPEG4IP_VERSION);
+      exit(0);
+    default:
+      fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
+	      ProgName, c);
+    }
+  }
+
+  /* check that we have at least one non-option argument */
+  if ((argc - optind) < 1) {
+    fprintf(stderr, "usage: %s %s", ProgName, usageString);
+    exit(1);
+  }
 
   uint8_t buffer[MAX_BUFFER];
   uint32_t buffer_on, buffer_size;
@@ -901,10 +958,10 @@ int main (int argc, char **argv)
   }
   printf("\n");
 #endif
-  argc--;
-  argv++;
 
-  m_file = fopen(*argv, FOPEN_READ_BINARY);
+  fprintf(stdout, "%s - %s version %s\n", 
+	  ProgName, MPEG4IP_PACKAGE, MPEG4IP_VERSION);
+  m_file = fopen(argv[optind], FOPEN_READ_BINARY);
 
   if (m_file == NULL) {
     fprintf(stderr, "file %s not found\n", *argv);

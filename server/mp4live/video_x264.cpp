@@ -26,9 +26,10 @@
 #include "mp4av_h264.h"
 #include "encoder_gui_options.h"
 
-//  #define DEBUG_H264 1
+//#define DEBUG_H264 1
 #define USE_OUR_YUV 1
 
+static config_index_t CFG_X264_FORCE_BASELINE;
 static config_index_t CFG_X264_USE_CABAC;
 static config_index_t CFG_X264_USE_CBR;
 static config_index_t CFG_X264_BIT_RATE_TOLERANCE;
@@ -36,6 +37,7 @@ static config_index_t CFG_X264_USE_VBV;
 static config_index_t CFG_X264_VBV_BITRATE_MULT;
 static config_index_t CFG_X264_VBV_BUFFER_SIZE_MULT;
 static SConfigVariable X264EncoderVariables[] = {
+  CONFIG_BOOL(CFG_X264_FORCE_BASELINE, "x264ForceBaseline", false),
   CONFIG_BOOL(CFG_X264_USE_CABAC, "x264UseCabac", true),
   CONFIG_BOOL(CFG_X264_USE_CBR, "x264UseCbr", true),
   CONFIG_FLOAT(CFG_X264_BIT_RATE_TOLERANCE, "x264BitRateTolerance", 1.0),
@@ -44,6 +46,7 @@ static SConfigVariable X264EncoderVariables[] = {
   CONFIG_FLOAT(CFG_X264_VBV_BUFFER_SIZE_MULT, "x264VbvBufferSizeMult", 10.0),
 };
 
+GUI_BOOL(gui_baseline, CFG_X264_FORCE_BASELINE, "Force Baseline (overrides below)");
 GUI_BOOL(gui_cabac, CFG_X264_USE_CABAC, "Use Cabac");
 GUI_BOOL(gui_cbr, CFG_X264_USE_CBR, "Use CBR");
 GUI_BOOL(gui_bframe, CFG_VIDEO_USE_B_FRAMES, "Use B Frames");
@@ -60,6 +63,7 @@ GUI_FLOAT_RANGE(gui_vbv2, CFG_X264_VBV_BUFFER_SIZE_MULT,
 
 
 DECLARE_TABLE(x264_gui_options) = {
+  TABLE_GUI(gui_baseline),
   TABLE_GUI(gui_cabac),
   TABLE_GUI(gui_cbr),
   TABLE_GUI(gui_bframe),
@@ -124,7 +128,15 @@ bool CX264VideoEncoder::Init (void)
   m_outfile = fopen("raw.h264", FOPEN_WRITE_BINARY);
 #endif
 
-
+  if (Profile()->GetBoolValue(CFG_X264_FORCE_BASELINE)) {
+    Profile()->SetBoolValue(CFG_X264_USE_CABAC, false);
+    Profile()->SetBoolValue(CFG_VIDEO_USE_B_FRAMES, false);
+    Profile()->SetBoolValue(CFG_X264_USE_VBV, true);
+    if (Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE) > 768) {
+      Profile()->SetIntegerValue(CFG_VIDEO_BIT_RATE, 768);
+    }
+  }
+  
   x264_param_default(&m_param);
   m_param.i_width = Profile()->m_videoWidth;
   m_param.i_height = Profile()->m_videoHeight;
@@ -139,24 +151,34 @@ bool CX264VideoEncoder::Init (void)
     m_param.i_bframe = Profile()->GetIntegerValue(CFG_VIDEO_NUM_OF_B_FRAMES);
   } else 
     m_param.i_bframe = 0;
+  //debug_message("h264 b frames %d", m_param.i_bframe);
   m_param.rc.i_bitrate = Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE);
   m_param.rc.b_cbr = Profile()->GetBoolValue(CFG_X264_USE_CBR) ? 1 : 0;
   m_param.rc.f_rate_tolerance = Profile()->GetFloatValue(CFG_X264_BIT_RATE_TOLERANCE);
   if (Profile()->GetBoolValue(CFG_X264_USE_VBV)) {
-    m_param.rc.i_vbv_max_bitrate = (int)
-      ((float)m_param.rc.i_bitrate * 
-       Profile()->GetFloatValue(CFG_X264_VBV_BITRATE_MULT));
-    float calc;
-    calc = m_param.rc.i_bitrate;
-    calc *= Profile()->GetFloatValue(CFG_X264_VBV_BUFFER_SIZE_MULT);
-    calc /= Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE);
-    m_param.rc.i_vbv_buffer_size = (int)calc;
+    if (Profile()->GetBoolValue(CFG_X264_FORCE_BASELINE)) {
+      m_param.rc.i_vbv_max_bitrate = 768;
+      m_param.rc.i_vbv_buffer_size = 2000;
+      m_param.i_level_idc = 13;
+    } else {
+      m_param.rc.i_vbv_max_bitrate = (int)
+	((float)m_param.rc.i_bitrate * 
+	 Profile()->GetFloatValue(CFG_X264_VBV_BITRATE_MULT));
+      float calc;
+      calc = m_param.rc.i_bitrate;
+      calc *= Profile()->GetFloatValue(CFG_X264_VBV_BUFFER_SIZE_MULT);
+      calc /= Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE);
+      m_param.rc.i_vbv_buffer_size = (int)calc;
+    }
   }
   //m_param.rc.b_stat_write = 0;
   //m_param.analyse.inter = 0;
   m_param.analyse.b_psnr = 0;
   m_param.b_cabac = Profile()->GetBoolValue(CFG_X264_USE_CABAC) ? 1 : 0;
   m_param.pf_log = x264_log;
+
+  m_pts_add = m_param.i_bframe ? (m_param.b_bframe_pyramid ? 2 : 1) : 0;
+  m_pts_add *= m_frame_time;
 
   m_h = x264_encoder_open(&m_param);
   if (m_h == NULL) {
@@ -187,6 +209,7 @@ bool CX264VideoEncoder::EncodeImage(
 	Duration elapsedDuration,
 	Timestamp srcFrameTimestamp)
 {
+  //debug_message("encoding at "U64, srcFrameTimestamp);
   m_push->Push(srcFrameTimestamp);
   if (m_vopBuffer == NULL) {
     m_vopBuffer = (u_int8_t*)malloc(Profile()->m_videoMaxVopSize);
@@ -329,7 +352,9 @@ bool CX264VideoEncoder::GetEncodedImage(
   *pBufferLength = 0;
 
   *dts = m_push->Pop();
-  *pts = m_pic_output.i_pts;
+  *pts = m_pic_output.i_pts + m_pts_add;
+  if (*dts > *pts) *pts = *dts;
+  else if (*pts - *dts < 3) *pts = *dts;
   //debug_message("dts "U64" pts "U64" type %u", *dts, *pts, m_pic_output.i_type);
 #if 0
   if (*dts != *pts) {

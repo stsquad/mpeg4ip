@@ -141,8 +141,8 @@ mp4player_SOURCES = \
 
 gmp4player_SOURCES = \
 	gui_main.cpp \
-	gui_showmsg.c \
-	gui_utils.c \
+	gui_showmsg.cpp \
+	gui_utils.cpp \
 	gui_utils.h \
 	gui_xpm.h
 

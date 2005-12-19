@@ -255,7 +255,13 @@ void CHrefTextRenderer::process_click (uint16_t x, uint16_t y)
 
   if (m_click_info.send_click_location) {
     char url[PATH_MAX];
-    snprintf(url, PATH_MAX, "%s?%u,%u", m_click_info.url, x, y);
+    char add_char;
+    if (strchr(url, '?') != NULL) {
+      add_char = '&';
+    } else {
+      add_char = '?';
+    }
+    snprintf(url, PATH_MAX, "%s%cxclick=%u&yclick=%u", m_click_info.url, add_char, x, y);
     dispatch(url);
   } else {
     dispatch(m_click_info.url);

@@ -132,7 +132,7 @@ GtkWidget *CreateMenuItem (GtkWidget *menu,
 				  "activate", 
 				  accel_group,
 				  key, 
-				  modifier,
+				  (GdkModifierType)modifier,
 				  GTK_ACCEL_VISIBLE);
     }
 
@@ -318,17 +318,17 @@ void CreateLogLevelSubmenu (GtkWidget *menu,
 			    GtkSignalFunc func)
 {
   int ix;
-  GtkWidget *submenu, *this;
+  GtkWidget *submenu, *pthis;
   GSList *radiolist = NULL;
   submenu = CreateSubMenu(menu, szName);
   for (ix = LOG_EMERG; ix <= LOG_DEBUG; ix++) {
-    this = CreateMenuRadio(submenu,
+    pthis = CreateMenuRadio(submenu,
 			   logs[ix],
 			   &radiolist,
 			   func,
 			   GINT_TO_POINTER(ix));
     if (active == ix) {
-      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(this), TRUE);
+      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(pthis), TRUE);
     }
   }
 }

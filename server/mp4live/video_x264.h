@@ -74,6 +74,7 @@ class CX264VideoEncoder : public CVideoEncoder {
 	u_int8_t*  m_YUV;
 	CTimestampPush *m_push;
 	Duration m_frame_time;
+	Duration m_pts_add;
 	int m_count, m_key_frame_count;
 	x264_t *m_h;
 	x264_param_t m_param;

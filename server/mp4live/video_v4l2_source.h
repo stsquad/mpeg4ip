@@ -106,6 +106,10 @@ class CV4LVideoSource : public CMediaSource {
   uint32_t m_format;
   uint32_t m_u_offset;
   uint32_t m_v_offset;
+  //#define CAPTURE_RAW
+#ifdef CAPTURE_RAW
+  FILE *m_rawfile;
+#endif
 };
 
 
