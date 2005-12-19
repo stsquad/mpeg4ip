@@ -75,7 +75,9 @@ class CV4LVideoSource : public CMediaSource {
   int8_t AcquireFrame(Timestamp &frameTimestamp);
   void ReleaseFrames(void);
   void SetVideoAudioMute(bool mute);
-
+  void SetIndividualPictureControl(const char *type, 
+				   uint32_t type_value,
+				   uint32_t value);
   u_int8_t m_maxPasses;
   int m_videoDevice;
 

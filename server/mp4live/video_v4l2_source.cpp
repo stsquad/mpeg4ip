@@ -563,31 +563,80 @@ void CV4LVideoSource::SetVideoAudioMute(bool mute)
   }
 
   int rc;
+  struct v4l2_queryctrl query;
   struct v4l2_control control;
+  memset(&query, 0, sizeof(query));
+
+  query.id = V4L2_CID_AUDIO_MUTE;
+  rc = ioctl(m_videoDevice, VIDIOC_QUERYCTRL, &query);
+  if (rc < 0) {
+    if (errno != EINVAL) {
+      error_message("Can't queryctrl control \"audio mute\" %s", 
+		    strerror(errno));
+    } else {
+      error_message("Control \"audio mute\" not supported");
+    }
+    return;
+  }
 
   control.id = V4L2_CID_AUDIO_MUTE;
-  control.value = 0;
-  rc = ioctl(m_videoDevice, VIDIOC_G_CTRL, &control);
+  control.value = mute ? true : false;
+  rc = ioctl(m_videoDevice, VIDIOC_S_CTRL, &control);
   if (rc < 0) {
-    error_message("V4L2_CID_AUDIO_MUTE not supported");
-  } else {
-    control.value = mute ? true : false;
-    rc = ioctl(m_videoDevice, VIDIOC_S_CTRL, &control);
-    if (rc < 0) {
-      error_message("Couldn't set audio mute for %s ",
-                    m_pConfig->m_videoCapabilities->m_deviceName);
-    }
+    error_message("Couldn't set audio mute for %s ",
+		  m_pConfig->m_videoCapabilities->m_deviceName);
   }
 }
+
+void CV4LVideoSource::SetIndividualPictureControl (const char *type, 
+						   uint32_t type_value,
+						   uint32_t value)
+{
+  struct v4l2_queryctrl query;
+  struct v4l2_control control;
+  int rc;
+
+  if (m_videoDevice == -1) return;
+
+  memset(&query, 0, sizeof(query));
+
+  query.id = type_value;
+  rc = ioctl(m_videoDevice, VIDIOC_QUERYCTRL, &query);
+  if (rc < 0) {
+    if (errno != EINVAL) {
+      error_message("Can't queryctrl control \"%s\" %s", type, 
+		    strerror(errno));
+    } else {
+      error_message("Control \"%s\" not supported", type);
+    }
+    return;
+  }
+  memset(&control, 0, sizeof(control));
+  control.id = type_value;
+
+  int64_t range = query.maximum - query.minimum;
+  range *= value;
+  range /= 100;
+  control.value = query.minimum + (int32_t)range;
+  debug_message("control %s min %d max %d val %u convert %d",
+		type, query.minimum,
+		query.maximum,
+		value, 
+		control.value);
+		
+  rc = ioctl(m_videoDevice, VIDIOC_S_CTRL, &control);
+  if (rc < 0) {
+    error_message("Can't set control \"%s\" %s", type, 
+		  strerror(errno));
+  }
+}
+  
 
 bool CV4LVideoSource::SetPictureControls()
 {
   if (m_videoDevice == -1) return false;
 
-  int rc;
-  struct v4l2_control control;
-  memset(&control, 0, sizeof(control));
-/*
+ /*
   //autoexposure
   control.id = V4L2_CID_AUTOGAIN;
   control.value = 0; 
@@ -608,65 +657,20 @@ bool CV4LVideoSource::SetPictureControls()
 
 */
   // brightness
-  control.id = V4L2_CID_BRIGHTNESS;
-  rc = ioctl(m_videoDevice, VIDIOC_G_CTRL, &control);
-  if (rc < 0) {
-     error_message("V4L2_CID_BRIGHTNESS not supported");
-  } else {
-    control.value = (int)
-      ((m_pConfig->GetIntegerValue(CONFIG_VIDEO_BRIGHTNESS) * 0xFFFF) / 100);
-    rc = ioctl(m_videoDevice, VIDIOC_S_CTRL, &control);
-    if (rc < 0) {
-      error_message("Couldn't set brightness level");
-      return false;
-    }
-  }
+  SetIndividualPictureControl("brightness", 
+			      V4L2_CID_BRIGHTNESS,
+			      m_pConfig->GetIntegerValue(CONFIG_VIDEO_BRIGHTNESS));
 
   // hue
-  control.id = V4L2_CID_HUE;
-  rc = ioctl(m_videoDevice, VIDIOC_G_CTRL, &control);
-  if (rc < 0) {
-    error_message("V4L2_CID_HUE not supported");
-  } else {
-    control.value = (int)
-      ((m_pConfig->GetIntegerValue(CONFIG_VIDEO_HUE) * 0xFFFF) / 100);
-    rc = ioctl(m_videoDevice, VIDIOC_S_CTRL, &control);
-    if (rc < 0) {
-      error_message("Couldn't set hue level");
-      return false;
-    }
-  }
-
-  // color
-  control.id = V4L2_CID_SATURATION;
-  rc = ioctl(m_videoDevice, VIDIOC_G_CTRL, &control);
-  if (rc < 0) {
-    error_message("V4L2_CID_SATURATION not supported");
-  } else {
-    control.value = (int)
-      ((m_pConfig->GetIntegerValue(CONFIG_VIDEO_COLOR) * 0xFFFF) / 100);
-    rc = ioctl(m_videoDevice, VIDIOC_S_CTRL, &control);
-    if (rc < 0) {
-      error_message("Couldn't set saturation level");
-      return false;
-    }
-  }
-
-  // contrast
-  control.id = V4L2_CID_CONTRAST;
-  rc = ioctl(m_videoDevice, VIDIOC_G_CTRL, &control);
-  if (rc < 0) {
-    error_message("V4L2_CID_CONTRAST not supported");
-  } else {
-    control.value = (int)
-      ((m_pConfig->GetIntegerValue(CONFIG_VIDEO_CONTRAST) * 0xFFFF) / 100);
-    rc = ioctl(m_videoDevice, VIDIOC_S_CTRL, &control);
-    if (rc < 0) {
-      error_message("Couldn't set contrast level");
-      return false;
-    }
-  }
-
+  SetIndividualPictureControl("hue", 
+			      V4L2_CID_HUE,
+			      m_pConfig->GetIntegerValue(CONFIG_VIDEO_HUE));
+  SetIndividualPictureControl("saturation", 
+			      V4L2_CID_SATURATION,
+			      m_pConfig->GetIntegerValue(CONFIG_VIDEO_COLOR));
+  SetIndividualPictureControl("contrast", 
+			      V4L2_CID_CONTRAST,
+			      m_pConfig->GetIntegerValue(CONFIG_VIDEO_CONTRAST));
   return true;
 }
 
