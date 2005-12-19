@@ -615,6 +615,7 @@ void CV4LVideoSource::SetIndividualPictureControl (const char *type,
   control.id = type_value;
 
   int64_t range = query.maximum - query.minimum;
+  value = MIN(value, 100);
   range *= value;
   range /= 100;
   control.value = query.minimum + (int32_t)range;
