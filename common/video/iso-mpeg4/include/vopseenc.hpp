@@ -370,13 +370,13 @@ protected:
 	Void ThreeTapFilter(PixelC *pLow, PixelC *pHight,
 		Int iwidth, Int iheight);
 	Int DeltaMP(Double *dA, Int in, Double *db, Double *dm);
-	Int CVideoObjectEncoder::globalme(CoordI iXCurr, CoordI iYCurr,
+	Int globalme(CoordI iXCurr, CoordI iYCurr,
 					PixelC *pref);
-	Void CVideoObjectEncoder::StationalWarpME(Int iXCurr, Int iYCurr,
+	Void StationalWarpME(Int iXCurr, Int iYCurr,
 		PixelC* pref, Int& iSumofAD);
-	Void CVideoObjectEncoder::TranslationalWarpME(Int iXCurr, Int iYCurr,
+	Void TranslationalWarpME(Int iXCurr, Int iYCurr,
 		PixelC* pref, Int& iSumofAD);
-	Void CVideoObjectEncoder::FastAffineWarpME(Int iXCurr, Int iYCurr,
+	Void FastAffineWarpME(Int iXCurr, Int iYCurr,
 		PixelC* pref, Int& iSumofAD);
 	// ~GMC
 
@@ -562,7 +562,7 @@ protected:
 	UInt sendTCOEFInter (const Int* rgiCoefQ, Int iStart, Int* rgiZigzag);
 	UInt putBitsOfTCOEFIntra (UInt uiRun, Int iLevel, Bool bIsLastRun);
 	UInt putBitsOfTCOEFInter (UInt uiRun, Int iLevel, Bool bIsLastRun);
-	typedef Int (CVideoObjectEncoder::*FIND_TABLE_INDEX)(Bool bIsLastRun, UInt uiRun, UInt uiLevel);	//func ptr code escp. coding
+	typedef Int (*FIND_TABLE_INDEX)(Bool bIsLastRun, UInt uiRun, UInt uiLevel);	//func ptr code escp. coding
 	UInt escapeEncode (UInt uiRun, Int iLevel, Bool bIsLastRun, Int* rgiLMAX, Int* rgiRMAX, FIND_TABLE_INDEX findVLCtableIndex);
 	UInt fixLengthCode (UInt uiRun, Int iLevel, Bool bIsLastRun);
 	Void intraPred ( 
@@ -680,7 +680,7 @@ protected:
 		Bool bColocatedMBExist
 	);
 	// for spatial scalability only
-	Int CVideoObjectEncoder::motionEstMB_BVOP(
+	Int motionEstMB_BVOP(
 		CoordI x, CoordI y, 
 		CMotionVector* pmvForward, CMotionVector* pmvBackward,
 		CMBMode* pmbmd,

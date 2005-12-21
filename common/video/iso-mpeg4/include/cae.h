@@ -52,8 +52,8 @@ class COutBitStream;
 class CInBitStream;
 class arcodec {
 public:
-	arcodec::~arcodec () {};
-	arcodec::arcodec () {};
+	~arcodec () {};
+	arcodec () {};
 	UInt L; /* lower bound */
 	UInt R; /* code range */
 	UInt V; /* current code value */

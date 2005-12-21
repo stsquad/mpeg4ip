@@ -743,10 +743,7 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
       debug_message("Video start ts "U64, pFrame->GetTimestamp());
 	if (m_recordAudio) {
 	// reset this timestamp to video's beginning
-	  Duration rend_offset = pFrame->GetPtsTimestamp() - 
-	    pFrame->GetTimestamp();
-	pFrame->SetTimestamp(m_audioStartTimestamp);
-	pFrame->SetPtsTimestamp(m_audioStartTimestamp + rend_offset);
+	  pFrame->SetTimestamp(m_audioStartTimestamp);
       } 
       m_videoStartTimestamp = pFrame->GetTimestamp();
       m_prevVideoFrame = pFrame;

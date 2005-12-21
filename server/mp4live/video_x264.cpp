@@ -179,6 +179,7 @@ bool CX264VideoEncoder::Init (void)
 
   m_pts_add = m_param.i_bframe ? (m_param.b_bframe_pyramid ? 2 : 1) : 0;
   m_pts_add *= m_frame_time;
+  debug_message("pts add "D64, m_pts_add);
 
   m_h = x264_encoder_open(&m_param);
   if (m_h == NULL) {
@@ -351,11 +352,22 @@ bool CX264VideoEncoder::GetEncodedImage(
   *ppBuffer = (uint8_t *)mf;
   *pBufferLength = 0;
 
-  *dts = m_push->Pop();
+#if 1
+  Timestamp pts_try = m_pic_output.i_pts + m_pts_add;
+  Timestamp closest_on_stack = m_push->Closest(pts_try, m_frame_time);
+  if (closest_on_stack != 0) {
+    *pts = closest_on_stack;
+  } else {
+    *pts = pts_try;
+  }
+  //  debug_message("try "U64" closest "U64, pts_try, closest_on_stack);
+#else 
   *pts = m_pic_output.i_pts + m_pts_add;
+#endif
+  *dts = m_push->Pop();
+  //  debug_message("dts "U64" pts "U64" "D64" type %u ", *dts, *pts, *pts - *dts, m_pic_output.i_type);
   if (*dts > *pts) *pts = *dts;
-  else if (*pts - *dts < 3) *pts = *dts;
-  //debug_message("dts "U64" pts "U64" type %u", *dts, *pts, m_pic_output.i_type);
+  else if (*pts - *dts < 6) *pts = *dts;
 #if 0
   if (*dts != *pts) {
     debug_message("PTS "U64" not DTS "U64, 

@@ -55,6 +55,20 @@ class CTimestampPush {
     if (m_out >= m_max) m_out = 0;
     return ret;
   };
+  Timestamp Closest (Timestamp compare, Duration frame_time) {
+    uint ix = m_out;
+    frame_time /= 2;
+    Duration neg = 0 - frame_time;
+    do {
+      Duration diff = compare - m_stack[ix];
+      if (diff < frame_time && diff > neg) {
+	return m_stack[ix];
+      }
+      ix++;
+      if (ix >= m_max) ix = 0;
+    } while (ix != m_in);
+    return 0;
+  };
  private:
   Timestamp *m_stack;
   uint m_in, m_out, m_max;

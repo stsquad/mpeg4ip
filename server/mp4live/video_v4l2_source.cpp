@@ -235,7 +235,8 @@ bool CV4LVideoSource::InitDevice(void)
   }
 
   // select video input
-  rc = ioctl(m_videoDevice, VIDIOC_S_INPUT, &input.index);
+  int sinput_index = input.index;
+  rc = ioctl(m_videoDevice, VIDIOC_S_INPUT, &sinput_index);
   if (rc < 0) {
     error_message("Failed to select video input %d for %s",
                   input.index, deviceName);
@@ -416,6 +417,7 @@ bool CV4LVideoSource::InitDevice(void)
     break;
   case V4L2_PIX_FMT_NV12:
     debug_message("format is NV12 %ux%u", width, height);
+    break;
   }
   
   // allocate the desired number of buffers

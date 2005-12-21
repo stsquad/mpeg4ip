@@ -807,7 +807,7 @@ protected:
 	// ~GMC
 
 // RRV insertion
-	Void	CVideoObject::filterCodedPictureForRRV(PixelC*, PixelC*, PixelC*, 
+	Void	filterCodedPictureForRRV(PixelC*, PixelC*, PixelC*, 
 												   Int isizex, Int isizey,
 												   Int inumMBx,Int inumMBy, 
 												   Int iwidthY, Int iwidthUV);

@@ -1033,7 +1033,7 @@ public:
 	Void write_image_tile(Char *recImgFile, UChar **frm);
 
 // FPDAM begin: modified by Sharp
-	Void CVTCDecoder::write_image_to_buffer(UChar **DstImage, 
+	Void write_image_to_buffer(UChar **DstImage, 
 		UChar *DstMask[3], // FPDAM added by Sharp
 		Int DstWidth, Int DstHeight, Int iTile, Int TileW,
 		/* Char *recImgFile,*/ Int colors,

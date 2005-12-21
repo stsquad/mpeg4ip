@@ -94,7 +94,7 @@ public:
 	own CU8Image* biInterpolate () const; // bilinearly interpolate 
 	own CU8Image* downsampleForSpatialScalability () const;
 //OBSS_SAIT_991015
-	own CU8Image* CU8Image::upsampleForSpatialScalability (	Int iVerticalSamplingFactorM,
+	own CU8Image* upsampleForSpatialScalability (	Int iVerticalSamplingFactorM,
 															Int iVerticalSamplingFactorN,
 															Int iHorizontalSamplingFactorM,
 															Int iHorizontalSamplingFactorN,
@@ -104,7 +104,7 @@ public:
 															Int iExpandYRefFrame,
 															Bool bShapeOnly		
 															) const;
-	own CU8Image* CU8Image::upsampleSegForSpatialScalability (	Int iVerticalSamplingFactorM,
+	own CU8Image* upsampleSegForSpatialScalability (	Int iVerticalSamplingFactorM,
 															Int iVerticalSamplingFactorN,
 															Int iHorizontalSamplingFactorM,
 															Int iHorizontalSamplingFactorN,

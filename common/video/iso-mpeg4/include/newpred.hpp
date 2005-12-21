@@ -116,7 +116,7 @@ public:
 	virtual ~CNewPred();
 
 	Bool	CheckSlice(int iMBX, int iMBY, Bool bChkTop = TRUE);
-	int		CNewPred::GetSliceNum(int iMBX, int iMBY);
+	int		GetSliceNum(int iMBX, int iMBY);
 	int		NextSliceHeadMBA(int iMBX, int iMBY);
 	int		GetCurrentVOP_id();
 
@@ -205,7 +205,7 @@ public:
 	void	GetSlicePoint(char * pchSlicePointParam);
 	int		getwidth(){return(m_iWidth);}
 
-	int CNewPred::SliceTailMBA(int iMBX, int iMBY);
+	int SliceTailMBA(int iMBX, int iMBY);
 
 #ifdef _DEBUG
 	void cdecl NPDebugMessage( char* pszMsg, ... );
