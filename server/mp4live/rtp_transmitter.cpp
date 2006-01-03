@@ -65,13 +65,15 @@ void CRtpTransmitter::AddRtpDestination (const char *destAddress,
   CRtpDestination *dest, *p;
   debug_message("Creating rtp destination %s %u %u: ttl %u", 
 		destAddress, destPort, srcPort, max_ttl);
-  if (srcPort == 0) srcPort = destPort;
+  /* wmay - comment out for now - might have to revisit for SSM
+     if (srcPort == 0) srcPort = destPort;
+   */
 
   dest = m_rtpDestination;
   SDL_LockMutex(m_destListMutex);
   while (dest != NULL) {
     if (dest->Matches(destAddress, destPort)) {
-      if (srcPort != dest->get_source_port()) {
+      if (srcPort != 0 && srcPort != dest->get_source_port()) {
 	error_message("Try to create RTP destination to %s:%u with different source ports %u %u",
 		      destAddress, destPort, srcPort, dest->get_source_port());
       } else {
@@ -751,7 +753,9 @@ void CRtpDestination::start (void)
   while (m_rtpSession == NULL) {
     debug_message("Starting rtp dest %s %d %d", 
 		  m_destAddr, m_destPort, m_srcPort);
-    if (m_srcPort == 0) m_srcPort = m_destPort;
+    /* wmay - comment out for now - might have to revisit for ssm
+       if (m_srcPort == 0) m_srcPort = m_destPort;
+     */
     m_rtpSession = rtp_init_xmitter(m_destAddr,
 				    m_srcPort,
 				    m_destPort,

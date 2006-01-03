@@ -319,7 +319,7 @@ int main (int argc, char **argv)
   char *name;
   char buffer[FILENAME_MAX];
   char *home = getenv("HOME");
-  double start_time;
+  double start_time = 0.0;
   static struct option orig_options[] = {
     { "version", 0, 0, 'v' },
     { "help", 0, 0, 'h'},

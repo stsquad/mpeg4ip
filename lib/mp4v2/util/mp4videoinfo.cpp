@@ -126,12 +126,14 @@ static void DumpTrack (MP4FileHandle mp4file, MP4TrackId tid,
   uint64_t msectime;
   const char *media_data_name;
   uint32_t len_size = 0;
-  uint8_t video_type = MP4GetTrackEsdsObjectTypeId(mp4file, tid);
+  uint8_t video_type = 0;
   numSamples = MP4GetTrackNumberOfSamples(mp4file, tid);
   max_frame_size = MP4GetTrackMaxSampleSize(mp4file, tid) + 4;
   media_data_name = MP4GetTrackMediaDataName(mp4file, tid);
   if (strcasecmp(media_data_name, "avc1") == 0) {
     MP4GetTrackH264LengthSize(mp4file, tid, &len_size);
+  } else if (strcasecmp(media_data_name, "mp4v") == 0) {
+    video_type = MP4GetTrackEsdsObjectTypeId(mp4file, tid);
   }
   buffer = (uint8_t *)malloc(max_frame_size);
   if (buffer == NULL) {

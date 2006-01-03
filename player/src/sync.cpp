@@ -32,7 +32,7 @@
 #include "our_config_file.h"
 
 #define DEBUG_SYNC_STATE 1
-#define DEBUG_SYNC_MSGS 1
+//#define DEBUG_SYNC_MSGS 1
 //#define DEBUG_SYNC_SDL_EVENTS 1
 
 #ifdef _WIN32
@@ -214,6 +214,7 @@ bool CPlayerSession::initialize_timed_sync (uint &failed, bool &any_inited)
   for (ts = m_timed_sync_list;
        ts != NULL;
        ts = ts->GetNext()) {
+    //sync_message(LOG_DEBUG, "sync %s %d", ts->GetName(), ts->is_initialized());
     if (ts->is_initialized() == false) {
       if (ts->get_sync_type() == VIDEO_SYNC) {
 	CVideoSync *vs = (CVideoSync *)ts;
@@ -223,6 +224,7 @@ bool CPlayerSession::initialize_timed_sync (uint &failed, bool &any_inited)
 	}
       }
       ret = ts->initialize(m_session_name);
+      //sync_message(LOG_DEBUG, "sync %s init %d", ts->GetName(), ret);
       if (ret <= 0) {
 	all_initialized = false;
 	if (ts->get_sync_type() == VIDEO_SYNC) {
@@ -248,9 +250,12 @@ int CPlayerSession::sync_thread_init (void)
   if (m_audio_sync != NULL) {
     ret = m_audio_sync->initialize_audio(m_timed_sync_list != NULL);
     if (ret <= 0) {
+      //sync_message(LOG_DEBUG, "audio sync failed init");
       audio_inited = false;
       failed |= 1;
     } else {
+      audio_inited = true;
+      //sync_message(LOG_DEBUG, "audio sync init");
       if (config.GetBoolValue(CONFIG_SHORT_VIDEO_RENDER))
 	return (SYNC_STATE_WAIT_AUDIO_READY);
     }

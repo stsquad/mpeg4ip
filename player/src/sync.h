@@ -86,6 +86,7 @@ class CTimedSync : public CSync
   virtual void flush(void) {} ;
   virtual bool active_at_start(void) { return true; };
   bool is_initialized (void) { return m_initialized; };
+  const char *GetName (void) { return m_name; };
  protected:
   virtual void render(uint32_t play_index) = 0;
   const char *m_name;
