@@ -524,6 +524,8 @@ void CopyYuv (const uint8_t *fY, const uint8_t *fU, const uint8_t *fV,
   const uint8_t *from;
   uint8_t *to;
   uint ix;
+  if (fY == NULL || fU == NULL || fV == NULL ||
+      tY == NULL || tU == NULL || tV == NULL) return;
   if (fyStride == tyStride) {
     memcpy(tY, fY, fyStride * h);
   } else {

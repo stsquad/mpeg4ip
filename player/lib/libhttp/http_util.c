@@ -106,12 +106,13 @@ static int http_dissect_url (const char *name,
     cptr->m_host = host;
   }
   
-  FREE_CHECK(cptr, m_resource);
+  FREE_CHECK(cptr, m_content_location);
   if (nextslash != NULL) {
-    cptr->m_resource = strdup(nextslash);
+    cptr->m_content_location = strdup(nextslash);
   } else {
-    cptr->m_resource = strdup("/");
+    cptr->m_content_location = strdup("/");
   }
+  http_debug(LOG_DEBUG, "content location is %s", cptr->m_content_location);
   return (0);
 }
   
@@ -240,20 +241,22 @@ int http_build_header (char *buffer,
 {
   int ret;
 #define SNPRINTF_CHECK(fmt, value) \
-  ret = snprintf(buffer + *at, maxlen - *at, (fmt), (value)); \
+  ret = snprintf(buffer + *at, maxlen - *at, (fmt), value); \
   if (ret == -1) { \
     return (-1); \
   }\
   *at += ret;
 
-  ret = snprintf(buffer,
-		 maxlen,
-		 "%s %s HTTP/1.1\r\nHost: %s\r\n",
-		 method,
-		 cptr->m_resource,
+  SNPRINTF_CHECK("%s ", method);
+  if (cptr->m_content_location != NULL && 
+      (strcmp(cptr->m_content_location, "/") != 0 ||
+       *cptr->m_resource != '/')) {
+    SNPRINTF_CHECK("%s", cptr->m_content_location);
+  } 
+  SNPRINTF_CHECK("%s HTTP/1.1\r\n",
+		 cptr->m_resource);
+  SNPRINTF_CHECK("Host: %s\r\n",
 		 cptr->m_host);
-  if (ret == -1) return -1;
-  *at += ret;
   SNPRINTF_CHECK("User-Agent: %s\r\n", user_agent);
   SNPRINTF_CHECK("Connection: Keep-Alive%s", "\r\n");
   if (add_header != NULL) {

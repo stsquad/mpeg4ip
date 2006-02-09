@@ -725,6 +725,7 @@ int parse_name_for_session (CPlayerSession *psptr,
   } else if ((strcasecmp(suffix, ".mov") == 0) ||
 	     (strcasecmp(suffix, ".mp4") == 0) ||
 	     (strcasecmp(suffix, ".3gp") == 0) ||
+	     (strcasecmp(suffix, ".3g2") == 0) ||
 	     (strcasecmp(suffix, ".m4a") == 0)) {
     if (config.get_config_value(CONFIG_USE_OLD_MP4_LIB) == 0) {
       err = create_media_for_mp4_file(psptr, 

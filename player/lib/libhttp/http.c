@@ -81,6 +81,7 @@ void http_free_connection (http_client_t *ptr)
   FREE_CHECK(ptr, m_host);
   FREE_CHECK(ptr, m_resource);
   FREE_CHECK(ptr, m_redir_location);
+  FREE_CHECK(ptr, m_content_location);
   free(ptr);
 #ifdef _WIN32
   WSACleanup();
@@ -101,6 +102,16 @@ int http_get (http_client_t *cptr,
   
   if (cptr == NULL)
     return (-1);
+
+  http_debug(LOG_DEBUG, "url is %s\n", url);
+  if (url != NULL) {
+    http_debug(LOG_DEBUG, "resource is now %s", url);
+    CHECK_AND_FREE(cptr->m_resource);
+    cptr->m_resource = strdup(url);
+  } else {
+    cptr->m_resource = cptr->m_content_location;
+    cptr->m_content_location = NULL;
+  }
   
   if (*resp != NULL) {
     http_resp_clear(*resp);
@@ -183,6 +194,10 @@ int http_post (http_client_t *cptr,
     http_resp_clear(*resp);
   }
   buffer_len = 0;
+  if (url != NULL) {
+    CHECK_AND_FREE(cptr->m_resource);
+    cptr->m_resource = strdup(url);
+  }
   /*
    * build header and send message
    */

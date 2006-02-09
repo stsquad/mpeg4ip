@@ -38,8 +38,10 @@ int main (int argc, char **argv)
     return (1);
   }
 
+  argv++;
   http_resp = NULL;
-  http_get(http_client, NULL, &http_resp);
+  printf("argv is %s\n", *argv);
+  http_get(http_client, *argv, &http_resp);
   http_resp_free(http_resp);
   http_free_connection(http_client);
   return (0);

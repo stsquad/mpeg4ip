@@ -655,7 +655,9 @@ UInt CVideoObjectEncoder::putBitsOfTCOEFInter (UInt uiRun, Int iLevel, Bool bIsL
 			nBits++;
 		}
 		else
-			nBits += escapeEncode (uiRun, iLevel, bIsLastRun, g_rgiLMAXinter, g_rgiRMAXinter, &CVideoObjectEncoder::findVLCtableIndexOfNonLastEvent);
+			nBits += escapeEncode (uiRun, iLevel, bIsLastRun, g_rgiLMAXinter, g_rgiRMAXinter, 
+			USE_NON_LAST_EVENT_INDEX);	
+			//findVLCtableIndexOfNonLastEvent);
 	}
 	else	{
 		lVLCtableIndex = findVLCtableIndexOfLastEvent (bIsLastRun, uiRun, abs(iLevel));
@@ -665,7 +667,7 @@ UInt CVideoObjectEncoder::putBitsOfTCOEFInter (UInt uiRun, Int iLevel, Bool bIsL
 			nBits++;
 		}
 		else
-			nBits += escapeEncode (uiRun, iLevel, bIsLastRun, g_rgiLMAXinter, g_rgiRMAXinter, &CVideoObjectEncoder::findVLCtableIndexOfLastEvent);
+			nBits += escapeEncode (uiRun, iLevel, bIsLastRun, g_rgiLMAXinter, g_rgiRMAXinter, USE_LAST_EVENT_INDEX); //&CVideoObjectEncoder::findVLCtableIndexOfLastEvent);
 	}
 	return nBits;
 }
@@ -686,19 +688,25 @@ UInt CVideoObjectEncoder::putBitsOfTCOEFIntra (UInt uiRun, Int iLevel, Bool bIsL
 		nBits++;
 	}
 	else
-		nBits += escapeEncode (uiRun, iLevel, bIsLastRun, g_rgiLMAXintra, g_rgiRMAXintra, &CVideoObjectEncoder::findVLCtableIndexOfIntra);
+		nBits += escapeEncode (uiRun, iLevel, bIsLastRun, g_rgiLMAXintra, g_rgiRMAXintra, USE_INFRA_INDEX); //&CVideoObjectEncoder::findVLCtableIndexOfIntra);
 
 	return nBits;
 }
 
 UInt CVideoObjectEncoder::escapeEncode (UInt uiRun, Int iLevel, Bool bIsLastRun, Int* rgiLMAX, Int* rgiRMAX, 
-										FIND_TABLE_INDEX findVLCtableIndex)
+										int findVLCtableIndex)
 {
 	UInt nBits = 0;
 	nBits += m_pentrencSet->m_pentrencDCT->encodeSymbol(TCOEF_ESCAPE, "Esc_TCOEF");
 	Int iLevelAbs = abs (iLevel);
 	Int iLevelPlus = iLevelAbs - rgiLMAX [(uiRun & 0x0000003F) + (bIsLastRun << 6)];		//hashing the table
-	Int iVLCtableIndex = (this->*findVLCtableIndex) (bIsLastRun, uiRun, abs (iLevelPlus));
+	Int iVLCtableIndex;
+	if (findVLCtableIndex == USE_NON_LAST_EVENT_INDEX)
+		iVLCtableIndex = findVLCtableIndexOfNonLastEvent(bIsLastRun, uiRun, abs (iLevelPlus));
+	else if (findVLCtableIndex == USE_LAST_EVENT_INDEX)
+		iVLCtableIndex = findVLCtableIndexOfLastEvent(bIsLastRun, uiRun, abs (iLevelPlus));
+	else
+		iVLCtableIndex = findVLCtableIndexOfIntra(bIsLastRun, uiRun, abs (iLevelPlus));
 	if (iVLCtableIndex != NOT_IN_TABLE)  {
 		m_pbitstrmOut->putBits (0, 1, "Esc_0");			
 		nBits++;
@@ -708,7 +716,13 @@ UInt CVideoObjectEncoder::escapeEncode (UInt uiRun, Int iLevel, Bool bIsLastRun,
 	}
 	else	{
 		Int iRunPlus = uiRun - rgiRMAX [(iLevelAbs & 0x0000001F) + (bIsLastRun << 5)];  //RMAX table includes + 1 already
-		iVLCtableIndex = (this->*findVLCtableIndex) (bIsLastRun, (UInt) iRunPlus, iLevelAbs);
+		if (findVLCtableIndex == USE_NON_LAST_EVENT_INDEX)
+			iVLCtableIndex = findVLCtableIndexOfNonLastEvent(bIsLastRun, (UInt) iRunPlus, iLevelAbs);
+		else if (findVLCtableIndex == USE_LAST_EVENT_INDEX)
+			iVLCtableIndex = findVLCtableIndexOfLastEvent(bIsLastRun, (UInt) iRunPlus, iLevelAbs);
+		else
+			iVLCtableIndex = findVLCtableIndexOfIntra(bIsLastRun, (UInt) iRunPlus, iLevelAbs);
+//		iVLCtableIndex = (this->*findVLCtableIndex) (bIsLastRun, (UInt) iRunPlus, iLevelAbs);
 		if (iVLCtableIndex != NOT_IN_TABLE)  {
 			m_pbitstrmOut->putBits (2, 2, "Esc_10");			
 			nBits += 2;

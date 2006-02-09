@@ -163,6 +163,7 @@ static const uint32_t formats[] = {
 bool CV4LVideoSource::InitDevice(void)
 {
   int rc;
+  int sinput_index;
 #ifdef CAPTURE_RAW
   m_rawfile = fopen("raw.yuv", FOPEN_WRITE_BINARY);
 #endif
@@ -201,7 +202,8 @@ bool CV4LVideoSource::InitDevice(void)
   memset(&capability, 0, sizeof(capability));
   rc = ioctl(m_videoDevice, VIDIOC_QUERYCAP, &capability);
   if (rc < 0) {
-    error_message("Failed to query video capabilities for %s", deviceName);
+    error_message("Failed to query video capabilities for %s - %s", deviceName,
+		  strerror(errno));
     goto failure;
   }
   // make sure device supports video capture
@@ -229,17 +231,17 @@ bool CV4LVideoSource::InitDevice(void)
   input.index = input_value;
   rc = ioctl(m_videoDevice, VIDIOC_ENUMINPUT, &input);
   if (rc < 0) {
-    error_message("Failed to enumerate video input %d for %s",
-                  input.index, deviceName);
+    error_message("Failed to enumerate video input %d for %s, %s",
+                  input.index, deviceName, strerror(errno));
     //goto failure;
   }
 
   // select video input
-  int sinput_index = input.index;
+  sinput_index = input.index;
   rc = ioctl(m_videoDevice, VIDIOC_S_INPUT, &sinput_index);
   if (rc < 0) {
-    error_message("Failed to select video input %d for %s",
-                  input.index, deviceName);
+    error_message("Failed to select video input %d for %s - %s",
+                  input.index, deviceName, strerror(errno));
     //goto failure;
   }
   
@@ -257,7 +259,8 @@ bool CV4LVideoSource::InitDevice(void)
   }
   rc = ioctl(m_videoDevice, VIDIOC_S_STD, &std);
   if (rc < 0) {
-    error_message("Failed to select video standard for %s", deviceName);
+    error_message("Failed to select video standard for %s - %s", deviceName,
+		  strerror(errno));
     //goto failure;
   }
 
@@ -281,7 +284,8 @@ bool CV4LVideoSource::InitDevice(void)
     //tuner.index = input.tuner;
     rc = ioctl(m_videoDevice, VIDIOC_G_TUNER, &tuner);
     if (rc < 0) {
-      error_message("Failed to query tuner attributes for %s", deviceName);
+      error_message("Failed to query tuner attributes for %s, %s", deviceName,
+		    strerror(errno));
     }
 
     // tuner is an analog TV tuner
@@ -304,7 +308,8 @@ bool CV4LVideoSource::InitDevice(void)
 
       rc = ioctl(m_videoDevice, VIDIOC_S_FREQUENCY, &frequency);
       if (rc < 0) {
-        error_message("Failed to set video tuner frequency for %s", deviceName);
+        error_message("Failed to set video tuner frequency for %s - %s", deviceName,
+		      strerror(errno));
       }
     }
   }
@@ -350,7 +355,8 @@ bool CV4LVideoSource::InitDevice(void)
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     rc = ioctl(m_videoDevice, VIDIOC_G_FMT, &format);
     if (rc < 0) {
-      error_message("Failed to query video image format for %s", deviceName);
+      error_message("Failed to query video image format for %s, %s", deviceName,
+		    strerror(errno));
       goto failure;
     }
     format.fmt.pix.width = width;
@@ -430,7 +436,8 @@ bool CV4LVideoSource::InitDevice(void)
   reqbuf.memory = V4L2_MEMORY_MMAP;
   rc = ioctl(m_videoDevice, VIDIOC_REQBUFS, &reqbuf);
   if (rc < 0 || reqbuf.count < 1) {
-    error_message("Failed to allocate buffers for %s", deviceName);
+    error_message("Failed to allocate buffers for %s %s", deviceName, 
+		  strerror(errno));
     return false;
   }
 
@@ -451,8 +458,8 @@ bool CV4LVideoSource::InitDevice(void)
 
     rc = ioctl(m_videoDevice, VIDIOC_QUERYBUF, &buffer);
     if (rc < 0) {
-      error_message("Failed to query video capture buffer status for %s",
-                    deviceName);
+      error_message("Failed to query video capture buffer status for %s, %s",
+                    deviceName, strerror(errno));
       goto failure;
     }
 
@@ -463,15 +470,16 @@ bool CV4LVideoSource::InitDevice(void)
                                m_videoDevice, buffer.m.offset);
 
     if (m_buffers[ix].start == MAP_FAILED) {
-      error_message("Failed to map video capture buffer for %s", deviceName);
+      error_message("Failed to map video capture buffer for %s, %s", deviceName,
+		    strerror(errno));
       goto failure;
     }
 
     //enqueue the mapped buffer
     rc = ioctl(m_videoDevice, VIDIOC_QBUF, &buffer);
     if (rc < 0) {
-      error_message("Failed to enqueue video capture buffer status for %s",
-                    deviceName);
+      error_message("Failed to enqueue video capture buffer status for %s, %s",
+                    deviceName, strerror(errno));
       goto failure;
     }
   }
@@ -485,7 +493,8 @@ bool CV4LVideoSource::InitDevice(void)
   // start video capture
   rc = ioctl(m_videoDevice, VIDIOC_STREAMON, &buftype);
   if (rc < 0) {
-    error_message("Failed to start video capture for %s", deviceName);
+    error_message("Failed to start video capture for %s, %s", deviceName,
+		  strerror(errno));
     perror("Reason");
     goto failure;
   }
@@ -524,7 +533,7 @@ void CV4LVideoSource::ReleaseDevice()
   int buftype = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   int rc = ioctl(m_videoDevice, VIDIOC_STREAMOFF, &buftype);
   if (rc < 0) {
-    error_message("Failed to stop video capture");
+    error_message("Failed to stop video capture %s", strerror(errno));
   }
 
 
@@ -541,7 +550,7 @@ bool CV4LVideoSource::ReleaseBuffers (void)
     if (m_buffers[i].start) {
       if (m_buffers[i].in_use) {
 	have_buffers = true;
-	error_message("buffer %u still in use", i);
+	debug_message("buffer %u still in use", i);
       } else {
       munmap(m_buffers[i].start, m_buffers[i].length);
 	m_buffers[i].start = NULL;
@@ -549,7 +558,7 @@ bool CV4LVideoSource::ReleaseBuffers (void)
     }
   }
   if (have_buffers) return false;
-  error_message("All buffers released");
+  debug_message("All buffers released");
   free(m_buffers);
   m_buffers = NULL;
   return true;
@@ -585,8 +594,9 @@ void CV4LVideoSource::SetVideoAudioMute(bool mute)
   control.value = mute ? true : false;
   rc = ioctl(m_videoDevice, VIDIOC_S_CTRL, &control);
   if (rc < 0) {
-    error_message("Couldn't set audio mute for %s ",
-		  m_pConfig->m_videoCapabilities->m_deviceName);
+    error_message("Couldn't set audio mute for %s, %s",
+		  m_pConfig->m_videoCapabilities->m_deviceName, 
+		  strerror(errno));
   }
 }
 
@@ -770,7 +780,7 @@ void CV4LVideoSource::ReleaseFrames (void)
     if ((index_mask & released_mask) != 0) {
       if (m_waiting_frames_return) {
 	m_waiting_frames_return = false;
-	error_message("frame return");
+	debug_message("frame return");
       }
       struct v4l2_buffer buffer;
       m_buffers[index].in_use = false;
@@ -786,7 +796,7 @@ void CV4LVideoSource::ReleaseFrames (void)
 	if (m_use_alternate_release) {
 	  rc = ioctl(m_videoDevice, VIDIOC_QUERYBUF, &buffer);
 	  if (rc < 0) {
-	    error_message("Failed to query video capture buffer status");
+	    error_message("Failed to query video capture buffer status %s", strerror(errno));
 	  }
 	}
 	rc = ioctl(m_videoDevice, VIDIOC_QBUF, &buffer);
@@ -796,11 +806,13 @@ void CV4LVideoSource::ReleaseFrames (void)
 	  } else {
 	    rc = ioctl(m_videoDevice, VIDIOC_QUERYBUF, &buffer);
 	    if (rc < 0) {
-	      error_message("Failed to query video capture buffer status");
+	      error_message("Failed to query video capture buffer status %s", 
+			    strerror(errno));
 	    }
 	    rc = ioctl(m_videoDevice, VIDIOC_QBUF, &buffer);
 	    if (rc < 0) {
-	      error_message("Failed to query video capture buffer status");
+	      error_message("Failed to query video capture buffer status %s", 
+			    strerror(errno));
 	    } else {
 	      m_use_alternate_release = true;
 	    }
@@ -1014,7 +1026,8 @@ bool CVideoCapabilities::ProbeDevice()
   memset(&capability, 0, sizeof(capability));
   rc = ioctl(videoDevice, VIDIOC_QUERYCAP, &capability);
   if (rc < 0) {
-    error_message("Failed to query video capabilities for %s", m_deviceName);
+    error_message("Failed to query video capabilities for %s %s", m_deviceName, 
+		  strerror(errno));
     close(videoDevice);
     return false;
   }
@@ -1061,14 +1074,14 @@ bool CVideoCapabilities::ProbeDevice()
       m_inputNames[i] = strdup((char*)input.name);
     } else {
       m_inputNames[i] = strdup("Unknown input");
-      error_message("Failed to enumerate video input %d for %s",
-                    i, m_deviceName);
+      error_message("Failed to enumerate video input %d for %s, %s",
+                    i, m_deviceName, strerror(errno));
       continue;
     }
 
-    error_message("type %d %s type %x", i, m_inputNames[i], input.type);
+    debug_message("type %d %s type %x", i, m_inputNames[i], input.type);
     if (input.type == V4L2_INPUT_TYPE_TUNER) {
-      error_message("Has tuner");
+      debug_message("Has tuner");
       m_inputHasTuners[i] = true;
 
       if (input.std & V4L2_STD_PAL) m_inputTunerSignalTypes[i] |= 0x1;

@@ -27,6 +27,7 @@
 extern "C" {
 #endif
 
+  char *unconvert_url(const char *from_convert);
   char *convert_url(const char *to_convert);
 
   void set_global_loglevel(int loglevel);

@@ -117,13 +117,14 @@ static inline FLOAT *a52_mono (FLOAT *o, sample_t *s, bool have_lfe)
   else first = s;
 
   for (ix = 0; ix < 256; ix++) {
+    FLOAT value = CONVERT(first[ix]);
     if (have_lfe) {
-      *o++ = FLOAT_0;
-      *o++ = FLOAT_0;
-      *o++ = FLOAT_0;
-      *o++ = FLOAT_0;
+      *o++ = value;
+      *o++ = value;
+      *o++ = value;
+      *o++ = value;
     }
-    *o++ = CONVERT(first[ix]);
+    *o++ = value;
     if (have_lfe) {
       *o++ = CONVERT(s[ix]);
     }
@@ -139,12 +140,15 @@ static inline FLOAT *a52_stereo (FLOAT *o, sample_t *sample, bool have_lfe)
   else first = sample;
 
   for (ix = 0; ix < 256; ix++) {
-    *o++ = CONVERT(first[ix]);
-    *o++ = CONVERT(first[ix + 256]);
+    FLOAT l = CONVERT(first[ix]);
+    FLOAT r = CONVERT(first[ix + 256]);
+    
+    *o++ = l;
+    *o++ = r;
     if (have_lfe) {
-      *o++ = FLOAT_0;
-      *o++ = FLOAT_0;
-      *o++ = FLOAT_0;
+      *o++ = l;
+      *o++ = r;
+      *o++ = (l + r) / 2;
       *o++ = CONVERT(sample[ix]);
     }
   }
@@ -162,10 +166,12 @@ static inline FLOAT *a52_3f (FLOAT *outptr, sample_t *sample, bool have_lfe)
     first = sample;
   }
   for (ix = 0; ix < 256; ix++) {
-    *outptr++ = CONVERT(first[ix]);
-    *outptr++ = CONVERT(first[ix+512]);
-    *outptr++ = FLOAT_0;
-    *outptr++ = FLOAT_0;
+    FLOAT l = CONVERT(first[ix]);
+    FLOAT r = CONVERT(first[ix + 512]);
+    *outptr++ = l;
+    *outptr++ = r;
+    *outptr++ = l;
+    *outptr++ = r;
     *outptr++ = CONVERT(first[ix+256]);
     if (have_lfe) *outptr++ = CONVERT(sample[ix]);
   }
@@ -267,6 +273,7 @@ static int a52dec_decode (codec_data_t *ptr,
   if (a52dec->m_initialized == 0) {
     if (flags & A52_LFE) {
       a52dec->m_chans = 6;
+      LOGIT(LOG_DEBUG, "a52dec", "has lfe - 6 channel");
     } else {
       switch (flags & A52_CHANNEL_MASK) {
       case A52_MONO:
@@ -284,6 +291,7 @@ static int a52dec_decode (codec_data_t *ptr,
 	a52dec->m_chans = 5;
 	break;
       }
+      LOGIT(LOG_DEBUG, "a52dec", "channels are %u", a52dec->m_chans);
     }
     a52dec->m_freq = sample_rate;
     // we could probably deal with more channels here

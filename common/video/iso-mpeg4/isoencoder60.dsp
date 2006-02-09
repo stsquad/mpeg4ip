@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /D "__PC_COMPILER_" /D "_WIN32" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /D "__PC_COMPILER_" /D "_WIN32" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -61,12 +61,12 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "isoencod"
-# PROP Intermediate_Dir "isoencod"
+# PROP Output_Dir "Debug"
+# PROP Intermediate_Dir "DEbug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /D "__PC_COMPILER_" /D "_WIN32" /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /D "__PC_COMPILER_" /D "_WIN32" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -82,6 +82,302 @@ LINK32=link.exe
 
 # Name "isoencoder - Win32 Release"
 # Name "isoencoder - Win32 Debug"
+# Begin Group "Include"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\include\ac.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\basic.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\BinArCodec.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\bitpack.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\bitstrm.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\blkdec.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\blkenc.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\block.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\cae.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\codehead.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\dataStruct.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\dct.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\default.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\download_filter.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\dwt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\enhcbufdec.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\enhcbufenc.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\entropy.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\errorHandler.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\geom.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\global.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\globals.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\grayc.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\grayf.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\grayi.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\header.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\huffman.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\idct.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\inbits.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\mb.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\mbdec.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\mode.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\msg.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\newpred.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\paramset.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\PEZW_ac.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\PEZW_functions.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\PEZW_mpeg4.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\PEZW_zerotree.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\QM.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\QMUtils.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\quant.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\rrv.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\sesenc.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\shape.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\shape_def.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\ShapeBaseCommon.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\ShapeEnhDef.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\shpdec.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\shpenc.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\startcode.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\states.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\svd.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\tm5rc.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\tps_enhcbuf.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\transf.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\typeapi.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\Utils.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\vlc.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\vop.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\vopmbdec.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\vopmbenc.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\vopsedec.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\vopseenc.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\vopses.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\warp.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\wvtfilter.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\wvtPEZW.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\wvtpezw_tree_codec.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\yuvac.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\yuvai.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\ztscan_common.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\ztscanUtil.hpp
+# End Source File
+# End Group
 # Begin Source File
 
 SOURCE=.\src\app_encoder_encoder.cpp

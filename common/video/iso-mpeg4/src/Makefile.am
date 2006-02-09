@@ -133,3 +133,4 @@ libmpeg4ip_mpeg4_iso_la_SOURCES = \
 	vtc_ztq_quant.cpp \
 	vtc_ztq_Utils.cpp 
 
+EXTRA_DIST=example.par

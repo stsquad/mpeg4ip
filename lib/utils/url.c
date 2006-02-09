@@ -22,46 +22,62 @@
 
 #include "mpeg4ip.h"
 #include "mpeg4ip_utils.h"
-static size_t strcount (const char *string, const char *vals)
-{
-  size_t count = 0;
-  if (string == NULL) return 0;
 
-  while (*string != '\0') {
-    if (strchr(vals, *string) != NULL) count++;
-    string++;
+static const char *allowed="-_.!~*'();/?:@&=+$,";
+
+char *unconvert_url (const char *from_convert) 
+{
+  char *ret, *to;
+  if (from_convert == NULL) return NULL;
+  ret = (char *)malloc(strlen(from_convert) + 1);
+  to = ret;
+  while (*from_convert != '\0') {
+    if (*from_convert == '%') {
+      from_convert++;
+      if (*from_convert == '%') {
+	*to++ = '%';
+      } else {
+	*to = (*from_convert - '0') << 4;
+	from_convert++;
+	*to |= *from_convert - '0';
+	from_convert++;
+	to++;
+      }
+    } else *to++ = *from_convert++;
   }
-  return count;
+  *to = '\0';
+  return ret;
 }
 
 char *convert_url (const char *to_convert)
 {
-  static const char *spaces = " \t";
   char *ret, *p;
+  const char *q;
   size_t count;
-
   if (to_convert == NULL) return NULL;
 
-  count = strcount(to_convert, spaces);
-  count *= 3; // replace each space with %20
-  count += strcount(to_convert, "%") * 2;
+  count = 0;
+  q = to_convert;
+  while (*q != '\0') {
+    if (isalnum(*q)) count++;
+    else if (strchr(allowed, *q) != NULL) {
+      count++;
+    } else count += 3;
+    q++;
+  }
+  count++;
 
-  count += strlen(to_convert) + 1;
-  
   ret = (char *)malloc(count);
   p = ret;
   while (*to_convert != '\0') {
-    if (isspace(*to_convert)) {
+    if (isalnum(*to_convert)) *p++ = *to_convert++;
+    else if (strchr(allowed, *to_convert) != NULL) *p++ = *to_convert++;
+    else {
       *p++ = '%';
-      *p++ = '2';
-      *p++ = '0';
+      *p++ = '0' + ((*to_convert >> 4) & 0xf);
+      *p++ = '0' + (*to_convert & 0xf);
       to_convert++;
-    } else if (*to_convert == '%') {
-      *p++ = '%';
-      *p++ = '%';
-      to_convert++;
-    } else
-      *p++ = *to_convert++;
+    } 
   }
   *p++ = *to_convert; // final \0
   return ret;

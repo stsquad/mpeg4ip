@@ -13,7 +13,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: inbits.h,v 1.1 2005/05/09 21:29:45 wmaycisco Exp $
+ * $Id: inbits.h,v 1.2 2006/02/09 17:57:28 wmaycisco Exp $
  */
 
 #ifndef __BITS_H__
@@ -23,7 +23,7 @@
 typedef unsigned __int32 uint32_t;
 #define close _close
 #define open _open
-#include <windows.h>
+//#include <windows.h>
 #include <fcntl.h>
 #include <io.h>
 #else

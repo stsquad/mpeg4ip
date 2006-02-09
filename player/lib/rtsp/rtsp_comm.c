@@ -107,7 +107,10 @@ int rtsp_create_socket (rtsp_client_t *info)
     return (-1);
   }
   result = rtsp_lookup_server_address(info);
-  if (result != 0) return -1;
+  if (result != 0) {
+	  rtsp_debug(LOG_CRIT, "Couldn't get the server address %s", info->server_name);
+	  return -2;
+  }
   
 #ifndef _WIN32
 #ifdef HAVE_IPv6

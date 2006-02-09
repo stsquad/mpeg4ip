@@ -562,8 +562,13 @@ protected:
 	UInt sendTCOEFInter (const Int* rgiCoefQ, Int iStart, Int* rgiZigzag);
 	UInt putBitsOfTCOEFIntra (UInt uiRun, Int iLevel, Bool bIsLastRun);
 	UInt putBitsOfTCOEFInter (UInt uiRun, Int iLevel, Bool bIsLastRun);
-	typedef Int (*FIND_TABLE_INDEX)(Bool bIsLastRun, UInt uiRun, UInt uiLevel);	//func ptr code escp. coding
-	UInt escapeEncode (UInt uiRun, Int iLevel, Bool bIsLastRun, Int* rgiLMAX, Int* rgiRMAX, FIND_TABLE_INDEX findVLCtableIndex);
+	enum {
+		USE_NON_LAST_EVENT_INDEX,
+		USE_LAST_EVENT_INDEX,
+		USE_INFRA_INDEX,
+	};
+
+	UInt escapeEncode (UInt uiRun, Int iLevel, Bool bIsLastRun, Int* rgiLMAX, Int* rgiRMAX, int);
 	UInt fixLengthCode (UInt uiRun, Int iLevel, Bool bIsLastRun);
 	Void intraPred ( 
 		Int blkn, const CMBMode* pmbmd, 

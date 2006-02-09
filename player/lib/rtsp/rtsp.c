@@ -87,7 +87,7 @@ rtsp_client_t *rtsp_create_client_common (const char *url, int *perr,
   }
   free(converted_url);
 
-  info->use_proxy = proxy_addr != NULL;
+  info->use_proxy = proxy_addr != NULL && *proxy_addr != '\0';
   if (info->use_proxy) {
     info->proxy_name = strdup(proxy_addr);
     info->proxy_port = proxy_port != 0 ? proxy_port : 554;
@@ -123,7 +123,7 @@ rtsp_client_t *rtsp_create_client (const char *url, int *err,
   
   *err = rtsp_create_socket(info);
   if (*err != 0) {
-    rtsp_debug(LOG_EMERG,"Couldn't create socket %d\n", errno);
+    rtsp_debug(LOG_EMERG,"Couldn't create socket %d\n", *err);
     free_rtsp_client(info);
     return (NULL);
   }

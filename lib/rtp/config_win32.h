@@ -3,8 +3,8 @@
  *
  *  Windows specific definitions and includes.
  *  
- *  $Revision: 1.8 $
- *  $Date: 2005/05/09 21:29:53 $
+ *  $Revision: 1.9 $
+ *  $Date: 2006/02/09 17:57:29 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -199,7 +199,7 @@ const char * w32_make_version_info(char * rat_verion);
 #define strcasecmp  _stricmp
 #define strncasecmp _strnicmp
 
-int  RegGetValue(HKEY *, char *, char*, char*, int);
+//int  RegGetValue(HKEY *, char *, char*, char*, int);
 void ShowMessage(int level, char *msg);
 
 #define bcopy(from,to,len) memcpy(to,from,len)

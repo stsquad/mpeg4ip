@@ -39,6 +39,7 @@ struct http_client_ {
   const char *m_current_url;
   const char *m_host;
   const char *m_resource;
+  const char *m_content_location;
   http_state_t m_state;
   uint16_t m_redirect_count;
   const char *m_redir_location;
