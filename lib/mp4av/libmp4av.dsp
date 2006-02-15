@@ -89,7 +89,15 @@ SOURCE=.\aac.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\ac3.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\adts.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\amr.cpp
 # End Source File
 # Begin Source File
 
@@ -101,11 +109,39 @@ SOURCE=.\audio_hinters.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\g711.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\h264.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\href.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\l16.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\mbs.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=.\mp3.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4av_ac3.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4av_amr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4av_h264.h
 # End Source File
 # Begin Source File
 
@@ -121,11 +157,19 @@ SOURCE=.\rfc2250.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\rfc2429.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\rfc3016.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=.\rfc3119.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\rfc3267.cpp
 # End Source File
 # Begin Source File
 

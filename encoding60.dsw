@@ -33,10 +33,10 @@ Package=<4>
     Project_Dep_Name gnugetopt
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libavi_st
+    Project_Dep_Name libmissing60
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libmissing60
+    Project_Dep_Name libavi
     End Project Dependency
 }}}
 
@@ -51,10 +51,10 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libavi_st
+    Project_Dep_Name libmissing60
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libmissing60
+    Project_Dep_Name libavi
     End Project Dependency
 }}}
 
@@ -68,6 +68,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name libmissing60
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -102,7 +105,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libavi_st"=.\lib\avi\libavi_st60.dsp - Package Owner=<4>
+Project: "libavi"=.\lib\avi\libavi60.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -114,7 +117,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libismacryp_st"=.\LIB\ISMACRYP\libismacryp_st.dsp - Package Owner=<4>
+Project: "libismacryp"=.\lib\ismacryp\libismacryp.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -138,7 +141,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libmp4_st"=.\lib\mp4\libmp4_st60.dsp - Package Owner=<4>
+Project: "libmp4av"=.\lib\mp4av\libmp4av.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -150,19 +153,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libmp4av_st"=.\lib\mp4av\libmp4av_st.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
-Project: "libmp4v2_st"=.\lib\mp4v2\libmp4v2_st60.dsp - Package Owner=<4>
+Project: "libmp4v2"=.\lib\mp4v2\libmp4v260.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -195,12 +186,6 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libavi_st
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmp4v2_st
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name gnugetopt
     End Project Dependency
     Begin Project Dependency
@@ -210,16 +195,22 @@ Package=<4>
     Project_Dep_Name libmissing60
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libmp4av_st
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libmpeg32_st
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libismacryp_st
+    Project_Dep_Name libmpeg2ps
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libmpeg2ps
+    Project_Dep_Name libmp4v2
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4av
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libavi
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libismacryp
     End Project Dependency
 }}}
 
@@ -237,37 +228,13 @@ Package=<4>
     Project_Dep_Name gnugetopt
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libmp4v2_st
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name need_for_win_st
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmissing60
     End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "mp4extract"=.\lib\mp4v2\util\mp4extract60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
     Begin Project Dependency
-    Project_Dep_Name gnugetopt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmp4v2_st
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name need_for_win_st
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmissing60
+    Project_Dep_Name libmp4v2
     End Project Dependency
 }}}
 
@@ -282,10 +249,10 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libmp4v2_st
+    Project_Dep_Name libmissing60
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libmissing60
+    Project_Dep_Name libmp4v2
     End Project Dependency
 }}}
 
@@ -303,7 +270,7 @@ Package=<4>
     Project_Dep_Name libmissing60
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libmp4v2_st
+    Project_Dep_Name libmp4v2
     End Project Dependency
 }}}
 
@@ -318,10 +285,10 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libmp4v2_st
+    Project_Dep_Name libmissing60
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libmissing60
+    Project_Dep_Name libmp4v2
     End Project Dependency
 }}}
 
