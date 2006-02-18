@@ -59,6 +59,9 @@ void MP4SoundAtom::AddProperties (uint8_t version)
     AddProperty( /* 11 */
 		new MP4Integer32Property("bytesPerSample"));
   }
+  if (version == 2) {
+    AddReserved("reserved4", 20);
+  }
 }
 void MP4SoundAtom::Generate()
 {
@@ -84,11 +87,14 @@ void MP4SoundAtom::Generate()
 
 void MP4SoundAtom::Read()
 {
+  MP4Atom *parent = GetParentAtom();
+  if (ATOMID(parent->GetType()) != ATOMID("wave")) {
   ReadProperties(0, 3); // read first 3 properties
   AddProperties(((MP4IntegerProperty *)m_pProperties[2])->GetValue());
   ReadProperties(3); // continue
   if (m_pChildAtomInfos.Size() > 0) {
     ReadChildAtoms();
+  }
   }
   Skip();
 }

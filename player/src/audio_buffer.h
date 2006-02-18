@@ -130,6 +130,8 @@ class CBufferAudioSync : public CAudioSync {
   uint64_t m_jitter_calc_ts;
   uint32_t m_jitter_calc_freq_ts;
   bool m_audio_paused;
+  bool m_last_add_samples;
+  uint64_t m_last_diff;
   // helper routines for buffer fill routines
   bool do_we_need_resync(uint32_t freq_ts, uint32_t &silence_samples);
   void wait_for_callback(void);

@@ -2329,8 +2329,14 @@ MP4Duration MP4File::GetTrackDuration(MP4TrackId trackId)
 u_int8_t MP4File::GetTrackEsdsObjectTypeId(MP4TrackId trackId)
 {
 	// changed mp4a to * to handle enca case
+  try {
 	return GetTrackIntegerProperty(trackId, 
 		"mdia.minf.stbl.stsd.*.esds.decConfigDescr.objectTypeId");
+  } catch (MP4Error *e) {
+    delete e;
+    return GetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.*.*.esds.decConfigDescr.objectTypeId");
+  }
 }
 
 u_int8_t MP4File::GetTrackAudioMpeg4Type(MP4TrackId trackId)
@@ -2402,9 +2408,16 @@ bool MP4File::IsIsmaCrypMediaTrack(MP4TrackId trackId)
 void MP4File::GetTrackESConfiguration(MP4TrackId trackId, 
 	u_int8_t** ppConfig, u_int32_t* pConfigSize)
 {
+  try {
 	GetTrackBytesProperty(trackId, 
 		"mdia.minf.stbl.stsd.*[0].esds.decConfigDescr.decSpecificInfo[0].info",
 		ppConfig, pConfigSize);
+  } catch (MP4Error *e) {
+    delete e;
+	GetTrackBytesProperty(trackId, 
+		"mdia.minf.stbl.stsd.*[0].*.esds.decConfigDescr.decSpecificInfo[0].info",
+		ppConfig, pConfigSize);
+  }
 }
 
 void MP4File::GetTrackVideoMetadata(MP4TrackId trackId, 

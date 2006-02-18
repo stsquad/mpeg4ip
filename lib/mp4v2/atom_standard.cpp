@@ -391,7 +391,8 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
   } else if (ATOMID(type) == ATOMID("tsro")) {
     AddProperty( 
 		new MP4Integer32Property("offset"));
-
+  } else if (ATOMID(type) == ATOMID("wave")) {
+    ExpectChildAtom("esds", Required, OnlyOne);
   /*
    * copyright???
    */

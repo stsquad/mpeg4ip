@@ -27,7 +27,6 @@
 #include "player_session.h"
 #include "audio_sdl.h"
 #include "player_util.h"
-#include "Our_SDL_audio.h"
 #include "our_config_file.h"
 
 //#define TEST_MONO_TO_STEREO 1
@@ -53,7 +52,8 @@ void CSDLAudioSync::audio_callback(Uint8 *stream, int len)
   uint64_t our_time;
     our_time = get_time_of_day_usec();
   if (m_use_SDL_delay != 0) {
-    latency = Our_SDL_AudioDelay();
+    latency = SDL_AUDIODELAY();
+	if (latency < 0) latency = 0;
   } else {
     latency = 0;
   }
@@ -68,7 +68,7 @@ void CSDLAudioSync::audio_callback(Uint8 *stream, int len)
 CSDLAudioSync::CSDLAudioSync (CPlayerSession *psptr, int volume) :
   CBufferAudioSync(psptr, volume)
 {
-  Our_SDL_AudioInit(getenv("SDL_AUDIODRIVER"));
+  SDL_AUDIOINIT(getenv("SDL_AUDIODRIVER"));
   m_volume = (volume * SDL_MIX_MAXVOLUME)/100;
 }
 
@@ -77,8 +77,8 @@ CSDLAudioSync::CSDLAudioSync (CPlayerSession *psptr, int volume) :
  */
 CSDLAudioSync::~CSDLAudioSync (void)
 {
-  Our_SDL_PauseAudio(1);
-  Our_SDL_CloseAudio();
+  SDL_PAUSEAUDIO(1);
+  SDL_CLOSEAUDIO();
 }
 
 
@@ -152,13 +152,13 @@ int CSDLAudioSync::InitializeHardware (void)
 		wanted.format,
 		wanted.samples);
 #endif
-  int ret = Our_SDL_OpenAudio(&wanted, &m_obtained);
+  int ret = SDL_OPENAUDIO(&wanted, &m_obtained);
   if (ret < 0) {
     audio_message(LOG_ERR, "Couldn't open audio %d channels - %s",
 		  wanted.channels, SDL_GetError());
     if (wanted.channels > 2) {
       wanted.channels = 2;
-      ret = Our_SDL_OpenAudio(&wanted, &m_obtained);
+      ret = SDL_OPENAUDIO(&wanted, &m_obtained);
     }
     if (ret < 0) {
       audio_message(LOG_CRIT, "Couldn't open audio, %s", SDL_GetError());
@@ -167,7 +167,7 @@ int CSDLAudioSync::InitializeHardware (void)
   }
 
   char buffer[128];
-  if (Our_SDL_AudioDriverName(buffer, sizeof(buffer)) == NULL) {
+  if (SDL_AUDIODRIVERNAME(buffer, sizeof(buffer)) == NULL) {
     strcpy(buffer, "no audio driver");
   }
   audio_message(LOG_INFO, "got f %d chan %d format %x samples %d size %u %s",
@@ -187,12 +187,12 @@ int CSDLAudioSync::InitializeHardware (void)
 #endif
   bool need_convert = false;
   if (CHECK_SDL_CHANS_RETURNED) {
-    Our_SDL_CloseAudio();
+    SDL_CLOSEAUDIO();
     wanted.channels = OBTAINED_CHANS;
     wanted.format = AUDIO_S16SYS; // we're converting, so always choose
     m_bytes_per_sample_output = sizeof(int16_t) * wanted.channels;
     
-    ret = Our_SDL_OpenAudio(&wanted, &m_obtained);
+    ret = SDL_OPENAUDIO(&wanted, &m_obtained);
     audio_message(LOG_INFO, 
 		  "requested f %d chan %d format %x samples %d",
 		  wanted.freq,
@@ -223,7 +223,7 @@ int CSDLAudioSync::InitializeHardware (void)
     audio_convert_init(m_obtained.size, m_obtained.samples);
   }
 
-  m_use_SDL_delay = Our_SDL_HasAudioDelay();
+  m_use_SDL_delay = SDL_HAS_AUDIO_DELAY();
   if (m_use_SDL_delay)
     audio_message(LOG_NOTICE, "Using delay measurement from SDL");
   return 1; // check again pretty soon...
@@ -231,19 +231,19 @@ int CSDLAudioSync::InitializeHardware (void)
 
 void CSDLAudioSync::StartHardware (void) 
 {
-  Our_SDL_PauseAudio(0);
+  SDL_PAUSEAUDIO(0);
 }
 
 void CSDLAudioSync::StopHardware (void) 
 {
-  Our_SDL_PauseAudio(1);
+  SDL_PAUSEAUDIO(1);
 }
 
 void CSDLAudioSync::CopyBytesToHardware (uint8_t *from,
 					 uint8_t *to, 
 					 uint32_t bytes)
 {
-  Our_SDL_MixAudio((unsigned char *)to, 
+  SDL_MIXAUDIO((unsigned char *)to, 
 		   (const unsigned char *)from,
 		   bytes, 
 		   m_volume);
@@ -318,11 +318,11 @@ audio_vft_t *get_audio_vft (void)
 int do_we_have_audio (void) 
 {
   char buffer[80];
-  if (Our_SDL_AudioInit(getenv("SDL_AUDIODRIVER")) < 0) {
+  if (SDL_AUDIOINIT(getenv("SDL_AUDIODRIVER")) < 0) {
     player_debug_message("Can't initialize SDL audio");
     return (0);
   } 
-  if (Our_SDL_AudioDriverName(buffer, sizeof(buffer)) == NULL) {
+  if (SDL_AUDIODRIVERNAME(buffer, sizeof(buffer)) == NULL) {
     player_debug_message("No buffer name");
     return (0);
   }

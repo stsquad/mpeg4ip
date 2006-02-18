@@ -222,6 +222,7 @@ static SDL_AudioDevice *Audio_CreateDevice(int devindex)
 	SDL_AudioDevice *this;
 
 	/* Initialize all variables that we clean on shutdown */
+	LoadALSALibrary();
 	this = (SDL_AudioDevice *)malloc(sizeof(SDL_AudioDevice));
 	if ( this ) {
 		memset(this, 0, (sizeof *this));

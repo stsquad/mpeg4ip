@@ -30,6 +30,7 @@
 //#define DEBUG_AUDIO_FILL 1
 //#define DEBUG_AUDIO_CALLBACK 1
 //#define DEBUG_AUDIO_TIMING 1
+//#define DEBUG_AUDIO_TIMING_CHANGES 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(audio_message, "audiobuf")
 #else
@@ -68,6 +69,7 @@ CBufferAudioSync::CBufferAudioSync (CPlayerSession *psptr, int volume) :
   m_have_jitter = false;
   m_jitter_msec = 0;
   m_jitter_msec_total = 0;
+  m_last_add_samples = false;
 }
 
 CBufferAudioSync::~CBufferAudioSync (void)
@@ -642,7 +644,8 @@ bool CBufferAudioSync::audio_buffer_callback (uint8_t *outbuf,
 {
   uint32_t outBufferSamples, outBufferBytes;
   uint32_t decodedBufferBytes, decodedBufferSamples;
-
+  uint64_t hw_start_time = 0;
+  bool first_callback = m_first_callback;
 #ifdef DEBUG_AUDIO_CALLBACK
   audio_message(LOG_DEBUG, "audio callback - filled %u bytes %u", 
 		m_filled_bytes, len_bytes);
@@ -677,7 +680,7 @@ bool CBufferAudioSync::audio_buffer_callback (uint8_t *outbuf,
 		latency_samples);
 #endif
   if (m_first_callback == false &&
-      m_samples_written > m_freq) {
+      m_samples_written > 5 * m_freq * m_bytes_per_sample_output) {
     // we're going to check time vs samples written, perhaps remove
     // or add samples.
     uint64_t written_samples = m_samples_written;
@@ -738,9 +741,10 @@ bool CBufferAudioSync::audio_buffer_callback (uint8_t *outbuf,
       /*
        * regular PCM buffers - remove or add samples
        */
-      if (diff >= TO_U64(3)) {
-	uint64_t bytes;
-	if (add_samples) {
+      if (add_samples) {
+	if (diff >= TO_U64(3) &&
+	    m_last_add_samples && 
+	    m_last_diff >= TO_U64(3)) {
 	  // notice that we don't touch m_samples_written
 	  // also, we don't do this when play_offset is 0 - this means
 	  // we're at a wrapping point, and we don't want to be there...
@@ -753,39 +757,35 @@ bool CBufferAudioSync::audio_buffer_callback (uint8_t *outbuf,
 	    outbuf += 3 * m_bytes_per_sample_output;
 	    len_bytes -= 3 * m_bytes_per_sample_output;
 	    m_sync_samples_added += 3;
-#ifdef DEBUG_AUDIO_TIMING
-	    audio_message(LOG_DEBUG, "samples "U64" latency %u", m_samples_written,
-			  latency_samples);
-	    audio_message(LOG_DEBUG, "current "U64" hwstart "U64,
-			  current_time, m_hw_start_time);
-	    audio_message(LOG_DEBUG, "samples "U64" real "D64 " diff "U64 " %d",
-			  written_samples, real_samples, diff, add_samples);
+#if defined(DEBUG_AUDIO_TIMING) || defined(DEBUG_AUDIO_TIMING_CHANGES)
 	    audio_message(LOG_INFO, "adding 3 samples of silence for clock sync "U64" %u",
 			  diff, m_filled_bytes);
 #endif
 	  }
-	} else {
-	  if (diff >= TO_U64(10)) {
-	    // need to remove samples
-	    bytes = diff * m_bytes_per_sample_input;
-	    if (bytes > m_filled_bytes) {
-	      // restart here - this shouldn't happen...
-	      audio_message(LOG_ERR, "sync requires removing "U64" bytes - we only have %u in the buffer", 
-			    bytes, m_filled_bytes);
-	    } else {
-	      m_sync_samples_removed += diff;
-	      m_samples_written += diff;
-	      m_filled_bytes -= bytes;
-	      m_play_offset += bytes;
-	      if (m_play_offset > m_sample_buffer_size) {
-		m_play_offset -= m_sample_buffer_size;
-	      }
+	}
+      } else {
+	if (diff >= TO_U64(10)) {
+	  uint64_t bytes;
+	  // need to remove samples
+	  diff /= 2;
+	  bytes = diff * m_bytes_per_sample_input;
+	  if (bytes > m_filled_bytes) {
+	    // restart here - this shouldn't happen...
+	    audio_message(LOG_ERR, "sync requires removing "U64" bytes - we only have %u in the buffer", 
+			  bytes, m_filled_bytes);
+	  } else {
+	    m_sync_samples_removed += diff;
+	    m_samples_written += diff;
+	    m_filled_bytes -= bytes;
+	    m_play_offset += bytes;
+	    if (m_play_offset > m_sample_buffer_size) {
+	      m_play_offset -= m_sample_buffer_size;
 	    }
-#ifdef DEBUG_AUDIO_TIMING
-	    audio_message(LOG_INFO, "removing "U64" samples for sync", 
-			  diff);
-#endif
 	  }
+#if defined(DEBUG_AUDIO_TIMING) || defined(DEBUG_AUDIO_TIMING_CHANGES)
+	  audio_message(LOG_INFO, "removing "U64" samples for sync", 
+			diff);
+#endif
 	}
       }
     }
@@ -793,6 +793,8 @@ bool CBufferAudioSync::audio_buffer_callback (uint8_t *outbuf,
     // vs the frequency timestamp, to see if jitter has occurred there.
     // this will be done in the load and fill routines, and then passed
     // here or to the sync task - we'll want to adjust the start time.
+    m_last_add_samples = add_samples;
+    m_last_diff = diff;
   }
   if (m_decode_format == AUDIO_FMT_HW_AC3) {
     // first 2 bytes are len.
@@ -868,6 +870,10 @@ bool CBufferAudioSync::audio_buffer_callback (uint8_t *outbuf,
       decodedBufferBytes = outBufferSamples * m_bytes_per_sample_input;
       outBufferBytes = outBufferSamples * m_bytes_per_sample_output;
 
+      if (first_callback) {
+	hw_start_time = get_time_of_day_usec();
+	first_callback = false;
+      }
       if (m_convert_buffer) {
 	// convert the data, and write it
 	audio_convert_data(m_sample_buffer + m_play_offset,
@@ -941,7 +947,7 @@ bool CBufferAudioSync::audio_buffer_callback (uint8_t *outbuf,
       latency_usec = latency_samples * TO_U64(1000000);
       latency_usec /= m_freq;
     }
-    m_hw_start_time = get_time_of_day_usec() + latency_usec;
+    m_hw_start_time = hw_start_time + latency_usec;
     m_latency_value = latency_usec / TO_U64(1000);
 #ifdef DEBUG_AUDIO_TIMING
     audio_message(LOG_DEBUG, "hw start "U64" latency "U64,

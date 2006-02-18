@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audio.c,v 1.5 2005/11/01 20:13:18 wmaycisco Exp $";
+ "@(#) $Id: SDL_audio.c,v 1.6 2006/02/18 00:57:14 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -168,8 +168,10 @@ static int SDL_RunAudio(void *audiop)
 		silence = audio->spec.silence;
 		stream_len = audio->spec.size;
 	}
+#ifndef _WINDOWS
 	stream = audio->GetAudioBuf(audio);
 	if (stream == NULL) 
+#endif
 	  stream = audio->fake_stream;
 
 #ifdef ENABLE_AHI

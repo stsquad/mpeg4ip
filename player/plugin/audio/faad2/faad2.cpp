@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: faad2.cpp,v 1.8 2005/11/10 22:03:19 wmaycisco Exp $
+** $Id: faad2.cpp,v 1.9 2006/02/18 00:57:14 wmaycisco Exp $
 **/
 #include "faad2.h"
 #include <mpeg4_audio_config.h>
@@ -280,6 +280,7 @@ static int aac_decode (codec_data_t *ptr,
 	uint32_t samples = frame_info.samples / aac->m_chans;
 	int16_t *inptr = (int16_t *)buff;
 
+	if (now == NULL) return bytes_consummed;
 	memset(now, 0, frame_info.samples * sizeof(int16_t));
 	for (uint32_t ix = 0; ix < samples; ix++) {
 	  for (unsigned char chx = 0; chx < frame_info.channels; chx++) {
