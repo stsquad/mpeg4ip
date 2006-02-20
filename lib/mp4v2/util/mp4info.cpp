@@ -82,7 +82,7 @@ int main(int argc, char** argv)
 		}
 
 		fputs(info, stdout);
-		MP4FileHandle mp4file = MP4Read(mp4FileName);
+		MP4FileHandle mp4file = MP4Read(mp4FileName); //, MP4_DETAILS_ERROR);
 		if (mp4file != MP4_INVALID_FILE_HANDLE) {
 		  char *value;
 		  uint16_t numvalue, numvalue2;

@@ -541,8 +541,8 @@ public: /* equivalent to MP4 library API */
 	/* iTunes metadata handling */
  protected:
 	bool CreateMetadataAtom(const char* name);
-	bool DeleteMetadataAtom(const char* name);
-	bool GetMetadataString(const char *atom, char **value);
+	bool DeleteMetadataAtom(const char* name, bool try_udta = false);
+	bool GetMetadataString(const char *atom, char **value, bool try_udta = false);
 	bool SetMetadataString(const char *atom, const char *value);
  public:
 	bool MetadataDelete(void);

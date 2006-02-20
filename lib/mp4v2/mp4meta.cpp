@@ -136,7 +136,7 @@ bool MP4File::CreateMetadataAtom(const char* name)
     return true;
 }
 
-bool MP4File::DeleteMetadataAtom(const char* name)
+bool MP4File::DeleteMetadataAtom(const char* name, bool try_udta)
 {
     MP4Atom *pMetaAtom = NULL;
     char s[256];
@@ -144,6 +144,10 @@ bool MP4File::DeleteMetadataAtom(const char* name)
     sprintf(s, "moov.udta.meta.ilst.%s", name);
     pMetaAtom = m_pRootAtom->FindAtom(s);
 
+    if (pMetaAtom == NULL && try_udta) {
+      sprintf(s, "moov.udta.%s", name);
+      pMetaAtom = m_pRootAtom->FindAtom(s);
+    }
     /* if it exists, delete it */
     if (pMetaAtom)
     {
@@ -184,7 +188,7 @@ bool MP4File::SetMetadataString (const char *atom, const char *value)
   return true;
 }
 
-bool MP4File::GetMetadataString (const char *atom, char **value)
+bool MP4File::GetMetadataString (const char *atom, char **value, bool try_udta)
 {
     unsigned char *val = NULL;
     u_int32_t valSize = 0;
@@ -192,9 +196,22 @@ bool MP4File::GetMetadataString (const char *atom, char **value)
     sprintf(atomstring, "moov.udta.meta.ilst.%s.data.metadata", atom);
 
     *value = NULL;
-
-    GetBytesProperty(atomstring, (u_int8_t**)&val, &valSize);
-
+    if (try_udta == false) {
+      GetBytesProperty(atomstring, (u_int8_t**)&val, &valSize);
+    } else {
+      bool got_it = false;
+      try {
+	GetBytesProperty(atomstring, (u_int8_t**)&val, &valSize);
+	got_it = true;
+      }
+      catch (MP4Error* e) {
+	delete e;
+      }
+      if (got_it == false) {
+	sprintf(atomstring, "moov.udta.%s.metadata", atom);
+	GetBytesProperty(atomstring, (u_int8_t**)&val, &valSize);
+      }
+    }
     if (valSize > 0)
     {
         *value = (char*)malloc((valSize+1)*sizeof(unsigned char));
@@ -212,12 +229,12 @@ bool MP4File::SetMetadataName(const char* value)
 
 bool MP4File::GetMetadataName(char** value)
 {
-  return GetMetadataString("\251nam", value);
+  return GetMetadataString("\251nam", value, true);
 }
 
 bool MP4File::DeleteMetadataName()
 {
-  return DeleteMetadataAtom("\251nam");
+  return DeleteMetadataAtom("\251nam", true);
 }
 
 bool MP4File::SetMetadataWriter(const char* value)
@@ -287,12 +304,12 @@ bool MP4File::SetMetadataComment(const char* value)
 
 bool MP4File::GetMetadataComment(char** value)
 {
-  return GetMetadataString("\251cmt", value);
+  return GetMetadataString("\251cmt", value, true);
 }
 
 bool MP4File::DeleteMetadataComment()
 {
-  return DeleteMetadataAtom("\251cmt");
+  return DeleteMetadataAtom("\251cmt", true);
 }
 
 bool MP4File::SetMetadataYear(const char* value)

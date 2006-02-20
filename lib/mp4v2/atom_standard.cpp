@@ -230,7 +230,7 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
 
   } else if (ATOMID(type) == ATOMID("moov")) {
     ExpectChildAtom("mvhd", Required, OnlyOne);
-    ExpectChildAtom("iods", Required, OnlyOne);
+    ExpectChildAtom("iods", Optional, OnlyOne);
     ExpectChildAtom("trak", Required, Many);
     ExpectChildAtom("udta", Optional, Many);
     ExpectChildAtom("mvex", Optional, OnlyOne);
@@ -396,13 +396,11 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
   /*
    * copyright???
    */
-  } else if (ATOMID(type) == ATOMID(name) ||
-	     ATOMID(type) == ATOMID(art) ||
+  } else if (ATOMID(type) == ATOMID(art) ||
 	     ATOMID(type) == ATOMID(wrt) ||
 	     ATOMID(type) == ATOMID(alb) ||
 	     ATOMID(type) == ATOMID(day) ||
 	     ATOMID(type) == ATOMID(too) ||
-	     ATOMID(type) == ATOMID(cmt) ||
 	     ATOMID(type) == ATOMID(gen) ||
 	     ATOMID(type) == ATOMID(grp)) { /* Apple iTunes */
     ExpectChildAtom("data", Required, OnlyOne);

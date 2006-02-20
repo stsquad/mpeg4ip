@@ -44,6 +44,7 @@ MP4SoundAtom::MP4SoundAtom(const char *atomid)
 	if (ATOMID(atomid) == ATOMID("mp4a")) {
 	  AddReserved("reserved3", 2); /* 8 */
 	  ExpectChildAtom("esds", Required, OnlyOne);
+	  ExpectChildAtom("wave", Optional, OnlyOne);
 	}
 }
 
@@ -89,12 +90,24 @@ void MP4SoundAtom::Read()
 {
   MP4Atom *parent = GetParentAtom();
   if (ATOMID(parent->GetType()) != ATOMID("wave")) {
-  ReadProperties(0, 3); // read first 3 properties
-  AddProperties(((MP4IntegerProperty *)m_pProperties[2])->GetValue());
-  ReadProperties(3); // continue
-  if (m_pChildAtomInfos.Size() > 0) {
-    ReadChildAtoms();
-  }
+    // Quicktime has an interesting thing - they'll put an mp4a atom
+    // which is blank inside a wave atom, which is inside an mp4a atom
+    ReadProperties(0, 3); // read first 3 properties
+    AddProperties(((MP4IntegerProperty *)m_pProperties[2])->GetValue());
+    ReadProperties(3); // continue
+    if (m_pChildAtomInfos.Size() > 0) {
+      ReadChildAtoms();
+    }
+  } else {
+    m_pProperties.Delete(8);
+    m_pProperties.Delete(7);
+    m_pProperties.Delete(6);
+    m_pProperties.Delete(5);
+    m_pProperties.Delete(4);
+    m_pProperties.Delete(3);
+    m_pProperties.Delete(2);
+    m_pProperties.Delete(1);
+    m_pProperties.Delete(0);
   }
   Skip();
 }
