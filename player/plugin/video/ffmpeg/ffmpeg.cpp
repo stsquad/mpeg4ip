@@ -453,7 +453,8 @@ static int ffmpeg_decode (codec_data_t *ptr,
       if (header >= 0) {
 	uint16_t temp_ref = MP4AV_Mpeg3PictHdrTempRef(buffer + header);
 	uint64_t ret;
-	if (mpeg3_find_dts_from_pts(&ffmpeg->pts_convert,
+	if (got_picture == 0 ||
+	    mpeg3_find_dts_from_pts(&ffmpeg->pts_convert,
 				    ts, 
 				    ftype,
 				    temp_ref, 
@@ -461,6 +462,11 @@ static int ffmpeg_decode (codec_data_t *ptr,
  	  ffmpeg->have_cached_ts = false;
 	  return buflen;
 	} 
+#if 0
+	ffmpeg->m_vft->log_msg(LOG_DEBUG, "ffmpeg", "pts "U64" dts "U64" temp %u type %u %u", 
+			       ts, ret,
+			       temp_ref, ftype, got_picture);
+#endif
 	ts = ret;
 	//	ffmpeg_message(LOG_ERR, "ffmpeg", "type %d ref %u "U64, ftype, temp_ref, ret);
       }

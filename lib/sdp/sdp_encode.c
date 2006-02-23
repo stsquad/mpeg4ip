@@ -201,6 +201,31 @@ static int encode_connect (connect_desc_t *cptr, sdp_encode_t *se)
   return (0);
 }
 
+static int encode_rtcp (media_desc_t *mptr, sdp_encode_t *se)
+{
+  char buffer[20];
+  connect_desc_t *cptr = &mptr->rtcp_connect;
+  ADD_STR_TO_ENCODE_WITH_RETURN(se, "a=rtcp:");
+  sprintf(buffer, "%u", mptr->rtcp_port);
+  ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
+  if (cptr->conn_type != NULL) {
+    ADD_STR_TO_ENCODE_WITH_RETURN(se, " ");
+    ADD_STR_TO_ENCODE_WITH_RETURN(se, cptr->conn_type);
+    ADD_STR_TO_ENCODE_WITH_RETURN(se, " ");
+    ADD_STR_TO_ENCODE_WITH_RETURN(se, cptr->conn_addr);
+    if (cptr->ttl) {
+      sprintf(buffer, "/%d", cptr->ttl);
+      ADD_STR_TO_ENCODE_WITH_RETURN(se,buffer);
+      if (cptr->num_addr) {
+	sprintf(buffer, "/%d", cptr->num_addr);
+	ADD_STR_TO_ENCODE_WITH_RETURN(se,buffer);
+      }
+    }
+  }
+  ADD_STR_TO_ENCODE_WITH_RETURN(se, "\n");
+  return (0);
+}
+
 static int encode_key (key_desc_t *kptr, sdp_encode_t *se)
 {
   const char *temp;
@@ -394,6 +419,9 @@ static int encode_media (media_desc_t *mptr, sdp_encode_t *se)
   }
   if (mptr->media_connect.used) {
     CHECK_RETURN(encode_connect(&mptr->media_connect, se));
+  }
+  if (mptr->rtcp_connect.used) {
+    CHECK_RETURN(encode_rtcp(mptr, se));
   }
   CHECK_RETURN(encode_bandwidth(mptr->media_bandwidth, se));
   CHECK_RETURN(encode_key(&mptr->key, se));

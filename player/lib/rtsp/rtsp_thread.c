@@ -145,7 +145,7 @@ static int rtsp_msg_thread_set_rtp_callback (rtsp_client_t *info)
 int rtsp_thread_send_rtcp (rtsp_client_t *info,
 			   int interleave,
 			   uint8_t *buffer,
-			   int buflen)
+			   uint32_t buflen)
 {
   int ret;
   uint8_t buff[4];

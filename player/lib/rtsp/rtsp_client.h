@@ -130,7 +130,7 @@ typedef struct rtsp_session_ rtsp_session_t;
 typedef void (*rtp_callback_f)(void *,
 			       unsigned char interleaved,
 			       struct rtp_packet *,
-			       int len);
+			       uint32_t len);
 /*
  * free_decode_response - call this after the decode response has been
  * used.  It will free all memory under it.
@@ -171,7 +171,7 @@ int rtsp_thread_set_rtp_callback(rtsp_client_t *info,
   int rtsp_thread_send_rtcp(rtsp_client_t *info,
 			    int interleave,
 			    uint8_t *buffer,
-			    int buflen);
+			    uint32_t buflen);
 /*
  * rtsp message function error messages
  */

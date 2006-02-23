@@ -509,8 +509,10 @@ static bool MP4AV_GetiSFMSettings(MP4FileHandle mp4File,
            part1,
 	   isAudio ? part2a : part2v,
            part3, part4se);
-  *useSelectiveEnc = MP4GetTrackIntegerProperty(mp4File, mediaTrackId, 
-						path);
+  uint64_t temp;
+  MP4GetTrackIntegerProperty(mp4File, mediaTrackId, 
+			     path, &temp);
+  *useSelectiveEnc = temp;
  
   // get the key indicator length from the file (iSFM atom)
   snprintf(path, 
@@ -519,7 +521,9 @@ static bool MP4AV_GetiSFMSettings(MP4FileHandle mp4File,
            part1,
 	   isAudio ? part2a : part2v,
            part3, part4kil);
-  *KIlen = MP4GetTrackIntegerProperty(mp4File, mediaTrackId, path);
+  MP4GetTrackIntegerProperty(mp4File, mediaTrackId, 
+			     path, &temp);
+  *KIlen = temp;
 
   // get the IV length from the file (iSFM atom)
   snprintf(path, 
@@ -528,7 +532,9 @@ static bool MP4AV_GetiSFMSettings(MP4FileHandle mp4File,
            part1,
 	   isAudio ? part2a : part2v,
            part3, part4ivl);
-  *IVlen = MP4GetTrackIntegerProperty(mp4File, mediaTrackId, path);
+  MP4GetTrackIntegerProperty(mp4File, mediaTrackId, 
+			     path, &temp);
+  *IVlen = temp;
 
   free(path);
   return true;

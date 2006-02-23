@@ -411,59 +411,76 @@ extern "C" bool MP4SetGraphicsProfileLevel(MP4FileHandle hFile, u_int8_t value)
 
 /* generic file properties */
 
-extern "C" u_int64_t MP4GetIntegerProperty(
-	MP4FileHandle hFile, const char* propName)
+extern "C" bool MP4HaveAtom (MP4FileHandle hFile, const char *atomName)
+{
+  if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+    try {
+      return ((MP4File *)hFile)->FindAtom(atomName) != NULL;
+    } catch (MP4Error *e) {
+      PRINT_ERROR(e);
+      delete e;
+    }
+  }
+  return false;
+}
+
+extern "C" bool MP4GetIntegerProperty(
+	MP4FileHandle hFile, const char* propName, u_int64_t *retvalue)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
-			return ((MP4File*)hFile)->GetIntegerProperty(propName);
+			*retvalue = ((MP4File*)hFile)->GetIntegerProperty(propName);
+			return true;
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);
 			delete e;
 		}
 	}
-	return (u_int64_t)-1;
+	return false;
 }
 
-extern "C" float MP4GetFloatProperty(
-	MP4FileHandle hFile, const char* propName)
+extern "C" bool MP4GetFloatProperty(
+	MP4FileHandle hFile, const char* propName, float *retvalue)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
-			return ((MP4File*)hFile)->GetFloatProperty(propName);
+			*retvalue = ((MP4File*)hFile)->GetFloatProperty(propName);
+			return true;
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);
 			delete e;
 		}
 	}
-	return NAN;
+	return false;
 }
 
-extern "C" const char* MP4GetStringProperty(
-	MP4FileHandle hFile, const char* propName)
+extern "C" bool MP4GetStringProperty(
+	MP4FileHandle hFile, const char* propName,
+	const char **retvalue)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
-			return ((MP4File*)hFile)->GetStringProperty(propName);
+			*retvalue =  ((MP4File*)hFile)->GetStringProperty(propName);
+			return true;
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);
 			delete e;
 		}
 	}
-	return NULL;
+	return false;
 }
 
-extern "C" void MP4GetBytesProperty(
+extern "C" bool MP4GetBytesProperty(
 	MP4FileHandle hFile, const char* propName, 
 	u_int8_t** ppValue, u_int32_t* pValueSize)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
 			((MP4File*)hFile)->GetBytesProperty(propName, ppValue, pValueSize);
-			return;
+			return true;
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);
@@ -472,7 +489,7 @@ extern "C" void MP4GetBytesProperty(
 	}
 	*ppValue = NULL;
 	*pValueSize = 0;
-	return;
+	return false;
 }
 
 extern "C" bool MP4SetIntegerProperty(
@@ -1846,73 +1863,78 @@ extern "C" bool MP4IsIsmaCrypMediaTrack(
 
 /* generic track properties */
 
-extern "C" u_int64_t MP4GetTrackIntegerProperty (
+extern "C" bool MP4HaveTrackAtom (MP4FileHandle hFile, 
+				  MP4TrackId trackId, 
+				  const char *atomName)
+{
+  if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+    try {
+      return ((MP4File*)hFile)->FindTrackAtom(trackId, atomName) != NULL;
+    }
+    catch (MP4Error* e) {
+      PRINT_ERROR(e);
+      delete e;
+    }
+  }
+  return false;
+}
+				  
+extern "C" bool MP4GetTrackIntegerProperty (
 	MP4FileHandle hFile, MP4TrackId trackId, 
-	const char* propName)
+	const char* propName,
+	u_int64_t *retvalue)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
-			return ((MP4File*)hFile)->GetTrackIntegerProperty(trackId, 
+			*retvalue = ((MP4File*)hFile)->GetTrackIntegerProperty(trackId, 
 				propName);
+			return true;
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);
-			delete e;
-		}
-	}
-	return (u_int64_t)-1;
-}
-extern "C" bool MP4HaveTrackIntegerProperty(
-	MP4FileHandle hFile, MP4TrackId trackId,
-	const char* propName)
-{
-  // The same as MP4GetTrackIntegerProperty but with no error reporting
-	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
-		try {
-			return ((MP4File*)hFile)->GetTrackIntegerProperty(trackId, 
-				propName) != (u_int64_t)-1;
-		}
-		catch (MP4Error* e) {
-			// No error reporting
 			delete e;
 		}
 	}
 	return false;
 }
 
-extern "C" float MP4GetTrackFloatProperty(
+extern "C" bool MP4GetTrackFloatProperty(
 	MP4FileHandle hFile, MP4TrackId trackId, 
-	const char* propName)
+	const char* propName,
+	float *retvalue)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
-			return ((MP4File*)hFile)->GetTrackFloatProperty(trackId, propName);
+			*retvalue = ((MP4File*)hFile)->GetTrackFloatProperty(trackId, propName);
+			return true;
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);
 			delete e;
 		}
 	}
-	return NAN;
+	return false;
 }
 
-extern "C" const char* MP4GetTrackStringProperty(
+extern "C" bool MP4GetTrackStringProperty(
 	MP4FileHandle hFile, MP4TrackId trackId, 
-	const char* propName)
+	const char* propName,
+	const char **retvalue)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
-			return ((MP4File*)hFile)->GetTrackStringProperty(trackId, propName);
+			*retvalue = ((MP4File*)hFile)->GetTrackStringProperty(trackId, propName);
+			return true;
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);
 			delete e;
 		}
 	}
-	return NULL;
+	return false;
 }
 
-extern "C" void MP4GetTrackBytesProperty(
+extern "C" bool MP4GetTrackBytesProperty(
 	MP4FileHandle hFile, MP4TrackId trackId, const char* propName, 
 	u_int8_t** ppValue, u_int32_t* pValueSize)
 {
@@ -1920,7 +1942,7 @@ extern "C" void MP4GetTrackBytesProperty(
 		try {
 			((MP4File*)hFile)->GetTrackBytesProperty(
 				trackId, propName, ppValue, pValueSize);
-			return;
+			return true;
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);
@@ -1929,7 +1951,7 @@ extern "C" void MP4GetTrackBytesProperty(
 	}
 	*ppValue = NULL;
 	*pValueSize = 0;
-	return;
+	return false;
 }
 
 extern "C" bool MP4SetTrackIntegerProperty(

@@ -243,12 +243,15 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
       static const char cmt[5]={0251,'c', 'm', 't', '\0'};
       static const char cpy[5]={0251,'c', 'p', 'y', '\0'};
       static const char des[5]={0251,'d', 'e', 's','\0'};
+      static const char prd[5]={0251, 'p', 'r', 'd', '\0'};
       if (ATOMID(type) == ATOMID(name) ||
 	  ATOMID(type) == ATOMID(cmt) ||
 	  ATOMID(type) == ATOMID(cpy) ||
-	  ATOMID(des) == ATOMID(des)) {
+	  ATOMID(type) == ATOMID(prd) ||
+	  ATOMID(type) == ATOMID(des)) {
 	pAtom = new MP4Meta2Atom(type);
       }
+      break;
     }
   }
 

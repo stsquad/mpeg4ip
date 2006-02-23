@@ -60,7 +60,7 @@ static int c_decode_thread (void *data)
 static void c_rtp_packet_callback (void *data, 
 				   unsigned char interleaved, 
 				   struct rtp_packet *pak, 
-				   int len)
+				   uint32_t len)
 {
   ((CPlayerMedia *)data)->rtp_receive_packet(interleaved, pak, len);
 }

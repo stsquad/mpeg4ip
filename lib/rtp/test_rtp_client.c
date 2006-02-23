@@ -1,9 +1,10 @@
+#include "mpeg4ip.h"
 #include <rtp.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/utsname.h>
-#include <srtp.h>
-#include <bills_srtp.h>
+//#include <srtp.h>
+//#include <bills_srtp.h>
 
 #define BUFFSIZE 2048
 #define TTL 1
@@ -24,7 +25,7 @@ static void c_rtp_callback(struct rtp *session, rtp_event *e)
 {
   rtp_packet *pak;
   char buf_from_file[BUFFSIZE];
-  int ix;
+  uint32_t ix;
 
   switch (e->type) {
   case RX_RTP:
@@ -55,13 +56,14 @@ static void c_rtp_callback(struct rtp *session, rtp_event *e)
 
     //debug by nori
     //write(1, pak->rtp_data, pak->rtp_data_len);
-
+#if 0
     printf("payload data\n");
     for (ix = 0; ix < pak->rtp_data_len; ix++) {
       printf("%02x ", (unsigned char)pak->rtp_data[ix]);
       if (((ix + 1) % 8) == 0) printf("\n");
     }
     printf("\n");
+#endif
 
     // Compare data in packet with data in file.  Use the
     // pak->rtp_data pointer and compare for pak->rtp_data_len bytes
@@ -123,6 +125,11 @@ static void rtp_end(void)
   session = NULL;
 }
 
+#define DUMP_ENCRYPTED_PAK
+
+#if 0
+#define ENCRYPT_FUNCTION our_srtp_encrypt
+#define DECRYPT_FUNCTION our_srtp_decrypt
 static int our_srtp_encrypt (void *foo, 
 			     unsigned char *buffer, 
 			     unsigned int *len)
@@ -142,7 +149,6 @@ static int our_srtp_encrypt (void *foo,
   *len = retdata;
   return TRUE;
 }     
-#define DUMP_ENCRYPTED_PAK
 static int our_srtp_decrypt (void *foo, 
 			     unsigned char *buffer, 
 			     unsigned int *len)
@@ -173,7 +179,10 @@ static int our_srtp_decrypt (void *foo,
   *len = retdata;
   return TRUE;
 }     
-#if 0
+#else
+#define ENCRYPT_FUNCTION our_encrypt
+#define DECRYPT_FUNCTION our_decrypt
+
 static int our_encrypt(void *foo, unsigned char *buffer, unsigned int *len)
 {
   struct rtp *session;
@@ -181,8 +190,7 @@ static int our_encrypt(void *foo, unsigned char *buffer, unsigned int *len)
   unsigned int retdata;
   
   retdata = *len;
-  session = (struct rtp *)foo;
-  for (ix = 12; ix < retdata; ix++) buffer[ix] = buffer[ix] + 1;
+  for (ix=sizeof(rtp_packet_header) - 1; ix < retdata; ix++) buffer[ix] = ~buffer[ix];
   return TRUE;
 }
 
@@ -193,8 +201,7 @@ static int our_decrypt(void *foo, unsigned char *buffer, unsigned int *len)
   unsigned int retdata;
 
   retdata = *len;
-  session = (struct rtp *)foo;
-  for (ix=12; ix < retdata; ix++) buffer[ix] = buffer[ix] - 1;
+  for (ix=sizeof(rtp_packet_header) - 1; ix < retdata; ix++) buffer[ix] = ~buffer[ix];
   return TRUE;
 }
 #endif
@@ -209,7 +216,8 @@ int main (int argc, char *argv[])
   int c;                        
   struct hostent *h;
   struct utsname myname;
-  bills_srtp_t *srtp_data;
+  void *srtp_data;
+
   unsigned int extra_len;
   int do_auth = 1, do_encrypt = 1;
 
@@ -226,8 +234,8 @@ int main (int argc, char *argv[])
     exit(1);
   }
   ip_addr = strdup(inet_ntoa(*((struct in_addr *)h->h_addr)));
-  rx_port = 5000;
-  tx_port = 5002;
+  rx_port = 15000;
+  tx_port = 15002;
 
   opterr = 0;
   while((c = getopt(argc, argv, "aehi:r:t:f:")) != -1) {
@@ -291,10 +299,15 @@ int main (int argc, char *argv[])
   rtp_set_option(session, RTP_OPT_WEAK_VALIDATION, FALSE);
   rtp_set_option(session, RTP_OPT_PROMISC, TRUE);
   rtp_set_my_ssrc(session,OUR_SSRC);
+#if 0
   srtp_data = srtp_init(OUR_SSRC,THEIR_SSRC,input_key, do_encrypt, do_auth);
   extra_len = auth_get_tag_length(srtp_data->sender_srtp_ctx.authenticator);
   extra_len += EOP_PAD;
-  rtp_set_encryption(session, our_srtp_encrypt, our_srtp_decrypt, srtp_data, extra_len);
+#else
+  extra_len = 0;
+  srtp_data = NULL;
+#endif
+  rtp_set_encryption(session, ENCRYPT_FUNCTION, DECRYPT_FUNCTION, srtp_data, extra_len);
   //rtp_set_encryption_key(session, passphrase);
   //rtp_set_encryption(session, our_encrypt, our_decrypt, buff);
 

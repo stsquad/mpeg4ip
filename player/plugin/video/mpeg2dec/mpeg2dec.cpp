@@ -222,6 +222,13 @@ static int mpeg2dec_decode (codec_data_t *ptr,
 			       &mpeg2dec->cached_ts) < 0) {
      mpeg2dec->m_cached_ts_invalid = true;
    }
+#if 0
+   mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "pts "U64" dts "U64" temp %u type %u", 
+			    pts->msec_timestamp, mpeg2dec->cached_ts, 
+			    info->current_picture->temporal_reference, 
+			    info->current_picture->flags & PIC_MASK_CODING_TYPE);
+#endif
+
  } else {
    mpeg2dec->cached_ts = ts;
  }

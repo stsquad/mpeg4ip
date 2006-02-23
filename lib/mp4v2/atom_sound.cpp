@@ -89,7 +89,8 @@ void MP4SoundAtom::Generate()
 void MP4SoundAtom::Read()
 {
   MP4Atom *parent = GetParentAtom();
-  if (ATOMID(parent->GetType()) != ATOMID("wave")) {
+  if (ATOMID(GetType()) != ATOMID("mp4a") ||
+      ATOMID(parent->GetType()) != ATOMID("wave")) {
     // Quicktime has an interesting thing - they'll put an mp4a atom
     // which is blank inside a wave atom, which is inside an mp4a atom
     ReadProperties(0, 3); // read first 3 properties
@@ -99,6 +100,7 @@ void MP4SoundAtom::Read()
       ReadChildAtoms();
     }
   } else {
+    // we have a mp4a inside an wave inside an mp4a - delete all properties
     m_pProperties.Delete(8);
     m_pProperties.Delete(7);
     m_pProperties.Delete(6);

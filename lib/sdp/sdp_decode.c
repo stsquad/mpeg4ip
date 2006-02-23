@@ -77,6 +77,7 @@ static void free_media_desc (media_desc_t *mptr)
   free_bandwidth_desc(mptr->media_bandwidth);
   mptr->media_bandwidth = NULL;
   free_connect_desc(&mptr->media_connect);
+  free_connect_desc(&mptr->rtcp_connect);
   sdp_free_format_list(&mptr->fmt);
   sdp_free_string_list(&mptr->unparsed_a_lines);
   FREE_CHECK(mptr, media);
@@ -601,6 +602,89 @@ static int sdp_decode_parse_a_cat (int arg,
   return (errret);
 }
 
+static int sdp_decode_parse_a_rtcp (int arg,
+				    char *lptr,
+				    session_desc_t *sptr,
+				    media_desc_t *mptr)
+{
+  char *sep, *beg;
+  uint32_t port;
+  connect_desc_t *cptr;
+
+  if (mptr == NULL)
+    return (-1);
+  port = 0;
+  if (!isdigit(*lptr)) {
+    sdp_debug(LOG_ERR, "Illegal port number in a=rtcp: %s", lptr);
+    return (-1);
+  }
+  while (isdigit(*lptr)) {
+    port *= 10;
+    port += *lptr - '0';
+    lptr++;
+  }
+  ADV_SPACE(lptr);
+  if (port > 65535) {
+    sdp_debug(LOG_ERR, "Illegal port value %u in a=rtcp:", port);
+    return (-1);
+  }
+  mptr->rtcp_port = port;
+  mptr->rtcp_connect.used = true;
+  if (*lptr == '\0') return 0;
+
+  cptr = &mptr->rtcp_connect;
+  // <address type> - should be IPV4
+  ADV_SPACE(lptr);
+  sep = strsep(&lptr, SPACES);
+  if (sep == NULL || lptr == NULL || strcasecmp(sep, "IN") != 0) {
+    return 0;
+  }
+  ADV_SPACE(lptr);
+  sep = strsep(&lptr, SPACES);
+  if (sep == NULL || lptr == NULL) return 0;
+
+  cptr->conn_type = strdup(sep);
+
+  // Address - first look if we have a / - that indicates multicast, and a
+  // ttl.
+  ADV_SPACE(lptr);
+  sep = strchr(lptr, '/');
+  if (sep == NULL) {
+    // unicast address
+    cptr->conn_addr = strdup(lptr);
+    return (0);
+  }
+
+  // Okay - multicast address.  Take address up to / (get rid of trailing
+  // spaces)
+  beg = lptr;
+  lptr = sep + 1;
+  sep--;
+  while (isspace(*sep) && sep > beg) sep--;
+  sep++;
+  *sep = '\0';
+  cptr->conn_addr = strdup(beg);
+
+  // Now grab the ttl
+  ADV_SPACE(lptr);
+  sep = strsep(&lptr, " \t/");
+  if (!isdigit(*sep)) {
+    return 0;
+  }
+  sscanf(sep, "%u", &cptr->ttl);
+  // And see if we have a number of ports
+  if (lptr != NULL) {
+    // we have a number of ports, as well
+    ADV_SPACE(lptr);
+    if (!isdigit(*lptr)) {
+      return 0;
+    }
+    sscanf(lptr, "%u", &cptr->num_addr);
+  }
+
+  return 0;
+}
+
 /*
  * sdp_decode_parse_a_frame()
  * parses a=framerate:<float number>
@@ -1030,6 +1114,7 @@ static struct {
   { "quality", sizeof("quality"), TRUE, TRUE, sdp_decode_parse_a_int, 1},
   { "framerate", sizeof("framerate"), TRUE, TRUE, sdp_decode_parse_a_frame, 0},
   { "range", sizeof("range"), TRUE, TRUE, sdp_decode_parse_a_range, 0 },
+  { "rtcp", sizeof("rtcp"), TRUE, TRUE, sdp_decode_parse_a_rtcp, 0 },
   { NULL, 0, FALSE, FALSE, NULL, 0 },
 };
 

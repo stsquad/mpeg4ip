@@ -572,8 +572,10 @@ int main(int argc, char** argv)
 	const char *type =
 	  MP4GetTrackType(mp4File, *pTrackId);
 	// look for objectTypeId (GetTrackEsdsObjectTypeId)
-	if (MP4HaveTrackIntegerProperty(mp4File, *pTrackId,
-					"mdia.minf.stbl.stsd.*.esds.decConfigDescr.objectTypeId")) {
+	uint64_t temp;
+	if (MP4GetTrackIntegerProperty(mp4File, *pTrackId,
+					"mdia.minf.stbl.stsd.*.esds.decConfigDescr.objectTypeId",
+				       &temp)) {
 	  if (!strcmp(type, MP4_AUDIO_TRACK_TYPE)) { 
 	    allMpeg4Streams &=
 	      (MP4GetTrackEsdsObjectTypeId(mp4File, *pTrackId) 
@@ -611,8 +613,10 @@ int main(int argc, char** argv)
 	
 	const char *type =
 	  MP4GetTrackType(mp4File, trackId);
-	if (MP4HaveTrackIntegerProperty(mp4File, trackId,
-					"mdia.minf.stbl.stsd.*.esds.decConfigDescr.objectTypeId")) {
+	uint64_t temp;
+	if (MP4GetTrackIntegerProperty(mp4File, trackId,
+					"mdia.minf.stbl.stsd.*.esds.decConfigDescr.objectTypeId", 
+				       &temp)) {
 	  if (!strcmp(type, MP4_AUDIO_TRACK_TYPE)) { 
 	    allMpeg4Streams &=
 	      (MP4GetTrackEsdsObjectTypeId(mp4File, trackId) 

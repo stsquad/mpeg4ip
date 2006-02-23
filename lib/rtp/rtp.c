@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.25 $ 
- * $Date: 2005/11/18 18:10:36 $
+ * $Revision: 1.26 $ 
+ * $Date: 2006/02/23 00:28:57 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -227,7 +227,7 @@ typedef struct {
  * typedef int (*rtp_decrypt_func)(struct rtp *, unsigned char *data,
  *				unsigned int size);
  */
-typedef int (*rtcp_send_f)(struct rtp *s, uint8_t *buffer, int buflen);
+typedef int (*rtcp_send_f)(struct rtp *s, uint8_t *buffer, uint32_t buflen);
 
 /*
  * The "struct rtp" defines an RTP session.
@@ -1043,12 +1043,12 @@ struct rtp *rtp_init_xmitter (const char *addr,
   return session;
 }
 
-static int rtcp_local_send (struct rtp *session, uint8_t *buffer, int buflen)
+static int rtcp_local_send (struct rtp *session, uint8_t *buffer, uint32_t buflen)
 {
   return (session->rtcp_send_packet)(session->userdata, buffer, buflen);
 }
 
-static int rtcp_udp_send (struct rtp *session, uint8_t *buffer, int buflen)
+static int rtcp_udp_send (struct rtp *session, uint8_t *buffer, uint32_t buflen)
 {
   return (udp_send(session->rtcp_socket, buffer, buflen));
 }
@@ -1427,22 +1427,19 @@ static int validate_rtp(struct rtp *session, rtp_packet *packet, int len)
 int rtp_process_recv_data (struct rtp *session,
 			   uint32_t curr_rtp_ts,
 			   rtp_packet *packet,
-			   int buflen)
+			   uint32_t buflen)
 {
   uint8_t		*buffer = ((uint8_t *) packet) + RTP_PACKET_HEADER_SIZE;
   source		*s;
   int ret;
-  unsigned int blen;
 
   packet->pd.rtp_pd_buflen = buflen;
 
-  blen = buflen;
   if (buflen > 0) {
-    if (session->encryption_enabled)
-      {
-	ret = (session->decrypt_func)(session->encrypt_userdata, buffer, &blen);
+    if (session->encryption_enabled) {
+	ret = (session->decrypt_func)(session->encrypt_userdata, buffer, &buflen);
 	if (ret != TRUE) return -1;
-	packet->pd.rtp_pd_buflen = blen;
+	packet->pd.rtp_pd_buflen = buflen;
       }
     
     /* Convert header fields to host byte order... */
@@ -1523,14 +1520,14 @@ void rtp_recv_data(struct rtp *session, uint32_t curr_rtp_ts)
 	/* This routine preprocesses an incoming RTP packet, deciding whether to process it. */
 	rtp_packet	*packet = (rtp_packet *) xmalloc(RTP_MAX_PACKET_LEN + RTP_PACKET_HEADER_SIZE);
 	uint8_t		*buffer = ((uint8_t *) packet) + RTP_PACKET_HEADER_SIZE;
-	int		 buflen;
+	uint32_t		 buflen;
 
 	buflen = udp_recv(session->rtp_socket, buffer, RTP_MAX_PACKET_LEN);
 	if (rtp_process_recv_data(session, curr_rtp_ts, packet, buflen) < 0)
 	  xfree(packet);
 }
 
-static int validate_rtcp(uint8_t *packet, int len)
+static int validate_rtcp(uint8_t *packet, uint32_t len)
 {
 	/* Validity check for a compound RTCP packet. This function returns */
 	/* TRUE if the packet is okay, FALSE if the validity check fails.   */
@@ -1548,12 +1545,12 @@ static int validate_rtcp(uint8_t *packet, int len)
 	rtcp_t	*pkt  = (rtcp_t *) packet;
 	rtcp_t	*end  = (rtcp_t *) (((char *) pkt) + len);
 	rtcp_t	*r    = pkt;
-	int	 l    = 0;
+	uint32_t	 l    = 0;
 	int	 pc   = 1;
 	int	 p    = 0;
-
+	uint32_t rtcp_len = (ntohs(pkt->common.length) + 1) * 4;
 	/* All RTCP packets must be compound packets (RFC1889, section 6.1) */
-	if (((ntohs(pkt->common.length) + 1) * 4) == len) {
+	if (rtcp_len == len) {
 		rtp_message(LOG_WARNING, "Bogus RTCP packet: not a compound packet");
 		return FALSE;
 	}
@@ -1842,7 +1839,7 @@ static void process_rtcp_app(struct rtp *session, rtcp_t *packet, struct timeval
 	}
 }
 
-void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen)
+void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, uint32_t buflen)
 {
 	/* This routine processes incoming RTCP packets */
 	rtp_event	 event;
@@ -1850,15 +1847,13 @@ void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen)
 	rtcp_t		*packet;
 	int		 first;
 	uint32_t	 packet_ssrc = rtp_my_ssrc(session);
-	unsigned int blen = buflen;
 
 	gettimeofday(&event_ts, NULL);
 	if (buflen > 0) {
 		if (session->encryption_enabled)
 		{
 			/* Decrypt the packet... */
-			(session->decrypt_func)(session->encrypt_userdata, buffer, &blen);
-	buflen = blen;
+			(session->decrypt_func)(session->encrypt_userdata, buffer, &buflen);
 			buffer += 4;	/* Skip the random prefix... */
 			buflen -= 4;
 		}
@@ -2253,7 +2248,7 @@ const rtcp_rr *rtp_get_rr(struct rtp *session, uint32_t reporter, uint32_t repor
  **/
 int rtp_send_data(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, 
 		  int cc, uint32_t* csrc, 
-                  uint8_t *data, int data_len, 
+                  uint8_t *data, uint32_t data_len, 
 		  uint8_t *extn, uint16_t extn_len, uint16_t extn_type)
 {
 	unsigned int		 buffer_len; int i, rc, pad, pad_len;
@@ -2349,7 +2344,8 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m,
 	  if (session->encryption_pad_length != 0) {
 		ASSERT((buffer_len % session->encryption_pad_length) == 0);
 	  }
-		(session->encrypt_func)(session->encrypt_userdata, buffer + RTP_PACKET_HEADER_SIZE,
+		(session->encrypt_func)(session->encrypt_userdata, 
+					buffer + RTP_PACKET_HEADER_SIZE,
 					&buffer_len); 
 	}
 
@@ -2861,7 +2857,7 @@ static void send_rtcp(struct rtp *session,
  */
 void rtp_send_ctrl(struct rtp *session,
 		   uint32_t rtp_ts,
-		   rtcp_app *(*appcallback)(struct rtp *session, uint32_t rtp_ts, int max_size))
+		   rtcp_app *(*appcallback)(struct rtp *session, uint32_t rtp_ts, uint32_t max_size))
 {
       uint32_t         ntp_sec, ntp_frac;
       ntp64_time(&ntp_sec, &ntp_frac);
@@ -2870,7 +2866,7 @@ void rtp_send_ctrl(struct rtp *session,
 void rtp_send_ctrl_2(struct rtp *session,
 		     uint32_t rtp_ts,
 		     uint64_t ntp_ts,
-		     rtcp_app *(*appcallback)(struct rtp *session, uint32_t rtp_ts, int max_size))
+		     rtcp_app *(*appcallback)(struct rtp *session, uint32_t rtp_ts, uint32_t max_size))
 {
 	/* Send an RTCP packet, if one is due... */
 	struct timeval	 curr_time;

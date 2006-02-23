@@ -76,6 +76,12 @@ EXTRA_DIST = \
 	test_rtp_encrypt.txt \
 	test-libcommon 
 
+check_PROGRAMS = test_rtp_client test_rtp_server
+
+test_rtp_client_SOURCES = test_rtp_client.c
+test_rtp_client_LDADD = libuclmmbase.la
+test_rtp_server_SOURCES = test_rtp_server.c
+test_rtp_server_LDADD = libuclmmbase.la
 #check_PROGRAMS = test
 #test_SOURCES = \
 #	test.c \

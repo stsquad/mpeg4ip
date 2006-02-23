@@ -41,7 +41,7 @@ static void c_recv_callback (struct rtp *session, rtp_event *e)
   m->recv_callback(session, e);
 }
 
-static int c_rtcp_send_packet (void *ud, uint8_t *buffer, int buflen)
+static int c_rtcp_send_packet (void *ud, uint8_t *buffer, uint32_t buflen)
 {
   return ((CPlayerMedia *)ud)->rtcp_send_packet(buffer, buflen);
 }
@@ -49,7 +49,7 @@ static int c_rtcp_send_packet (void *ud, uint8_t *buffer, int buflen)
 
 int CPlayerMedia::rtp_receive_packet (unsigned char interleaved, 
 				      struct rtp_packet *pak, 
-				      int len)
+				      uint32_t len)
 {
   int ret;
   if ((interleaved & 1) == 0) {
@@ -147,7 +147,7 @@ void CPlayerMedia::rtp_end(void)
   m_rtp_session = NULL;
 }
 
-int CPlayerMedia::rtcp_send_packet (uint8_t *buffer, int buflen)
+int CPlayerMedia::rtcp_send_packet (uint8_t *buffer, uint32_t buflen)
 {
   if (config.get_config_value(CONFIG_SEND_RTCP_IN_RTP_OVER_RTSP) != 0) {
     return rtsp_thread_send_rtcp(m_parent->get_rtsp_client(),

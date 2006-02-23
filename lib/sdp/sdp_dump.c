@@ -209,6 +209,24 @@ static void media_dump (media_desc_t *mptr)
     printf("/%d", mptr->num_ports);
   }
   printf("\n");
+
+  if (mptr->rtcp_connect.used) {
+    if (mptr->rtcp_connect.conn_addr != NULL) {
+      printf("\tRTCP Address: %s:%u", mptr->rtcp_connect.conn_addr, mptr->rtcp_port);
+    } else {
+      printf("\tRTCP port: %u", mptr->rtcp_port);
+    }
+    if (mptr->rtcp_connect.conn_type != NULL && 
+	strcasecmp(mptr->rtcp_connect.conn_type, "IP4") != 0) {
+      printf("(address type %s)", mptr->rtcp_connect.conn_type);
+    }
+    if (mptr->media_connect.num_addr > 0) {
+      printf("(%u addresses)", mptr->rtcp_connect.num_addr);
+    }
+    if (mptr->rtcp_connect.ttl > 0) 
+      printf("\n\tRTCP TTL: %u\n", mptr->rtcp_connect.ttl);
+  }
+
   bandwidth_dump(mptr->media_bandwidth, "\n\tMedia");
   if (mptr->recvonly) {
     printf("\tReceive Only Set\n");

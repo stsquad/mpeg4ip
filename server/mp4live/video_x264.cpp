@@ -36,6 +36,8 @@ static config_index_t CFG_X264_BIT_RATE_TOLERANCE;
 static config_index_t CFG_X264_USE_VBV;
 static config_index_t CFG_X264_VBV_BITRATE_MULT;
 static config_index_t CFG_X264_VBV_BUFFER_SIZE_MULT;
+static config_index_t CFG_X264_THREADS;
+
 static SConfigVariable X264EncoderVariables[] = {
   CONFIG_BOOL(CFG_X264_FORCE_BASELINE, "x264ForceBaseline", false),
   CONFIG_BOOL(CFG_X264_USE_CABAC, "x264UseCabac", true),
@@ -44,6 +46,7 @@ static SConfigVariable X264EncoderVariables[] = {
   CONFIG_BOOL(CFG_X264_USE_VBV, "x264UseVbv", false),
   CONFIG_FLOAT(CFG_X264_VBV_BITRATE_MULT, "x264VbvBitRateMult", 1.0),
   CONFIG_FLOAT(CFG_X264_VBV_BUFFER_SIZE_MULT, "x264VbvBufferSizeMult", 10.0),
+  CONFIG_INT(CFG_X264_THREADS, "x264Threads", 1),
 };
 
 GUI_BOOL(gui_baseline, CFG_X264_FORCE_BASELINE, "Force Baseline (overrides below)");
@@ -60,6 +63,7 @@ GUI_FLOAT_RANGE(gui_vbvm, CFG_X264_VBV_BITRATE_MULT,
 		"VBV Bit Rate Multiplier", 1.0, 2.0);
 GUI_FLOAT_RANGE(gui_vbv2, CFG_X264_VBV_BUFFER_SIZE_MULT,
 		"VBV Buffer Size Multiplier", 0.0001, 100.0);
+GUI_INT_RANGE(gui_threads, CFG_X264_THREADS, "Number of Threads", 1, 8);
 
 
 DECLARE_TABLE(x264_gui_options) = {
@@ -72,6 +76,7 @@ DECLARE_TABLE(x264_gui_options) = {
   TABLE_GUI(gui_vbv),
   TABLE_GUI(gui_vbvm),
   TABLE_GUI(gui_vbv2),
+  TABLE_GUI(gui_threads),
 };
 DECLARE_TABLE_FUNC(x264_gui_options);
 
@@ -177,6 +182,7 @@ bool CX264VideoEncoder::Init (void)
   m_param.b_cabac = Profile()->GetBoolValue(CFG_X264_USE_CABAC) ? 1 : 0;
   m_param.pf_log = x264_log;
 
+  m_param.i_threads = Profile()->GetIntegerValue(CFG_X264_THREADS);
   m_pts_add = m_param.i_bframe ? (m_param.b_bframe_pyramid ? 2 : 1) : 0;
   m_pts_add *= m_frame_time;
   debug_message("pts add "D64, m_pts_add);

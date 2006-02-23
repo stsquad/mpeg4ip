@@ -161,6 +161,7 @@ typedef struct media_desc_t {
   int recvonly, sendrecv, sendonly;
   uint16_t port;       // ip port
   uint16_t num_ports;   // number of ports
+  uint16_t rtcp_port;   // valid if rtcp_connect.used is true
   uint32_t ptime;       
   int ptime_present;
   uint32_t quality;
@@ -168,6 +169,7 @@ typedef struct media_desc_t {
   double framerate;
   int framerate_present;
   connect_desc_t  media_connect;
+  connect_desc_t rtcp_connect;
   range_desc_t    media_range;
   bandwidth_t  *media_bandwidth;
   int orient_type;

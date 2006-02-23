@@ -2126,6 +2126,11 @@ char* MP4File::MakeTrackName(MP4TrackId trackId, const char* name)
 	return m_trakName;
 }
 
+MP4Atom *MP4File::FindTrackAtom (MP4TrackId trackId, const char *name)
+{
+  return FindAtom(MakeTrackName(trackId, name));
+}
+
 u_int64_t MP4File::GetTrackIntegerProperty(MP4TrackId trackId, const char* name)
 {
 	return GetIntegerProperty(MakeTrackName(trackId, name));

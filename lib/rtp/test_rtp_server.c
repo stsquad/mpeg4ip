@@ -1,9 +1,12 @@
+#include "mpeg4ip.h"
 #include <rtp.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
+#if 0
 #include <srtp.h>
 #include <bills_srtp.h>
+#endif
 
 //#define DUMP_ENCRYPTED_PAK 1
 
@@ -24,6 +27,9 @@ static void c_rtp_callback(struct rtp *session, rtp_event *e)
 	 session, e->type);
   
 }
+#if 0
+#define ENCRYPT_FUNCTION our_srtp_encrypt
+#define DECRYPT_FUNCTION our_srtp_decrypt
 #define DUMP_ENCRYPTED_PAK 1
 static int our_srtp_encrypt (void *foo, 
 			     unsigned char *buffer, 
@@ -84,17 +90,19 @@ static int our_srtp_decrypt (void *foo,
   *len = retdata;
   return TRUE;
 }     
-#if 0
+#else
+#define ENCRYPT_FUNCTION our_encrypt
+#define DECRYPT_FUNCTION our_decrypt
+
 static int our_encrypt(void *foo, unsigned char *buffer, unsigned int *len)
 {
-  struct rtp *session;
   unsigned int ix;
   unsigned int retdata;
   
   retdata = *len;
-  session = (struct rtp *)foo;
-  for (ix = 12; ix < retdata; ix++) buffer[ix] = buffer[ix] + 1;
-  printf("after encrypt %s\n",buffer);  
+  printf("starting at %u to %u\n", sizeof(rtp_packet_header) - 1, retdata);
+  for (ix=sizeof(rtp_packet_header) - 1; ix < retdata; ix++) buffer[ix] = ~buffer[ix];
+  //  printf("after encrypt %s\n",buffer);  
   return TRUE;
 }
 
@@ -105,9 +113,7 @@ static int our_decrypt(void *foo, unsigned char *buffer, unsigned int *len)
   unsigned int retdata;
 
   retdata = *len;
-  session = (struct rtp *)foo;
-  printf("before decrypt %s\n",buffer);
-  for (ix=12; ix < retdata; ix++) buffer[ix] = buffer[ix] - 1;
+  for (ix=sizeof(rtp_packet_header) - 1; ix < retdata; ix++) buffer[ix] = ~buffer[ix];
   return TRUE;
 }
 #endif
@@ -116,18 +122,19 @@ int main (int argc, char *argv[])
 {
   struct rtp *session;
   int   rx_port, tx_port, fd;
-  int   read_size, send_size, packet_size, number_of_packet;
-  char  buff[BUFFSIZE];
+  uint32_t   read_size, packet_size, number_of_packet;
+  uint8_t  buff[BUFFSIZE];
   off_t cur_pos;
   char *ip_addr;
   char filename[1024];
   int c;                        
   struct hostent *h;
   struct utsname myname;
-  bills_srtp_t *srtp_data;
+  void *srtp_data;
   unsigned int extra_len;
   int do_auth = 1, do_encrypt = 1;
-
+  ssize_t readit;
+  ssize_t sendit;
   //  const char passphrase[]="DESnori";
   unsigned char input_key[] = "111111111111111111111111111111111111111111111111111111111111";
 
@@ -142,8 +149,8 @@ int main (int argc, char *argv[])
     exit(1);
   }
   ip_addr = strdup(inet_ntoa(*((struct in_addr *)h->h_addr)));
-  rx_port = 5002;
-  tx_port = 5000;
+  rx_port = 15002;
+  tx_port = 15000;
 
   // Option
   opterr = 0;
@@ -207,11 +214,16 @@ int main (int argc, char *argv[])
     exit(-1);
   }
   rtp_set_my_ssrc(session,OUR_SSRC);
+#if 0
   srtp_data = srtp_init(OUR_SSRC,THEIR_SSRC,input_key, do_encrypt, do_auth);
   extra_len = auth_get_tag_length(srtp_data->sender_srtp_ctx.authenticator);
   extra_len += EOP_PAD;
+#else
+  extra_len = 0;
+  srtp_data = NULL;
+#endif
   //tp_set_encryption(session, our_encrypt, our_decrypt, buff);
-  rtp_set_encryption(session, our_srtp_encrypt, our_srtp_decrypt, srtp_data, extra_len);
+  rtp_set_encryption(session, ENCRYPT_FUNCTION, DECRYPT_FUNCTION, srtp_data, extra_len);
   //  rtp_set_encryption_key(session, passphrase);
 
 
@@ -222,33 +234,35 @@ int main (int argc, char *argv[])
     // change BUFFSIZE to be an incrementing value from 64 to 1450
     if(packet_size > 1450)
       packet_size = 725;
-    if((read_size = read(fd, buff, packet_size)) == -1){
+    readit = read(fd, buff, packet_size);
+    if (readit < 0) {
       perror("file read");
       exit(1);
     }
+    read_size = readit;
     if (read_size == 0) break;
-    if (((send_size = rtp_send_data(session,
-				    cur_pos,
-				    97,//pt
-				    0,//m
-				    0,//cc 
-				    NULL, //csrc[],
-				    buff,//data
-				    read_size,//data_len
-				    NULL,//*extn
-				    0,
-				    0)
-	  ) < 0)) 
+    sendit = 
+      rtp_send_data(session,
+		    cur_pos,
+		    97,//pt
+		    0,//m
+		    0,//cc 
+		    NULL, //csrc[],
+		    buff,//data
+		    read_size,//data_len
+		    NULL,//*extn
+		    0,
+		    0);
+    if (sendit < 0)
       {
 	printf("rtp_send_data error\n");
 	exit(1);
       }
-
     printf("\n");
     printf("read_size = %d\n", read_size);
-    printf("send_size = %d\n", send_size);
+    printf("send_size = %d\n", sendit);
     //printf("my_ssrc = %d\n", rtp_my_ssrc(session));
-    printf("set timestamp = %ld\n", cur_pos);
+    printf("set timestamp = "U64"\n", cur_pos);
 
     cur_pos += read_size; 
     packet_size++;

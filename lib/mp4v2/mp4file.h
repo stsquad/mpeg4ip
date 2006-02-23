@@ -123,7 +123,7 @@ public: /* equivalent to MP4 library API */
 	u_int16_t FindTrakAtomIndex(MP4TrackId trackId);
 
 	/* track properties */
-
+	MP4Atom *FindTrackAtom(MP4TrackId trackId, const char *name);
 	u_int64_t GetTrackIntegerProperty(
 		MP4TrackId trackId, const char* name);
 	float GetTrackFloatProperty(

@@ -129,6 +129,10 @@ CSDLVideo::~CSDLVideo (void)
     SDL_FreeSurface(m_screen);
     m_screen = NULL;
   }
+  if (m_mutex) {
+    SDL_DestroyMutex(m_mutex);
+    m_mutex = NULL;
+  }
 }
 
 void CSDLVideo::set_name (const char *name)

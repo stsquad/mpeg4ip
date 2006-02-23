@@ -170,8 +170,10 @@ int CMp4File::create_video(CPlayerSession *psptr,
       if (strcasecmp(vq[ix].compressor, "avc1") == 0) {
 	vbyte = new CMp4H264VideoByteStream(this, vq[ix].track_id);
       } else if (strcasecmp(vq[ix].compressor, "encv") == 0) {
-        IVLength = MP4GetTrackIntegerProperty(m_mp4file,
-                    vq[ix].track_id, "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.IV-length");
+        MP4GetTrackIntegerProperty(m_mp4file,
+				   vq[ix].track_id, 
+				   "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.IV-length", 
+				   &IVLength);
 	vbyte = new CMp4EncVideoByteStream(this, vq[ix].track_id,IVLength);
       } else {
 	vbyte = new CMp4VideoByteStream(this, vq[ix].track_id);
@@ -227,8 +229,8 @@ int CMp4File::create_audio(CPlayerSession *psptr,
       uint32_t verb = MP4GetVerbosity(m_mp4file);
       MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
       if (MP4IsIsmaCrypMediaTrack(m_mp4file, aq[ix].track_id)) {
-        IVLength = MP4GetTrackIntegerProperty(m_mp4file,
-                    aq[ix].track_id, "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.IV-length");
+        MP4GetTrackIntegerProperty(m_mp4file,
+                    aq[ix].track_id, "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.IV-length", &IVLength);
 	abyte = new CMp4EncAudioByteStream(this, aq[ix].track_id, IVLength);
       } else {
 	abyte = new CMp4AudioByteStream(this, aq[ix].track_id);

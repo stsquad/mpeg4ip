@@ -187,20 +187,23 @@ extern "C" bool MP4AV_AdtsMakeFrameFromMp4Sample(
 			&configLength);
 
 		if (pConfig == NULL || configLength < 2) {
-		  uint16_t sound_version;
-		  sound_version = 
-		    MP4GetTrackIntegerProperty(mp4File, 
-					       trackId,
-					       "mdia.minf.stbl.stsd.mp4a.soundVersion");
+		  uint64_t sound_version;
+		  MP4GetTrackIntegerProperty(mp4File, 
+					     trackId,
+					     "mdia.minf.stbl.stsd.mp4a.soundVersion",
+					     &sound_version);
 		  if (sound_version == 1) {
-		    samplingFrequency = 
-		      MP4GetTrackIntegerProperty(mp4File, 
-						 trackId, 
-						 "mdia.minf.stbl.stsd.mp4a.timeScale");
-		    channels =
-		      MP4GetTrackIntegerProperty(mp4File,
-						 trackId,
-						 "mdia.minf.stbl.stsd.mp4a.channels");
+		    uint64_t temp;
+		    MP4GetTrackIntegerProperty(mp4File, 
+					       trackId, 
+					       "mdia.minf.stbl.stsd.mp4a.timeScale", 
+					       &temp);
+		    samplingFrequency = temp;
+		    MP4GetTrackIntegerProperty(mp4File,
+					       trackId,
+					       "mdia.minf.stbl.stsd.mp4a.channels",
+					       &temp);
+		      channels = temp;
 		  } else {
 		  //		  if (sound_version == 1) {
 		  //samplingFrequency = MP4GetTrackTimeScale(mp4File, trackId);

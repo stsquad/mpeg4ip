@@ -57,6 +57,10 @@ void MP4DataAtom::Read()
 	MP4Atom::Read();
 }
 
+
+// MP4Meta2Atom is for \251nam and \251cmt flags, which appear differently
+// in .mov and in itunes file.  In .movs, they appear under udata, in 
+// itunes, they appear under ilst.
 MP4Meta2Atom::MP4Meta2Atom (const char *name) : MP4Atom(name)
 {
 }
