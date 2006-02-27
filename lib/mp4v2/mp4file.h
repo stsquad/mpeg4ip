@@ -46,6 +46,9 @@ public: /* equivalent to MP4 library API */
 
 	/* file operations */
 	void Read(const char* fileName);
+	#ifdef _WIN32
+	void Read(const wchar_t* fileName);
+	#endif
 	void Create(const char* fileName, u_int32_t flags, 
 		    int add_ftyp = 1, int add_iods = 1,
 		    char* majorBrand = NULL, 
@@ -698,6 +701,9 @@ public: /* equivalent to MP4 library API */
 
 protected:
 	void Open(const char* fmode);
+	#ifdef _WIN32
+	void Open(const wchar_t* fmode);
+	#endif
 	void ReadFromFile();
 	void GenerateTracks();
 	void BeginWrite();
@@ -802,6 +808,9 @@ protected:
 
 protected:
 	char*			m_fileName;
+	#ifdef _WIN32
+	wchar_t*    	m_fileName_w;
+	#endif
 	FILE*			m_pFile;
 	u_int64_t		m_orgFileSize;
 	u_int64_t		m_fileSize;

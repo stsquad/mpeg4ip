@@ -81,7 +81,9 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
       } else if (ATOMID(type) == ATOMID("alis")) {
 	pAtom = new MP4UrlAtom("alis");
       } else if (ATOMID(type) == ATOMID("alaw")) {
-	pAtom = new MP4SoundAtom("alaw");
+	pAtom = new MP4SoundAtom(type);
+      } else if (ATOMID(type) == ATOMID("alac")) {
+	pAtom = new MP4SoundAtom(type);
       }
       break;
     case 'd':

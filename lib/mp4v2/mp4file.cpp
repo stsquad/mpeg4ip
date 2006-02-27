@@ -33,6 +33,9 @@
 MP4File::MP4File(u_int32_t verbosity)
 {
 	m_fileName = NULL;
+	#ifdef _WIN32
+	m_fileName_w = NULL;
+	#endif
 	m_pFile = NULL;
 	m_orgFileSize = 0;
 	m_fileSize = 0;
@@ -62,6 +65,9 @@ MP4File::MP4File(u_int32_t verbosity)
 MP4File::~MP4File()
 {
 	MP4Free(m_fileName);
+	#ifdef _WIN32
+	MP4Free(m_fileName_w);
+	#endif
 	if (m_pFile != NULL) {
 	  // not closed ?
 	  fclose(m_pFile);
@@ -87,6 +93,20 @@ void MP4File::Read(const char* fileName)
 
 	CacheProperties();
 }
+
+#ifdef _WIN32
+void MP4File::Read(const wchar_t* fileName)
+{
+	m_fileName_w = MP4Stralloc(fileName);
+	m_mode = 'r';
+
+	Open(L"rb");
+
+	ReadFromFile();
+
+	CacheProperties();
+}
+#endif
 
 void MP4File::Create(const char* fileName, u_int32_t flags, 
 		     int add_ftyp, int add_iods, 
@@ -239,6 +259,9 @@ void MP4File::Optimize(const char* orgFileName, const char* newFileName)
 
 	// now switch over to writing the new file
 	MP4Free(m_fileName);
+	#ifdef _WIN32
+	MP4Free(m_fileName_w);
+	#endif
 
 	// create a temporary file if necessary
 	if (newFileName == NULL) {
@@ -399,6 +422,53 @@ void MP4File::Open(const char* fmode)
 		m_orgFileSize = m_fileSize = 0;
 	}
 }
+
+#ifdef _WIN32
+void MP4File::Open(const wchar_t* fmode)
+{
+	ASSERT(m_pFile == NULL);
+
+#ifdef O_LARGEFILE
+	// UGH! fopen doesn't open a file in 64-bit mode, period.
+	// So we need to use open() and then fdopen()
+	int fd;
+	int flags = O_LARGEFILE;
+
+	if (strchr(fmode, '+')) {
+		flags |= O_CREAT | O_RDWR;
+		if (fmode[0] == 'w') {
+			flags |= O_TRUNC;
+		}
+	} else {
+		if (fmode[0] == 'w') {
+			flags |= O_CREAT | O_TRUNC | O_WRONLY;
+		} else {
+			flags |= O_RDONLY;
+		}
+	}
+	fd = _wopen(m_fileName_w, flags, 0666);
+
+	if (fd >= 0) {
+		m_pFile = _wfdopen(fd, fmode);
+	}
+#else
+	m_pFile = _wfopen(m_fileName_w, fmode);
+#endif
+	if (m_pFile == NULL) {
+		throw new MP4Error(errno, "failed", "MP4Open");
+	}
+
+	if (m_mode == 'r') {
+		struct stat s;
+		if (fstat(fileno(m_pFile), &s) < 0) {
+			throw new MP4Error(errno, "stat failed", "MP4Open");
+		}
+		m_orgFileSize = m_fileSize = s.st_size;
+	} else {
+		m_orgFileSize = m_fileSize = 0;
+	}
+}
+#endif
 
 void MP4File::ReadFromFile()
 {

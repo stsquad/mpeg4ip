@@ -2514,12 +2514,12 @@ static GtkWidget *create_MainWindow (void)
                  (GtkAttachOptions)(0), 0, 0);
   gtk_misc_set_alignment(GTK_MISC(VideoTxAddrLabel), 0, 0.5);
 
-  VideoTxAddrButton = gtk_button_new_with_mnemonic(_("Set Address"));
+  VideoTxAddrButton = gtk_button_new_with_mnemonic(_("Set Addr/Params"));
   gtk_widget_show(VideoTxAddrButton);
   gtk_table_attach(GTK_TABLE(VideoTxTable), VideoTxAddrButton, 2, 3, 0, 1,
                  (GtkAttachOptions)(GTK_FILL),
                  (GtkAttachOptions)(0), 11, 0);
-  gtk_tooltips_set_tip(tooltips, VideoTxAddrButton, _("Set Transmission Address"), NULL);
+  gtk_tooltips_set_tip(tooltips, VideoTxAddrButton, _("Set Transmission Address and Parameters"), NULL);
 
   label5 = gtk_label_new(_("Video"));
   gtk_widget_show(label5);
@@ -2578,12 +2578,12 @@ static GtkWidget *create_MainWindow (void)
                  (GtkAttachOptions)(0), 0, 0);
   gtk_misc_set_alignment(GTK_MISC(AudioTxAddrLabel), 0, 0.5);
 
-  AudioTxAddrButton = gtk_button_new_with_mnemonic(_("Set Address"));
+  AudioTxAddrButton = gtk_button_new_with_mnemonic(_("Set Addr/Params"));
   gtk_widget_show(AudioTxAddrButton);
   gtk_table_attach(GTK_TABLE(AudioTxTable), AudioTxAddrButton, 2, 3, 0, 1,
                  (GtkAttachOptions)(GTK_FILL),
                  (GtkAttachOptions)(0), 11, 0);
-  gtk_tooltips_set_tip(tooltips, AudioTxAddrButton, _("Set Transmission Address"), NULL);
+  gtk_tooltips_set_tip(tooltips, AudioTxAddrButton, _("Set Transmission Address and Parameters"), NULL);
 
   label9 = gtk_label_new(_("Audio"));
   gtk_widget_show(label9);
@@ -2643,12 +2643,12 @@ static GtkWidget *create_MainWindow (void)
                  (GtkAttachOptions)(0), 0, 0);
   gtk_misc_set_alignment(GTK_MISC(TextTxAddrLabel), 0, 0.5);
 
-  TextTxAddrButton = gtk_button_new_with_mnemonic(_("Set Address"));
+  TextTxAddrButton = gtk_button_new_with_mnemonic(_("Set Addr/Params"));
   gtk_widget_show(TextTxAddrButton);
   gtk_table_attach(GTK_TABLE(TextTxTable), TextTxAddrButton, 2, 3, 0, 1,
                  (GtkAttachOptions)(GTK_FILL),
                  (GtkAttachOptions)(0), 11, 0);
-  gtk_tooltips_set_tip(tooltips, TextTxAddrButton, _("Set Transmission Address"), NULL);
+  gtk_tooltips_set_tip(tooltips, TextTxAddrButton, _("Set Transmission Address and Parameters"), NULL);
 
   label16 = gtk_label_new(_("Text"));
   gtk_widget_show(label16);

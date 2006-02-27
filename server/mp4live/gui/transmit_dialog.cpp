@@ -30,12 +30,28 @@
 #include "rtp_transmitter.h"
 #include "support.h"
 
+//#define DO_SRTP_DIALOG 1
 static CMediaStream *media_stream;
 static enum { 
   DO_AUDIO, 
   DO_VIDEO, 
   DO_TEXT
 } addr_type = DO_AUDIO;
+
+#ifdef DO_SRTP_DIALOG
+static bool ValidateKeySalt (const char *value, bool dokey)
+{
+  uint max_ix = dokey ? 32 : 28;
+  uint ix;
+
+  for (ix = 0; ix < max_ix; ix++) {
+    if (!isxdigit(value[ix])) {
+      return false;
+    }
+  }
+  return value[ix] == '\0';
+}
+#endif
 
 static bool ValidatePort(GtkWidget* entry, in_port_t *port)
 {
@@ -76,31 +92,128 @@ static bool ValidateAddress (GtkWidget* widget)
 	return false;
 }
 
+#ifdef DO_SRTP_DIALOG
+static void
+on_SRTPEnableButton_toggled            (GtkToggleButton *togglebutton,
+                                        gpointer         user_data)
+{
+  GtkWidget *dialog = GTK_WIDGET(user_data);
+  bool enabled  = gtk_toggle_button_get_active(togglebutton);
+  GtkWidget *temp = lookup_widget(GTK_WIDGET(dialog), "SrtpEncryptionType");
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(GTK_WIDGET(dialog), "SpecifyKeySaltCheckButton");
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(GTK_WIDGET(dialog), "EnableRtpEncCheckButton");
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(GTK_WIDGET(dialog), "EnableRtpAuthCheckButton");
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(GTK_WIDGET(dialog), "EnableRtpAuthCheckButton");
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(GTK_WIDGET(dialog), "EnableRtcpEncCheckButton");
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(GTK_WIDGET(dialog), "KdrSpinButton");
+  gtk_widget_set_sensitive(temp, enabled);
+  if (enabled) {
+    enabled = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(temp));
+  }
+  temp = lookup_widget(GTK_WIDGET(dialog), "SrtpKeyValue");
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(GTK_WIDGET(dialog), "SrtpSaltValue");
+  gtk_widget_set_sensitive(temp, enabled);
+  
+}
+
+
+static void
+on_SpecifyKeySaltCheckButton_toggled   (GtkToggleButton *togglebutton,
+                                        gpointer         user_data)
+{
+  GtkWidget *dialog = GTK_WIDGET(user_data);
+  bool enabled  = gtk_toggle_button_get_active(togglebutton);
+  GtkWidget *temp = lookup_widget(GTK_WIDGET(dialog), "SrtpKeyValue");
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(GTK_WIDGET(dialog), "SrtpSaltValue");
+  gtk_widget_set_sensitive(temp, enabled);
+}
+#endif
+
 static void
 on_IpAddrDialog_response               (GtkDialog       *dialog,
                                         gint             response_id,
                                         gpointer         user_data)
 {
   config_index_t fixed, addr, port;
+  config_index_t use_srtp, srtp_algo, srtp_fixed_keys, srtp_key, srtp_salt;
+  config_index_t rtp_enc, rtp_auth, rtcp_enc, kdr;
   switch (addr_type) {
   case DO_AUDIO:
     fixed = STREAM_AUDIO_ADDR_FIXED;
     addr = STREAM_AUDIO_DEST_ADDR;
     port = STREAM_AUDIO_DEST_PORT;
+    use_srtp = STREAM_AUDIO_USE_SRTP;
+    srtp_algo = STREAM_AUDIO_SRTP_ALGO;
+    srtp_fixed_keys = STREAM_AUDIO_SRTP_FIXED_KEYS;
+    srtp_key = STREAM_AUDIO_SRTP_KEY;
+    srtp_salt = STREAM_AUDIO_SRTP_SALT;
+    rtp_enc = STREAM_AUDIO_SRTP_RTP_ENC;
+    rtp_auth = STREAM_AUDIO_SRTP_RTP_AUTH;
+    rtcp_enc = STREAM_AUDIO_SRTP_RTCP_ENC;
+    kdr = STREAM_AUDIO_SRTP_KDR;
     break;
   case DO_VIDEO:
     fixed = STREAM_VIDEO_ADDR_FIXED;
     addr = STREAM_VIDEO_DEST_ADDR;
     port = STREAM_VIDEO_DEST_PORT;
+    use_srtp = STREAM_VIDEO_USE_SRTP;
+    srtp_algo = STREAM_VIDEO_SRTP_ALGO;
+    srtp_fixed_keys = STREAM_VIDEO_SRTP_FIXED_KEYS;
+    srtp_key = STREAM_VIDEO_SRTP_KEY;
+    srtp_salt = STREAM_VIDEO_SRTP_SALT;
+    rtp_enc = STREAM_VIDEO_SRTP_RTP_ENC;
+    rtp_auth = STREAM_VIDEO_SRTP_RTP_AUTH;
+    rtcp_enc = STREAM_VIDEO_SRTP_RTCP_ENC;
+    kdr = STREAM_VIDEO_SRTP_KDR;
     break;
   case DO_TEXT:
   default:
     fixed = STREAM_TEXT_ADDR_FIXED;
     addr = STREAM_TEXT_DEST_ADDR;
     port = STREAM_TEXT_DEST_PORT;
+    use_srtp = STREAM_TEXT_USE_SRTP;
+    srtp_algo = STREAM_TEXT_SRTP_ALGO;
+    srtp_fixed_keys = STREAM_TEXT_SRTP_FIXED_KEYS;
+    srtp_key = STREAM_TEXT_SRTP_KEY;
+    srtp_salt = STREAM_TEXT_SRTP_SALT;
+    rtp_enc = STREAM_TEXT_SRTP_RTP_ENC;
+    rtp_auth = STREAM_TEXT_SRTP_RTP_AUTH;
+    rtcp_enc = STREAM_TEXT_SRTP_RTCP_ENC;
+    kdr = STREAM_TEXT_SRTP_KDR;
+    break;
   }
       
   if (response_id == GTK_RESPONSE_OK) {
+#ifdef DO_SRTP_DIALOG
+    GtkWidget *temp;
+    bool have_srtp;
+    temp = lookup_widget(GTK_WIDGET(dialog), "SRTPEnableButton");
+    have_srtp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(temp));
+    if (have_srtp) {
+      temp = lookup_widget(GTK_WIDGET(dialog), "SpecifyKeySaltCheckButton");
+      if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(temp))) {
+	temp = lookup_widget(GTK_WIDGET(dialog), "SrtpSaltValue");
+	if (ValidateKeySalt(gtk_entry_get_text(GTK_ENTRY(temp)), false) == false) {
+	  ShowMessage("Transmission Address", "Invalid salt entered");
+	  return;
+	}
+	temp = lookup_widget(GTK_WIDGET(dialog), "SrtpKeyValue");
+	if (ValidateKeySalt(gtk_entry_get_text(GTK_ENTRY(temp)), true) == false) {
+	  ShowMessage("Transmission Address", "Invalid key entered");
+	  return;
+	}
+      }
+    }
+#endif
+      
     GtkWidget *fixedw = lookup_widget(GTK_WIDGET(dialog), "FixedAddrButton");
     
     if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(fixedw))) {
@@ -118,6 +231,37 @@ on_IpAddrDialog_response               (GtkDialog       *dialog,
     } else {
       media_stream->SetBoolValue(fixed, false);
     }
+#ifdef DO_SRTP_DIALOG
+    if (have_srtp) {
+      media_stream->SetBoolValue(use_srtp, true);
+      temp = lookup_widget(GTK_WIDGET(dialog), "SrtpEncryptionType");
+      media_stream->SetIntegerValue(srtp_algo, 
+				    gtk_combo_box_get_active(GTK_COMBO_BOX(temp)));
+      temp = lookup_widget(GTK_WIDGET(dialog), "SpecifyKeySaltCheckButton");
+      bool specify_key = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(temp));
+      media_stream->SetBoolValue(srtp_fixed_keys, specify_key);
+      if (specify_key) {
+	temp = lookup_widget(GTK_WIDGET(dialog), "SrtpKeyValue");
+	media_stream->SetStringValue(srtp_key, gtk_entry_get_text(GTK_ENTRY(temp)));
+	temp = lookup_widget(GTK_WIDGET(dialog), "SrtpSaltValue");
+	media_stream->SetStringValue(srtp_salt, gtk_entry_get_text(GTK_ENTRY(temp)));
+      }
+      temp = lookup_widget(GTK_WIDGET(dialog), "EnableRtpEncCheckButton");
+      media_stream->SetBoolValue(rtp_enc, 
+				 gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(temp)));
+      temp = lookup_widget(GTK_WIDGET(dialog), "EnableRtpAuthCheckButton");
+      media_stream->SetBoolValue(rtp_auth, 
+				 gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(temp)));
+      temp = lookup_widget(GTK_WIDGET(dialog), "EnableRtcpEncCheckButton");
+      media_stream->SetBoolValue(rtcp_enc, 
+				 gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(temp)));
+      temp = lookup_widget(GTK_WIDGET(dialog), "KdrSpinButton");
+      media_stream->SetIntegerValue(kdr, 
+				    gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(temp)));
+    } else {
+      media_stream->SetBoolValue(use_srtp, false);
+    }
+#endif
     AVFlow->ValidateAndUpdateStreams();
     RefreshCurrentStream();
   }
@@ -159,6 +303,30 @@ void create_IpAddrDialog (CMediaStream *ms,
   GtkWidget *label149;
   GtkObject *IpPort_adj;
   GtkWidget *IpPort;
+#ifdef DO_SRTP_DIALOG
+  GtkWidget *hseparator1;
+  GtkWidget *vbox49;
+  GtkWidget *alignment37;
+  GtkWidget *SRTPEnableButton;
+  GtkWidget *SrtpParametersTable;
+  GtkWidget *label215;
+  GtkWidget *SrtpEncryptionType;
+  GtkWidget *label216;
+  GtkWidget *SpecifyKeySaltCheckButton;
+  GtkWidget *label217;
+  GtkWidget *SrtpKeyValue;
+  GtkWidget *label218;
+  GtkWidget *SrtpSaltValue;
+  GtkWidget *label220;
+  GtkWidget *label221;
+  GtkWidget *EnableRtpEncCheckButton;
+  GtkWidget *EnableRtpAuthCheckButton;
+  GtkWidget *EnableRtcpEncCheckButton;
+  GtkWidget *label222;
+  GtkWidget *label223;
+  GtkObject *KdrSpinButton_adj;
+  GtkWidget *KdrSpinButton;
+#endif
   GtkWidget *dialog_action_area5;
   GtkWidget *cancelbutton5;
   GtkWidget *okbutton5;
@@ -169,7 +337,7 @@ void create_IpAddrDialog (CMediaStream *ms,
   tooltips = gtk_tooltips_new();
 
   IpAddrDialog = gtk_dialog_new();
-  gtk_window_set_title(GTK_WINDOW(IpAddrDialog), _("IP Address"));
+  gtk_window_set_title(GTK_WINDOW(IpAddrDialog), _("Transmit Address and Parameters"));
   gtk_window_set_modal(GTK_WINDOW(IpAddrDialog), TRUE);
   gtk_window_set_resizable(GTK_WINDOW(IpAddrDialog), FALSE);
   gtk_window_set_transient_for(GTK_WINDOW(IpAddrDialog), 
@@ -239,6 +407,144 @@ void create_IpAddrDialog (CMediaStream *ms,
   gtk_tooltips_set_tip(tooltips, IpPort, _("Enter IP Port"), NULL);
   gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(IpPort), TRUE);
 
+#ifdef DO_SRTP_DIALOG 
+  // replace with SRTP
+  hseparator1 = gtk_hseparator_new();
+  gtk_widget_show(hseparator1);
+  gtk_box_pack_start(GTK_BOX(vbox35), hseparator1, TRUE, TRUE, 6);
+
+  vbox49 = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(vbox49);
+  gtk_box_pack_start(GTK_BOX(vbox35), vbox49, TRUE, TRUE, 0);
+
+  alignment37 = gtk_alignment_new(0.5, 0.5, 1, 1);
+  gtk_widget_show(alignment37);
+  gtk_box_pack_start(GTK_BOX(vbox49), alignment37, FALSE, FALSE, 0);
+  gtk_alignment_set_padding(GTK_ALIGNMENT(alignment37), 0, 0, 144, 0);
+
+  SRTPEnableButton = gtk_check_button_new_with_mnemonic(_("Enable SRTP"));
+  gtk_widget_show(SRTPEnableButton);
+  gtk_container_add(GTK_CONTAINER(alignment37), SRTPEnableButton);
+
+  SrtpParametersTable = gtk_table_new(8, 2, FALSE);
+  gtk_widget_show(SrtpParametersTable);
+  gtk_box_pack_start(GTK_BOX(vbox49), SrtpParametersTable, TRUE, TRUE, 0);
+  gtk_table_set_row_spacings(GTK_TABLE(SrtpParametersTable), 3);
+
+  label215 = gtk_label_new(_("Encryption Algorithm:"));
+  gtk_widget_show(label215);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), label215, 0, 1, 0, 1,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label215), 0, 0.5);
+
+  SrtpEncryptionType = gtk_combo_box_new_text();
+  gtk_widget_show(SrtpEncryptionType);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), SrtpEncryptionType, 1, 2, 0, 1,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(GTK_FILL), 0, 0);
+  gtk_combo_box_append_text(GTK_COMBO_BOX(SrtpEncryptionType), _("AES_CM_128_HMAC_SHA1_80"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(SrtpEncryptionType), _("AES_CM_128_HMAC_SHA1_32"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(SrtpEncryptionType), _("F8_128_HMAC_SHAI_80"));
+
+  label216 = gtk_label_new("");
+  gtk_widget_show(label216);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), label216, 0, 1, 5, 6,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label216), 0, 0.5);
+
+  SpecifyKeySaltCheckButton = gtk_check_button_new_with_mnemonic(_("Specify Key/Salt"));
+  gtk_widget_show(SpecifyKeySaltCheckButton);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), SpecifyKeySaltCheckButton, 1, 2, 5, 6,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+
+  label217 = gtk_label_new(_("Key Value:"));
+  gtk_widget_show(label217);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), label217, 0, 1, 6, 7,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label217), 0, 0.5);
+
+  SrtpKeyValue = gtk_entry_new();
+  gtk_widget_show(SrtpKeyValue);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), SrtpKeyValue, 1, 2, 6, 7,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_entry_set_max_length(GTK_ENTRY(SrtpKeyValue), 33);
+  gtk_entry_set_width_chars(GTK_ENTRY(SrtpKeyValue), 33);
+
+  label218 = gtk_label_new(_("Salt Value:"));
+  gtk_widget_show(label218);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), label218, 0, 1, 7, 8,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label218), 0, 0.5);
+
+  SrtpSaltValue = gtk_entry_new();
+  gtk_widget_show(SrtpSaltValue);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), SrtpSaltValue, 1, 2, 7, 8,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_entry_set_max_length(GTK_ENTRY(SrtpSaltValue), 29);
+  gtk_entry_set_width_chars(GTK_ENTRY(SrtpSaltValue), 29);
+  label220 = gtk_label_new ("");
+  gtk_widget_show (label220);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), label220, 0, 1, 1, 2,
+                      (GtkAttachOptions)(GTK_FILL),
+                      (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label220), 0, 0.5);
+  
+  label221 = gtk_label_new("");
+  gtk_widget_show(label221);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), label221, 0, 1, 2, 3,
+                      (GtkAttachOptions)(GTK_FILL),
+                    (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label221), 0, 0.5);
+
+  EnableRtpEncCheckButton = gtk_check_button_new_with_mnemonic(_("Enable RTP Encryption"));
+  gtk_widget_show(EnableRtpEncCheckButton);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), EnableRtpEncCheckButton, 1, 2, 1, 2,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+
+  EnableRtpAuthCheckButton = gtk_check_button_new_with_mnemonic(_("Enable RTP Authentication"));
+  gtk_widget_show(EnableRtpAuthCheckButton);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), EnableRtpAuthCheckButton, 1, 2, 2, 3,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+
+  EnableRtcpEncCheckButton = gtk_check_button_new_with_mnemonic(_("Enable RTCP Encryption"));
+  gtk_widget_show(EnableRtcpEncCheckButton);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), EnableRtcpEncCheckButton, 1, 2, 3, 4,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+
+  label222 = gtk_label_new("");
+  gtk_widget_show(label222);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), label222, 0, 1, 3, 4,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label222), 0, 0.5);
+
+  label223 = gtk_label_new(_("Key Derivation Rate: 2^"));
+  gtk_widget_show(label223);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), label223, 0, 1, 4, 5,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label223), 0, 0.5);
+
+  KdrSpinButton_adj = gtk_adjustment_new(16, 16, 24, 1, 4, 4);
+  KdrSpinButton = gtk_spin_button_new(GTK_ADJUSTMENT(KdrSpinButton_adj), 1, 0);
+  gtk_widget_show(KdrSpinButton);
+  gtk_table_attach(GTK_TABLE(SrtpParametersTable), KdrSpinButton, 1, 2, 4, 5,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(KdrSpinButton), TRUE);
+  gtk_spin_button_set_snap_to_ticks(GTK_SPIN_BUTTON(KdrSpinButton), TRUE);
+
+#endif
   dialog_action_area5 = GTK_DIALOG(IpAddrDialog)->action_area;
   gtk_widget_show(dialog_action_area5);
   gtk_button_box_set_layout(GTK_BUTTON_BOX(dialog_action_area5), GTK_BUTTONBOX_END);
@@ -256,6 +562,15 @@ void create_IpAddrDialog (CMediaStream *ms,
   const char *addr;
   in_port_t port;
   char buffer[128];
+  bool srtp_enabled;
+  uint srtp_algo;
+  bool srtp_fixed;
+  const char *srtp_key;
+  const char *srtp_salt;
+  bool rtp_enc;
+  bool rtp_auth;
+  bool rtcp_enc;
+  uint kdr;
   if (do_audio) {
     sprintf(buffer, "Stream \"%s\" Audio Destination Address", 
 	    media_stream->GetName());
@@ -263,6 +578,16 @@ void create_IpAddrDialog (CMediaStream *ms,
     addr = media_stream->GetStringValue(STREAM_AUDIO_DEST_ADDR);
     port = media_stream->GetIntegerValue(STREAM_AUDIO_DEST_PORT);
     fixed = media_stream->GetBoolValue(STREAM_AUDIO_ADDR_FIXED);
+    srtp_enabled = media_stream->GetBoolValue(STREAM_AUDIO_USE_SRTP);
+    srtp_algo = media_stream->GetIntegerValue(STREAM_AUDIO_SRTP_ALGO);
+    srtp_fixed = media_stream->GetBoolValue(STREAM_AUDIO_SRTP_FIXED_KEYS);
+    srtp_key = media_stream->GetStringValue(STREAM_AUDIO_SRTP_KEY);
+    srtp_salt = media_stream->GetStringValue(STREAM_AUDIO_SRTP_SALT);
+    rtp_enc = media_stream->GetBoolValue(STREAM_AUDIO_SRTP_RTP_ENC);
+    rtp_auth = media_stream->GetBoolValue(STREAM_AUDIO_SRTP_RTP_AUTH);
+    rtcp_enc = media_stream->GetBoolValue(STREAM_AUDIO_SRTP_RTCP_ENC);
+    kdr = media_stream->GetIntegerValue(STREAM_AUDIO_SRTP_KDR);
+
   } else if (do_video) {
     sprintf(buffer, "Stream \"%s\" Video Destination Address", 
 	    media_stream->GetName());
@@ -270,6 +595,15 @@ void create_IpAddrDialog (CMediaStream *ms,
     addr = media_stream->GetStringValue(STREAM_VIDEO_DEST_ADDR);
     port = media_stream->GetIntegerValue(STREAM_VIDEO_DEST_PORT);
     fixed = media_stream->GetBoolValue(STREAM_VIDEO_ADDR_FIXED);
+    srtp_enabled = media_stream->GetBoolValue(STREAM_VIDEO_USE_SRTP);
+    srtp_algo = media_stream->GetIntegerValue(STREAM_VIDEO_SRTP_ALGO);
+    srtp_fixed = media_stream->GetBoolValue(STREAM_VIDEO_SRTP_FIXED_KEYS);
+    srtp_key = media_stream->GetStringValue(STREAM_VIDEO_SRTP_KEY);
+    srtp_salt = media_stream->GetStringValue(STREAM_VIDEO_SRTP_SALT);
+    rtp_enc = media_stream->GetBoolValue(STREAM_VIDEO_SRTP_RTP_ENC);
+    rtp_auth = media_stream->GetBoolValue(STREAM_VIDEO_SRTP_RTP_AUTH);
+    rtcp_enc = media_stream->GetBoolValue(STREAM_VIDEO_SRTP_RTCP_ENC);
+    kdr = media_stream->GetIntegerValue(STREAM_VIDEO_SRTP_KDR);
   } else {
     sprintf(buffer, "Stream \"%s\" Text Destination Address", 
 	    media_stream->GetName());
@@ -277,7 +611,40 @@ void create_IpAddrDialog (CMediaStream *ms,
     addr = media_stream->GetStringValue(STREAM_TEXT_DEST_ADDR);
     port = media_stream->GetIntegerValue(STREAM_TEXT_DEST_PORT);
     fixed = media_stream->GetBoolValue(STREAM_TEXT_ADDR_FIXED);
+    srtp_enabled = media_stream->GetBoolValue(STREAM_TEXT_USE_SRTP);
+    srtp_algo = media_stream->GetIntegerValue(STREAM_TEXT_SRTP_ALGO);
+    srtp_fixed = media_stream->GetBoolValue(STREAM_TEXT_SRTP_FIXED_KEYS);
+    srtp_key = media_stream->GetStringValue(STREAM_TEXT_SRTP_KEY);
+    srtp_salt = media_stream->GetStringValue(STREAM_TEXT_SRTP_SALT);
+    rtp_enc = media_stream->GetBoolValue(STREAM_TEXT_SRTP_RTP_ENC);
+    rtp_auth = media_stream->GetBoolValue(STREAM_TEXT_SRTP_RTP_AUTH);
+    rtcp_enc = media_stream->GetBoolValue(STREAM_TEXT_SRTP_RTCP_ENC);
+    kdr = media_stream->GetIntegerValue(STREAM_TEXT_SRTP_KDR);
   }
+#ifdef DO_SRTP_DIALOG
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(SRTPEnableButton), srtp_enabled);
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(SpecifyKeySaltCheckButton), 
+			       srtp_fixed);
+  gtk_combo_box_set_active(GTK_COMBO_BOX(SrtpEncryptionType), srtp_algo);
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(EnableRtpEncCheckButton), rtp_enc);
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(EnableRtpAuthCheckButton), rtp_auth);
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(EnableRtcpEncCheckButton), rtcp_enc);
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(KdrSpinButton), kdr);
+  if (srtp_key != NULL) gtk_entry_set_text(GTK_ENTRY(SrtpKeyValue), srtp_key);
+  if (srtp_salt != NULL) gtk_entry_set_text(GTK_ENTRY(SrtpSaltValue), srtp_salt);
+  if (srtp_enabled == false) {
+    gtk_widget_set_sensitive(SpecifyKeySaltCheckButton, false);
+    gtk_widget_set_sensitive(SrtpEncryptionType, false);
+    gtk_widget_set_sensitive(EnableRtpEncCheckButton, false);
+    gtk_widget_set_sensitive(EnableRtpAuthCheckButton, false);
+    gtk_widget_set_sensitive(EnableRtcpEncCheckButton, false);
+    gtk_widget_set_sensitive(KdrSpinButton, false);
+  }
+  if (srtp_enabled == false || srtp_fixed == false) {
+    gtk_widget_set_sensitive(SrtpKeyValue, false);
+    gtk_widget_set_sensitive(SrtpSaltValue, false);
+  }
+#endif
    
   gtk_label_set_text(GTK_LABEL(IpAddrDialogLabel), buffer);
   gtk_entry_set_text(GTK_ENTRY(IpAddr), addr);
@@ -310,6 +677,36 @@ void create_IpAddrDialog (CMediaStream *ms,
   GLADE_HOOKUP_OBJECT(IpAddrDialog, IpAddr, "IpAddr");
   GLADE_HOOKUP_OBJECT(IpAddrDialog, label149, "label149");
   GLADE_HOOKUP_OBJECT(IpAddrDialog, IpPort, "IpPort");
+#ifdef DO_SRTP_DIALOG 
+  g_signal_connect((gpointer) SRTPEnableButton, "toggled",
+		   G_CALLBACK(on_SRTPEnableButton_toggled),
+		   IpAddrDialog);
+  g_signal_connect((gpointer) SpecifyKeySaltCheckButton, "toggled",
+                    G_CALLBACK(on_SpecifyKeySaltCheckButton_toggled),
+		   IpAddrDialog);
+
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, hseparator1, "hseparator1");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, vbox49, "vbox49");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, alignment37, "alignment37");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, SRTPEnableButton, "SRTPEnableButton");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, SrtpParametersTable, "SrtpParametersTable");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, label215, "label215");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, SrtpEncryptionType, "SrtpEncryptionType");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, label216, "label216");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, SpecifyKeySaltCheckButton, "SpecifyKeySaltCheckButton");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, label217, "label217");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, SrtpKeyValue, "SrtpKeyValue");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, label218, "label218");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, SrtpSaltValue, "SrtpSaltValue");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, label220, "label220");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, label221, "label221");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, EnableRtpEncCheckButton, "EnableRtpEncCheckButton");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, EnableRtpAuthCheckButton, "EnableRtpAuthCheckButton");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, EnableRtcpEncCheckButton, "EnableRtcpEncCheckButton");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, label222, "label222");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, label223, "label223");
+  GLADE_HOOKUP_OBJECT(IpAddrDialog, KdrSpinButton, "KdrSpinButton");
+#endif
   GLADE_HOOKUP_OBJECT_NO_REF(IpAddrDialog, dialog_action_area5, "dialog_action_area5");
   GLADE_HOOKUP_OBJECT(IpAddrDialog, cancelbutton5, "cancelbutton5");
   GLADE_HOOKUP_OBJECT(IpAddrDialog, okbutton5, "okbutton5");
@@ -319,3 +716,4 @@ void create_IpAddrDialog (CMediaStream *ms,
 }
 
 /* end transmit_dialog.cpp */
+
