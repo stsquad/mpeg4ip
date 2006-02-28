@@ -1510,6 +1510,8 @@ static void mpeg2ps_scan_file (mpeg2ps_t *ps)
 				      sptr->end_dts,
 				      ps->first_dts, 
 				      frame_cnt_since_last));
+      } else {
+	mpeg2ps_message(LOG_DEBUG, "stream %x no end dts", sptr->m_stream_id);
       }
     }
   }

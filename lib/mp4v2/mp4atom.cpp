@@ -21,10 +21,14 @@
  * Portions created by Ximpo Group Ltd. are
  * Copyright (C) Ximpo Group Ltd. 2003, 2004.  All Rights Reserved.
  * 
+ *  Portions created by Adnecto d.o.o. are
+ *  Copyright (C) Adnecto d.o.o. 2005.  All Rights Reserved
+ *
  * Contributor(s): 
  *		Dave Mackie			dmackie@cisco.com
  *		Alix Marchandise-Franquet	alix@cisco.com
  *              Ximpo Group Ltd.                mp4v2@ximpo.com
+ *              Danijel Kopcinovic              danijel.kopcinovic@adnecto.net
  */
 
 #include "mp4common.h"
@@ -164,6 +168,11 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
     case 'n':
       if (ATOMID(type) == ATOMID("name")) { // iTunes
 	pAtom = new MP4Meta1Atom(type);
+      }
+      break;
+    case 'o':
+      if (ATOMID(type) == ATOMID("ohdr")) {
+	pAtom = new MP4OhdrAtom();
       }
       break;
     case 'r':

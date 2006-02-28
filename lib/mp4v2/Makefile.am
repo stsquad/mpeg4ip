@@ -31,6 +31,7 @@ libmp4v2_la_SOURCES = \
 	atom_mp4s.cpp \
 	atom_mp4v.cpp \
 	atom_mvhd.cpp \
+	atom_ohdr.cpp \
 	atom_root.cpp \
 	atom_rtp.cpp \
 	atom_s263.cpp \

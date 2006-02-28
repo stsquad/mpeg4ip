@@ -178,6 +178,12 @@ CVideoObject::~CVideoObject ()
   delete [] m_ppxliErrorMBA;
   delete [] m_ppxlcPredMBBackA;
   delete [] m_ppxlcCurrMBA;
+ 
+  //! Added by Danijel Kopcinovic, as a fix for memory leak.
+  if (m_pvopcPredMBBack != NULL) delete m_pvopcPredMBBack;
+   if (m_rgmvBaseBY != NULL) delete m_rgmvBaseBY;
+   if (m_rgmbmdRef != NULL) delete[] m_rgmbmdRef;
+   //! Added by Danijel Kopcinovic, as a fix for memory leak.
 }
 
 CVideoObject::CVideoObject ()
@@ -217,6 +223,9 @@ CVideoObject::CVideoObject ()
 
 // RRV insertion
 	m_iRRVScale	= 1;	// default 
+	
+	//! Added by Danijel Kopcinovic, as a fix for memory leak.
+	m_pvopcPredMBBack = NULL;
 
 // ~RRV
 }

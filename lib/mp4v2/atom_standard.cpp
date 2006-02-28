@@ -188,6 +188,10 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
     ExpectChildAtom("covr", Optional, OnlyOne); /* cover art */
     ExpectChildAtom("----", Optional, Many); /* ---- free form */
 
+  }  else if (ATOMID(type) == ATOMID("imif")) {
+    AddVersionAndFlags();
+    AddProperty(new MP4DescriptorProperty("ipmp_desc", MP4IPMPDescrTag,
+					  MP4IPMPDescrTag, Required, Many));
   } else if (ATOMID(type) == ATOMID("iods")) {
     AddVersionAndFlags();
     AddProperty(
@@ -248,6 +252,12 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
     AddProperty( // packets sent
 		new MP4Integer64Property("packets"));
   /*
+    * o???
+    */
+  } else if (ATOMID(type) == ATOMID("odkm")) {
+    AddVersionAndFlags();
+    ExpectChildAtom("ohdr", Required, OnlyOne);
+  /*
    * p???
    */
   } else if (ATOMID(type) == ATOMID("payt")) {
@@ -263,8 +273,9 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
   } else if (ATOMID(type) == ATOMID("schi")) {
     // not sure if this is child atoms or table of boxes
     // get clarification on spec 9.1.2.5
-    ExpectChildAtom("iKMS", Required, OnlyOne);
-    ExpectChildAtom("iSFM", Required, OnlyOne);
+    ExpectChildAtom("odkm", Optional, OnlyOne);
+    ExpectChildAtom("iKMS", Optional, OnlyOne);
+    ExpectChildAtom("iSFM", Optional, OnlyOne);
 
   } else if (ATOMID(type) == ATOMID("schm")) {
     AddVersionAndFlags(); /* 0, 1 */
@@ -276,8 +287,9 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
 
   } else if (ATOMID(type) == ATOMID("sinf")) {
     ExpectChildAtom("frma", Required, OnlyOne);
-    ExpectChildAtom("schm", Required, OnlyOne);
-    ExpectChildAtom("schi", Required, OnlyOne);
+    ExpectChildAtom("imif", Optional, OnlyOne);
+    ExpectChildAtom("schm", Optional, OnlyOne);
+    ExpectChildAtom("schi", Optional, OnlyOne);
 
   } else if (ATOMID(type) == ATOMID("smhd")) {
     AddVersionAndFlags();

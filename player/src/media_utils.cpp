@@ -693,13 +693,16 @@ int parse_name_for_session (CPlayerSession *psptr,
     return (-1);
   }
 #else
-  OFSTRUCT ReOpenBuff;
-  if (OpenFile(name, &ReOpenBuff,OF_READ) == HFILE_ERROR) {
+  HANDLE hFile;
+  hFile = CreateFile(name, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+		     FILE_ATTRIBUTE_NORMAL, NULL);
+  
+  if (hFile == INVALID_HANDLE_VALUE) { 
     psptr->set_message("File %s not found", name);
     return (-1);
   }
-
 #endif
+
   err = -1;
 
   const char *suffix = strrchr(name, '.');

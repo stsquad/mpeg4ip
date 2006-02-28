@@ -149,9 +149,11 @@ static bool remove_unused_sei_messages (nal_reader_t *nal,
     }
     if (nal->buffer_on - buffer_on <= 2) {
       //fprintf(stderr, "extra bytes after SEI message\n");
+#if 0
       memset(nal->buffer + buffer_on, 0,
 	     nal->buffer_on - buffer_on); 
       nal->buffer_on = buffer_on;
+#endif
       
       return true;
     }
@@ -197,7 +199,7 @@ static bool RefreshReader (nal_reader_t *nal,
 {
   uint32_t bytes_left;
   uint32_t bytes_read;
-#ifdef DEBUG_H264
+#ifdef DEBUG_H264_READER
   printf("refresh - start %u buffer on %u size %u\n", 
 	 nal_start, nal->buffer_on, nal->buffer_size);
 #endif
@@ -214,7 +216,7 @@ static bool RefreshReader (nal_reader_t *nal,
 		nal->buffer + nal_start,
 		bytes_left);
 	nal->buffer_on -= nal_start;
-#ifdef DEBUG_H264
+#ifdef DEBUG_H264_READER
 	printf("move %u new on is %u\n", bytes_left, nal->buffer_on);
 #endif
       } else {
@@ -234,7 +236,7 @@ static bool RefreshReader (nal_reader_t *nal,
 		     nal->buffer_size_max - nal->buffer_size,
 		     nal->ifile);
   if (bytes_read == 0) return false;
-#ifdef DEBUG_H264
+#ifdef DEBUG_H264_READER
   printf("read %u of %u\n", bytes_read, 
 	  nal->buffer_size_max - nal->buffer_size);
 #endif
@@ -259,7 +261,7 @@ static bool LoadNal (nal_reader_t *nal)
   if (h264_is_start_code(nal->buffer) == false) {
     start = h264_find_next_start_code(nal->buffer,
 				    nal->buffer_size);
-    RefreshReader(nal, nal->buffer_on);
+    RefreshReader(nal, start);
   }
   while ((start = h264_find_next_start_code(nal->buffer + 4,
 					    nal->buffer_size - 4)) == 0) {
@@ -409,7 +411,10 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
     }
 
     if (MP4GetNumberOfTracks(mp4File, MP4_VIDEO_TRACK_TYPE) == 1) {
+      uint32_t new_verb = Verbosity & ~(MP4_DETAILS_ERROR);
+      MP4SetVerbosity(mp4File, new_verb);
       MP4SetVideoProfileLevel(mp4File, 0x7f);
+      MP4SetVerbosity(mp4File, Verbosity);
     }
 
     uint8_t *nal_buffer;
@@ -433,6 +438,9 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
       bool boundary = h264_detect_boundary(nal.buffer, 
 					   nal.buffer_on,
 					   &h264_dec);
+#ifdef DEBUG_H264
+      printf("Nal size %u boundary %u\n", nal.buffer_on, boundary);
+#endif
       if (boundary && first == false) {
 	// write the previous sample
 	if (nal_buffer_size != 0) {
@@ -474,13 +482,14 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 	  nal_buffer_size = 0;
 	} 
       }
-      first = false;
       bool copy_nal_to_buffer = false;
       if (Verbosity & MP4_DETAILS_SAMPLE) {
 	printf("H264 type %x size %u\n",
                     h264_dec.nal_unit_type, nal.buffer_on);
       }
       if (h264_nal_unit_type_is_slice(h264_dec.nal_unit_type)) {
+	// copy all seis, etc before indicating first
+	first = false;
 	copy_nal_to_buffer = true;
         slice_is_idr = h264_dec.nal_unit_type == H264_NAL_TYPE_IDR_SLICE;
         poc = h264_dec.pic_order_cnt;

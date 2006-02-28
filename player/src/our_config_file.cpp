@@ -71,6 +71,8 @@ static const SConfigVariable MyConfigVariables[] = {
   CONFIG_STRING_HELP(CONFIG_RTSP_PROXY_ADDR, "RtspProxyAddr", NULL, 
 		     "RTSP proxy address"),
   CONFIG_INT(CONFIG_RTSP_PROXY_PORT, "RtspProxyPort", 0),
+  CONFIG_STRING(CONFIG_OPENIPMPDRM_XMLFILE, "drmXML", NULL),
+  CONFIG_STRING(CONFIG_OPENIPMPDRM_SENSITIVE, "drmInfo", NULL),
 };
 
 CConfigSet config(MyConfigVariables, 

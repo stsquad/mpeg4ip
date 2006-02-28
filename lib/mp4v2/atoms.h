@@ -262,6 +262,13 @@ protected:
 	void AddProperties(u_int8_t version);
 };
 
+class MP4OhdrAtom : public MP4Atom {
+ public:
+  MP4OhdrAtom();
+  ~MP4OhdrAtom();
+  void Read();
+};
+
 class MP4RtpAtom : public MP4Atom {
 public:
 	MP4RtpAtom();

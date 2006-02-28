@@ -146,6 +146,7 @@ int main(int argc, char** argv)
   u_int16_t maxPayloadSize = 1460;
   bool force3GPCompliance = false;
   char* p3gppSupportedBrands[2] = {"3gp5", "3gp4"};
+  uint32_t newverbosity;
 
   Verbosity = MP4_DETAILS_ERROR;
   VideoFrameRate = 0;		// determine from input file
@@ -573,9 +574,14 @@ int main(int argc, char** argv)
 	  MP4GetTrackType(mp4File, *pTrackId);
 	// look for objectTypeId (GetTrackEsdsObjectTypeId)
 	uint64_t temp;
-	if (MP4GetTrackIntegerProperty(mp4File, *pTrackId,
-					"mdia.minf.stbl.stsd.*.esds.decConfigDescr.objectTypeId",
-				       &temp)) {
+	newverbosity = Verbosity & ~(MP4_DETAILS_ERROR);
+	MP4SetVerbosity(mp4File, newverbosity);
+	bool ret = 
+	  MP4GetTrackIntegerProperty(mp4File, *pTrackId,
+				     "mdia.minf.stbl.stsd.*.esds.decConfigDescr.objectTypeId",
+				     &temp);
+	MP4SetVerbosity(mp4File, Verbosity);
+	if (ret) {
 	  if (!strcmp(type, MP4_AUDIO_TRACK_TYPE)) { 
 	    allMpeg4Streams &=
 	      (MP4GetTrackEsdsObjectTypeId(mp4File, *pTrackId) 
@@ -618,14 +624,20 @@ int main(int argc, char** argv)
 					"mdia.minf.stbl.stsd.*.esds.decConfigDescr.objectTypeId", 
 				       &temp)) {
 	  if (!strcmp(type, MP4_AUDIO_TRACK_TYPE)) { 
+	    newverbosity = Verbosity & ~(MP4_DETAILS_ERROR);
+	    MP4SetVerbosity(mp4File, newverbosity);
 	    allMpeg4Streams &=
 	      (MP4GetTrackEsdsObjectTypeId(mp4File, trackId) 
 	       == MP4_MPEG4_AUDIO_TYPE);
+	    MP4SetVerbosity(mp4File, Verbosity);
 			    
 	  } else if (!strcmp(type, MP4_VIDEO_TRACK_TYPE)) { 
+	    newverbosity = Verbosity & ~(MP4_DETAILS_ERROR);
+	    MP4SetVerbosity(mp4File, newverbosity);
 	    allMpeg4Streams &=
 	      (MP4GetTrackEsdsObjectTypeId(mp4File, trackId) 
 	       == MP4_MPEG4_VIDEO_TYPE);
+	    MP4SetVerbosity(mp4File, Verbosity);
 	  }
 	}
       }
@@ -633,7 +645,6 @@ int main(int argc, char** argv)
 
     char *buffer;
     char *value;
-    uint32_t newverbosity;
     newverbosity = Verbosity & ~(MP4_DETAILS_ERROR);
     MP4SetVerbosity(mp4File, newverbosity);
     bool retval = MP4GetMetadataTool(mp4File, &value);

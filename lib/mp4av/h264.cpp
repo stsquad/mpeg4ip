@@ -486,7 +486,6 @@ extern "C" int h264_detect_boundary (const uint8_t *buffer,
   h264_decode_t new_decode;
   int ret;
   int slice = 0;
-
   memcpy(&new_decode, decode, sizeof(new_decode));
 
   temp = new_decode.nal_unit_type = h264_nal_unit_type(buffer);
@@ -518,7 +517,8 @@ extern "C" int h264_detect_boundary (const uint8_t *buffer,
     }
     if (decode->frame_num != new_decode.frame_num) {
 #ifdef BOUND_VERBOSE
-      printf("frame num values different\n");
+      printf("frame num values different %u %u\n", decode->frame_num, 
+	     new_decode.frame_num);
 #endif
       ret = 1;
       break;
