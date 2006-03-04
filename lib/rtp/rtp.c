@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.26 $ 
- * $Date: 2006/02/23 00:28:57 $
+ * $Revision: 1.27 $ 
+ * $Date: 2006/03/04 01:51:38 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -1429,19 +1429,20 @@ int rtp_process_recv_data (struct rtp *session,
 			   rtp_packet *packet,
 			   uint32_t buflen)
 {
-  uint8_t		*buffer = ((uint8_t *) packet) + RTP_PACKET_HEADER_SIZE;
+  uint8_t		*buffer = (uint8_t *) &packet->ph; //((uint8_t *) packet) + RTP_PACKET_HEADER_SIZE;
   source		*s;
   int ret;
+	int srtp_status;
 
   packet->pd.rtp_pd_buflen = buflen;
 
   if (buflen > 0) {
+
     if (session->encryption_enabled) {
-	ret = (session->decrypt_func)(session->encrypt_userdata, buffer, &buflen);
-	if (ret != TRUE) return -1;
-	packet->pd.rtp_pd_buflen = buflen;
-      }
-    
+			srtp_status = (session->decrypt_func)(session->encrypt_userdata, 
+																						buffer, &buflen);
+			packet->pd.rtp_pd_buflen = buflen;
+		}
     /* Convert header fields to host byte order... */
     packet->rtp_next = packet->rtp_prev = NULL;
     packet->rtp_pak_seq  = ntohs(packet->rtp_pak_seq);
@@ -1452,7 +1453,7 @@ int rtp_process_recv_data (struct rtp *session,
       int	i;
       packet->rtp_csrc = (uint32_t *)(buffer + 12);
       for (i = 0; i < packet->rtp_pak_cc; i++) {
-	packet->rtp_csrc[i] = ntohl(packet->rtp_csrc[i]);
+				packet->rtp_csrc[i] = ntohl(packet->rtp_csrc[i]);
       }
     } else {
       packet->rtp_csrc = NULL;
@@ -1853,1457 +1854,1456 @@ void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, uint32_t buflen)
 		if (session->encryption_enabled)
 		{
 			/* Decrypt the packet... */
-			(session->decrypt_func)(session->encrypt_userdata, buffer, &buflen);
-			buffer += 4;	/* Skip the random prefix... */
-			buflen -= 4;
-		}
-		if (validate_rtcp(buffer, buflen)) {
-			first  = TRUE;
-			packet = (rtcp_t *) buffer;
-			while (packet < (rtcp_t *) (buffer + buflen)) {
-				switch (packet->common.pt) {
-					case RTCP_SR:
-						if (first && !filter_event(session, ntohl(packet->r.sr.sr.ssrc))) {
-							event.ssrc  = ntohl(packet->r.sr.sr.ssrc);
-							event.type  = RX_RTCP_START;
-							event.data  = &buflen;
-							event.ts    = &event_ts;
-							packet_ssrc = event.ssrc;
-							session->callback(session, &event);
-						}
-						process_rtcp_sr(session, packet, &event_ts);
-						break;
-					case RTCP_RR:
-						if (first && !filter_event(session, ntohl(packet->r.rr.ssrc))) {
-							event.ssrc  = ntohl(packet->r.rr.ssrc);
-							event.type  = RX_RTCP_START;
-							event.data  = &buflen;
-							event.ts    = &event_ts;
-							packet_ssrc = event.ssrc;
-							session->callback(session, &event);
-						}
-						process_rtcp_rr(session, packet, &event_ts);
-						break;
-					case RTCP_SDES:
-						if (first && !filter_event(session, ntohl(packet->r.sdes.ssrc))) {
-							event.ssrc  = ntohl(packet->r.sdes.ssrc);
-							event.type  = RX_RTCP_START;
-							event.data  = &buflen;
-							event.ts    = &event_ts;
-							packet_ssrc = event.ssrc;
-							session->callback(session, &event);
-						}
-						process_rtcp_sdes(session, packet, &event_ts);
-						break;
-					case RTCP_BYE:
-						if (first && !filter_event(session, ntohl(packet->r.bye.ssrc[0]))) {
-							event.ssrc  = ntohl(packet->r.bye.ssrc[0]);
-							event.type  = RX_RTCP_START;
-							event.data  = &buflen;
-							event.ts    = &event_ts;
-							packet_ssrc = event.ssrc;
-							session->callback(session, &event);
-						}
-						process_rtcp_bye(session, packet, &event_ts);
-						break;
-				        case RTCP_APP:
-						if (first && !filter_event(session, ntohl(packet->r.app.ssrc))) {
-							event.ssrc  = ntohl(packet->r.app.ssrc);
-							event.type  = RX_RTCP_START;
-							event.data  = &buflen;
-							event.ts    = &event_ts;
-							packet_ssrc = event.ssrc;
-							session->callback(session, &event);
-						}
-					        process_rtcp_app(session, packet, &event_ts);
-						break;
-					default: 
-						rtp_message(LOG_WARNING, "RTCP packet with unknown type (%d) ignored.", packet->common.pt);
-						break;
+				(session->decrypt_func)(session->encrypt_userdata, buffer, &buflen);
+				buffer += 4;	/* Skip the random prefix... */
+				buflen -= 4;
+			}
+			if (validate_rtcp(buffer, buflen)) {
+				first  = TRUE;
+				packet = (rtcp_t *) buffer;
+				while (packet < (rtcp_t *) (buffer + buflen)) {
+					switch (packet->common.pt) {
+						case RTCP_SR:
+							if (first && !filter_event(session, ntohl(packet->r.sr.sr.ssrc))) {
+								event.ssrc  = ntohl(packet->r.sr.sr.ssrc);
+								event.type  = RX_RTCP_START;
+								event.data  = &buflen;
+								event.ts    = &event_ts;
+								packet_ssrc = event.ssrc;
+								session->callback(session, &event);
+							}
+							process_rtcp_sr(session, packet, &event_ts);
+							break;
+						case RTCP_RR:
+							if (first && !filter_event(session, ntohl(packet->r.rr.ssrc))) {
+								event.ssrc  = ntohl(packet->r.rr.ssrc);
+								event.type  = RX_RTCP_START;
+								event.data  = &buflen;
+								event.ts    = &event_ts;
+								packet_ssrc = event.ssrc;
+								session->callback(session, &event);
+							}
+							process_rtcp_rr(session, packet, &event_ts);
+							break;
+						case RTCP_SDES:
+							if (first && !filter_event(session, ntohl(packet->r.sdes.ssrc))) {
+								event.ssrc  = ntohl(packet->r.sdes.ssrc);
+								event.type  = RX_RTCP_START;
+								event.data  = &buflen;
+								event.ts    = &event_ts;
+								packet_ssrc = event.ssrc;
+								session->callback(session, &event);
+							}
+							process_rtcp_sdes(session, packet, &event_ts);
+							break;
+						case RTCP_BYE:
+							if (first && !filter_event(session, ntohl(packet->r.bye.ssrc[0]))) {
+								event.ssrc  = ntohl(packet->r.bye.ssrc[0]);
+								event.type  = RX_RTCP_START;
+								event.data  = &buflen;
+								event.ts    = &event_ts;
+								packet_ssrc = event.ssrc;
+								session->callback(session, &event);
+							}
+							process_rtcp_bye(session, packet, &event_ts);
+							break;
+						case RTCP_APP:
+							if (first && !filter_event(session, ntohl(packet->r.app.ssrc))) {
+								event.ssrc  = ntohl(packet->r.app.ssrc);
+								event.type  = RX_RTCP_START;
+								event.data  = &buflen;
+								event.ts    = &event_ts;
+								packet_ssrc = event.ssrc;
+								session->callback(session, &event);
+							}
+							process_rtcp_app(session, packet, &event_ts);
+							break;
+						default: 
+							rtp_message(LOG_WARNING, "RTCP packet with unknown type (%d) ignored.", packet->common.pt);
+							break;
+					}
+					packet = (rtcp_t *) ((uint8_t *) packet + (4 * (ntohs(packet->common.length) + 1)));
+					first  = FALSE;
 				}
-				packet = (rtcp_t *) ((uint8_t *) packet + (4 * (ntohs(packet->common.length) + 1)));
-				first  = FALSE;
-			}
-			if (session->avg_rtcp_size < 0) {
-				/* This is the first RTCP packet we've received, set our initial estimate */
-				/* of the average  packet size to be the size of this packet.             */
-				session->avg_rtcp_size = buflen + RTP_LOWER_LAYER_OVERHEAD;
-			} else {
-				/* Update our estimate of the average RTCP packet size. The constants are */
-				/* 1/16 and 15/16 (section 6.3.3 of draft-ietf-avt-rtp-new-02.txt).       */
-				session->avg_rtcp_size = (0.0625 * (buflen + RTP_LOWER_LAYER_OVERHEAD)) + (0.9375 * session->avg_rtcp_size);
-			}
-			/* Signal that we've finished processing this packet */
-			if (!filter_event(session, packet_ssrc)) {
-				event.ssrc = packet_ssrc;
-				event.type = RX_RTCP_FINISH;
-				event.data = NULL;
-				event.ts   = &event_ts;
-				session->callback(session, &event);
-			}
-		} else {
-			rtp_message(LOG_INFO, "Invalid RTCP packet discarded");
-			session->invalid_rtcp_count++;
-		}
-	}
-}
-
-/**
- * rtp_recv:
- * @session: the session pointer (returned by rtp_init())
- * @timeout: the amount of time that rtcp_recv() is allowed to block
- * @curr_rtp_ts: the current time expressed in units of the media
- * timestamp.
- *
- * Receive RTP packets and dispatch them.
- *
- * Returns: TRUE if data received, FALSE if the timeout occurred.
- */
-int rtp_recv(struct rtp *session, struct timeval *timeout, uint32_t curr_rtp_ts)
-{
-	check_database(session);
-	udp_fd_zero(session->udp_session);
-	udp_fd_set(session->udp_session, session->rtp_socket);
-	udp_fd_set(session->udp_session, session->rtcp_socket);
-	if (udp_select(session->udp_session, timeout) > 0) {
-	  if (udp_fd_isset(session->udp_session, session->rtp_socket)) {
-			rtp_recv_data(session, curr_rtp_ts);
-		}
-	  if (udp_fd_isset(session->udp_session, session->rtcp_socket)) {
-                        uint8_t		 buffer[RTP_MAX_PACKET_LEN];
-                        int		 buflen;
-                        buflen = udp_recv(session->rtcp_socket, buffer, RTP_MAX_PACKET_LEN);
-			rtp_process_ctrl(session, buffer, buflen);
-		}
-		check_database(session);
-                return TRUE;
-	}
-	check_database(session);
-        return FALSE;
-}
-
-
-
-/**
- * rtp_add_csrc:
- * @session: the session pointer (returned by rtp_init()) 
- * @csrc: Constributing SSRC identifier
- * 
- * Adds @csrc to list of contributing sources used in SDES items.
- * Used by mixers and transcoders.
- * 
- * Return value: TRUE.
- **/
-int rtp_add_csrc(struct rtp *session, uint32_t csrc)
-{
-	/* Mark csrc as something for which we should advertise RTCP SDES items, */
-	/* in addition to our own SDES.                                          */
-	source	*s;
-
-	check_database(session);
-	s = get_source(session, csrc);
-	if (s == NULL) {
-	  s = create_source(session, csrc, FALSE);
-	  rtp_message(LOG_INFO, "Created source 0x%08x as CSRC", csrc);
-	}
-	check_source(s);
-	if (!s->should_advertise_sdes) {
-	  s->should_advertise_sdes = TRUE;
-	  session->csrc_count++;
-	  rtp_message(LOG_INFO, "Added CSRC 0x%08x as CSRC %d", csrc, session->csrc_count);
-	}
-	return TRUE;
-}
-
-/**
- * rtp_del_csrc:
- * @session: the session pointer (returned by rtp_init()) 
- * @csrc: Constributing SSRC identifier
- * 
- * Removes @csrc from list of contributing sources used in SDES items.
- * Used by mixers and transcoders.
- * 
- * Return value: TRUE on success, FALSE if @csrc is not a valid source.
- **/
-int rtp_del_csrc(struct rtp *session, uint32_t csrc)
-{
-	source	*s;
-
-	check_database(session);
-	s = get_source(session, csrc);
-	if (s == NULL) {
-		rtp_message(LOG_ERR, "Invalid source 0x%08x when deleting", csrc);
-		return FALSE;
-	}
-	check_source(s);
-	s->should_advertise_sdes = FALSE;
-	session->csrc_count--;
-	if (session->last_advertised_csrc >= session->csrc_count) {
-                session->last_advertised_csrc = 0;
-        }
-	return TRUE;
-}
-
-/**
- * rtp_set_sdes:
- * @session: the session pointer (returned by rtp_init()) 
- * @ssrc: the SSRC identifier of a participant
- * @type: the SDES type represented by @value
- * @value: the SDES description
- * @length: the length of the description
- * 
- * Sets session description information associated with participant
- * @ssrc.  Under normal circumstances applications always use the
- * @ssrc of the local participant, this SDES information is
- * transmitted in receiver reports.  Setting SDES information for
- * other participants affects the local SDES entries, but are not
- * transmitted onto the network.
- * 
- * Return value: Returns TRUE if participant exists, FALSE otherwise.
- **/
-int rtp_set_sdes(struct rtp *session, uint32_t ssrc, rtcp_sdes_type type, const char *value, int length)
-{
-	source	*s;
-	char	*v;
-
-	check_database(session);
-
-	s = get_source(session, ssrc);
-	if (s == NULL) {
-		rtp_message(LOG_ERR, "Invalid source 0x%08x when setting", ssrc);
-		return FALSE;
-	}
-	check_source(s);
-
-	v = (char *) xmalloc(length + 1);
-	memset(v, '\0', length + 1);
-	memcpy(v, value, length);
-
-	switch (type) {
-		case RTCP_SDES_CNAME: 
-			if (s->cname) xfree(s->cname);
-			s->cname = v; 
-			break;
-		case RTCP_SDES_NAME:
-			if (s->name) xfree(s->name);
-			s->name = v; 
-			break;
-		case RTCP_SDES_EMAIL:
-			if (s->email) xfree(s->email);
-			s->email = v; 
-			break;
-		case RTCP_SDES_PHONE:
-			if (s->phone) xfree(s->phone);
-			s->phone = v; 
-			break;
-		case RTCP_SDES_LOC:
-			if (s->loc) xfree(s->loc);
-			s->loc = v; 
-			break;
-		case RTCP_SDES_TOOL:
-			if (s->tool) xfree(s->tool);
-			s->tool = v; 
-			break;
-		case RTCP_SDES_NOTE:
-			if (s->note) xfree(s->note);
-			s->note = v; 
-			break;
-		case RTCP_SDES_PRIV:
-			if (s->priv) xfree(s->priv);
-			s->priv = v; 
-			break;
-		default :
-			rtp_message(LOG_NOTICE, "Unknown SDES item (type=%d, value=%s)", type, v);
-                        xfree(v);
-			check_database(session);
-			return FALSE;
-	}
-	check_database(session);
-	return TRUE;
-}
-
-/**
- * rtp_get_sdes:
- * @session: the session pointer (returned by rtp_init()) 
- * @ssrc: the SSRC identifier of a participant
- * @type: the SDES information to retrieve
- * 
- * Recovers session description (SDES) information on participant
- * identified with @ssrc.  The SDES information associated with a
- * source is updated when receiver reports are received.  There are
- * several different types of SDES information, e.g. username,
- * location, phone, email.  These are enumerated by #rtcp_sdes_type.
- * 
- * Return value: pointer to string containing SDES description if
- * received, NULL otherwise.  
- */
-const char *rtp_get_sdes(struct rtp *session, uint32_t ssrc, rtcp_sdes_type type)
-{
-	source	*s;
-
-	check_database(session);
-
-	s = get_source(session, ssrc);
-	if (s == NULL) {
-		rtp_message(LOG_ERR, "Invalid source 0x%08x getting sdes", ssrc);
-		return NULL;
-	}
-	check_source(s);
-
-	switch (type) {
-        case RTCP_SDES_CNAME: 
-                return s->cname;
-        case RTCP_SDES_NAME:
-                return s->name;
-        case RTCP_SDES_EMAIL:
-                return s->email;
-        case RTCP_SDES_PHONE:
-                return s->phone;
-        case RTCP_SDES_LOC:
-                return s->loc;
-        case RTCP_SDES_TOOL:
-                return s->tool;
-        case RTCP_SDES_NOTE:
-                return s->note;
-	case RTCP_SDES_PRIV:
-		return s->priv;	
-        default:
-                /* This includes RTCP_SDES_PRIV and RTCP_SDES_END */
-                rtp_message(LOG_WARNING, "Unknown SDES item (type=%d)", type);
-	}
-	return NULL;
-}
-
-/**
- * rtp_get_sr:
- * @session: the session pointer (returned by rtp_init()) 
- * @ssrc: identifier of source
- * 
- * Retrieve the latest sender report made by sender with @ssrc identifier.
- * 
- * Return value: A pointer to an rtcp_sr structure on success, NULL
- * otherwise.  The pointer must not be freed.
- **/
-const rtcp_sr *rtp_get_sr(struct rtp *session, uint32_t ssrc)
-{
-	/* Return the last SR received from this ssrc. The */
-	/* caller MUST NOT free the memory returned to it. */
-	source	*s;
-
-	check_database(session);
-
-	s = get_source(session, ssrc);
-	if (s == NULL) {
-		return NULL;
-	} 
-	check_source(s);
-	return s->sr;
-}
-
-/**
- * rtp_get_rr:
- * @session: the session pointer (returned by rtp_init())
- * @reporter: participant originating receiver report
- * @reportee: participant included in receiver report
- * 
- * Retrieve the latest receiver report on @reportee made by @reporter.
- * Provides an indication of other receivers reception service.
- * 
- * Return value: A pointer to a rtcp_rr structure on success, NULL
- * otherwise.  The pointer must not be freed.
- **/
-const rtcp_rr *rtp_get_rr(struct rtp *session, uint32_t reporter, uint32_t reportee)
-{
-	check_database(session);
-        return get_rr(session, reporter, reportee);
-}
-
-/**
- * rtp_send_data:
- * @session: the session pointer (returned by rtp_init())
- * @rtp_ts: The timestamp reflects the sampling instant of the first octet of the RTP data to be sent.  The timestamp is expressed in media units.
- * @pt: The payload type identifying the format of the data.
- * @m: Marker bit, interpretation defined by media profile of payload.
- * @cc: Number of contributing sources (excluding local participant)
- * @csrc: Array of SSRC identifiers for contributing sources.
- * @data: The RTP data to be sent.
- * @data_len: The size @data in bytes.
- * @extn: Extension data (if present).
- * @extn_len: size of @extn in bytes.
- * @extn_type: extension type indicator.
- * 
- * Send an RTP packet.  Most media applications will only set the
- * @session, @rtp_ts, @pt, @m, @data, @data_len arguments.
- *
- * Mixers and translators typically set additional contributing sources 
- * arguments (@cc, @csrc).
- *
- * Extensions fields (@extn, @extn_len, @extn_type) are for including
- * application specific information.  When the widest amount of
- * inter-operability is required these fields should be avoided as
- * some applications discard packets with extensions they do not
- * recognize.
- * 
- * Return value: Number of bytes transmitted.
- **/
-int rtp_send_data(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, 
-		  int cc, uint32_t* csrc, 
-                  uint8_t *data, uint32_t data_len, 
-		  uint8_t *extn, uint16_t extn_len, uint16_t extn_type)
-{
-	unsigned int		 buffer_len; int i, rc, pad, pad_len;
-	int malloc_len;
-	uint8_t		*buffer;
-	rtp_packet	*packet;
-
-	check_database(session);
-
-	ASSERT(data_len > 0);
-
-	buffer_len = data_len + 12 + (4 * cc);
-	if (extn != NULL) {
-		buffer_len += (extn_len + 1) * 4;
-	}
-
-	/* Do we need to pad this packet to a multiple of 64 bits? */
-	/* This is only needed if encryption is enabled, since DES */
-	/* only works on multiples of 64 bits. We just calculate   */
-	/* the amount of padding to add here, so we can reserve    */
-	/* space - the actual padding is added later.              */
-	pad     = FALSE;
-	pad_len = 0;
-	if (session->encryption_enabled) {
-	  if ((session->encryption_pad_length != 0) &&
-	      ((buffer_len % session->encryption_pad_length) != 0)) {
-	    pad         = TRUE;
-	    pad_len     = session->encryption_pad_length - (buffer_len % session->encryption_pad_length);
-	    buffer_len += pad_len; 
-	    ASSERT((buffer_len % session->encryption_pad_length) == 0);
-	  } 
-	  malloc_len = buffer_len;
-	  malloc_len = buffer_len + session->encryption_lenadd;
-	} else
-	  malloc_len = buffer_len;
-
-	/* Allocate memory for the packet... */
-	buffer     = (uint8_t *) xmalloc(malloc_len + RTP_PACKET_HEADER_SIZE);
-	packet     = (rtp_packet *) buffer;
-
-	/* These are internal pointers into the buffer... */
-	packet->rtp_csrc = (uint32_t *) (buffer + RTP_PACKET_HEADER_SIZE + 12);
-	packet->rtp_extn = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
-	packet->rtp_data = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
-	if (extn != NULL) {
-		packet->rtp_data += (extn_len + 1) * 4;
-	}
-	/* ...and the actual packet header... */
-	packet->rtp_pak_v    = 2;
-	packet->rtp_pak_p    = pad;
-	packet->rtp_pak_x    = (extn != NULL);
-	packet->rtp_pak_cc   = cc;
-	packet->rtp_pak_m    = m;
-	packet->rtp_pak_pt   = pt;
-	packet->rtp_pak_seq  = htons(session->rtp_seq++);
-	packet->rtp_pak_ts   = htonl(rtp_ts);
-	packet->rtp_pak_ssrc = htonl(rtp_my_ssrc(session));
-	/* ...now the CSRC list... */
-	for (i = 0; i < cc; i++) {
-		packet->rtp_csrc[i] = htonl(csrc[i]);
-	}
-	/* ...a header extension? */
-	if (extn != NULL) {
-		/* We don't use the packet->extn_type field here, that's for receive only... */
-		uint16_t *base = (uint16_t *) packet->rtp_extn;
-		base[0] = htons(extn_type);
-		base[1] = htons(extn_len);
-		memcpy(packet->rtp_extn + 4, extn, extn_len * 4);
-	}
-	/* ...and the media data... */
-	memcpy(packet->rtp_data, data, data_len);
-	/* ...and any padding... */
-	if (pad) {
-		for (i = 0; i < pad_len; i++) {
-			buffer[buffer_len + RTP_PACKET_HEADER_SIZE - pad_len + i] = 0;
-		}
-		buffer[buffer_len + RTP_PACKET_HEADER_SIZE - 1] = (uint8_t) pad_len;
-	}
-#if 0	
-	{
-	  chk_header *ch;
-	  ch = ((chk_header *)buffer) - 1;
-	  if (chk_header_okay(ch) == FALSE) {
-	    printf("header is not okay\n");
-	  } else {
-	    printf("Header is okay\n");
-	  }
-	}
-#endif
-	/* Finally, encrypt if desired... */
-	if (session->encryption_enabled)
-	{
-	  if (session->encryption_pad_length != 0) {
-		ASSERT((buffer_len % session->encryption_pad_length) == 0);
-	  }
-		(session->encrypt_func)(session->encrypt_userdata, 
-					buffer + RTP_PACKET_HEADER_SIZE,
-					&buffer_len); 
-	}
-
-	rc = udp_send(session->rtp_socket, buffer + RTP_PACKET_HEADER_SIZE, buffer_len);
-	xfree(buffer);
-
-	/* Update the RTCP statistics... */
-	session->we_sent     = TRUE;
-	session->rtp_pcount += 1;
-	session->rtp_bcount += buffer_len;
-	gettimeofday(&session->last_rtp_send_time, NULL);
-	
-	check_database(session);
-	return rc;
-}
-
-#ifndef _WIN32
-int rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, int cc, uint32_t csrc[], struct iovec *iov, int iov_count, uint8_t *extn, uint16_t extn_len, uint16_t extn_type,
-		      uint16_t seq_num_add)
-{
-	int		 buffer_len, i, rc;
-	uint8_t		*buffer;
-	rtp_packet	*packet;
-	int my_iov_count = iov_count + 1;
-	struct iovec *my_iov;
-	uint8_t *tmp;
-
-	/* operation not supported on encrypted sessions */
-	if ((session->encryption_enabled)) {
-		return -1;
-	}
-
-	check_database(session);
-
-	buffer_len = 12 + (4 * cc);
-	if (extn != NULL) {
-		buffer_len += (extn_len + 1) * 4;
-	}
-
-	/* Allocate memory for the packet... */
-	buffer     = (uint8_t *) xmalloc(buffer_len + RTP_PACKET_HEADER_SIZE);
-	packet     = (rtp_packet *) buffer;
-
-	/* These are internal pointers into the buffer... */
-	packet->rtp_csrc = (uint32_t *) (buffer + RTP_PACKET_HEADER_SIZE + 12);
-	packet->rtp_extn = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
-	packet->rtp_data = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
-	if (extn != NULL) {
-		packet->rtp_data += (extn_len + 1) * 4;
-	}
-	/* ...and the actual packet header... */
-	packet->rtp_pak_v    = 2;
-	packet->rtp_pak_p    = 0;
-	packet->rtp_pak_x    = (extn != NULL);
-	packet->rtp_pak_cc   = cc;
-	packet->rtp_pak_m    = m;
-	packet->rtp_pak_pt   = pt;
-	packet->rtp_pak_seq  = htons(seq_num_add + session->rtp_seq++);
-	packet->rtp_pak_ts   = htonl(rtp_ts);
-	packet->rtp_pak_ssrc = htonl(rtp_my_ssrc(session));
-	/* ...now the CSRC list... */
-	for (i = 0; i < cc; i++) {
-		packet->rtp_csrc[i] = htonl(csrc[i]);
-	}
-	/* ...a header extension? */
-	if (extn != NULL) {
-		/* We don't use the packet->extn_type field here, that's for receive only... */
-		uint16_t *base = (uint16_t *) packet->rtp_extn;
-		base[0] = htons(extn_type);
-		base[1] = htons(extn_len);
-		memcpy(packet->rtp_extn + 4, extn, extn_len * 4);
-	}
-
-	/* Add the RTP packet header to the beginning of the iov list */
-	my_iov = (struct iovec*)xmalloc(my_iov_count * sizeof(struct iovec));
-
-	my_iov[0].iov_base = buffer + RTP_PACKET_HEADER_SIZE;
-	my_iov[0].iov_len = buffer_len;
-
-	for (i = 1; i < my_iov_count; i++) {
-		my_iov[i].iov_base = iov[i-1].iov_base;
-		my_iov[i].iov_len = iov[i-1].iov_len;
-		buffer_len += my_iov[i].iov_len;
-	}
-
-	if (session->reorder_iovs != 0) {
-	  session->reorder_iov_count++;
-	  if (session->reorder_iov_count < session->reorder_iov_max) {
-	    rc = udp_send_iov(session->rtp_socket, my_iov, my_iov_count);
-	    xfree(buffer);
-	    xfree(my_iov);
-	    if (session->have_iov != 0) {
-	      udp_send_iov(session->rtp_socket, 
-			   session->my_iov,
-			   session->my_iov_count);
-	      for (i = 0; i < session->my_iov_count; i++) {
-		free(session->my_iov[i].iov_base);
-	      }
-	      xfree(session->iov_buffer);
-	      xfree(session->my_iov);
-	      session->have_iov = 0;
-	    }
-	  } else {
-	    session->have_iov = 1;
-	    session->iov_buffer = buffer;
-	    session->my_iov = my_iov;
-	    session->my_iov_count = my_iov_count;
-	    for (i = 0; i < my_iov_count; i++) {
-	      tmp = (uint8_t *)malloc(my_iov[i].iov_len);
-	      memcpy(tmp, my_iov[i].iov_base, my_iov[i].iov_len);
-	      my_iov[i].iov_base = tmp;
-	    }
-	    rc = buffer_len;
-	    session->reorder_iov_count = 0;
-	  }
-	     
-	} else {
-	  /* Send the data */
-	  rc = udp_send_iov(session->rtp_socket, my_iov, my_iov_count);
-
-	  xfree(buffer);
-	  xfree(my_iov);
-	}
-
-	/* Update the RTCP statistics... */
-	session->we_sent     = TRUE;
-	session->rtp_pcount += 1;
-	session->rtp_bcount += buffer_len;
-
-	check_database(session);
-	return rc;
-}
-#endif
-
-static int format_report_blocks(rtcp_rr *rrp, int remaining_length, struct rtp *session)
-{
-	int nblocks = 0;
-	int h;
-	source *s;
-	struct timeval now;
-
-	gettimeofday(&now, NULL);
-
-	for (h = 0; h < RTP_DB_SIZE; h++) {
-		for (s = session->db[h]; s != NULL; s = s->next) {
-			check_source(s);
-			if ((nblocks == 31) || (remaining_length < 24)) {
-				break; /* Insufficient space for more report blocks... */
-			}
-			if (s->sender) {
-				/* Much of this is taken from A.3 of draft-ietf-avt-rtp-new-01.txt */
-				int	extended_max      = s->cycles + s->max_seq;
-       				int	expected          = extended_max - s->base_seq + 1;
-       				int	lost              = expected - s->received;
-				int	expected_interval = expected - s->expected_prior;
-       				int	received_interval = s->received - s->received_prior;
-       				int 	lost_interval     = expected_interval - received_interval;
-				int	fraction;
-				uint32_t lsr;
-				uint32_t dlsr;
-
-       				s->expected_prior = expected;
-       				s->received_prior = s->received;
-       				if (expected_interval == 0 || lost_interval <= 0) {
-					fraction = 0;
-       				} else {
-					fraction = (lost_interval << 8) / expected_interval;
-				}
-
-				if (s->sr == NULL) {
-					lsr = 0;
-					dlsr = 0;
+				if (session->avg_rtcp_size < 0) {
+					/* This is the first RTCP packet we've received, set our initial estimate */
+					/* of the average  packet size to be the size of this packet.             */
+					session->avg_rtcp_size = buflen + RTP_LOWER_LAYER_OVERHEAD;
 				} else {
-					lsr = ntp64_to_ntp32(s->sr->ntp_sec, s->sr->ntp_frac);
-					dlsr = (uint32_t)(tv_diff(now, s->last_sr) * 65536);
+					/* Update our estimate of the average RTCP packet size. The constants are */
+					/* 1/16 and 15/16 (section 6.3.3 of draft-ietf-avt-rtp-new-02.txt).       */
+					session->avg_rtcp_size = (0.0625 * (buflen + RTP_LOWER_LAYER_OVERHEAD)) + (0.9375 * session->avg_rtcp_size);
 				}
-				rrp->ssrc       = htonl(s->ssrc);
-				rrp->fract_lost = fraction;
-				rrp->total_lost = lost & 0x00ffffff;
-				rrp->last_seq   = htonl(extended_max);
-				rrp->jitter     = htonl(s->jitter / 16);
-				rrp->lsr        = htonl(lsr);
-				rrp->dlsr       = htonl(dlsr);
-				rrp++;
-				remaining_length -= 24;
-				nblocks++;
-				s->sender = FALSE;
-				session->sender_count--;
-				if (session->sender_count == 0) {
-					break; /* No point continuing, since we've reported on all senders... */
+				/* Signal that we've finished processing this packet */
+				if (!filter_event(session, packet_ssrc)) {
+					event.ssrc = packet_ssrc;
+					event.type = RX_RTCP_FINISH;
+					event.data = NULL;
+					event.ts   = &event_ts;
+					session->callback(session, &event);
 				}
+			} else {
+				rtp_message(LOG_INFO, "Invalid RTCP packet discarded");
+				session->invalid_rtcp_count++;
 			}
 		}
 	}
-	return nblocks;
-}
 
-static uint8_t *format_rtcp_sr(uint8_t *buffer, int buflen, struct rtp *session, uint32_t rtp_ts, uint64_t ntp_ts)
-{
-	/* Write an RTCP SR into buffer, returning a pointer to */
-	/* the next byte after the header we have just written. */
-	rtcp_t		*packet = (rtcp_t *) buffer;
-	int		 remaining_length;
-
-	ASSERT(buflen >= 28);	/* ...else there isn't space for the header and sender report */
-
-	packet->common.version = 2;
-	packet->common.p       = 0;
-	packet->common.count   = 0;
-	packet->common.pt      = RTCP_SR;
-	packet->common.length  = htons(1);
-
-
-	packet->r.sr.sr.ssrc          = htonl(rtp_my_ssrc(session));
-	packet->r.sr.sr.ntp_sec       = htonl((uint32_t)(ntp_ts >> 32));
-	packet->r.sr.sr.ntp_frac      = htonl((uint32_t)(ntp_ts & 0xFFFFFFFF));
-	packet->r.sr.sr.rtp_ts        = htonl(rtp_ts);
-	packet->r.sr.sr.sender_pcount = htonl(session->rtp_pcount);
-	packet->r.sr.sr.sender_bcount = htonl(session->rtp_bcount);
-
-	/* Add report blocks, until we either run out of senders */
-	/* to report upon or we run out of space in the buffer.  */
-	remaining_length = buflen - 28;
-	packet->common.count = format_report_blocks(packet->r.sr.rr, remaining_length, session);
-	packet->common.length = htons((uint16_t) (6 + (packet->common.count * 6)));
-	return buffer + 28 + (24 * packet->common.count);
-}
-
-static uint8_t *format_rtcp_rr(uint8_t *buffer, int buflen, struct rtp *session)
-{
-	/* Write an RTCP RR into buffer, returning a pointer to */
-	/* the next byte after the header we have just written. */
-	rtcp_t		*packet = (rtcp_t *) buffer;
-	int		 remaining_length;
-
-	ASSERT(buflen >= 8);	/* ...else there isn't space for the header */
-
-	packet->common.version = 2;
-	packet->common.p       = 0;
-	packet->common.count   = 0;
-	packet->common.pt      = RTCP_RR;
-	packet->common.length  = htons(1);
-	packet->r.rr.ssrc      = htonl(session->my_ssrc);
-
-	/* Add report blocks, until we either run out of senders */
-	/* to report upon or we run out of space in the buffer.  */
-	remaining_length = buflen - 8;
-	packet->common.count = format_report_blocks(packet->r.rr.rr, remaining_length, session);
-	packet->common.length = htons((uint16_t) (1 + (packet->common.count * 6)));
-	return buffer + 8 + (24 * packet->common.count);
-}
-
-static int add_sdes_item(uint8_t *buf, int buflen, int type, const char *val)
-{
-	/* Fill out an SDES item. It is assumed that the item is a NULL    */
-	/* terminated string.                                              */
-        rtcp_sdes_item *shdr = (rtcp_sdes_item *) buf;
-        int             namelen;
-
-        if (val == NULL) {
-                rtp_message(LOG_ERR, "Cannot format SDES item. type=%d val=%p", type, val);
-                return 0;
-        }
-        shdr->type = type;
-        namelen = strlen(val);
-        shdr->length = namelen;
-        strncpy(shdr->data, val, buflen - 2); /* The "-2" accounts for the other shdr fields */
-        return namelen + 2;
-}
-
-static uint8_t *format_rtcp_sdes(uint8_t *buffer, int buflen, uint32_t ssrc, struct rtp *session)
-{
-        /* From draft-ietf-avt-profile-new-00:                             */
-        /* "Applications may use any of the SDES items described in the    */
-        /* RTP specification. While CNAME information is sent every        */
-        /* reporting interval, other items should be sent only every third */
-        /* reporting interval, with NAME sent seven out of eight times     */
-        /* within that slot and the remaining SDES items cyclically taking */
-        /* up the eighth slot, as defined in Section 6.2.2 of the RTP      */
-        /* specification. In other words, NAME is sent in RTCP packets 1,  */
-        /* 4, 7, 10, 13, 16, 19, while, say, EMAIL is used in RTCP packet  */
-        /* 22".                                                            */
-	uint8_t		*packet = buffer;
-	rtcp_common	*common = (rtcp_common *) buffer;
-	const char	*item;
-	size_t		 remaining_len;
-        int              pad;
-
-	ASSERT(buflen > (int) sizeof(rtcp_common));
-
-	common->version = 2;
-	common->p       = 0;
-	common->count   = 1;
-	common->pt      = RTCP_SDES;
-	common->length  = 0;
-	packet += sizeof(rtcp_common);
-
-	*((uint32_t *) packet) = htonl(ssrc);
-	packet += 4;
-
-	remaining_len = buflen - (packet - buffer);
-	item = rtp_get_sdes(session, ssrc, RTCP_SDES_CNAME);
-	if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
-		packet += add_sdes_item(packet, remaining_len, RTCP_SDES_CNAME, item);
-	}
-
-	remaining_len = buflen - (packet - buffer);
-	item = rtp_get_sdes(session, ssrc, RTCP_SDES_NOTE);
-	if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
-		packet += add_sdes_item(packet, remaining_len, RTCP_SDES_NOTE, item);
-	}
-
-	remaining_len = buflen - (packet - buffer);
-	if ((session->sdes_count_pri % 3) == 0) {
-		session->sdes_count_sec++;
-		if ((session->sdes_count_sec % 8) == 0) {
-			/* Note that the following is supposed to fall-through the cases */
-			/* until one is found to send... The lack of break statements in */
-			/* the switch is not a bug.                                      */
-			switch (session->sdes_count_ter % 5) {
-			case 0: item = rtp_get_sdes(session, ssrc, RTCP_SDES_TOOL);
-				if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
-					packet += add_sdes_item(packet, remaining_len, RTCP_SDES_TOOL, item);
-					break;
-				}
-			case 1: item = rtp_get_sdes(session, ssrc, RTCP_SDES_EMAIL);
-				if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
-					packet += add_sdes_item(packet, remaining_len, RTCP_SDES_EMAIL, item);
-					break;
-				}
-			case 2: item = rtp_get_sdes(session, ssrc, RTCP_SDES_PHONE);
-				if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
-					packet += add_sdes_item(packet, remaining_len, RTCP_SDES_PHONE, item);
-					break;
-				}
-			case 3: item = rtp_get_sdes(session, ssrc, RTCP_SDES_LOC);
-				if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
-					packet += add_sdes_item(packet, remaining_len, RTCP_SDES_LOC, item);
-					break;
-				}
-			case 4: item = rtp_get_sdes(session, ssrc, RTCP_SDES_PRIV);
-				if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
-					packet += add_sdes_item(packet, remaining_len, RTCP_SDES_PRIV, item);
-					break;
-				}
-			}
-			session->sdes_count_ter++;
-		} else {
-			item = rtp_get_sdes(session, ssrc, RTCP_SDES_NAME);
-			if (item != NULL) {
-				packet += add_sdes_item(packet, remaining_len, RTCP_SDES_NAME, item);
-			}
-		}
-	}
-	session->sdes_count_pri++;
-
-	/* Pad to a multiple of 4 bytes... */
-        pad = 4 - ((packet - buffer) & 0x3);
-        while (pad--) {
-               *packet++ = RTCP_SDES_END;
-        }
-
-	common->length = htons((uint16_t) (((int) (packet - buffer) / 4) - 1));
-
-	return packet;
-}
-
-static uint8_t *format_rtcp_app(uint8_t *buffer, int buflen, uint32_t ssrc, rtcp_app *app)
-{
-	/* Write an RTCP APP into the outgoing packet buffer. */
-	rtcp_app    *packet       = (rtcp_app *) buffer;
-	int          pkt_octets   = (app->length + 1) * 4;
-	int          data_octets  =  pkt_octets - 12;
-
-	ASSERT(data_octets >= 0);          /* ...else not a legal APP packet.               */
-	ASSERT(buflen      >= pkt_octets); /* ...else there isn't space for the APP packet. */
-
-	/* Copy one APP packet from "app" to "packet". */
-	packet->version        =   RTP_VERSION;
-	packet->p              =   app->p;
-	packet->subtype        =   app->subtype;
-	packet->pt             =   RTCP_APP;
-	packet->length         =   htons(app->length);
-	packet->ssrc           =   htonl(ssrc);
-	memcpy(packet->name, app->name, 4);
-	memcpy(packet->data, app->data, data_octets);
-
-	/* Return a pointer to the byte that immediately follows the last byte written. */
-	return buffer + pkt_octets;
-}
-
-static void send_rtcp(struct rtp *session,
-		      uint32_t rtp_ts,
-		      uint64_t ntp_ts,
-		     rtcp_app_callback appcallback)
-{
-	/* Construct and send an RTCP packet. The order in which packets are packed into a */
-	/* compound packet is defined by section 6.1 of draft-ietf-avt-rtp-new-03.txt and  */
-	/* we follow the recommended order.                                                */
-	uint8_t	   buffer[RTP_MAX_PACKET_LEN + MAX_ENCRYPTION_PAD + 1024];	/* The +8 is to allow for padding when encrypting */
-	uint8_t	  *ptr = buffer;
-	uint8_t   *old_ptr;
-	uint8_t   *lpt;		/* the last packet in the compound */
-	rtcp_app  *app;
-	unsigned int length, new_length;
-
-	check_database(session);
-	/* If encryption is enabled, add a 32 bit random prefix to the packet */
-	if (session->encryption_enabled)
+	/**
+	 * rtp_recv:
+	 * @session: the session pointer (returned by rtp_init())
+	 * @timeout: the amount of time that rtcp_recv() is allowed to block
+	 * @curr_rtp_ts: the current time expressed in units of the media
+	 * timestamp.
+	 *
+	 * Receive RTP packets and dispatch them.
+	 *
+	 * Returns: TRUE if data received, FALSE if the timeout occurred.
+	 */
+	int rtp_recv(struct rtp *session, struct timeval *timeout, uint32_t curr_rtp_ts)
 	{
-		*((uint32_t *) ptr) = lbl_random();
-		ptr += 4;
-	}
-
-	/* The first RTCP packet in the compound packet MUST always be a report packet...  */
-	if (session->we_sent) {
-		ptr = format_rtcp_sr(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), session, rtp_ts, ntp_ts);
-	} else {
-		ptr = format_rtcp_rr(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), session);
-	}
-	/* Add the appropriate SDES items to the packet... This should really be after the */
-	/* insertion of the additional report blocks, but if we do that there are problems */
-	/* with us being unable to fit the SDES packet in when we run out of buffer space  */
-	/* adding RRs. The correct fix would be to calculate the length of the SDES items  */
-	/* in advance and subtract this from the buffer length but this is non-trivial and */
-	/* probably not worth it.                                                          */
-	lpt = ptr;
-	ptr = format_rtcp_sdes(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), rtp_my_ssrc(session), session);
-
-	/* If we have any CSRCs, we include SDES items for each of them in turn...         */
-	if (session->csrc_count > 0) {
-		ptr = format_rtcp_sdes(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), next_csrc(session), session);
-	}
-
-	/* Following that, additional RR packets SHOULD follow if there are more than 31   */
-	/* senders, such that the reports do not fit into the initial packet. We give up   */
-	/* if there is insufficient space in the buffer: this is bad, since we always drop */
-	/* the reports from the same sources (those at the end of the hash table).         */
-	while ((session->sender_count > 0)  && ((RTP_MAX_PACKET_LEN - (ptr - buffer)) >= 8)) {
-		lpt = ptr;
-		ptr = format_rtcp_rr(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), session);
-	}
-
-	/* Finish with as many APP packets as the application will provide. */
-	old_ptr = ptr;
-	if (appcallback) {
-		while ((app = (*appcallback)(session, rtp_ts, RTP_MAX_PACKET_LEN - (ptr - buffer)))) {
-			lpt = ptr;
-			ptr = format_rtcp_app(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), rtp_my_ssrc(session), app);
-			ASSERT(ptr > old_ptr);
-			old_ptr = ptr;
-			ASSERT(RTP_MAX_PACKET_LEN - (ptr - buffer) >= 0);
-		}
-	}
-
-	/* And encrypt if desired... */
-	if (session->encryption_enabled)
-	  {
-	    if (session->encryption_pad_length != 0) {
-		if (((ptr - buffer) % session->encryption_pad_length) != 0) {
-			/* Add padding to the last packet in the compound, if necessary. */
-			/* We don't have to worry about overflowing the buffer, since we */
-			/* intentionally allocated it 8 bytes longer to allow for this.  */
-			int	padlen = session->encryption_pad_length - ((ptr - buffer) % session->encryption_pad_length);
-			int	i;
-
-			for (i = 0; i < padlen-1; i++) {
-				*(ptr++) = '\0';
+		check_database(session);
+		udp_fd_zero(session->udp_session);
+		udp_fd_set(session->udp_session, session->rtp_socket);
+		udp_fd_set(session->udp_session, session->rtcp_socket);
+		if (udp_select(session->udp_session, timeout) > 0) {
+		  if (udp_fd_isset(session->udp_session, session->rtp_socket)) {
+				rtp_recv_data(session, curr_rtp_ts);
 			}
-			*(ptr++) = (uint8_t) padlen;
-			ASSERT(((ptr - buffer) % session->encryption_pad_length) == 0); 
-
-			((rtcp_t *) lpt)->common.p = TRUE;
-			((rtcp_t *) lpt)->common.length = htons((int16_t)(((ptr - lpt) / 4) - 1));
-		}
-	    }
-	    //	    (session->encrypt_func)(session, buffer, ptr - buffer); 
-	    //NORI - FIGURE OUT HOW TO FIX THIS - Change the value of ptr
-	    length = ptr - buffer;//nori
-	    new_length = length;
-	    (session->encrypt_func)(session->encrypt_userdata, buffer, &new_length); //nori
-	    if (new_length != length) ptr += new_length - length;
-	}
-	if (session->rtcp_bw != 0.0) {
-	  (session->rtcp_send)(session, buffer, ptr - buffer);
-	  //(session->rtcp_send)(session, buffer, length);	  
-	}
-
-        /* Loop the data back to ourselves so local participant can */
-        /* query own stats when using unicast or multicast with no  */
-        /* loopback.                                                */
-	//        rtp_process_ctrl(session, buffer, ptr - buffer);
-        rtp_process_ctrl(session, buffer, ptr - buffer);
-	check_database(session);
-}
-
-/**
- * rtp_send_ctrl:
- * @session: the session pointer (returned by rtp_init())
- * @rtp_ts: the current time expressed in units of the media timestamp.
- * @appcallback: a callback to create an APP RTCP packet, if needed.
- *
- * Checks RTCP timer and sends RTCP data when nececessary.  The
- * interval between RTCP packets is randomized over an interval that
- * depends on the session bandwidth, the number of participants, and
- * whether the local participant is a sender.  This function should be
- * called at least once per second, and can be safely called more
- * frequently.  
- */
-void rtp_send_ctrl(struct rtp *session,
-		   uint32_t rtp_ts,
-		   rtcp_app *(*appcallback)(struct rtp *session, uint32_t rtp_ts, uint32_t max_size))
-{
-      uint32_t         ntp_sec, ntp_frac;
-      ntp64_time(&ntp_sec, &ntp_frac);
-      rtp_send_ctrl_2(session, rtp_ts, (((uint64_t)ntp_sec) << 32) | ntp_frac, appcallback);
-}
-void rtp_send_ctrl_2(struct rtp *session,
-		     uint32_t rtp_ts,
-		     uint64_t ntp_ts,
-		     rtcp_app *(*appcallback)(struct rtp *session, uint32_t rtp_ts, uint32_t max_size))
-{
-	/* Send an RTCP packet, if one is due... */
-	struct timeval	 curr_time;
-
-	check_database(session);
-	gettimeofday(&curr_time, NULL);
-	if (tv_gt(curr_time, session->next_rtcp_send_time)) {
-		/* The RTCP transmission timer has expired. The following */
-		/* implements draft-ietf-avt-rtp-new-02.txt section 6.3.6 */
-		int		 h;
-		source		*s;
-		struct timeval	 new_send_time;
-		double		 new_interval;
-
-		new_interval  = rtcp_interval(session) / (session->csrc_count + 1);
-		new_send_time = session->last_rtcp_send_time;
-		tv_add(&new_send_time, new_interval);
-		if (tv_gt(curr_time, new_send_time)) {
-			send_rtcp(session, rtp_ts, ntp_ts, appcallback);
-			session->initial_rtcp        = FALSE;
-			session->last_rtcp_send_time = curr_time;
-			session->next_rtcp_send_time = curr_time; 
-			tv_add(&(session->next_rtcp_send_time), rtcp_interval(session) / (session->csrc_count + 1));
-			/* We're starting a new RTCP reporting interval, zero out */
-			/* the per-interval statistics.                           */
-			session->sender_count = 0;
-			for (h = 0; h < RTP_DB_SIZE; h++) {
-				for (s = session->db[h]; s != NULL; s = s->next) {
-					check_source(s);
-					s->sender = FALSE;
-				}
-			}
-		} else {
-			session->next_rtcp_send_time = new_send_time;
-		}
-		session->ssrc_count_prev = session->ssrc_count;
-	} 
-	check_database(session);
-}
-
-/**
- * rtp_update:
- * @session: the session pointer (returned by rtp_init())
- *
- * Trawls through the internal data structures and performs
- * housekeeping.  This function should be called at least once per
- * second.  It uses an internal timer to limit the number of passes
- * through the data structures to once per second, it can be safely
- * called more frequently.
- */
-void rtp_update(struct rtp *session)
-{
-	/* Perform housekeeping on the source database... */
-	int	 	 h;
-	source	 	*s, *n;
-	struct timeval	 curr_time;
-	double		 delay;
-
-	gettimeofday(&curr_time, NULL);
-	if (tv_diff(curr_time, session->last_update) < 1.0) {
-		/* We only perform housekeeping once per second... */
-		return;
-	}
-	session->last_update = curr_time;
-
-	/* Update we_sent (section 6.3.8 of RTP spec) */
-	delay = tv_diff(curr_time, session->last_rtp_send_time);
-	if (delay >= 2 * rtcp_interval(session)) {
-		session->we_sent = FALSE;
-	}
-
-	check_database(session);
-
-	for (h = 0; h < RTP_DB_SIZE; h++) {
-		for (s = session->db[h]; s != NULL; s = n) {
-			check_source(s);
-			n = s->next;
-			/* Expire sources which haven't been heard from for a long time.   */
-			/* Section 6.2.1 of the RTP specification details the timers used. */
-
-			/* How long since we last heard from this source?  */
-			delay = tv_diff(curr_time, s->last_active);
-			
-			/* Check if we've received a BYE packet from this source.    */
-			/* If we have, and it was received more than 2 seconds ago   */
-			/* then the source is deleted. The arbitrary 2 second delay  */
-			/* is to ensure that all delayed packets are received before */
-			/* the source is timed out.                                  */
-			if (s->got_bye && (delay > 2.0)) {
-				rtp_message(LOG_INFO, "Deleting source 0x%08x due to reception of BYE %f seconds ago...", s->ssrc, delay);
-				delete_source(session, s->ssrc);
-			}
-
-			/* Sources are marked as inactive if they haven't been heard */
-			/* from for more than 2 intervals (RTP section 6.3.5)        */
-			if ((s->ssrc != rtp_my_ssrc(session)) && (delay > (session->rtcp_interval * 2))) {
-				if (s->sender) {
-					s->sender = FALSE;
-					session->sender_count--;
-				}
-			}
-
-			/* If a source hasn't been heard from for more than 5 RTCP   */
-			/* reporting intervals, we delete it from our database...    */
-			if ((s->ssrc != rtp_my_ssrc(session)) && (delay > (session->rtcp_interval * 5))) {
-				rtp_message(LOG_INFO, "Deleting source 0x%08x due to timeout...", s->ssrc);
-				delete_source(session, s->ssrc);
-			}
-		}
-	}
-
-	/* Timeout those reception reports which haven't been refreshed for a long time */
-	timeout_rr(session, &curr_time);
-	check_database(session);
-}
-
-static void rtp_send_bye_now(struct rtp *session)
-{
-	/* Send a BYE packet immediately. This is an internal function,  */
-	/* hidden behind the rtp_send_bye() wrapper which implements BYE */
-	/* reconsideration for the application.                          */
-	uint8_t	 	 buffer[RTP_MAX_PACKET_LEN + MAX_ENCRYPTION_PAD + 1024];	/* + 8 to allow for padding when encrypting */
-	uint8_t		*ptr = buffer;
-	rtcp_common	*common;
-	unsigned int length, new_length; //nori
-	check_database(session);
-	/* If encryption is enabled, add a 32 bit random prefix to the packet */
-	if (session->encryption_enabled) {
-		*((uint32_t *) ptr) = lbl_random();
-		ptr += 4;
-	}
-
-	ptr    = format_rtcp_rr(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), session);    
-	common = (rtcp_common *) ptr;
-	
-	common->version = 2;
-	common->p       = 0;
-	common->count   = 1;
-	common->pt      = RTCP_BYE;
-	common->length  = htons(1);
-	ptr += sizeof(rtcp_common);
-	
-	*((uint32_t *) ptr) = htonl(session->my_ssrc);  
-	ptr += 4;
-	
-	if (session->encryption_enabled) {
-	  	    if (session->encryption_pad_length != 0) {
-		      if (((ptr - buffer) % session->encryption_pad_length) != 0) {
-			/* Add padding to the last packet in the compound, if necessary. */
-			/* We don't have to worry about overflowing the buffer, since we */
-			/* intentionally allocated it 8 bytes longer to allow for this.  */
-			int	padlen = session->encryption_pad_length - ((ptr - buffer) % session->encryption_pad_length);
-			int	i;
-
-			for (i = 0; i < padlen-1; i++) {
-				*(ptr++) = '\0';
-			}
-			*(ptr++) = (uint8_t) padlen;
-
-			common->p      = TRUE;
-			common->length = htons((int16_t)(((ptr - (uint8_t *) common) / 4) - 1));
-		}
-		ASSERT(((ptr - buffer) % session->encryption_pad_length) == 0);
-		    }
-		    //	    (session->encrypt_func)(session, buffer, ptr - buffer);
-		    // NORI - FIX THIS, TOO
-		    new_length = length = ptr - buffer;//nori
-		    (session->encrypt_func)(session->encrypt_userdata, buffer, &new_length);//nori
-		    ptr += new_length - length;
-	}
-		(session->rtcp_send)(session, buffer, ptr - buffer);
-		//(session->rtcp_send)(session, buffer, length);	
-	/* Loop the data back to ourselves so local participant can */
-	/* query own stats when using unicast or multicast with no  */
-	/* loopback.                                                */
-	rtp_process_ctrl(session, buffer, ptr - buffer);
-	//rtp_process_ctrl(session, buffer, length);
-	check_database(session);
-}
-
-/**
- * rtp_send_bye:
- * @session: The RTP session
- *
- * Sends a BYE message on the RTP session, indicating that this
- * participant is leaving the session. The process of sending a
- * BYE may take some time, and this function will block until 
- * it is complete. During this time, RTCP events are reported 
- * to the application via the callback function (data packets 
- * are silently discarded).
- */
-void rtp_send_bye(struct rtp *session)
-{
-	struct timeval	curr_time, timeout, new_send_time;
-	uint8_t		buffer[RTP_MAX_PACKET_LEN];
-	int		buflen;
-	double		new_interval;
-
-	check_database(session);
-
-	/* "...a participant which never sent an RTP or RTCP packet MUST NOT send  */
-	/* a BYE packet when they leave the group." (section 6.3.7 of RTP spec)    */
-	if ((session->we_sent == FALSE) && (session->initial_rtcp == TRUE)) {
-		rtp_message(LOG_NOTICE, "Silent BYE");
-		return;
-	}
-
-	/* If the session is small, send an immediate BYE. Otherwise, we delay and */
-	/* perform BYE reconsideration as needed.                                  */
-	if ((session->ssrc_count < 50) || session->rtp_socket == NULL) {
-		rtp_send_bye_now(session);
-	} else {
-		gettimeofday(&curr_time, NULL);
-		session->sending_bye         = TRUE;
-		session->last_rtcp_send_time = curr_time;
-		session->next_rtcp_send_time = curr_time; 
-		session->bye_count           = 1;
-		session->initial_rtcp        = TRUE;
-		session->we_sent             = FALSE;
-		session->sender_count        = 0;
-		session->avg_rtcp_size       = 70.0 + RTP_LOWER_LAYER_OVERHEAD;	/* FIXME */
-		tv_add(&session->next_rtcp_send_time, rtcp_interval(session) / (session->csrc_count + 1));
-
-		rtp_message(LOG_DEBUG, "Preparing to send BYE...");
-		while (1) {
-			/* Schedule us to block in udp_select() until the time we are due to send our */
-			/* BYE packet. If we receive an RTCP packet from another participant before   */
-			/* then, we are woken up to handle it...                                      */
-			timeout.tv_sec  = 0;
-			timeout.tv_usec = 0;
-			tv_add(&timeout, tv_diff(session->next_rtcp_send_time, curr_time));
-			udp_fd_zero(session->udp_session);
-			udp_fd_set(session->udp_session, session->rtcp_socket);
-			if ((udp_select(session->udp_session, &timeout) > 0) && 
-			    udp_fd_isset(session->udp_session, session->rtcp_socket)) {
-				/* We woke up because an RTCP packet was received; process it... */
+		  if (udp_fd_isset(session->udp_session, session->rtcp_socket)) {
+				uint8_t		 buffer[RTP_MAX_PACKET_LEN];
+				int		 buflen;
 				buflen = udp_recv(session->rtcp_socket, buffer, RTP_MAX_PACKET_LEN);
 				rtp_process_ctrl(session, buffer, buflen);
 			}
-			/* Is it time to send our BYE? */
-			gettimeofday(&curr_time, NULL);
-			new_interval  = rtcp_interval(session) / (session->csrc_count + 1);
-			new_send_time = session->last_rtcp_send_time;
-			tv_add(&new_send_time, new_interval);
-			if (tv_gt(curr_time, new_send_time)) {
-				rtp_message(LOG_DEBUG, "Sent BYE...");
-				rtp_send_bye_now(session);
-				break;
-			}
-			/* No, we reconsider... */
-			session->next_rtcp_send_time = new_send_time;
-			rtp_message(LOG_INFO, "Reconsidered sending BYE... delay = %f", tv_diff(session->next_rtcp_send_time, curr_time));
-			/* ...and perform housekeeping in the usual manner */
-			rtp_update(session);
+			check_database(session);
+			return TRUE;
 		}
-	}
-}
-
-/**
- * rtp_done:
- * @session: the RTP session to finish
- *
- * Free the state associated with the given RTP session. This function does 
- * not send any packets (e.g. an RTCP BYE) - an application which wishes to
- * exit in a clean manner should call rtp_send_bye() first.
- */
-void rtp_done(struct rtp *session)
-{
-	int i;
-        source *s, *n;
-
-	check_database(session);
-        /* In delete_source, check database gets called and this assumes */
-        /* first added and last removed is us.                           */
-	for (i = 0; i < RTP_DB_SIZE; i++) {
-                s = session->db[i];
-                while (s != NULL) {
-                        n = s->next;
-                        if (s->ssrc != session->my_ssrc) {
-                                delete_source(session,session->db[i]->ssrc);
-                        }
-                        s = n;
-                }
+		check_database(session);
+		return FALSE;
 	}
 
-	delete_source(session, session->my_ssrc);
 
-	/*
-	 * Introduce a memory leak until we add algorithm-specific
-	 * cleanup functions.
-        if (session->encryption_key != NULL) {
-                xfree(session->encryption_key);
-        }
-	*/
 
-	if (session->rtp_socket != NULL) {
-	  udp_exit(session->rtp_socket);
-	  session->rtp_socket = NULL;
+	/**
+	 * rtp_add_csrc:
+	 * @session: the session pointer (returned by rtp_init()) 
+	 * @csrc: Constributing SSRC identifier
+	 * 
+	 * Adds @csrc to list of contributing sources used in SDES items.
+	 * Used by mixers and transcoders.
+	 * 
+	 * Return value: TRUE.
+	 **/
+	int rtp_add_csrc(struct rtp *session, uint32_t csrc)
+	{
+		/* Mark csrc as something for which we should advertise RTCP SDES items, */
+		/* in addition to our own SDES.                                          */
+		source	*s;
+
+		check_database(session);
+		s = get_source(session, csrc);
+		if (s == NULL) {
+		  s = create_source(session, csrc, FALSE);
+		  rtp_message(LOG_INFO, "Created source 0x%08x as CSRC", csrc);
+		}
+		check_source(s);
+		if (!s->should_advertise_sdes) {
+		  s->should_advertise_sdes = TRUE;
+		  session->csrc_count++;
+		  rtp_message(LOG_INFO, "Added CSRC 0x%08x as CSRC %d", csrc, session->csrc_count);
+		}
+		return TRUE;
 	}
-	if (session->rtcp_socket != NULL) {
-	  udp_exit(session->rtcp_socket);
-	  session->rtcp_socket = NULL;
+
+	/**
+	 * rtp_del_csrc:
+	 * @session: the session pointer (returned by rtp_init()) 
+	 * @csrc: Constributing SSRC identifier
+	 * 
+	 * Removes @csrc from list of contributing sources used in SDES items.
+	 * Used by mixers and transcoders.
+	 * 
+	 * Return value: TRUE on success, FALSE if @csrc is not a valid source.
+	 **/
+	int rtp_del_csrc(struct rtp *session, uint32_t csrc)
+	{
+		source	*s;
+
+		check_database(session);
+		s = get_source(session, csrc);
+		if (s == NULL) {
+			rtp_message(LOG_ERR, "Invalid source 0x%08x when deleting", csrc);
+			return FALSE;
+		}
+		check_source(s);
+		s->should_advertise_sdes = FALSE;
+		session->csrc_count--;
+		if (session->last_advertised_csrc >= session->csrc_count) {
+			session->last_advertised_csrc = 0;
+		}
+		return TRUE;
 	}
-	if (session->udp_session != NULL) {
-	  udp_close_session(session->udp_session);
-	  session->udp_session = NULL;
-	}
-	xfree(session->addr);
-	xfree(session->opt);
-	xfree(session);
-}
 
-/**
- * rtp_set_encryption_key:
- * @session: The RTP session.
- * @passphrase: The user-provided "pass phrase" to map to an encryption key.
- *
- * Converts the user supplied key into a form suitable for use with RTP
- * and install it as the active key. Passing in NULL as the passphrase
- * disables encryption. The passphrase is converted into a DES key as
- * specified in RFC1890, that is:
- * 
- *   - convert to canonical form
- * 
- *   - derive an MD5 hash of the canonical form
- * 
- *   - take the first 56 bits of the MD5 hash
- * 
- *   - add parity bits to form a 64 bit key
- * 
- * Note that versions of rat prior to 4.1.2 do not convert the passphrase
- * to canonical form before taking the MD5 hash, and so will
- * not be compatible for keys which are non-invarient under this step.
- *
- * Determine from the user's encryption key which encryption
- * mechanism we're using. Per the RTP RFC, if the key is of the form
- *
- *	string/key
- *
- * then "string" is the name of the encryption algorithm,  and
- * "key" is the key to be used. If no / is present, then the
- * algorithm is assumed to be (the appropriate variant of) DES.
- *
- * Returns: TRUE on success, FALSE on failure.
- */
-int rtp_set_encryption_key(struct rtp* session, const char *passphrase)
-{
-	char	*canonical_passphrase;
-	u_char	 hash[16];
-	MD5_CTX	 context;
-	char *slash;
+	/**
+	 * rtp_set_sdes:
+	 * @session: the session pointer (returned by rtp_init()) 
+	 * @ssrc: the SSRC identifier of a participant
+	 * @type: the SDES type represented by @value
+	 * @value: the SDES description
+	 * @length: the length of the description
+	 * 
+	 * Sets session description information associated with participant
+	 * @ssrc.  Under normal circumstances applications always use the
+	 * @ssrc of the local participant, this SDES information is
+	 * transmitted in receiver reports.  Setting SDES information for
+	 * other participants affects the local SDES entries, but are not
+	 * transmitted onto the network.
+	 * 
+	 * Return value: Returns TRUE if participant exists, FALSE otherwise.
+	 **/
+	int rtp_set_sdes(struct rtp *session, uint32_t ssrc, rtcp_sdes_type type, const char *value, int length)
+	{
+		source	*s;
+		char	*v;
 
-	check_database(session);
-        if (session->encryption_algorithm != NULL) {
-		xfree(session->encryption_algorithm);
- 		session->encryption_algorithm = NULL;
-        }
+		check_database(session);
 
-	if (passphrase == NULL) {
-		/* A NULL passphrase means disable encryption... */
-	    session->encryption_enabled = 0;
+		s = get_source(session, ssrc);
+		if (s == NULL) {
+			rtp_message(LOG_ERR, "Invalid source 0x%08x when setting", ssrc);
+			return FALSE;
+		}
+		check_source(s);
+
+		v = (char *) xmalloc(length + 1);
+		memset(v, '\0', length + 1);
+		memcpy(v, value, length);
+
+		switch (type) {
+			case RTCP_SDES_CNAME: 
+				if (s->cname) xfree(s->cname);
+				s->cname = v; 
+				break;
+			case RTCP_SDES_NAME:
+				if (s->name) xfree(s->name);
+				s->name = v; 
+				break;
+			case RTCP_SDES_EMAIL:
+				if (s->email) xfree(s->email);
+				s->email = v; 
+				break;
+			case RTCP_SDES_PHONE:
+				if (s->phone) xfree(s->phone);
+				s->phone = v; 
+				break;
+			case RTCP_SDES_LOC:
+				if (s->loc) xfree(s->loc);
+				s->loc = v; 
+				break;
+			case RTCP_SDES_TOOL:
+				if (s->tool) xfree(s->tool);
+				s->tool = v; 
+				break;
+			case RTCP_SDES_NOTE:
+				if (s->note) xfree(s->note);
+				s->note = v; 
+				break;
+			case RTCP_SDES_PRIV:
+				if (s->priv) xfree(s->priv);
+				s->priv = v; 
+				break;
+			default :
+				rtp_message(LOG_NOTICE, "Unknown SDES item (type=%d, value=%s)", type, v);
+				xfree(v);
+				check_database(session);
+				return FALSE;
+		}
 		check_database(session);
 		return TRUE;
 	}
 
-	rtp_message(LOG_DEBUG, "Enabling RTP/RTCP encryption");
-	session->encryption_enabled = 1;
-
- 	/*
- 	 * Determine which algorithm we're using.
- 	 */
- 
- 	slash = strchr(passphrase, '/');
- 	if (slash == 0)
- 	{
-	    session->encryption_algorithm = xstrdup("DES");
- 	}
- 	else
- 	{
-	    int l = slash - passphrase;
-	    session->encryption_algorithm = xmalloc(l + 1);
-	    strncpy(session->encryption_algorithm, passphrase, l);
-	    session->encryption_algorithm[l] = '\0';
-	    passphrase = slash + 1;
- 	}
- 
- 	rtp_message(LOG_INFO, "Initializing encryption, algorithm is '%s'",
- 		  session->encryption_algorithm);
- 
-	/* Step 1: convert to canonical form, comprising the following steps:  */
-	/*   a) convert the input string to the ISO 10646 character set, using */
-	/*      the UTF-8 encoding as specified in Annex P to ISO/IEC          */
-	/*      10646-1:1993 (ASCII characters require no mapping, but ISO     */
-	/*      8859-1 characters do);                                         */
-	/*   b) remove leading and trailing white space characters;            */
-	/*   c) replace one or more contiguous white space characters by a     */
-	/*      single space (ASCII or UTF-8 0x20);                            */
-	/*   d) convert all letters to lower case and replace sequences of     */
-	/*      characters and non-spacing accents with a single character,    */
-	/*      where possible.                                                */
-	canonical_passphrase = (char *) xstrdup(passphrase);	/* FIXME */
-
-	/* Step 2: derive an MD5 hash */
-	MD5Init(&context);
-	MD5Update(&context, (u_char *) canonical_passphrase, strlen(canonical_passphrase));
-	MD5Final((u_char *) hash, &context);
-
-	/* Initialize the encryption algorithm we've received */
-
-	if (strcmp(session->encryption_algorithm, "DES") == 0)
+	/**
+	 * rtp_get_sdes:
+	 * @session: the session pointer (returned by rtp_init()) 
+	 * @ssrc: the SSRC identifier of a participant
+	 * @type: the SDES information to retrieve
+	 * 
+	 * Recovers session description (SDES) information on participant
+	 * identified with @ssrc.  The SDES information associated with a
+	 * source is updated when receiver reports are received.  There are
+	 * several different types of SDES information, e.g. username,
+	 * location, phone, email.  These are enumerated by #rtcp_sdes_type.
+	 * 
+	 * Return value: pointer to string containing SDES description if
+	 * received, NULL otherwise.  
+	 */
+	const char *rtp_get_sdes(struct rtp *session, uint32_t ssrc, rtcp_sdes_type type)
 	{
-		return des_initialize(session, hash, sizeof(hash));
+		source	*s;
+
+		check_database(session);
+
+		s = get_source(session, ssrc);
+		if (s == NULL) {
+			rtp_message(LOG_ERR, "Invalid source 0x%08x getting sdes", ssrc);
+			return NULL;
+		}
+		check_source(s);
+
+		switch (type) {
+		case RTCP_SDES_CNAME: 
+			return s->cname;
+		case RTCP_SDES_NAME:
+			return s->name;
+		case RTCP_SDES_EMAIL:
+			return s->email;
+		case RTCP_SDES_PHONE:
+			return s->phone;
+		case RTCP_SDES_LOC:
+			return s->loc;
+		case RTCP_SDES_TOOL:
+			return s->tool;
+		case RTCP_SDES_NOTE:
+			return s->note;
+		case RTCP_SDES_PRIV:
+			return s->priv;	
+		default:
+			/* This includes RTCP_SDES_PRIV and RTCP_SDES_END */
+			rtp_message(LOG_WARNING, "Unknown SDES item (type=%d)", type);
+		}
+		return NULL;
 	}
-	else if (strcmp(session->encryption_algorithm, "Rijndael") == 0)
+
+	/**
+	 * rtp_get_sr:
+	 * @session: the session pointer (returned by rtp_init()) 
+	 * @ssrc: identifier of source
+	 * 
+	 * Retrieve the latest sender report made by sender with @ssrc identifier.
+	 * 
+	 * Return value: A pointer to an rtcp_sr structure on success, NULL
+	 * otherwise.  The pointer must not be freed.
+	 **/
+	const rtcp_sr *rtp_get_sr(struct rtp *session, uint32_t ssrc)
 	{
-		return rijndael_initialize(session, hash, sizeof(hash));
+		/* Return the last SR received from this ssrc. The */
+		/* caller MUST NOT free the memory returned to it. */
+		source	*s;
+
+		check_database(session);
+
+		s = get_source(session, ssrc);
+		if (s == NULL) {
+			return NULL;
+		} 
+		check_source(s);
+		return s->sr;
 	}
-	else
+
+	/**
+	 * rtp_get_rr:
+	 * @session: the session pointer (returned by rtp_init())
+	 * @reporter: participant originating receiver report
+	 * @reportee: participant included in receiver report
+	 * 
+	 * Retrieve the latest receiver report on @reportee made by @reporter.
+	 * Provides an indication of other receivers reception service.
+	 * 
+	 * Return value: A pointer to a rtcp_rr structure on success, NULL
+	 * otherwise.  The pointer must not be freed.
+	 **/
+	const rtcp_rr *rtp_get_rr(struct rtp *session, uint32_t reporter, uint32_t reportee)
 	{
-		rtp_message(LOG_ERR, "Encryption algorithm \"%s\" not found",
+		check_database(session);
+		return get_rr(session, reporter, reportee);
+	}
+
+	/**
+	 * rtp_send_data:
+	 * @session: the session pointer (returned by rtp_init())
+	 * @rtp_ts: The timestamp reflects the sampling instant of the first octet of the RTP data to be sent.  The timestamp is expressed in media units.
+	 * @pt: The payload type identifying the format of the data.
+	 * @m: Marker bit, interpretation defined by media profile of payload.
+	 * @cc: Number of contributing sources (excluding local participant)
+	 * @csrc: Array of SSRC identifiers for contributing sources.
+	 * @data: The RTP data to be sent.
+	 * @data_len: The size @data in bytes.
+	 * @extn: Extension data (if present).
+	 * @extn_len: size of @extn in bytes.
+	 * @extn_type: extension type indicator.
+	 * 
+	 * Send an RTP packet.  Most media applications will only set the
+	 * @session, @rtp_ts, @pt, @m, @data, @data_len arguments.
+	 *
+	 * Mixers and translators typically set additional contributing sources 
+	 * arguments (@cc, @csrc).
+	 *
+	 * Extensions fields (@extn, @extn_len, @extn_type) are for including
+	 * application specific information.  When the widest amount of
+	 * inter-operability is required these fields should be avoided as
+	 * some applications discard packets with extensions they do not
+	 * recognize.
+	 * 
+	 * Return value: Number of bytes transmitted.
+	 **/
+	int rtp_send_data(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, 
+			  int cc, uint32_t* csrc, 
+			  uint8_t *data, uint32_t data_len, 
+			  uint8_t *extn, uint16_t extn_len, uint16_t extn_type)
+	{
+		unsigned int		 buffer_len; int i, rc, pad, pad_len;
+		int malloc_len;
+		uint8_t		*buffer;
+		rtp_packet	*packet;
+
+		check_database(session);
+
+		ASSERT(data_len > 0);
+
+		buffer_len = data_len + 12 + (4 * cc);
+		if (extn != NULL) {
+			buffer_len += (extn_len + 1) * 4;
+		}
+
+		/* Do we need to pad this packet to a multiple of 64 bits? */
+		/* This is only needed if encryption is enabled, since DES */
+		/* only works on multiples of 64 bits. We just calculate   */
+		/* the amount of padding to add here, so we can reserve    */
+		/* space - the actual padding is added later.              */
+		pad     = FALSE;
+		pad_len = 0;
+		if (session->encryption_enabled) {
+		  if ((session->encryption_pad_length != 0) &&
+		      ((buffer_len % session->encryption_pad_length) != 0)) {
+		    pad         = TRUE;
+		    pad_len     = session->encryption_pad_length - (buffer_len % session->encryption_pad_length);
+		    buffer_len += pad_len; 
+		    ASSERT((buffer_len % session->encryption_pad_length) == 0);
+		  } 
+		  malloc_len = buffer_len;
+		  malloc_len = buffer_len + session->encryption_lenadd;
+		} else
+		  malloc_len = buffer_len;
+
+		/* Allocate memory for the packet... */
+		buffer     = (uint8_t *) xmalloc(malloc_len + RTP_PACKET_HEADER_SIZE);
+		packet     = (rtp_packet *) buffer;
+		
+		/* These are internal pointers into the buffer... */
+		packet->rtp_csrc = (uint32_t *) (buffer + RTP_PACKET_HEADER_SIZE + 12);
+		packet->rtp_extn = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
+		packet->rtp_data = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
+		if (extn != NULL) {
+			packet->rtp_data += (extn_len + 1) * 4;
+		}
+		/* ...and the actual packet header... */
+		packet->rtp_pak_v    = 2;
+		packet->rtp_pak_p    = pad;
+		packet->rtp_pak_x    = (extn != NULL);
+		packet->rtp_pak_cc   = cc;
+		packet->rtp_pak_m    = m;
+		packet->rtp_pak_pt   = pt;
+		packet->rtp_pak_seq  = htons(session->rtp_seq++);
+		packet->rtp_pak_ts   = htonl(rtp_ts);
+		packet->rtp_pak_ssrc = htonl(rtp_my_ssrc(session));
+		/* ...now the CSRC list... */
+		for (i = 0; i < cc; i++) {
+			packet->rtp_csrc[i] = htonl(csrc[i]);
+		}
+		/* ...a header extension? */
+		if (extn != NULL) {
+			/* We don't use the packet->extn_type field here, that's for receive only... */
+			uint16_t *base = (uint16_t *) packet->rtp_extn;
+			base[0] = htons(extn_type);
+			base[1] = htons(extn_len);
+			memcpy(packet->rtp_extn + 4, extn, extn_len * 4);
+		}
+		/* ...and the media data... */
+		memcpy(packet->rtp_data, data, data_len);
+		/* ...and any padding... */
+		if (pad) {
+			for (i = 0; i < pad_len; i++) {
+				buffer[buffer_len + RTP_PACKET_HEADER_SIZE - pad_len + i] = 0;
+			}
+			buffer[buffer_len + RTP_PACKET_HEADER_SIZE - 1] = (uint8_t) pad_len;
+		}
+	#if 0	
+		{
+		  chk_header *ch;
+		  ch = ((chk_header *)buffer) - 1;
+		  if (chk_header_okay(ch) == FALSE) {
+		    printf("header is not okay\n");
+		  } else {
+		    printf("Header is okay\n");
+		  }
+		}
+	#endif
+		/* Finally, encrypt if desired... */
+		if (session->encryption_enabled)
+		{
+		  if (session->encryption_pad_length != 0) {
+				ASSERT((buffer_len % session->encryption_pad_length) == 0);
+		  }
+			int retval = (session->encrypt_func)(session->encrypt_userdata, 
+						(uint8_t *)&packet->ph, //buffer + RTP_PACKET_HEADER_SIZE,
+						&buffer_len); 
+		}
+
+		rc = udp_send(session->rtp_socket, buffer + RTP_PACKET_HEADER_SIZE, buffer_len);
+		xfree(buffer);
+
+		/* Update the RTCP statistics... */
+		session->we_sent     = TRUE;
+		session->rtp_pcount += 1;
+		session->rtp_bcount += buffer_len;
+		gettimeofday(&session->last_rtp_send_time, NULL);
+		
+		check_database(session);
+		return rc;
+	}
+
+	#ifndef _WIN32
+	int rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, int cc, uint32_t csrc[], struct iovec *iov, int iov_count, uint8_t *extn, uint16_t extn_len, uint16_t extn_type,
+			      uint16_t seq_num_add)
+	{
+		int		 buffer_len, i, rc;
+		uint8_t		*buffer;
+		rtp_packet	*packet;
+		int my_iov_count = iov_count + 1;
+		struct iovec *my_iov;
+		uint8_t *tmp;
+
+		/* operation not supported on encrypted sessions */
+		if ((session->encryption_enabled)) {
+			return -1;
+		}
+
+		check_database(session);
+
+		buffer_len = 12 + (4 * cc);
+		if (extn != NULL) {
+			buffer_len += (extn_len + 1) * 4;
+		}
+
+		/* Allocate memory for the packet... */
+		buffer     = (uint8_t *) xmalloc(buffer_len + RTP_PACKET_HEADER_SIZE);
+		packet     = (rtp_packet *) buffer;
+
+		/* These are internal pointers into the buffer... */
+		packet->rtp_csrc = (uint32_t *) (buffer + RTP_PACKET_HEADER_SIZE + 12);
+		packet->rtp_extn = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
+		packet->rtp_data = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
+		if (extn != NULL) {
+			packet->rtp_data += (extn_len + 1) * 4;
+		}
+		/* ...and the actual packet header... */
+		packet->rtp_pak_v    = 2;
+		packet->rtp_pak_p    = 0;
+		packet->rtp_pak_x    = (extn != NULL);
+		packet->rtp_pak_cc   = cc;
+		packet->rtp_pak_m    = m;
+		packet->rtp_pak_pt   = pt;
+		packet->rtp_pak_seq  = htons(seq_num_add + session->rtp_seq++);
+		packet->rtp_pak_ts   = htonl(rtp_ts);
+		packet->rtp_pak_ssrc = htonl(rtp_my_ssrc(session));
+		/* ...now the CSRC list... */
+		for (i = 0; i < cc; i++) {
+			packet->rtp_csrc[i] = htonl(csrc[i]);
+		}
+		/* ...a header extension? */
+		if (extn != NULL) {
+			/* We don't use the packet->extn_type field here, that's for receive only... */
+			uint16_t *base = (uint16_t *) packet->rtp_extn;
+			base[0] = htons(extn_type);
+			base[1] = htons(extn_len);
+			memcpy(packet->rtp_extn + 4, extn, extn_len * 4);
+		}
+
+		/* Add the RTP packet header to the beginning of the iov list */
+		my_iov = (struct iovec*)xmalloc(my_iov_count * sizeof(struct iovec));
+
+		my_iov[0].iov_base = buffer + RTP_PACKET_HEADER_SIZE;
+		my_iov[0].iov_len = buffer_len;
+
+		for (i = 1; i < my_iov_count; i++) {
+			my_iov[i].iov_base = iov[i-1].iov_base;
+			my_iov[i].iov_len = iov[i-1].iov_len;
+			buffer_len += my_iov[i].iov_len;
+		}
+
+		if (session->reorder_iovs != 0) {
+		  session->reorder_iov_count++;
+		  if (session->reorder_iov_count < session->reorder_iov_max) {
+		    rc = udp_send_iov(session->rtp_socket, my_iov, my_iov_count);
+		    xfree(buffer);
+		    xfree(my_iov);
+		    if (session->have_iov != 0) {
+		      udp_send_iov(session->rtp_socket, 
+				   session->my_iov,
+				   session->my_iov_count);
+		      for (i = 0; i < session->my_iov_count; i++) {
+			free(session->my_iov[i].iov_base);
+		      }
+		      xfree(session->iov_buffer);
+		      xfree(session->my_iov);
+		      session->have_iov = 0;
+		    }
+		  } else {
+		    session->have_iov = 1;
+		    session->iov_buffer = buffer;
+		    session->my_iov = my_iov;
+		    session->my_iov_count = my_iov_count;
+		    for (i = 0; i < my_iov_count; i++) {
+		      tmp = (uint8_t *)malloc(my_iov[i].iov_len);
+		      memcpy(tmp, my_iov[i].iov_base, my_iov[i].iov_len);
+		      my_iov[i].iov_base = tmp;
+		    }
+		    rc = buffer_len;
+		    session->reorder_iov_count = 0;
+		  }
+		     
+		} else {
+		  /* Send the data */
+		  rc = udp_send_iov(session->rtp_socket, my_iov, my_iov_count);
+
+		  xfree(buffer);
+		  xfree(my_iov);
+		}
+
+		/* Update the RTCP statistics... */
+		session->we_sent     = TRUE;
+		session->rtp_pcount += 1;
+		session->rtp_bcount += buffer_len;
+
+		check_database(session);
+		return rc;
+	}
+	#endif
+
+	static int format_report_blocks(rtcp_rr *rrp, int remaining_length, struct rtp *session)
+	{
+		int nblocks = 0;
+		int h;
+		source *s;
+		struct timeval now;
+
+		gettimeofday(&now, NULL);
+
+		for (h = 0; h < RTP_DB_SIZE; h++) {
+			for (s = session->db[h]; s != NULL; s = s->next) {
+				check_source(s);
+				if ((nblocks == 31) || (remaining_length < 24)) {
+					break; /* Insufficient space for more report blocks... */
+				}
+				if (s->sender) {
+					/* Much of this is taken from A.3 of draft-ietf-avt-rtp-new-01.txt */
+					int	extended_max      = s->cycles + s->max_seq;
+					int	expected          = extended_max - s->base_seq + 1;
+					int	lost              = expected - s->received;
+					int	expected_interval = expected - s->expected_prior;
+					int	received_interval = s->received - s->received_prior;
+					int 	lost_interval     = expected_interval - received_interval;
+					int	fraction;
+					uint32_t lsr;
+					uint32_t dlsr;
+
+					s->expected_prior = expected;
+					s->received_prior = s->received;
+					if (expected_interval == 0 || lost_interval <= 0) {
+						fraction = 0;
+					} else {
+						fraction = (lost_interval << 8) / expected_interval;
+					}
+
+					if (s->sr == NULL) {
+						lsr = 0;
+						dlsr = 0;
+					} else {
+						lsr = ntp64_to_ntp32(s->sr->ntp_sec, s->sr->ntp_frac);
+						dlsr = (uint32_t)(tv_diff(now, s->last_sr) * 65536);
+					}
+					rrp->ssrc       = htonl(s->ssrc);
+					rrp->fract_lost = fraction;
+					rrp->total_lost = lost & 0x00ffffff;
+					rrp->last_seq   = htonl(extended_max);
+					rrp->jitter     = htonl(s->jitter / 16);
+					rrp->lsr        = htonl(lsr);
+					rrp->dlsr       = htonl(dlsr);
+					rrp++;
+					remaining_length -= 24;
+					nblocks++;
+					s->sender = FALSE;
+					session->sender_count--;
+					if (session->sender_count == 0) {
+						break; /* No point continuing, since we've reported on all senders... */
+					}
+				}
+			}
+		}
+		return nblocks;
+	}
+
+	static uint8_t *format_rtcp_sr(uint8_t *buffer, int buflen, struct rtp *session, uint32_t rtp_ts, uint64_t ntp_ts)
+	{
+		/* Write an RTCP SR into buffer, returning a pointer to */
+		/* the next byte after the header we have just written. */
+		rtcp_t		*packet = (rtcp_t *) buffer;
+		int		 remaining_length;
+
+		ASSERT(buflen >= 28);	/* ...else there isn't space for the header and sender report */
+
+		packet->common.version = 2;
+		packet->common.p       = 0;
+		packet->common.count   = 0;
+		packet->common.pt      = RTCP_SR;
+		packet->common.length  = htons(1);
+
+
+		packet->r.sr.sr.ssrc          = htonl(rtp_my_ssrc(session));
+		packet->r.sr.sr.ntp_sec       = htonl((uint32_t)(ntp_ts >> 32));
+		packet->r.sr.sr.ntp_frac      = htonl((uint32_t)(ntp_ts & 0xFFFFFFFF));
+		packet->r.sr.sr.rtp_ts        = htonl(rtp_ts);
+		packet->r.sr.sr.sender_pcount = htonl(session->rtp_pcount);
+		packet->r.sr.sr.sender_bcount = htonl(session->rtp_bcount);
+
+		/* Add report blocks, until we either run out of senders */
+		/* to report upon or we run out of space in the buffer.  */
+		remaining_length = buflen - 28;
+		packet->common.count = format_report_blocks(packet->r.sr.rr, remaining_length, session);
+		packet->common.length = htons((uint16_t) (6 + (packet->common.count * 6)));
+		return buffer + 28 + (24 * packet->common.count);
+	}
+
+	static uint8_t *format_rtcp_rr(uint8_t *buffer, int buflen, struct rtp *session)
+	{
+		/* Write an RTCP RR into buffer, returning a pointer to */
+		/* the next byte after the header we have just written. */
+		rtcp_t		*packet = (rtcp_t *) buffer;
+		int		 remaining_length;
+
+		ASSERT(buflen >= 8);	/* ...else there isn't space for the header */
+
+		packet->common.version = 2;
+		packet->common.p       = 0;
+		packet->common.count   = 0;
+		packet->common.pt      = RTCP_RR;
+		packet->common.length  = htons(1);
+		packet->r.rr.ssrc      = htonl(session->my_ssrc);
+
+		/* Add report blocks, until we either run out of senders */
+		/* to report upon or we run out of space in the buffer.  */
+		remaining_length = buflen - 8;
+		packet->common.count = format_report_blocks(packet->r.rr.rr, remaining_length, session);
+		packet->common.length = htons((uint16_t) (1 + (packet->common.count * 6)));
+		return buffer + 8 + (24 * packet->common.count);
+	}
+
+	static int add_sdes_item(uint8_t *buf, int buflen, int type, const char *val)
+	{
+		/* Fill out an SDES item. It is assumed that the item is a NULL    */
+		/* terminated string.                                              */
+		rtcp_sdes_item *shdr = (rtcp_sdes_item *) buf;
+		int             namelen;
+
+		if (val == NULL) {
+			rtp_message(LOG_ERR, "Cannot format SDES item. type=%d val=%p", type, val);
+			return 0;
+		}
+		shdr->type = type;
+		namelen = strlen(val);
+		shdr->length = namelen;
+		strncpy(shdr->data, val, buflen - 2); /* The "-2" accounts for the other shdr fields */
+		return namelen + 2;
+	}
+
+	static uint8_t *format_rtcp_sdes(uint8_t *buffer, int buflen, uint32_t ssrc, struct rtp *session)
+	{
+		/* From draft-ietf-avt-profile-new-00:                             */
+		/* "Applications may use any of the SDES items described in the    */
+		/* RTP specification. While CNAME information is sent every        */
+		/* reporting interval, other items should be sent only every third */
+		/* reporting interval, with NAME sent seven out of eight times     */
+		/* within that slot and the remaining SDES items cyclically taking */
+		/* up the eighth slot, as defined in Section 6.2.2 of the RTP      */
+		/* specification. In other words, NAME is sent in RTCP packets 1,  */
+		/* 4, 7, 10, 13, 16, 19, while, say, EMAIL is used in RTCP packet  */
+		/* 22".                                                            */
+		uint8_t		*packet = buffer;
+		rtcp_common	*common = (rtcp_common *) buffer;
+		const char	*item;
+		size_t		 remaining_len;
+		int              pad;
+
+		ASSERT(buflen > (int) sizeof(rtcp_common));
+
+		common->version = 2;
+		common->p       = 0;
+		common->count   = 1;
+		common->pt      = RTCP_SDES;
+		common->length  = 0;
+		packet += sizeof(rtcp_common);
+
+		*((uint32_t *) packet) = htonl(ssrc);
+		packet += 4;
+
+		remaining_len = buflen - (packet - buffer);
+		item = rtp_get_sdes(session, ssrc, RTCP_SDES_CNAME);
+		if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
+			packet += add_sdes_item(packet, remaining_len, RTCP_SDES_CNAME, item);
+		}
+
+		remaining_len = buflen - (packet - buffer);
+		item = rtp_get_sdes(session, ssrc, RTCP_SDES_NOTE);
+		if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
+			packet += add_sdes_item(packet, remaining_len, RTCP_SDES_NOTE, item);
+		}
+
+		remaining_len = buflen - (packet - buffer);
+		if ((session->sdes_count_pri % 3) == 0) {
+			session->sdes_count_sec++;
+			if ((session->sdes_count_sec % 8) == 0) {
+				/* Note that the following is supposed to fall-through the cases */
+				/* until one is found to send... The lack of break statements in */
+				/* the switch is not a bug.                                      */
+				switch (session->sdes_count_ter % 5) {
+				case 0: item = rtp_get_sdes(session, ssrc, RTCP_SDES_TOOL);
+					if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
+						packet += add_sdes_item(packet, remaining_len, RTCP_SDES_TOOL, item);
+						break;
+					}
+				case 1: item = rtp_get_sdes(session, ssrc, RTCP_SDES_EMAIL);
+					if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
+						packet += add_sdes_item(packet, remaining_len, RTCP_SDES_EMAIL, item);
+						break;
+					}
+				case 2: item = rtp_get_sdes(session, ssrc, RTCP_SDES_PHONE);
+					if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
+						packet += add_sdes_item(packet, remaining_len, RTCP_SDES_PHONE, item);
+						break;
+					}
+				case 3: item = rtp_get_sdes(session, ssrc, RTCP_SDES_LOC);
+					if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
+						packet += add_sdes_item(packet, remaining_len, RTCP_SDES_LOC, item);
+						break;
+					}
+				case 4: item = rtp_get_sdes(session, ssrc, RTCP_SDES_PRIV);
+					if ((item != NULL) && ((strlen(item) + (size_t) 2) <= remaining_len)) {
+						packet += add_sdes_item(packet, remaining_len, RTCP_SDES_PRIV, item);
+						break;
+					}
+				}
+				session->sdes_count_ter++;
+			} else {
+				item = rtp_get_sdes(session, ssrc, RTCP_SDES_NAME);
+				if (item != NULL) {
+					packet += add_sdes_item(packet, remaining_len, RTCP_SDES_NAME, item);
+				}
+			}
+		}
+		session->sdes_count_pri++;
+
+		/* Pad to a multiple of 4 bytes... */
+		pad = 4 - ((packet - buffer) & 0x3);
+		while (pad--) {
+		       *packet++ = RTCP_SDES_END;
+		}
+
+		common->length = htons((uint16_t) (((int) (packet - buffer) / 4) - 1));
+
+		return packet;
+	}
+
+	static uint8_t *format_rtcp_app(uint8_t *buffer, int buflen, uint32_t ssrc, rtcp_app *app)
+	{
+		/* Write an RTCP APP into the outgoing packet buffer. */
+		rtcp_app    *packet       = (rtcp_app *) buffer;
+		int          pkt_octets   = (app->length + 1) * 4;
+		int          data_octets  =  pkt_octets - 12;
+
+		ASSERT(data_octets >= 0);          /* ...else not a legal APP packet.               */
+		ASSERT(buflen      >= pkt_octets); /* ...else there isn't space for the APP packet. */
+
+		/* Copy one APP packet from "app" to "packet". */
+		packet->version        =   RTP_VERSION;
+		packet->p              =   app->p;
+		packet->subtype        =   app->subtype;
+		packet->pt             =   RTCP_APP;
+		packet->length         =   htons(app->length);
+		packet->ssrc           =   htonl(ssrc);
+		memcpy(packet->name, app->name, 4);
+		memcpy(packet->data, app->data, data_octets);
+
+		/* Return a pointer to the byte that immediately follows the last byte written. */
+		return buffer + pkt_octets;
+	}
+
+	static void send_rtcp(struct rtp *session,
+			      uint32_t rtp_ts,
+			      uint64_t ntp_ts,
+			     rtcp_app_callback appcallback)
+	{
+		/* Construct and send an RTCP packet. The order in which packets are packed into a */
+		/* compound packet is defined by section 6.1 of draft-ietf-avt-rtp-new-03.txt and  */
+		/* we follow the recommended order.                                                */
+		uint8_t	   buffer[RTP_MAX_PACKET_LEN + MAX_ENCRYPTION_PAD + 1024];	/* The +8 is to allow for padding when encrypting */
+		uint8_t	  *ptr = buffer;
+		uint8_t   *old_ptr;
+		uint8_t   *lpt;		/* the last packet in the compound */
+		rtcp_app  *app;
+		unsigned int length, new_length;
+
+		check_database(session);
+		/* If encryption is enabled, add a 32 bit random prefix to the packet */
+		if (session->encryption_enabled)
+		{
+			*((uint32_t *) ptr) = lbl_random();
+			ptr += 4;
+		}
+
+		/* The first RTCP packet in the compound packet MUST always be a report packet...  */
+		if (session->we_sent) {
+			ptr = format_rtcp_sr(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), session, rtp_ts, ntp_ts);
+		} else {
+			ptr = format_rtcp_rr(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), session);
+		}
+		/* Add the appropriate SDES items to the packet... This should really be after the */
+		/* insertion of the additional report blocks, but if we do that there are problems */
+		/* with us being unable to fit the SDES packet in when we run out of buffer space  */
+		/* adding RRs. The correct fix would be to calculate the length of the SDES items  */
+		/* in advance and subtract this from the buffer length but this is non-trivial and */
+		/* probably not worth it.                                                          */
+		lpt = ptr;
+		ptr = format_rtcp_sdes(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), rtp_my_ssrc(session), session);
+
+		/* If we have any CSRCs, we include SDES items for each of them in turn...         */
+		if (session->csrc_count > 0) {
+			ptr = format_rtcp_sdes(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), next_csrc(session), session);
+		}
+
+		/* Following that, additional RR packets SHOULD follow if there are more than 31   */
+		/* senders, such that the reports do not fit into the initial packet. We give up   */
+		/* if there is insufficient space in the buffer: this is bad, since we always drop */
+		/* the reports from the same sources (those at the end of the hash table).         */
+		while ((session->sender_count > 0)  && ((RTP_MAX_PACKET_LEN - (ptr - buffer)) >= 8)) {
+			lpt = ptr;
+			ptr = format_rtcp_rr(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), session);
+		}
+
+		/* Finish with as many APP packets as the application will provide. */
+		old_ptr = ptr;
+		if (appcallback) {
+			while ((app = (*appcallback)(session, rtp_ts, RTP_MAX_PACKET_LEN - (ptr - buffer)))) {
+				lpt = ptr;
+				ptr = format_rtcp_app(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), rtp_my_ssrc(session), app);
+				ASSERT(ptr > old_ptr);
+				old_ptr = ptr;
+				ASSERT(RTP_MAX_PACKET_LEN - (ptr - buffer) >= 0);
+			}
+		}
+
+		/* And encrypt if desired... */
+		if (session->encryption_enabled) {
+			if (session->encryption_pad_length != 0) {
+				if (((ptr - buffer) % session->encryption_pad_length) != 0) {
+					/* Add padding to the last packet in the compound, if necessary. */
+					/* We don't have to worry about overflowing the buffer, since we */
+					/* intentionally allocated it 8 bytes longer to allow for this.  */
+					int	padlen = session->encryption_pad_length - ((ptr - buffer) % session->encryption_pad_length);
+					int	i;
+					
+					for (i = 0; i < padlen-1; i++) {
+						*(ptr++) = '\0';
+					}
+					*(ptr++) = (uint8_t) padlen;
+					ASSERT(((ptr - buffer) % session->encryption_pad_length) == 0); 
+					
+					((rtcp_t *) lpt)->common.p = TRUE;
+					((rtcp_t *) lpt)->common.length = htons((int16_t)(((ptr - lpt) / 4) - 1));
+				}
+			}
+			//	    (session->encrypt_func)(session, buffer, ptr - buffer); 
+			//NORI - FIGURE OUT HOW TO FIX THIS - Change the value of ptr
+			length = ptr - buffer;//nori
+			new_length = length;
+			(session->encrypt_func)(session->encrypt_userdata, buffer, &new_length); //nori
+			if (new_length != length) ptr += new_length - length;
+		}
+		if (session->rtcp_bw != 0.0) {
+		  (session->rtcp_send)(session, buffer, ptr - buffer);
+		  //(session->rtcp_send)(session, buffer, length);	  
+		}
+
+		/* Loop the data back to ourselves so local participant can */
+		/* query own stats when using unicast or multicast with no  */
+		/* loopback.                                                */
+		//        rtp_process_ctrl(session, buffer, ptr - buffer);
+		rtp_process_ctrl(session, buffer, ptr - buffer);
+		check_database(session);
+	}
+
+	/**
+	 * rtp_send_ctrl:
+	 * @session: the session pointer (returned by rtp_init())
+	 * @rtp_ts: the current time expressed in units of the media timestamp.
+	 * @appcallback: a callback to create an APP RTCP packet, if needed.
+	 *
+	 * Checks RTCP timer and sends RTCP data when nececessary.  The
+	 * interval between RTCP packets is randomized over an interval that
+	 * depends on the session bandwidth, the number of participants, and
+	 * whether the local participant is a sender.  This function should be
+	 * called at least once per second, and can be safely called more
+	 * frequently.  
+	 */
+	void rtp_send_ctrl(struct rtp *session,
+			   uint32_t rtp_ts,
+			   rtcp_app *(*appcallback)(struct rtp *session, uint32_t rtp_ts, uint32_t max_size))
+	{
+	      uint32_t         ntp_sec, ntp_frac;
+	      ntp64_time(&ntp_sec, &ntp_frac);
+	      rtp_send_ctrl_2(session, rtp_ts, (((uint64_t)ntp_sec) << 32) | ntp_frac, appcallback);
+	}
+	void rtp_send_ctrl_2(struct rtp *session,
+			     uint32_t rtp_ts,
+			     uint64_t ntp_ts,
+			     rtcp_app *(*appcallback)(struct rtp *session, uint32_t rtp_ts, uint32_t max_size))
+	{
+		/* Send an RTCP packet, if one is due... */
+		struct timeval	 curr_time;
+
+		check_database(session);
+		gettimeofday(&curr_time, NULL);
+		if (tv_gt(curr_time, session->next_rtcp_send_time)) {
+			/* The RTCP transmission timer has expired. The following */
+			/* implements draft-ietf-avt-rtp-new-02.txt section 6.3.6 */
+			int		 h;
+			source		*s;
+			struct timeval	 new_send_time;
+			double		 new_interval;
+
+			new_interval  = rtcp_interval(session) / (session->csrc_count + 1);
+			new_send_time = session->last_rtcp_send_time;
+			tv_add(&new_send_time, new_interval);
+			if (tv_gt(curr_time, new_send_time)) {
+				send_rtcp(session, rtp_ts, ntp_ts, appcallback);
+				session->initial_rtcp        = FALSE;
+				session->last_rtcp_send_time = curr_time;
+				session->next_rtcp_send_time = curr_time; 
+				tv_add(&(session->next_rtcp_send_time), rtcp_interval(session) / (session->csrc_count + 1));
+				/* We're starting a new RTCP reporting interval, zero out */
+				/* the per-interval statistics.                           */
+				session->sender_count = 0;
+				for (h = 0; h < RTP_DB_SIZE; h++) {
+					for (s = session->db[h]; s != NULL; s = s->next) {
+						check_source(s);
+						s->sender = FALSE;
+					}
+				}
+			} else {
+				session->next_rtcp_send_time = new_send_time;
+			}
+			session->ssrc_count_prev = session->ssrc_count;
+		} 
+		check_database(session);
+	}
+
+	/**
+	 * rtp_update:
+	 * @session: the session pointer (returned by rtp_init())
+	 *
+	 * Trawls through the internal data structures and performs
+	 * housekeeping.  This function should be called at least once per
+	 * second.  It uses an internal timer to limit the number of passes
+	 * through the data structures to once per second, it can be safely
+	 * called more frequently.
+	 */
+	void rtp_update(struct rtp *session)
+	{
+		/* Perform housekeeping on the source database... */
+		int	 	 h;
+		source	 	*s, *n;
+		struct timeval	 curr_time;
+		double		 delay;
+
+		gettimeofday(&curr_time, NULL);
+		if (tv_diff(curr_time, session->last_update) < 1.0) {
+			/* We only perform housekeeping once per second... */
+			return;
+		}
+		session->last_update = curr_time;
+
+		/* Update we_sent (section 6.3.8 of RTP spec) */
+		delay = tv_diff(curr_time, session->last_rtp_send_time);
+		if (delay >= 2 * rtcp_interval(session)) {
+			session->we_sent = FALSE;
+		}
+
+		check_database(session);
+
+		for (h = 0; h < RTP_DB_SIZE; h++) {
+			for (s = session->db[h]; s != NULL; s = n) {
+				check_source(s);
+				n = s->next;
+				/* Expire sources which haven't been heard from for a long time.   */
+				/* Section 6.2.1 of the RTP specification details the timers used. */
+
+				/* How long since we last heard from this source?  */
+				delay = tv_diff(curr_time, s->last_active);
+				
+				/* Check if we've received a BYE packet from this source.    */
+				/* If we have, and it was received more than 2 seconds ago   */
+				/* then the source is deleted. The arbitrary 2 second delay  */
+				/* is to ensure that all delayed packets are received before */
+				/* the source is timed out.                                  */
+				if (s->got_bye && (delay > 2.0)) {
+					rtp_message(LOG_INFO, "Deleting source 0x%08x due to reception of BYE %f seconds ago...", s->ssrc, delay);
+					delete_source(session, s->ssrc);
+				}
+
+				/* Sources are marked as inactive if they haven't been heard */
+				/* from for more than 2 intervals (RTP section 6.3.5)        */
+				if ((s->ssrc != rtp_my_ssrc(session)) && (delay > (session->rtcp_interval * 2))) {
+					if (s->sender) {
+						s->sender = FALSE;
+						session->sender_count--;
+					}
+				}
+
+				/* If a source hasn't been heard from for more than 5 RTCP   */
+				/* reporting intervals, we delete it from our database...    */
+				if ((s->ssrc != rtp_my_ssrc(session)) && (delay > (session->rtcp_interval * 5))) {
+					rtp_message(LOG_INFO, "Deleting source 0x%08x due to timeout...", s->ssrc);
+					delete_source(session, s->ssrc);
+				}
+			}
+		}
+
+		/* Timeout those reception reports which haven't been refreshed for a long time */
+		timeout_rr(session, &curr_time);
+		check_database(session);
+	}
+
+	static void rtp_send_bye_now(struct rtp *session)
+	{
+		/* Send a BYE packet immediately. This is an internal function,  */
+		/* hidden behind the rtp_send_bye() wrapper which implements BYE */
+		/* reconsideration for the application.                          */
+		uint8_t	 	 buffer[RTP_MAX_PACKET_LEN + MAX_ENCRYPTION_PAD + 1024];	/* + 8 to allow for padding when encrypting */
+		uint8_t		*ptr = buffer;
+		rtcp_common	*common;
+		unsigned int length, new_length; //nori
+		check_database(session);
+		/* If encryption is enabled, add a 32 bit random prefix to the packet */
+		if (session->encryption_enabled) {
+			*((uint32_t *) ptr) = lbl_random();
+			ptr += 4;
+		}
+
+		ptr    = format_rtcp_rr(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), session);    
+		common = (rtcp_common *) ptr;
+		
+		common->version = 2;
+		common->p       = 0;
+		common->count   = 1;
+		common->pt      = RTCP_BYE;
+		common->length  = htons(1);
+		ptr += sizeof(rtcp_common);
+		
+		*((uint32_t *) ptr) = htonl(session->my_ssrc);  
+		ptr += 4;
+		
+		if (session->encryption_enabled) {
+			    if (session->encryption_pad_length != 0) {
+			      if (((ptr - buffer) % session->encryption_pad_length) != 0) {
+				/* Add padding to the last packet in the compound, if necessary. */
+				/* We don't have to worry about overflowing the buffer, since we */
+				/* intentionally allocated it 8 bytes longer to allow for this.  */
+				int	padlen = session->encryption_pad_length - ((ptr - buffer) % session->encryption_pad_length);
+				int	i;
+
+				for (i = 0; i < padlen-1; i++) {
+					*(ptr++) = '\0';
+				}
+				*(ptr++) = (uint8_t) padlen;
+
+				common->p      = TRUE;
+				common->length = htons((int16_t)(((ptr - (uint8_t *) common) / 4) - 1));
+			}
+			ASSERT(((ptr - buffer) % session->encryption_pad_length) == 0);
+			    }
+			    //	    (session->encrypt_func)(session, buffer, ptr - buffer);
+			    // NORI - FIX THIS, TOO
+			    new_length = length = ptr - buffer;//nori
+			    (session->encrypt_func)(session->encrypt_userdata, buffer, &new_length);//nori
+			    ptr += new_length - length;
+		}
+			(session->rtcp_send)(session, buffer, ptr - buffer);
+			//(session->rtcp_send)(session, buffer, length);	
+		/* Loop the data back to ourselves so local participant can */
+		/* query own stats when using unicast or multicast with no  */
+		/* loopback.                                                */
+		rtp_process_ctrl(session, buffer, ptr - buffer);
+		//rtp_process_ctrl(session, buffer, length);
+		check_database(session);
+	}
+
+	/**
+	 * rtp_send_bye:
+	 * @session: The RTP session
+	 *
+	 * Sends a BYE message on the RTP session, indicating that this
+	 * participant is leaving the session. The process of sending a
+	 * BYE may take some time, and this function will block until 
+	 * it is complete. During this time, RTCP events are reported 
+	 * to the application via the callback function (data packets 
+	 * are silently discarded).
+	 */
+	void rtp_send_bye(struct rtp *session)
+	{
+		struct timeval	curr_time, timeout, new_send_time;
+		uint8_t		buffer[RTP_MAX_PACKET_LEN];
+		int		buflen;
+		double		new_interval;
+
+		check_database(session);
+
+		/* "...a participant which never sent an RTP or RTCP packet MUST NOT send  */
+		/* a BYE packet when they leave the group." (section 6.3.7 of RTP spec)    */
+		if ((session->we_sent == FALSE) && (session->initial_rtcp == TRUE)) {
+			rtp_message(LOG_NOTICE, "Silent BYE");
+			return;
+		}
+
+		/* If the session is small, send an immediate BYE. Otherwise, we delay and */
+		/* perform BYE reconsideration as needed.                                  */
+		if ((session->ssrc_count < 50) || session->rtp_socket == NULL) {
+			rtp_send_bye_now(session);
+		} else {
+			gettimeofday(&curr_time, NULL);
+			session->sending_bye         = TRUE;
+			session->last_rtcp_send_time = curr_time;
+			session->next_rtcp_send_time = curr_time; 
+			session->bye_count           = 1;
+			session->initial_rtcp        = TRUE;
+			session->we_sent             = FALSE;
+			session->sender_count        = 0;
+			session->avg_rtcp_size       = 70.0 + RTP_LOWER_LAYER_OVERHEAD;	/* FIXME */
+			tv_add(&session->next_rtcp_send_time, rtcp_interval(session) / (session->csrc_count + 1));
+
+			rtp_message(LOG_DEBUG, "Preparing to send BYE...");
+			while (1) {
+				/* Schedule us to block in udp_select() until the time we are due to send our */
+				/* BYE packet. If we receive an RTCP packet from another participant before   */
+				/* then, we are woken up to handle it...                                      */
+				timeout.tv_sec  = 0;
+				timeout.tv_usec = 0;
+				tv_add(&timeout, tv_diff(session->next_rtcp_send_time, curr_time));
+				udp_fd_zero(session->udp_session);
+				udp_fd_set(session->udp_session, session->rtcp_socket);
+				if ((udp_select(session->udp_session, &timeout) > 0) && 
+				    udp_fd_isset(session->udp_session, session->rtcp_socket)) {
+					/* We woke up because an RTCP packet was received; process it... */
+					buflen = udp_recv(session->rtcp_socket, buffer, RTP_MAX_PACKET_LEN);
+					rtp_process_ctrl(session, buffer, buflen);
+				}
+				/* Is it time to send our BYE? */
+				gettimeofday(&curr_time, NULL);
+				new_interval  = rtcp_interval(session) / (session->csrc_count + 1);
+				new_send_time = session->last_rtcp_send_time;
+				tv_add(&new_send_time, new_interval);
+				if (tv_gt(curr_time, new_send_time)) {
+					rtp_message(LOG_DEBUG, "Sent BYE...");
+					rtp_send_bye_now(session);
+					break;
+				}
+				/* No, we reconsider... */
+				session->next_rtcp_send_time = new_send_time;
+				rtp_message(LOG_INFO, "Reconsidered sending BYE... delay = %f", tv_diff(session->next_rtcp_send_time, curr_time));
+				/* ...and perform housekeeping in the usual manner */
+				rtp_update(session);
+			}
+		}
+	}
+
+	/**
+	 * rtp_done:
+	 * @session: the RTP session to finish
+	 *
+	 * Free the state associated with the given RTP session. This function does 
+	 * not send any packets (e.g. an RTCP BYE) - an application which wishes to
+	 * exit in a clean manner should call rtp_send_bye() first.
+	 */
+	void rtp_done(struct rtp *session)
+	{
+		int i;
+		source *s, *n;
+
+		check_database(session);
+		/* In delete_source, check database gets called and this assumes */
+		/* first added and last removed is us.                           */
+		for (i = 0; i < RTP_DB_SIZE; i++) {
+			s = session->db[i];
+			while (s != NULL) {
+				n = s->next;
+				if (s->ssrc != session->my_ssrc) {
+					delete_source(session,session->db[i]->ssrc);
+				}
+				s = n;
+			}
+		}
+
+		delete_source(session, session->my_ssrc);
+
+		/*
+		 * Introduce a memory leak until we add algorithm-specific
+		 * cleanup functions.
+		if (session->encryption_key != NULL) {
+			xfree(session->encryption_key);
+		}
+		*/
+
+		if (session->rtp_socket != NULL) {
+		  udp_exit(session->rtp_socket);
+		  session->rtp_socket = NULL;
+		}
+		if (session->rtcp_socket != NULL) {
+		  udp_exit(session->rtcp_socket);
+		  session->rtcp_socket = NULL;
+		}
+		if (session->udp_session != NULL) {
+		  udp_close_session(session->udp_session);
+		  session->udp_session = NULL;
+		}
+		xfree(session->addr);
+		xfree(session->opt);
+		xfree(session);
+	}
+
+	/**
+	 * rtp_set_encryption_key:
+	 * @session: The RTP session.
+	 * @passphrase: The user-provided "pass phrase" to map to an encryption key.
+	 *
+	 * Converts the user supplied key into a form suitable for use with RTP
+	 * and install it as the active key. Passing in NULL as the passphrase
+	 * disables encryption. The passphrase is converted into a DES key as
+	 * specified in RFC1890, that is:
+	 * 
+	 *   - convert to canonical form
+	 * 
+	 *   - derive an MD5 hash of the canonical form
+	 * 
+	 *   - take the first 56 bits of the MD5 hash
+	 * 
+	 *   - add parity bits to form a 64 bit key
+	 * 
+	 * Note that versions of rat prior to 4.1.2 do not convert the passphrase
+	 * to canonical form before taking the MD5 hash, and so will
+	 * not be compatible for keys which are non-invarient under this step.
+	 *
+	 * Determine from the user's encryption key which encryption
+	 * mechanism we're using. Per the RTP RFC, if the key is of the form
+	 *
+	 *	string/key
+	 *
+	 * then "string" is the name of the encryption algorithm,  and
+	 * "key" is the key to be used. If no / is present, then the
+	 * algorithm is assumed to be (the appropriate variant of) DES.
+	 *
+	 * Returns: TRUE on success, FALSE on failure.
+	 */
+	int rtp_set_encryption_key(struct rtp* session, const char *passphrase)
+	{
+		char	*canonical_passphrase;
+		u_char	 hash[16];
+		MD5_CTX	 context;
+		char *slash;
+
+		check_database(session);
+		if (session->encryption_algorithm != NULL) {
+			xfree(session->encryption_algorithm);
+			session->encryption_algorithm = NULL;
+		}
+
+		if (passphrase == NULL) {
+			/* A NULL passphrase means disable encryption... */
+		    session->encryption_enabled = 0;
+			check_database(session);
+			return TRUE;
+		}
+
+		rtp_message(LOG_DEBUG, "Enabling RTP/RTCP encryption");
+		session->encryption_enabled = 1;
+
+		/*
+		 * Determine which algorithm we're using.
+		 */
+	 
+		slash = strchr(passphrase, '/');
+		if (slash == 0)
+		{
+		    session->encryption_algorithm = xstrdup("DES");
+		}
+		else
+		{
+		    int l = slash - passphrase;
+		    session->encryption_algorithm = xmalloc(l + 1);
+		    strncpy(session->encryption_algorithm, passphrase, l);
+		    session->encryption_algorithm[l] = '\0';
+		    passphrase = slash + 1;
+		}
+	 
+		rtp_message(LOG_INFO, "Initializing encryption, algorithm is '%s'",
 			  session->encryption_algorithm);
-		return FALSE;
+	 
+		/* Step 1: convert to canonical form, comprising the following steps:  */
+		/*   a) convert the input string to the ISO 10646 character set, using */
+		/*      the UTF-8 encoding as specified in Annex P to ISO/IEC          */
+		/*      10646-1:1993 (ASCII characters require no mapping, but ISO     */
+		/*      8859-1 characters do);                                         */
+		/*   b) remove leading and trailing white space characters;            */
+		/*   c) replace one or more contiguous white space characters by a     */
+		/*      single space (ASCII or UTF-8 0x20);                            */
+		/*   d) convert all letters to lower case and replace sequences of     */
+		/*      characters and non-spacing accents with a single character,    */
+		/*      where possible.                                                */
+		canonical_passphrase = (char *) xstrdup(passphrase);	/* FIXME */
+
+		/* Step 2: derive an MD5 hash */
+		MD5Init(&context);
+		MD5Update(&context, (u_char *) canonical_passphrase, strlen(canonical_passphrase));
+		MD5Final((u_char *) hash, &context);
+
+		/* Initialize the encryption algorithm we've received */
+
+		if (strcmp(session->encryption_algorithm, "DES") == 0)
+		{
+			return des_initialize(session, hash, sizeof(hash));
+		}
+		else if (strcmp(session->encryption_algorithm, "Rijndael") == 0)
+		{
+			return rijndael_initialize(session, hash, sizeof(hash));
+		}
+		else
+		{
+			rtp_message(LOG_ERR, "Encryption algorithm \"%s\" not found",
+				  session->encryption_algorithm);
+			return FALSE;
+		}
 	}
-}
 
-static int des_initialize(struct rtp *session, u_char *hash, int hashlen)
-{
-	unsigned char *key;
-	int	 i, j, k;
-	
-	UNUSED(hashlen);
+	static int des_initialize(struct rtp *session, u_char *hash, int hashlen)
+	{
+		unsigned char *key;
+		int	 i, j, k;
+		
+		UNUSED(hashlen);
 
-	rtp_set_encryption(session,des_encrypt, des_decrypt, session->encrypt_userdata, 0);
-	session->encryption_pad_length = 8;
-	//nori
-	//	session->encrypt_func = des_encrypt;
-	//session->decrypt_func = des_decrypt;
+		rtp_set_encryption(session,des_encrypt, des_decrypt, session->encrypt_userdata, 0);
+		session->encryption_pad_length = 8;
+		//nori
+		//	session->encrypt_func = des_encrypt;
+		//session->decrypt_func = des_decrypt;
 
         if (session->crypto_state.des.encryption_key != NULL) {
                 xfree(session->crypto_state.des.encryption_key);

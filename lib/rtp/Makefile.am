@@ -34,7 +34,7 @@ EXTRA_DIST = \
 	addrsize.h \
 	asarray.h \
 	base64.h \
-	bills_srtp.h \
+	srtp.h \
 	bittypes.h \
 	boxes-fst.dat \
 	btree.h \
@@ -79,9 +79,9 @@ EXTRA_DIST = \
 check_PROGRAMS = test_rtp_client test_rtp_server
 
 test_rtp_client_SOURCES = test_rtp_client.c
-test_rtp_client_LDADD = libuclmmbase.la
+test_rtp_client_LDADD = libuclmmbase.la -lsrtp
 test_rtp_server_SOURCES = test_rtp_server.c
-test_rtp_server_LDADD = libuclmmbase.la
+test_rtp_server_LDADD = libuclmmbase.la -lsrtp
 #check_PROGRAMS = test
 #test_SOURCES = \
 #	test.c \
