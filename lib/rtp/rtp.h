@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.16 $ 
- * $Date: 2006/02/23 00:28:57 $
+ * $Revision: 1.17 $ 
+ * $Date: 2006/03/20 23:13:25 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -53,13 +53,8 @@ extern "C" {
 
 
   // moved here by nori
-typedef int (*rtp_encrypt_func)(void *, uint8_t *, unsigned int *);
-  typedef int (*rtp_decrypt_func)(void *ud, uint8_t *packet_head, unsigned int *packet_len);
-typedef int (*rtp_decrypt_payload_func)(void *ud, 
-					uint8_t *packet_head, 
-					unsigned int *packet_len,
-					uint8_t *payload_head, 
-					unsigned int *payload_len);
+typedef int (*rtp_encrypt_f)(void *, uint8_t *, unsigned int *);
+typedef int (*rtp_decrypt_f)(void *ud, uint8_t *packet_head, unsigned int *packet_len);
 
 struct rtp;
 
@@ -200,9 +195,9 @@ typedef struct {
 } rtp_event;
 
 /* Callback types */
-typedef void (*rtp_callback)(struct rtp *session, rtp_event *e);
-typedef rtcp_app* (*rtcp_app_callback)(struct rtp *session, uint32_t rtp_ts, uint32_t max_size);
-  typedef int (*rtcp_send_packet_t)(void *userdata, uint8_t *buffer, uint32_t buflen);
+typedef void (*rtp_callback_f)(struct rtp *session, rtp_event *e);
+typedef rtcp_app* (*rtcp_app_callback_f)(struct rtp *session, uint32_t rtp_ts, uint32_t max_size);
+  typedef int (*rtcp_send_packet_f)(void *userdata, uint8_t *buffer, uint32_t buflen);
 
 /* SDES packet types... */
 typedef enum  {
@@ -230,24 +225,69 @@ typedef enum {
         RTP_OPT_FILTER_MY_PACKETS = 3
 } rtp_option;
 
+typedef struct rtp_stream_params_t {
+  const char *rtp_addr;
+  in_port_t   rtp_rx_port;
+  in_port_t   rtp_tx_port;
+  uint8_t     rtp_ttl;
+
+  const char *rtcp_addr;
+  in_port_t   rtcp_rx_port;
+  in_port_t   rtcp_tx_port;
+  uint8_t     rtcp_ttl;
+
+  const char *physical_interface_addr;
+  int dont_init_sockets;  // for use with tcp
+  int transmit_initial_rtcp; // transmit a fast rtcp packet
+
+  double rtcp_bandwidth;  
+  
+  int  rtp_socket;  // rtp socket to use
+  int  rtcp_socket; // rtcp socket to use
+  // callbacks
+  rtp_callback_f rtp_callback;
+  rtcp_send_packet_f rtcp_send_packet;
+  // user data
+  void *userdata;
+} rtp_stream_params_t;
+
+typedef struct rtp_encryption_params_t {
+  void *userdata;
+  rtp_encrypt_f rtp_encrypt, rtcp_encrypt;
+  rtp_decrypt_f rtp_decrypt, rtcp_decrypt;
+    
+  uint8_t rtp_auth_alloc_extra;
+  uint8_t rtcp_auth_alloc_extra;
+} rtp_encryption_params_t;
+
+rtp_stream_params_t *rtp_default_params(rtp_stream_params_t *ptr);
+
+rtp_t rtp_init_stream(rtp_stream_params_t *param_ptr);
+  
 /* API */
 rtp_t		rtp_init(const char *addr, 
 			 uint16_t rx_port, uint16_t tx_port, 
 			 int ttl, double rtcp_bw, 
-			 rtp_callback callback,
+			 rtp_callback_f callback,
 			 uint8_t *userdata);
   // rtp_init_xmitter - for transmitters - send an RTCP with the first packet
 rtp_t		rtp_init_xmitter(const char *addr, 
 				 uint16_t rx_port, uint16_t tx_port, 
 				 int ttl, double rtcp_bw, 
-				 rtp_callback callback,
+				 rtp_callback_f callback,
 				 uint8_t *userdata);
 rtp_t		rtp_init_if(const char *addr, char *iface, 
 			    uint16_t rx_port, uint16_t tx_port, 
 			    int ttl, double rtcp_bw, 
-			    rtp_callback callback,
+			    rtp_callback_f callback,
 			    uint8_t *userdata,
 			    int dont_init_sockets);
+rtp_t		rtp_init_extern_net(const char *addr, 
+				    uint16_t rx_port, uint16_t tx_port, 
+				    int ttl, double rtcp_bw, 
+				    rtp_callback_f callback,
+				    rtcp_send_packet_f rtcp_send_packet,
+				    uint8_t *userdata);
 
 void		 rtp_send_bye(struct rtp *session);
 void		 rtp_done(struct rtp *session);
@@ -260,17 +300,22 @@ int 		 rtp_recv(struct rtp *session,
   void rtp_recv_data(struct rtp *session, uint32_t curr_rtp_ts);
 int 		 rtp_send_data(struct rtp *session, 
 			       uint32_t rtp_ts, int8_t pt, int m, 
-			       int cc, uint32_t csrc[], 
+			       unsigned int cc, uint32_t csrc[], 
                                uint8_t *data, uint32_t data_len, 
 			       uint8_t *extn, uint16_t extn_len, uint16_t extn_type);
 #ifndef _WIN32
-int            rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, int cc, uint32_t csrc[], struct iovec *iov, int iov_count, uint8_t *extn, uint16_t extn_len, uint16_t extn_type, uint16_t seq_num_add);
+int            rtp_send_data_iov(struct rtp *session, 
+				 uint32_t rtp_ts, int8_t pt, int m, 
+				 unsigned int cc, uint32_t csrc[], 
+				 struct iovec *iov, uint32_t iov_count, 
+				 uint8_t *extn, uint16_t extn_len, 
+				 uint16_t extn_type, uint16_t seq_num_add);
 #endif
 void 		 rtp_send_ctrl(struct rtp *session, uint32_t rtp_ts, 
-			       rtcp_app_callback appcallback);
+			       rtcp_app_callback_f appcallback);
 void 		 rtp_send_ctrl_2(struct rtp *session, uint32_t rtp_ts,
 				 uint64_t ntp_ts, 
-				 rtcp_app_callback appcallback);
+				 rtcp_app_callback_f appcallback);
 void 		 rtp_update(struct rtp *session);
 
 uint32_t	 rtp_my_ssrc(struct rtp *session);
@@ -294,12 +339,6 @@ uint16_t	 rtp_get_tx_port(struct rtp *session);
 int		 rtp_get_ttl(struct rtp *session);
 uint8_t		*rtp_get_userdata(struct rtp *session);
 
-rtp_t		rtp_init_extern_net(const char *addr, 
-				    uint16_t rx_port, uint16_t tx_port, 
-				    int ttl, double rtcp_bw, 
-				    rtp_callback callback,
-				    rtcp_send_packet_t rtcp_send_packet,
-				    uint8_t *userdata);
   
 int rtp_process_recv_data(struct rtp *session,
 			  uint32_t curr_rtp_ts,
@@ -309,9 +348,15 @@ int rtp_process_recv_data(struct rtp *session,
 void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, uint32_t buflen);
 
   // added by nori
-int rtp_set_encryption(struct rtp *session, rtp_encrypt_func efunc, rtp_decrypt_func, void *userdata, unsigned int);
-int rtp_get_encryption_enabled(struct rtp *session);
-
+  int rtp_set_encryption(struct rtp *session, 
+		       rtp_encrypt_f rtp_efunc, rtp_decrypt_f rtp_dfunc , 
+		       rtp_encrypt_f rtcp_efunc, rtp_decrypt_f rtcp_dfunc,
+		       void *userdata, unsigned int rtp_payload_add);
+  
+  int rtp_set_encryption_params (struct rtp *session, rtp_encryption_params_t *params);
+  
+  int rtp_get_encryption_enabled(struct rtp *session);
+  
 typedef struct socket_udp_ socket_udp; 
 
 socket_udp *get_rtp_data_socket(struct rtp *session);

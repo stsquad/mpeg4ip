@@ -25,8 +25,15 @@
 #define __RTP_TRANSMITTER_H__
 
 #include <rtp/rtp.h>
+#include "srtp/liblibsrtp.h"
 #include "media_sink.h"
 
+typedef struct mp4live_rtp_params_t {
+  rtp_stream_params_t rtp_params;
+  srtp_if_params_t srtp_params;
+  bool use_srtp;
+  uint auth_len;
+} mp4live_rtp_params_t;
 
 // *****************************************************************************
 // Flags set by audio_queue_frame()
@@ -50,18 +57,14 @@
 class CRtpDestination
 {
  public:
-  CRtpDestination(const char *destAddr, 
-		  in_port_t destPort,
-		  in_port_t srcPort,
-		  uint8_t payloadNumber,
-		  int mcast_ttl, 
-		  float rtcp_bandwidth);
+  CRtpDestination(mp4live_rtp_params_t *rtp_params, 
+		  uint8_t payloadNumber);
   ~CRtpDestination();
   void start(void);
   void send_rtcp(u_int32_t rtpTimestamp,
 		 u_int64_t ntpTimestamp);
   int send_iov(struct iovec *piov,
-	       int iovCount,
+	       uint iovCount,
 	       u_int32_t rtpTimestamp,
 	       int mbit);
   CRtpDestination *get_next(void) { return m_next;};
@@ -82,21 +85,18 @@ class CRtpDestination
   };
   bool Matches (const char *dest_addr, 
 		in_port_t destPort) {
-    if (destPort != m_destPort) return false;
-    return strcasecmp(dest_addr, m_destAddr) == 0;
+    if (destPort != m_rtp_params->rtp_params.rtp_tx_port) return false;
+    return strcasecmp(dest_addr, m_rtp_params->rtp_params.rtp_addr) == 0;
   };
-  in_port_t get_source_port (void) { return m_srcPort; };
+  in_port_t get_source_port (void) { return m_rtp_params->rtp_params.rtp_rx_port; };
  protected:
   SDL_mutex *m_ref_mutex;
   CRtpDestination *m_next;
-  const char *m_destAddr;
-  in_port_t m_destPort;
-  in_port_t m_srcPort;
-  uint32_t m_timeScale;
+  mp4live_rtp_params_t *m_rtp_params;
+  //  uint32_t m_timeScale;
   uint8_t m_payloadNumber;
-  int m_mcast_ttl;
-  float m_rtcp_bandwidth;
   struct rtp *m_rtpSession;
+  srtp_if_t *m_srtpSession;
   uint32_t m_reference;
 };
 
@@ -175,11 +175,7 @@ public:
 		return (u_int16_t)(20000 + ((random() >> 18) << 2));
 
 	}
-	void AddRtpDestination(const char *destAddress,
-			       in_port_t destPort,
-			       in_port_t srcPort,
-			       uint16_t max_ttl);
-
+	void AddRtpDestination(mp4live_rtp_params_t *rtp_params);
 	
 	static const uint32_t MSG_RTP_DEST_START = 8192;
 	static const uint32_t MSG_RTP_DEST_STOP  = MSG_RTP_DEST_START + 1;
@@ -250,9 +246,10 @@ protected:
 	CRtpDestination  *m_rtpDestination;
 	MediaType               m_frameType;
 	uint32_t m_timeScale;
-	u_int32_t		m_rtpTimestampOffset;
+	uint32_t m_rtpTimestampOffset;
 	uint16_t m_mtu;
-	u_int8_t		m_payloadNumber;
+	uint16_t m_original_mtu;
+	u_int8_t m_payloadNumber;
 
 };
 

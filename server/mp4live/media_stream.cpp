@@ -47,6 +47,12 @@ CMediaStream::CMediaStream (const char *filename,
   m_video_encoder = NULL;
   m_audio_encoder = NULL;
   m_text_encoder = NULL;
+  m_audio_key = NULL;
+  m_audio_salt = NULL;
+  m_video_key = NULL;
+  m_video_salt = NULL;
+  m_text_key = NULL;
+  m_text_salt = NULL;
 }
 
 CMediaStream::~CMediaStream (void)
@@ -220,4 +226,68 @@ void CMediaStream::RestartFileRecording (void)
     m_mp4_recorder->Stop();
     m_mp4_recorder->Start();
   }
+}
+
+static char randhex (void)
+{
+  char ret = random() & 0xf;
+  if (ret >= 10) return ret - 10 + 'a';
+  return '0' + ret;
+}
+
+const char *generate_random(uint size)
+{
+  char *ret = (char *)malloc((size * 2) + 1);
+  uint ix;
+  for (ix = 0; ix < size; ix++) {
+    ret[ix * 2] = randhex();
+    ret[(ix * 2) + 1] = randhex();
+  }
+  ret[(size * 2)] = '\0';
+  return ret;
+}
+
+void CMediaStream::SetUpSRTPKeys (void) 
+{
+  if (GetBoolValue(STREAM_VIDEO_USE_SRTP)) {
+    srandom(GetTimestamp());
+    if (GetBoolValue(STREAM_VIDEO_SRTP_FIXED_KEYS)) {
+      CHECK_AND_FREE(m_video_key);
+      m_video_key = strdup(GetStringValue(STREAM_VIDEO_SRTP_KEY));
+      CHECK_AND_FREE(m_video_salt);
+      m_video_salt = strdup(GetStringValue(STREAM_VIDEO_SRTP_SALT));
+    } else {
+      if (m_video_key == NULL)
+	m_video_key = generate_random(16);
+      if(m_video_salt == NULL) 
+	m_video_salt = generate_random(14);
+    }
+  }
+  if (GetBoolValue(STREAM_AUDIO_USE_SRTP)) {
+    if (GetBoolValue(STREAM_AUDIO_SRTP_FIXED_KEYS)) {
+      CHECK_AND_FREE(m_audio_key);
+      m_audio_key = strdup(GetStringValue(STREAM_AUDIO_SRTP_KEY));
+      CHECK_AND_FREE(m_audio_salt);
+      m_audio_salt = strdup(GetStringValue(STREAM_AUDIO_SRTP_SALT));
+    } else {
+      if (m_audio_key == NULL)
+	m_audio_key = generate_random(16);
+      if(m_audio_salt == NULL) 
+	m_audio_salt = generate_random(14);
+    }
+  }
+  if (GetBoolValue(STREAM_TEXT_USE_SRTP)) {
+    if (GetBoolValue(STREAM_TEXT_SRTP_FIXED_KEYS)) {
+      CHECK_AND_FREE(m_text_key);
+      m_text_key = strdup(GetStringValue(STREAM_TEXT_SRTP_KEY));
+      CHECK_AND_FREE(m_text_salt);
+      m_text_salt = strdup(GetStringValue(STREAM_TEXT_SRTP_SALT));
+    } else {
+      if (m_text_key == NULL)
+	m_text_key = generate_random(16);
+      if(m_text_salt == NULL) 
+	m_text_salt = generate_random(14);
+    }
+  }
+
 }

@@ -3,8 +3,8 @@
  *
  *  Windows specific definitions and includes.
  *  
- *  $Revision: 1.9 $
- *  $Date: 2006/02/09 17:57:29 $
+ *  $Revision: 1.10 $
+ *  $Date: 2006/03/20 23:13:25 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -228,4 +228,7 @@ void ShowMessage(int level, char *msg);
 #define LOG_NOTICE 5
 #define LOG_INFO 6
 #define LOG_DEBUG 7
+
+typedef uint16_t in_port_t;
+
 #endif

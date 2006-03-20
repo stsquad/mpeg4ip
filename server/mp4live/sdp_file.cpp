@@ -33,7 +33,34 @@
 #include "media_stream.h"
 
 //#define DEBUG_IOD
+static void create_srtp_for_media (const char *type,
+				   media_desc_t *sdpMedia,
+				   uint enc_algorithm,
+				   uint auth_algorithm,
+				   const char *key, 
+				   const char *salt, 
+				   bool rtp_enc, 
+				   bool rtp_auth, 
+				   bool rtcp_enc)
+{
+  srtp_if_params_t ifp;
+  memset(&ifp, 0, sizeof(ifp));
+  ifp.enc_algo = (srtp_enc_algos_t)enc_algorithm;
+  ifp.auth_algo = (srtp_auth_algos_t)auth_algorithm;
+  ifp.tx_key = key;
+  ifp.tx_salt = salt;
+  ifp.rtp_enc = rtp_enc;
+  ifp.rtp_auth = rtp_auth;
+  ifp.rtcp_enc = rtcp_enc;
+
+  char *line = srtp_create_sdp(type, &ifp);
+
+  if (line != NULL) 
+    sdp_add_string_to_list(&sdpMedia->unparsed_a_lines, line);
+}
+  
 static void create_conn_for_media (media_desc_t *sdpMedia,
+				   connect_desc_t *cptr,
 				   const char *sDestAddr,
 				   uint32_t ttl,
 				   session_desc_t *sdp)
@@ -44,26 +71,26 @@ static void create_conn_for_media (media_desc_t *sdpMedia,
   struct in6_addr in6;
 
   if (inet_aton(sDestAddr, &in)) {
-    sdpMedia->media_connect.conn_type = strdup("IP4");
+    cptr->conn_type = strdup("IP4");
     destIsMcast = IN_MULTICAST(ntohl(in.s_addr));
     if ((ntohl(in.s_addr) >> 24) == 232) {
       destIsSSMcast = true;
     }
   } else if (inet_pton(AF_INET6, sDestAddr, &in6)) {
-    sdpMedia->media_connect.conn_type = strdup("IP6");
+    cptr->conn_type = strdup("IP6");
     destIsMcast = IN6_IS_ADDR_MULTICAST(&in6);
   } else {
     // this is bad - but will work for now
     // we have a domain name, or something like it.
-    sdpMedia->media_connect.conn_type = strdup("IP4");
+    cptr->conn_type = strdup("IP4");
     destIsMcast = false;
   }
   // c=
-  sdpMedia->media_connect.conn_addr = strdup(sDestAddr);
+  cptr->conn_addr = strdup(sDestAddr);
   if (destIsMcast) {
-    sdpMedia->media_connect.ttl = ttl;
+    cptr->ttl = ttl;
   }
-  sdpMedia->media_connect.used = 1;
+  cptr->used = 1;
   if (destIsSSMcast) {
     char sIncl[64];
 	  
@@ -146,17 +173,6 @@ void createStreamSdp (CLiveConfig *pGlobal,
   } else
     do_seperate_conn = true;
 
-  // Since we currently don't do anything with RTCP RR's
-  // and they create unnecessary state in the routers
-  // tell clients not to generate them
-  if (allow_rtcp == false) {
-    bandwidth_t *bandwidth = MALLOC_STRUCTURE(bandwidth_t);
-    memset(bandwidth, 0, sizeof(*bandwidth));
-    sdp->session_bandwidth = bandwidth;
-    bandwidth->modifier = BANDWIDTH_MODIFIER_USER; 
-    bandwidth->bandwidth = 0;
-    bandwidth->user_band = strdup("RR");
-  }
 
   // if SSM, add source filter attribute
   
@@ -169,6 +185,7 @@ void createStreamSdp (CLiveConfig *pGlobal,
   u_int32_t audioConfigLength = 0;
   u_int8_t *pVideoConfig = NULL;
   u_int32_t videoConfigLength = 0;
+  bool use_srtp;
   
   if (pStream->GetBoolValue(STREAM_AUDIO_ENABLED)) {
     audioIsIsma = false;
@@ -192,22 +209,43 @@ void createStreamSdp (CLiveConfig *pGlobal,
 	sdp->media = sdpMediaAudio;
       }
       if (do_seperate_conn) {
-	create_conn_for_media(sdpMediaAudio, sAudioDestAddr,
+	create_conn_for_media(sdpMediaAudio, &sdpMediaAudio->media_connect, sAudioDestAddr,
 			      ttl, sdp);
       }
       sdpMediaAudio->parent = sdp;
       
       sdpMediaAudio->media = strdup("audio");
       sdpMediaAudio->port = audio_port;
-      sdpMediaAudio->proto = strdup("RTP/AVP");
-      
+      use_srtp = pStream->GetBoolValue(STREAM_AUDIO_USE_SRTP);
+      sdpMediaAudio->proto = strdup(use_srtp ? "RTP/SVP" : "RTP/AVP");
+      sdpMediaAudio->rtcp_port = pStream->GetIntegerValue(STREAM_AUDIO_RTCP_DEST_PORT);
+      if (sdpMediaAudio->rtcp_port != 0) {
+	sdpMediaAudio->rtcp_connect.used = 1;
+	const char *temp = pStream->GetStringValue(STREAM_AUDIO_RTCP_DEST_ADDR);
+	if (temp != NULL && strcmp(temp, sAudioDestAddr) != 0) {
+	  // add c stuff for address
+	  create_conn_for_media(sdpMediaAudio, &sdpMediaAudio->rtcp_connect, 
+				temp, ttl, sdp);
+	}
+      }
       audioBandwidth = MALLOC_STRUCTURE(bandwidth_t);
       memset(audioBandwidth, 0, sizeof(*audioBandwidth));
       sdpMediaAudio->media_bandwidth = audioBandwidth;
       audioBandwidth->modifier = BANDWIDTH_MODIFIER_AS; 
       audioBandwidth->bandwidth =
 	(pStream->GetAudioProfile()->GetIntegerValue(CFG_AUDIO_BIT_RATE) + 999)/ 1000;
-      
+      if (use_srtp) {
+	allow_rtcp = false;
+	pStream->SetUpSRTPKeys();
+	create_srtp_for_media("audio", sdpMediaAudio, 
+			      pStream->GetIntegerValue(STREAM_AUDIO_SRTP_ENC_ALGO),
+			      pStream->GetIntegerValue(STREAM_AUDIO_SRTP_AUTH_ALGO),
+			      pStream->m_audio_key,
+			      pStream->m_audio_salt,
+			      pStream->GetBoolValue(STREAM_AUDIO_SRTP_RTP_ENC),
+			      pStream->GetBoolValue(STREAM_AUDIO_SRTP_RTP_AUTH),
+			      pStream->GetBoolValue(STREAM_AUDIO_SRTP_RTCP_ENC));
+      }
     }
   } else {
     audioIsIsma = true;
@@ -229,7 +267,7 @@ void createStreamSdp (CLiveConfig *pGlobal,
       if (videoCreateIod == false) createIod = false;
       
       if (do_seperate_conn) {
-	create_conn_for_media(sdpMediaVideo, sVideoDestAddr,
+	create_conn_for_media(sdpMediaVideo, &sdpMediaVideo->media_connect, sVideoDestAddr,
 			      ttl, sdp);
       }
 
@@ -239,7 +277,18 @@ void createStreamSdp (CLiveConfig *pGlobal,
       
       sdpMediaVideo->media = strdup("video");
       sdpMediaVideo->port = video_port;
-      sdpMediaVideo->proto = strdup("RTP/AVP");
+      use_srtp = pStream->GetBoolValue(STREAM_VIDEO_USE_SRTP);
+      sdpMediaVideo->proto = strdup(use_srtp ? "RTP/SVP" : "RTP/AVP");
+      sdpMediaVideo->rtcp_port = pStream->GetIntegerValue(STREAM_VIDEO_RTCP_DEST_PORT);
+      if (sdpMediaVideo->rtcp_port != 0) {
+	sdpMediaVideo->rtcp_connect.used = 1;
+	const char *temp = pStream->GetStringValue(STREAM_VIDEO_RTCP_DEST_ADDR);
+	if (temp != NULL && strcmp(temp, sVideoDestAddr) != 0) {
+	  // add c stuff for address
+	  create_conn_for_media(sdpMediaVideo, &sdpMediaVideo->rtcp_connect, 
+				temp, ttl, sdp);
+	}
+      }
       
       videoBandwidth = MALLOC_STRUCTURE(bandwidth_t);
       memset(videoBandwidth, 0, sizeof(*videoBandwidth));
@@ -247,6 +296,18 @@ void createStreamSdp (CLiveConfig *pGlobal,
       videoBandwidth->modifier = BANDWIDTH_MODIFIER_AS; 
       videoBandwidth->bandwidth =
 	pStream->GetVideoProfile()->GetIntegerValue(CFG_VIDEO_BIT_RATE);
+      if (use_srtp) {
+	allow_rtcp = false;
+	pStream->SetUpSRTPKeys();
+	create_srtp_for_media("video", sdpMediaVideo, 
+			      pStream->GetIntegerValue(STREAM_VIDEO_SRTP_ENC_ALGO),
+			      pStream->GetIntegerValue(STREAM_VIDEO_SRTP_AUTH_ALGO),
+			      pStream->m_video_key,
+			      pStream->m_video_salt,
+			      pStream->GetBoolValue(STREAM_VIDEO_SRTP_RTP_ENC),
+			      pStream->GetBoolValue(STREAM_VIDEO_SRTP_RTP_AUTH),
+			      pStream->GetBoolValue(STREAM_VIDEO_SRTP_RTCP_ENC));
+      }
     }
   } else {
     videoIsIsma = true;
@@ -270,14 +331,51 @@ void createStreamSdp (CLiveConfig *pGlobal,
       
     if (sdpMediaText != NULL) {
       if (do_seperate_conn) {
-	create_conn_for_media(sdpMediaText, sTextDestAddr,
+	create_conn_for_media(sdpMediaText, &sdpMediaText->media_connect, sTextDestAddr,
 			      ttl, sdp);
       }
       sdpMediaText->parent = sdp;
       sdpMediaText->port = text_port;
-      sdpMediaText->proto = strdup("RTP/AVP");
+      use_srtp = pStream->GetBoolValue(STREAM_TEXT_USE_SRTP);
+      sdpMediaText->proto = strdup(use_srtp ? "RTP/SVP" : "RTP/AVP");
+      sdpMediaText->rtcp_port = pStream->GetIntegerValue(STREAM_TEXT_RTCP_DEST_PORT);
+      if (sdpMediaText->rtcp_port != 0) {
+	sdpMediaText->rtcp_connect.used = 1;
+	const char *temp = pStream->GetStringValue(STREAM_TEXT_RTCP_DEST_ADDR);
+	if (temp != NULL && strcmp(temp, sTextDestAddr) != 0) {
+	  // add c stuff for address
+	  create_conn_for_media(sdpMediaText, &sdpMediaText->rtcp_connect, 
+				temp, ttl, sdp);
+	}
+      }
+      if (use_srtp) {
+	allow_rtcp = false;
+	pStream->SetUpSRTPKeys();
+	create_srtp_for_media("text", sdpMediaText, 
+			      pStream->GetIntegerValue(STREAM_TEXT_SRTP_ENC_ALGO),
+			      pStream->GetIntegerValue(STREAM_TEXT_SRTP_AUTH_ALGO),
+			      pStream->m_text_key,
+			      pStream->m_text_salt,
+			      pStream->GetBoolValue(STREAM_TEXT_SRTP_RTP_ENC),
+			      pStream->GetBoolValue(STREAM_TEXT_SRTP_RTP_AUTH),
+			      pStream->GetBoolValue(STREAM_TEXT_SRTP_RTCP_ENC));
+      }
     }
   }
+
+  // Since we currently don't do anything with RTCP RR's
+  // and they create unnecessary state in the routers
+  // tell clients not to generate them
+  if (allow_rtcp == false) {
+    bandwidth_t *bandwidth = MALLOC_STRUCTURE(bandwidth_t);
+    memset(bandwidth, 0, sizeof(*bandwidth));
+    bandwidth->next = sdp->session_bandwidth;
+    sdp->session_bandwidth = bandwidth;
+    bandwidth->modifier = BANDWIDTH_MODIFIER_USER; 
+    bandwidth->bandwidth = 0;
+    bandwidth->user_band = strdup("RR");
+  }
+
   session_time_desc_t *sdpTime;
   sdpTime = MALLOC_STRUCTURE(session_time_desc_t);
   sdpTime->start_time = 0;

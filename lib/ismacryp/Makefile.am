@@ -6,7 +6,7 @@ libismacryp_la_SOURCES = ismacryplib.c \
 	ismacryplib.h \
 	ismacryplib_priv.h
 
-@ISMACRYP_FLAGS@
+AM_CFLAGS = -D_REENTRANT @BILLS_CWARNINGS@
 
 EXTRA_DIST = \
 	libismacryp.dsp \

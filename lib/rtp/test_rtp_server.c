@@ -3,13 +3,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
-#if 1
+#define HAVE_SRTP 1
+#ifdef HAVE_SRTP
 #include "srtp/srtp.h"
-#include <err.h>
-//#include <bills_srtp.h>
 #endif
+#include <err.h>
 
-//#define DUMP_ENCRYPTED_PAK 1
+
+bool dump_pak;
 
 #define BUFFSIZE 1450
 #define RX 5002
@@ -21,6 +22,8 @@
 #define THEIR_SSRC 0x100
 #define EOP_PAD 16
 
+static FILE *rtcp_file = NULL;
+
 static void c_rtp_callback(struct rtp *session, rtp_event *e)
 {
   e->type = RX_RTP;
@@ -28,12 +31,13 @@ static void c_rtp_callback(struct rtp *session, rtp_event *e)
 	 session, e->type);
   
 }
-#define nothing "bob"
 
-#if 1
+#ifdef HAVE_SRTP
 #define ENCRYPT_FUNCTION our_srtp_encrypt
 #define DECRYPT_FUNCTION our_srtp_decrypt
-#define DUMP_ENCRYPTED_PAK 1
+#define RTCP_ENCRYPT_FUNCTION our_srtp_encrypt
+#define RTCP_DECRYPT_FUNCTION our_srtp_decrypt
+
 static int our_srtp_encrypt (void *foo, 
 			     unsigned char *buffer, 
 			     unsigned int *len)
@@ -41,21 +45,18 @@ static int our_srtp_encrypt (void *foo,
   err_status_t err;
   int retdata;
   srtp_ctx_t *srtp_ctx = (srtp_ctx_t *)foo;
-  //  bills_srtp_t *our_srtp = (bills_srtp_t *)foo;
-	//  bills_srtp_t *our_srtp;
-#ifdef DUMP_ENCRYPTED_PAK
   int i;
-#endif
 	//  our_srtp = (bills_srtp_t *)foo;
-  printf("rtp encrypt len = %d\n", *len);
   retdata = *len;
 
-#ifdef DUMP_ENCRYPTED_PAK
-  for (i = 0; i < retdata; i++) {
-    printf("%02x ", buffer[i]);
-    if (((i + 1) % 12) == 0) printf("\n");
+  if (dump_pak) {
+    printf("rtp encrypt len = %d\n", *len);
+    for (i = 0; i < retdata; i++) {
+      printf("%02x ", buffer[i]);
+      if (((i + 1) % 12) == 0) printf("\n");
+    }
+    printf("\n");
   }
-#endif
 
   err = srtp_protect(srtp_ctx,
 		     (void *)buffer,
@@ -66,14 +67,14 @@ static int our_srtp_encrypt (void *foo,
     return FALSE;
   }
   *len = retdata;
-#ifdef DUMP_ENCRYPTED_PAK
-  printf("\nprotected value\n");
-  for (i = 0; i < retdata; i++) {
-    printf("%02x ", buffer[i]);
-    if (((i + 1) % 12) == 0) printf("\n");
+  if (dump_pak) {
+    printf("\nprotected value\n");
+    for (i = 0; i < retdata; i++) {
+      printf("%02x ", buffer[i]);
+      if (((i + 1) % 12) == 0) printf("\n");
+    }
+    printf("\n");
   }
-  printf("\n");
-#endif
   return TRUE;
 }     
 
@@ -84,7 +85,7 @@ static int our_srtp_decrypt (void *foo,
   err_status_t err;
   int retdata;
   srtp_ctx_t *srtp_ctx = (srtp_ctx_t *)foo;
-	//  bills_srtp_t *our_srtp = (bills_srtp_t *)foo;
+
   retdata = *len;
 
   err = srtp_unprotect(srtp_ctx,
@@ -100,21 +101,49 @@ static int our_srtp_decrypt (void *foo,
 #else
 #define ENCRYPT_FUNCTION our_encrypt
 #define DECRYPT_FUNCTION our_decrypt
+#define RTCP_ENCRYPT_FUNCTION our_rtcp_encrypt
+#define RTCP_DECRYPT_FUNCTION our_rtcp_decrypt
 
 static int our_encrypt(void *foo, unsigned char *buffer, unsigned int *len)
 {
-	/*  unsigned int ix;
+  unsigned int ix;
   unsigned int retdata;
   
   retdata = *len;
-  printf("starting at %u to %u\n", sizeof(rtp_packet_header) - 1, retdata);
-  for (ix=sizeof(rtp_packet_header) - 1; ix < retdata; ix++) buffer[ix] = ~buffer[ix];
-  //  printf("after encrypt %s\n",buffer);  */
+  //  printf("starting at %u to %u\n", sizeof(rtp_packet_header) - 1, retdata);
+  for (ix=sizeof(rtp_packet_header) - 1; ix < retdata; ix++) 
+    buffer[ix] = ~buffer[ix];
 
   return TRUE;
 }
 
 static int our_decrypt(void *foo, unsigned char *buffer, unsigned int *len)
+{
+  struct rtp *session;
+  unsigned int ix;
+  unsigned int retdata;
+
+  retdata = *len;
+  for (ix=sizeof(rtp_packet_header) - 1; ix < retdata; ix++) buffer[ix] = ~buffer[ix];
+  return TRUE;
+}
+static int our_rtcp_encrypt(void *foo, unsigned char *buffer, unsigned int *len)
+{
+  unsigned int ix;
+  unsigned int retdata;
+
+  if (rtcp_file != NULL) {
+    fwrite(buffer, *len, 1, rtcp_file);
+  }
+  retdata = *len;
+  //  printf("rtcp starting at %u to %u\n", sizeof(rtp_packet_header) - 1, retdata);
+  for (ix=sizeof(rtp_packet_header) - 1; ix < retdata; ix++) 
+    buffer[ix] = ~buffer[ix];
+
+  return TRUE;
+}
+
+static int our_rtcp_decrypt(void *foo, unsigned char *buffer, unsigned int *len)
 {
   struct rtp *session;
   unsigned int ix;
@@ -138,14 +167,12 @@ int main (int argc, char *argv[])
   int c;                        
   struct hostent *h;
   struct utsname myname;
-  void *srtp_data;
+  //  void *srtp_data;
   unsigned int extra_len;
   int do_auth = 1, do_encrypt = 1;
   ssize_t readit;
   ssize_t sendit;
-  //  const char passphrase[]="DESnori";
-  unsigned char input_key[] = "111111111111111111111111111111111111111111111111111111111111";
-
+  int do_rtcp = false;
 
   // Setting of default session 
   if(uname(&myname) < 0){
@@ -162,11 +189,15 @@ int main (int argc, char *argv[])
 
   // Option
   opterr = 0;
-  while((c = getopt(argc, argv, "aehi:r:t:f:")) != -1){
+  while((c = getopt(argc, argv, "acdehi:r:t:f:")) != -1){
     switch (c) {
     case 'a':
       do_auth = 0;
       break;
+    case 'c':
+      do_rtcp = 1;
+    case 'd':
+      dump_pak = true;
     case 'e':
       do_encrypt = 0;
       break;
@@ -217,92 +248,90 @@ int main (int argc, char *argv[])
     exit(1);
   }
 
-  if ( (session = rtp_init(ip_addr, rx_port, tx_port, TTL, RTCP_BW, 
-			   c_rtp_callback, NULL) ) == NULL){
+  if ( (session = rtp_init_xmitter(ip_addr, rx_port, tx_port, TTL, RTCP_BW, 
+				   c_rtp_callback, NULL) ) == NULL){
     exit(-1);
   }
   rtp_set_my_ssrc(session,OUR_SSRC);
 
+#ifdef HAVE_SRTP
 	/////////// start will
 	//set NULL security services
   //uint32_t ssrc = 0xdeadbeef; /* ssrc value hardcoded for now */
   srtp_policy_t policy;
-	char key[64];
-	char keystr[128];
-	uint ix;
+  char key[64];
+  char keystr[128];
+  uint ix;
 #if 1
-	strcpy(keystr, "c1eec3717da76195bb878578790af71c4ee9f859e197a414a78d5abc7451");
-	hex_string_to_octet_string(key, keystr, 60);
+  strcpy(keystr, "c1eec3717da76195bb878578790af71c4ee9f859e197a414a78d5abc7451");
+  hex_string_to_octet_string(key, keystr, 60);
 #else
- 	memset(key, 0, sizeof(key));
+  memset(key, 0, sizeof(key));
 #endif
 
-	for (ix = 0; ix < 30; ix++) {
-		printf("%02x ", key[ix]);
-	}
-	printf("\n");
+  for (ix = 0; ix < 30; ix++) {
+    printf("%02x ", key[ix]);
+  }
+  printf("\n");
 #if 0
-	// NULL cipher
-	policy.key                 =  (uint8_t *) key;
-	policy.ssrc.type           = ssrc_any_outbound; //ssrc_specific;
-	policy.ssrc.value          = 0x96;//OUR_SSRC;
-	policy.rtp.cipher_type     = NULL_CIPHER;
-	policy.rtp.cipher_key_len  = 0; 
-	policy.rtp.auth_type       = NULL_AUTH;
-	policy.rtp.auth_key_len    = 0;
-	policy.rtp.auth_tag_len    = 0;
-	policy.rtp.sec_serv        = sec_serv_none;
-	policy.rtcp.cipher_type    = NULL_CIPHER;
-	policy.rtcp.cipher_key_len = 0; 
-	policy.rtcp.auth_type      = NULL_AUTH;
-	policy.rtcp.auth_key_len   = 0;
-	policy.rtcp.auth_tag_len   = 0;
-	policy.rtcp.sec_serv       = sec_serv_none;   
-	policy.next                = NULL;
+  // NULL cipher
+  policy.key                 =  (uint8_t *) key;
+  policy.ssrc.type           = ssrc_any_outbound; //ssrc_specific;
+  policy.ssrc.value          = 0x96;//OUR_SSRC;
+  policy.rtp.cipher_type     = NULL_CIPHER;
+  policy.rtp.cipher_key_len  = 0; 
+  policy.rtp.auth_type       = NULL_AUTH;
+  policy.rtp.auth_key_len    = 0;
+  policy.rtp.auth_tag_len    = 0;
+  policy.rtp.sec_serv        = sec_serv_none;
+  policy.rtcp.cipher_type    = NULL_CIPHER;
+  policy.rtcp.cipher_key_len = 0; 
+  policy.rtcp.auth_type      = NULL_AUTH;
+  policy.rtcp.auth_key_len   = 0;
+  policy.rtcp.auth_tag_len   = 0;
+  policy.rtcp.sec_serv       = sec_serv_none;   
+  policy.next                = NULL;
 #else
-	//confidentiality only, no auth
-	crypto_policy_set_aes_cm_128_null_auth(&policy.rtp);
-	crypto_policy_set_rtcp_default(&policy.rtcp);
-	policy.ssrc.type  = ssrc_any_outbound;
-	policy.key  = (uint8_t *) key;
-	policy.next = NULL;
-	policy.rtp.sec_serv = sec_serv_conf;//sec_servs;
-	policy.rtcp.sec_serv = sec_serv_none;  /* we don't do RTCP anyway */
+  //confidentiality only, no auth
+  crypto_policy_set_aes_cm_128_null_auth(&policy.rtp);
+  crypto_policy_set_rtcp_default(&policy.rtcp);
+  policy.ssrc.type  = ssrc_any_outbound;
+  policy.key  = (uint8_t *) key;
+  policy.next = NULL;
+  policy.rtp.sec_serv = sec_serv_conf;//sec_servs;
+  policy.rtcp.sec_serv = sec_serv_none;  /* we don't do RTCP anyway */
 #endif
   err_status_t status;
 
-	printf("ABOUT TO SRTP_INIT\n");
-	status = srtp_init();
+  printf("ABOUT TO SRTP_INIT\n");
+  status = srtp_init();
   if (status) {
     printf("error: srtp initialization failed with error code %d\n", status);
     exit(1);
   }
-	printf("ABOUT TO SRTP_CREAT\n");
-	srtp_ctx_t *srtp_ctx = NULL;
-	status = srtp_create(&srtp_ctx, &policy);
-	if (status) {
-		printf("error: srtp_create() failed with code %d\n", status);
-		exit(1);
-	}
-	printf("DONE WITH SRTP_CREATE\n");
-
-	rtp_set_encryption(session, our_srtp_encrypt, our_srtp_decrypt, srtp_ctx, 0);
-	////////////// end will
-
-#if 0
-  srtp_data = srtp_init(OUR_SSRC,THEIR_SSRC,input_key, do_encrypt, do_auth);
-  extra_len = auth_get_tag_length(srtp_data->sender_srtp_ctx.authenticator);
-  extra_len += EOP_PAD;
+  printf("ABOUT TO SRTP_CREAT\n");
+  srtp_ctx_t *srtp_ctx = NULL;
+  status = srtp_create(&srtp_ctx, &policy);
+  if (status) {
+    printf("error: srtp_create() failed with code %d\n", status);
+    exit(1);
+  }
+  printf("DONE WITH SRTP_CREATE\n");
+  extra_len = 0;
 #else
+
   extra_len = 0;
   srtp_data = NULL;
 #endif
-  //tp_set_encryption(session, our_encrypt, our_decrypt, buff);
-	/*  rtp_set_encryption(session, ENCRYPT_FUNCTION, DECRYPT_FUNCTION, srtp_data, extra_len);*/
-  //  rtp_set_encryption_key(session, passphrase);
+  rtp_set_encryption(session, ENCRYPT_FUNCTION, DECRYPT_FUNCTION, 
+		     RTCP_ENCRYPT_FUNCTION, RTCP_DECRYPT_FUNCTION, 
+		     srtp_ctx, extra_len);
 
+  if (do_rtcp) {
+    rtcp_file = fopen("server.rtcp", FOPEN_WRITE_BINARY);
+  }
 
-  cur_pos = 100;
+  cur_pos = 0;
   packet_size = 64;
   number_of_packet = 0;
   while(1) {
@@ -315,30 +344,43 @@ int main (int argc, char *argv[])
       exit(1);
     }
     read_size = readit;
-		int buflen = readit;
+    //int buflen = readit;
     if (read_size == 0) break;
-		printf("about to protect\n");
+    //printf("about to protect\n");
+#if 0
     sendit = 
       rtp_send_data(session,
-										cur_pos,
-										97,//pt
-										0,//m
-										0,//cc 
-										NULL, //csrc[],
-										buff,//data
-										read_size,//data_len
-										NULL,//*extn
-										0,
-										0);
+		    cur_pos,
+		    97,//pt
+		    0,//m
+		    0,//cc 
+		    NULL, //csrc[],
+		    buff,//data
+		    read_size,//data_len
+		    NULL,//*extn
+		    0,
+		    0);
+#else
+    {
+      struct iovec iov[2];
+      iov[0].iov_len = read_size % 48;
+      if (iov[0].iov_len == 0) iov[0].iov_len = 1;
+      iov[0].iov_base = buff;
+      iov[1].iov_len = read_size - iov[0].iov_len;
+      iov[1].iov_base = buff + iov[0].iov_len;
+
+      sendit = rtp_send_data_iov(session, cur_pos, 97, 0, 0, NULL, 
+				 iov, read_size > iov[0].iov_len ? 2 : 1,
+				 NULL, 0, 0, 0);
+    }
+#endif
     if (sendit < 0) {
-			printf("rtp_send_data error\n");
-			exit(1);
-		}
-    printf("\n");
-    printf("read_size = %d\n", read_size);
-    printf("send_size = %d\n", sendit);
-    //printf("my_ssrc = %d\n", rtp_my_ssrc(session));
-    printf("set timestamp = "U64"\n", cur_pos);
+      printf("rtp_send_data error\n");
+      exit(1);
+    }
+    if (do_rtcp)
+      rtp_send_ctrl(session, cur_pos, NULL);
+    printf("set timestamp = "U64", size %u\n", cur_pos, read_size);
 		
     cur_pos += read_size; 
     packet_size++;
@@ -348,12 +390,14 @@ int main (int argc, char *argv[])
     //rtp_send_ctrl(session,cur_pos,NULL);
     rtp_update(session);
     // Some sort of sleep here...
-    usleep(1 * 1000);
+    usleep(2 * 1000);
   }
   
   printf("I've sent %d RTP packets!\n\n", number_of_packet);
 
   close(fd);
+  if (rtcp_file != NULL) 
+    fclose(rtcp_file);
   rtp_done(session);
   return 0;
 }

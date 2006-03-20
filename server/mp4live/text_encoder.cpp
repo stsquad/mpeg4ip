@@ -231,7 +231,6 @@ static void SendPlainText (CMediaFrame *pFrame,
     rdptr = list;
     while (rdptr != NULL) {
       int rc = rdptr->send_iov(&iov, 1, rtpTimestamp, lastPacket);
-      rc -= sizeof(rtp_packet_header);
       if (rc != (int)payloadLength) {
 	error_message("text send send_iov error - returned %d %d", 
 		      rc, payloadLength);
@@ -276,7 +275,6 @@ static void SendHrefText (CMediaFrame *pFrame,
   rdptr = list;
   while (rdptr != NULL) {
     int rc = rdptr->send_iov(iov, 2, rtpTimestamp, true);
-    rc -= sizeof(rtp_packet_header);
     rc -= 4; 
     if (rc != (int)bytesToSend) {
       error_message("text send send_iov error - returned %d %d", 
@@ -409,4 +407,37 @@ void CTextEncoder::SendFrame (Timestamp t)
 void CTextEncoder::DoStopText (void)
 {
 
+}
+
+void CTextEncoder::AddRtpDestination (CMediaStream *stream,
+				       bool disable_ts_offset, 
+				       uint16_t max_ttl,
+				       in_port_t srcPort)
+{
+  mp4live_rtp_params_t *mrtp;
+
+  mrtp = MALLOC_STRUCTURE(mp4live_rtp_params_t);
+  rtp_default_params(&mrtp->rtp_params);
+  mrtp->rtp_params.rtp_addr = stream->GetStringValue(STREAM_TEXT_DEST_ADDR);
+  mrtp->rtp_params.rtp_rx_port = srcPort;
+  mrtp->rtp_params.rtp_tx_port = stream->GetIntegerValue(STREAM_TEXT_DEST_PORT);
+  mrtp->rtp_params.rtp_ttl = max_ttl;
+  mrtp->rtp_params.transmit_initial_rtcp = 1;
+  mrtp->rtp_params.rtcp_addr = stream->GetStringValue(STREAM_TEXT_RTCP_DEST_ADDR);
+  mrtp->rtp_params.rtcp_tx_port = stream->GetIntegerValue(STREAM_TEXT_RTCP_DEST_PORT);
+
+  mrtp->use_srtp = stream->GetBoolValue(STREAM_TEXT_USE_SRTP);
+  mrtp->srtp_params.enc_algo = 
+    (srtp_enc_algos_t)stream->GetIntegerValue(STREAM_TEXT_SRTP_ENC_ALGO);
+  mrtp->srtp_params.auth_algo = 
+    (srtp_auth_algos_t)stream->GetIntegerValue(STREAM_TEXT_SRTP_AUTH_ALGO);
+  mrtp->srtp_params.tx_key = stream->m_text_key;
+  mrtp->srtp_params.tx_salt = stream->m_text_salt;
+  mrtp->srtp_params.rx_key = stream->m_text_key;
+  mrtp->srtp_params.rx_salt = stream->m_text_salt;
+  mrtp->srtp_params.rtp_enc = stream->GetBoolValue(STREAM_TEXT_SRTP_RTP_ENC);
+  mrtp->srtp_params.rtp_auth = stream->GetBoolValue(STREAM_TEXT_SRTP_RTP_AUTH);
+  mrtp->srtp_params.rtcp_enc = stream->GetBoolValue(STREAM_TEXT_SRTP_RTCP_ENC);
+
+  AddRtpDestInt(disable_ts_offset, mrtp);
 }

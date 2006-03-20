@@ -34,7 +34,7 @@ typedef struct rtsp_wrap_msg_callback_t {
 } rtsp_wrap_msg_callback_t;
 
 typedef struct rtsp_msg_rtp_callback_t {
-  rtp_callback_f callback_func;
+  process_rtp_callback_f callback_func;
   rtsp_thread_callback_f periodic_func;
   void *ud;
   int interleave;

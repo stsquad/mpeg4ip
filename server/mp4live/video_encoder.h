@@ -94,15 +94,10 @@ public:
   virtual bool CanGetEsConfig (void) { return false; };
   virtual bool GetEsConfig(uint8_t **ppEsConfig,
 			   uint32_t *pEsConfigLen) { return false; };
-  void AddRtpDestination (CMediaStream *stream,
-			  bool disable_ts_offset, 
-			  uint16_t max_ttl,
-			  in_port_t srcPort = 0) {
-    AddRtpDestInt(disable_ts_offset, max_ttl,
-		  stream->GetStringValue(STREAM_VIDEO_DEST_ADDR),
-		  stream->GetIntegerValue(STREAM_VIDEO_DEST_PORT),
-		  srcPort);
-  };
+  void AddRtpDestination(CMediaStream *stream,
+			 bool disable_ts_offset, 
+			 uint16_t max_ttl,
+			 in_port_t srcPort = 0);
   CVideoEncoder *GetNext(void) {
     return (CVideoEncoder *)CMediaCodec::GetNext();
   };

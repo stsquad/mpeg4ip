@@ -67,7 +67,7 @@ static void c_rtp_packet_callback (void *data,
 
 static int c_init_rtp_tcp (void *data)
 {
-  ((CPlayerMedia *)data)->rtp_init_tcp();
+  ((CPlayerMedia *)data)->rtp_init(true);
   return 0;
 }
 
@@ -105,7 +105,9 @@ CPlayerMedia::CPlayerMedia (CPlayerSession *p,
   m_rtp_queue_len = 0;
 
   m_rtp_ssrc_set = FALSE;
-  
+
+  m_rtp_session = NULL;
+  m_srtp_session = NULL;
   m_rtsp_session = NULL;
   m_decode_thread_waiting = 0;
   m_sync_time_set = FALSE;
@@ -298,6 +300,13 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
     media_message(LOG_ERR, "%s doesn't use RTP", sdp_media->media);
     return (-1);
   }
+#if 0
+  if (strncasecmp(sdp_media->proto, "RTP/SVP", strlen("RTP/SVP")) == 0) {
+    m_parent->set_message("Media %s uses SRTP and it is not installed", 
+			  sdp_media->media);
+    media_message(LOG_ERR, "SRTP required for media %s but not installed", 
+		  sdp_media->media);
+#endif
   if (sdp_media->fmt == NULL) {
     m_parent->set_message("Media %s doesn't have any usuable formats",
 			  sdp_media->media);
@@ -413,11 +422,11 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
     }
   } else {
     int ret;
-    ret = rtsp_thread_set_rtp_callback(m_parent->get_rtsp_client(),
-				       c_rtp_packet_callback,
-				       c_rtp_periodic,
-				       m_rtp_media_number_in_session,
-				       this);
+    ret = rtsp_thread_set_process_rtp_callback(m_parent->get_rtsp_client(),
+					       c_rtp_packet_callback,
+					       c_rtp_periodic,
+					       m_rtp_media_number_in_session,
+					       this);
     if (ret < 0) {
       m_parent->set_message("Can't setup TCP/RTP callback");
       return -1;

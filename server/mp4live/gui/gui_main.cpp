@@ -1794,6 +1794,12 @@ static void delete_event (GtkWidget *widget, gpointer *data)
   gtk_main_quit();
 }
 
+#ifndef HAVE_SRTP
+static const char *addr_button_label = "Set Address";
+#else
+static const char *addr_button_label = "Set Addr/SRTP Params";
+#endif
+
 static GtkWidget *create_MainWindow (void)
 {
   GtkWidget *MainWindow;
@@ -2514,7 +2520,7 @@ static GtkWidget *create_MainWindow (void)
                  (GtkAttachOptions)(0), 0, 0);
   gtk_misc_set_alignment(GTK_MISC(VideoTxAddrLabel), 0, 0.5);
 
-  VideoTxAddrButton = gtk_button_new_with_mnemonic(_("Set Addr/Params"));
+  VideoTxAddrButton = gtk_button_new_with_mnemonic(_(addr_button_label));
   gtk_widget_show(VideoTxAddrButton);
   gtk_table_attach(GTK_TABLE(VideoTxTable), VideoTxAddrButton, 2, 3, 0, 1,
                  (GtkAttachOptions)(GTK_FILL),
@@ -2578,7 +2584,7 @@ static GtkWidget *create_MainWindow (void)
                  (GtkAttachOptions)(0), 0, 0);
   gtk_misc_set_alignment(GTK_MISC(AudioTxAddrLabel), 0, 0.5);
 
-  AudioTxAddrButton = gtk_button_new_with_mnemonic(_("Set Addr/Params"));
+  AudioTxAddrButton = gtk_button_new_with_mnemonic(_(addr_button_label));
   gtk_widget_show(AudioTxAddrButton);
   gtk_table_attach(GTK_TABLE(AudioTxTable), AudioTxAddrButton, 2, 3, 0, 1,
                  (GtkAttachOptions)(GTK_FILL),
@@ -2643,7 +2649,7 @@ static GtkWidget *create_MainWindow (void)
                  (GtkAttachOptions)(0), 0, 0);
   gtk_misc_set_alignment(GTK_MISC(TextTxAddrLabel), 0, 0.5);
 
-  TextTxAddrButton = gtk_button_new_with_mnemonic(_("Set Addr/Params"));
+  TextTxAddrButton = gtk_button_new_with_mnemonic(_(addr_button_label));
   gtk_widget_show(TextTxAddrButton);
   gtk_table_attach(GTK_TABLE(TextTxTable), TextTxAddrButton, 2, 3, 0, 1,
                  (GtkAttachOptions)(GTK_FILL),

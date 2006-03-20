@@ -441,7 +441,7 @@ int main (int argc, char **argv)
     }
     free(long_options);
   }
-
+  
   rtsp_set_error_func(library_message);
   rtsp_set_loglevel(config.get_config_value(CONFIG_RTSP_DEBUG));
   rtp_set_error_msg_func(library_message);

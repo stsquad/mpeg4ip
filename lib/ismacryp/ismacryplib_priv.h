@@ -26,7 +26,7 @@
 #include "mpeg4ip.h"
 #include "ismacryplib.h"
 
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
 #include "srtp/aes_icm.h"
 #endif
 
@@ -63,29 +63,19 @@ extern "C" {
 #define ISMACRYP_DEFAULT_KEY_LIFETIME_EXP      64
  
 typedef struct ksc_struct{
-#ifndef NULL_ISMACRYP
-  octet_t  key[AES_KEY_LEN];
-  octet_t  salt[AES_SALT_LEN];
-  octet_t  counter[AES_COUNTER_LEN];
-#else
  uint8_t  key[AES_KEY_LEN];
  uint8_t  salt[AES_SALT_LEN];
  uint8_t  counter[AES_COUNTER_LEN];
-#endif
 } ksc_t;
 
 
 typedef struct sess_struct{
   ismacryp_session_id_t sessid;  
   union { 
- #ifndef NULL_ISMACRYP
-    octet_t  aes_overlay[AES_TOT_LEN];
- #else
     uint8_t  aes_overlay[AES_TOT_LEN];
- #endif
     ksc_t    ksc;
   } kk;
- #ifndef NULL_ISMACRYP
+ #ifdef HAVE_SRTP
     cipher_t            *cp;
  #endif
   uint8_t             keycount;

@@ -27,6 +27,7 @@
 #include "audio_encoder.h"
 #include "video_encoder.h"
 #include "text_encoder.h"
+#include "liblibsrtp.h"
 
 //#define RTP_DEBUG 1
 //#define DEBUG_WRAP_TS 1
@@ -38,7 +39,7 @@ CRtpTransmitter::CRtpTransmitter (uint16_t mtu, bool disable_ts_offset) : CMedia
   m_rtpDestination = NULL;
   m_haveStartTimestamp = false;
 
-  m_mtu = mtu;
+  m_mtu = m_original_mtu = mtu;
 #ifdef DEBUG_WRAP_TS
   m_rtpTimestampOffset = 0xffff0000;
 #else 
@@ -57,12 +58,15 @@ CRtpTransmitter::~CRtpTransmitter (void)
   SDL_DestroyMutex(m_destListMutex);
 }
 
-void CRtpTransmitter::AddRtpDestination (const char *destAddress,
-					 in_port_t destPort,
-					 in_port_t srcPort,
-					 uint16_t max_ttl)
+void CRtpTransmitter::AddRtpDestination (mp4live_rtp_params_t *rtp_params)
 {
   CRtpDestination *dest, *p;
+  const char *destAddress = rtp_params->rtp_params.rtp_addr;
+  in_port_t destPort = rtp_params->rtp_params.rtp_tx_port;
+  in_port_t srcPort = rtp_params->rtp_params.rtp_rx_port;
+  uint8_t max_ttl = rtp_params->rtp_params.rtp_ttl;
+
+  rtp_params->rtp_params.rtcp_bandwidth = DEFAULT_RTCP_BW;
   debug_message("Creating rtp destination %s %u %u: ttl %u", 
 		destAddress, destPort, srcPort, max_ttl);
   /* wmay - comment out for now - might have to revisit for SSM
@@ -87,12 +91,15 @@ void CRtpTransmitter::AddRtpDestination (const char *destAddress,
   }
   SDL_UnlockMutex(m_destListMutex);
 
-  dest = new CRtpDestination(destAddress,
-			     destPort,
-			     srcPort,
-			     m_payloadNumber,
-			     max_ttl,
-			      DEFAULT_RTCP_BW);
+  dest = new CRtpDestination(rtp_params,
+			     m_payloadNumber);
+
+  if (rtp_params->use_srtp && rtp_params->srtp_params.rtp_auth) {
+    uint16_t diff = m_original_mtu - m_mtu;
+    if (diff > rtp_params->auth_len) {
+      m_mtu = m_original_mtu - rtp_params->auth_len;
+    }
+  }
   SDL_LockMutex(m_destListMutex);
   if (m_rtpDestination == NULL) {
     m_rtpDestination = dest;
@@ -464,7 +471,7 @@ void CAudioRtpTransmitter::SendQueuedAudioFrames(void)
 	// moved this from below
 	// See if we need to add the header.
 	int iov_start = 1;
-	int iov_add = 0;
+	uint iov_add = 0;
 	bool mbit = 1;
 	if (m_audio_set_rtp_payload != NULL) {
 		iov_start = 0;
@@ -540,7 +547,7 @@ void CAudioRtpTransmitter::SendAudioJumboFrame(CMediaFrame* pFrame)
   struct iovec iov[2];
   do {
     iov[1].iov_base = (u_int8_t*)pFrame->GetData() + dataOffset;
-    int iov_start = 1, iov_hdr = 0;
+    uint iov_start = 1, iov_hdr = 0;
     bool mbit;
     if (m_audio_set_rtp_jumbo_frame(iov,
 				    dataOffset, 
@@ -716,21 +723,13 @@ static void RtpCallback (struct rtp *session, rtp_event *e)
   }
 }
 
-CRtpDestination::CRtpDestination (const char *destAddr, 
-				  in_port_t destPort,
-				  in_port_t srcPort,
-				  uint8_t payloadNumber,
-				  int mcast_ttl,
-				  float rtcp_bandwidth)
+CRtpDestination::CRtpDestination (mp4live_rtp_params_t *rtp_params,
+				  uint8_t payloadNumber)
 {
-
-  m_destAddr = strdup(destAddr);
-  m_destPort = destPort;
-  m_srcPort = srcPort;
+  m_rtp_params = rtp_params;
   m_payloadNumber = payloadNumber;
-  m_mcast_ttl = mcast_ttl;
-  m_rtcp_bandwidth = rtcp_bandwidth;
   m_rtpSession = NULL;
+  m_srtpSession = NULL;
   m_next = NULL;
   m_ref_mutex = SDL_CreateMutex();
   m_reference = 1;
@@ -738,11 +737,15 @@ CRtpDestination::CRtpDestination (const char *destAddr,
 
 CRtpDestination::~CRtpDestination (void)
 {
-  CHECK_AND_FREE(m_destAddr);
   if (m_rtpSession != NULL) {
     rtp_done(m_rtpSession);
     m_rtpSession = NULL;
   }
+  if (m_srtpSession != NULL) {
+    destroy_srtp(m_srtpSession);
+    m_srtpSession = NULL;
+  }
+  free(m_rtp_params);
   SDL_DestroyMutex(m_ref_mutex);
 }
 
@@ -752,19 +755,32 @@ void CRtpDestination::start (void)
 
   while (m_rtpSession == NULL) {
     debug_message("Starting rtp dest %s %d %d", 
-		  m_destAddr, m_destPort, m_srcPort);
+		  m_rtp_params->rtp_params.rtp_addr,
+		  m_rtp_params->rtp_params.rtp_tx_port,
+		  m_rtp_params->rtp_params.rtp_rx_port);
+    if (m_rtp_params->rtp_params.rtcp_addr != NULL) {
+      debug_message("Rtcp %s %u", 
+		    m_rtp_params->rtp_params.rtcp_addr,
+		    m_rtp_params->rtp_params.rtcp_tx_port);
+    }
     /* wmay - comment out for now - might have to revisit for ssm
        if (m_srcPort == 0) m_srcPort = m_destPort;
      */
-    m_rtpSession = rtp_init_xmitter(m_destAddr,
-				    m_srcPort,
-				    m_destPort,
-				    m_mcast_ttl, 
-				    m_rtcp_bandwidth, 
-				    RtpCallback, (uint8_t *)this);
+    m_rtp_params->rtp_params.rtp_callback = RtpCallback;
+    m_rtp_params->rtp_params.userdata = this;
+
+    m_rtpSession = rtp_init_stream(&m_rtp_params->rtp_params);
+
     if (m_rtpSession == NULL) {
       error_message("Couldn't start rtp session");
       SDL_Delay(10);
+    } else {
+      //srtp init
+      //what format is the key in?
+      if (m_rtp_params->use_srtp) {
+	m_srtpSession = srtp_setup(m_rtpSession, &m_rtp_params->srtp_params);
+      }
+      
     }
   }
 }
@@ -780,11 +796,12 @@ void CRtpDestination::send_rtcp (u_int32_t rtpTimestamp,
 }
 
 int CRtpDestination::send_iov (struct iovec *piov,
-			       int iovCount,
+			       uint iovCount,
 			       u_int32_t rtpTimestamp,
 			       int mbit)
 {
   if (m_rtpSession != NULL) {
+
     int ret = rtp_send_data_iov(m_rtpSession,
 			     rtpTimestamp,
 			     m_payloadNumber,

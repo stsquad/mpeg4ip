@@ -72,19 +72,16 @@ protected:
 	uint16_t m_mtu;
 	virtual CRtpTransmitter *CreateRtpTransmitter(bool disable_ts_offset) = 0;
 	void AddRtpDestInt(bool disable_ts_offset, 
-			   uint16_t max_ttl,
-			   const char *dest_addr, 
-			   in_port_t destPort,
-			   in_port_t srcPort) {
+			   mp4live_rtp_params_t *rtp_params) {
 	  if (m_rtp_sink == NULL) {
 	    m_rtp_sink = CreateRtpTransmitter(disable_ts_offset);
 	    m_rtp_sink->StartThread();
 	    AddSink(m_rtp_sink);
 	  }
-	  m_rtp_sink->AddRtpDestination(dest_addr, 
-					destPort,
-					srcPort,
-					max_ttl);
+	  if (rtp_params->use_srtp && rtp_params->srtp_params.rtp_auth) {
+	    rtp_params->auth_len = AUTHENTICATION_DEFAULT_LEN;
+	  }
+	  m_rtp_sink->AddRtpDestination(rtp_params);
 	};
 
 };

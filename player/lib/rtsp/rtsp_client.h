@@ -127,10 +127,10 @@ typedef struct rtsp_session_ rtsp_session_t;
 
   struct rtp_packet;
   
-typedef void (*rtp_callback_f)(void *,
-			       unsigned char interleaved,
-			       struct rtp_packet *,
-			       uint32_t len);
+typedef void (*process_rtp_callback_f)(void *,
+				       unsigned char interleaved,
+				       struct rtp_packet *,
+				       uint32_t len);
 /*
  * free_decode_response - call this after the decode response has been
  * used.  It will free all memory under it.
@@ -163,11 +163,11 @@ rtsp_client_t *rtsp_create_client_for_rtp_tcp(const char *url,
   int rtsp_thread_perform_callback(rtsp_client_t *info,
 				   rtsp_thread_callback_f func,
 				   void *ud);
-int rtsp_thread_set_rtp_callback(rtsp_client_t *info,
-				 rtp_callback_f rtp_callback,
-				 rtsp_thread_callback_f rtp_periodic,
-				 int rtp_interleave,
-				 void *ud);
+  int rtsp_thread_set_process_rtp_callback(rtsp_client_t *info,
+					   process_rtp_callback_f rtp_callback,
+					   rtsp_thread_callback_f rtp_periodic,
+					   int rtp_interleave,
+					   void *ud);
   int rtsp_thread_send_rtcp(rtsp_client_t *info,
 			    int interleave,
 			    uint8_t *buffer,

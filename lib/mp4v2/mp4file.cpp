@@ -137,6 +137,9 @@ void MP4File::Create(const char* fileName, u_int32_t flags,
 
 	// start writing
 	m_pRootAtom->BeginWrite();
+	if (add_iods != 0) {
+	  AddChildAtom("moov", "iods");
+	}
 }
 
 bool MP4File::Use64Bits (const char *atomName)
@@ -1445,6 +1448,14 @@ MP4TrackId MP4File::AddEncAudioTrack(u_int32_t timeScale,
 			  "mdia.minf.stbl.stsd.enca.sinf.frma.data-format", 
 			  original_fmt);
 
+  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.enca.sinf"), 
+	       "schm");
+  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.enca.sinf"), 
+	       "schi");
+  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.enca.sinf.schi"), 
+	       "iKMS");
+  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.enca.sinf.schi"), 
+	       "iSFM");
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.enca.sinf.schm.scheme_type", 
 			  scheme_type);
@@ -1641,6 +1652,15 @@ MP4TrackId MP4File::AddEncVideoTrack(u_int32_t timeScale,
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.encv.sinf.frma.data-format", 
 			  original_fmt);
+
+  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.sinf"), 
+	       "schm");
+  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.sinf"), 
+	       "schi");
+  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.sinf.schi"), 
+	       "iKMS");
+  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.sinf.schi"), 
+	       "iSFM");
 
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.encv.sinf.schm.scheme_type", 

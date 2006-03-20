@@ -17,6 +17,8 @@ INCLUDES = -I$(top_srcdir)/server/mp4live \
 	-I$(top_srcdir)/lib/mp4av \
 	-I$(top_srcdir)/lib/msg_queue \
 	-I$(top_srcdir)/lib/utils \
+	-I$(top_srcdir)/lib/srtp \
+	-I$(top_srcdir)/lib/rtp \
 	-I$(top_srcdir)/lib/sdp 
 
 AM_CXXFLAGS = \

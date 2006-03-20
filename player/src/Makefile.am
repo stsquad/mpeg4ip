@@ -165,6 +165,7 @@ INCLUDES = \
 	-I$(top_srcdir)/lib/sdp \
 	-I$(top_srcdir)/lib/utils \
 	-I$(top_srcdir)/lib/audio \
+	-I$(top_srcdir)/lib/srtp \
 	@GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@  
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\" $(ADD_CFLAGS)
@@ -190,6 +191,7 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/lib/avi/libavi.la  \
 	$(top_builddir)/lib/ismacryp/libismacryp.la \
 	$(top_builddir)/lib/utils/libutils.la \
+	$(top_builddir)/lib/srtp/libsrtpif.la \
 	@SRTPLIB@
 
 mp4player_LDFLAGS = $(SDL_AUDIO_FLAGS)
@@ -203,6 +205,7 @@ mp4player_LDADD = \
 	libmp4playerutils.la \
 	$(top_builddir)/lib/audio/libaudio.la \
 	$(top_builddir)/lib/ismacryp/libismacryp.la \
+	$(top_builddir)/lib/srtp/libsrtpif.la \
 	@SDL_LIBS@ @SRTPLIB@
 
 gmp4player_LDFLAGS= $(SDL_AUDIO_FLAGS)

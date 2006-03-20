@@ -141,6 +141,7 @@ INCLUDES=\
 	-I$(top_srcdir)/lib/utils \
 	-I$(top_srcdir)/lib \
 	-I$(top_srcdir)/lib/mpeg2ps \
+	-I$(top_srcdir)/lib/srtp \
 	-I$(top_srcdir)/player/lib \
 	-I$(top_srcdir)/player/src \
 	-I$(srcdir)/h261 \
@@ -164,6 +165,8 @@ mp4live_LDADD = \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/lib/utils/libutils.la \
+	$(top_builddir)/lib/srtp/libsrtpif.la \
+	@SRTPLIB@ \
 	-lpthread \
 	@SDL_LIBS@ $(GUILIBS) @FFMPEG_LIB@ @LIBVORBIS_LIB@ $(XVID_LIB) \
 	@X264_LIB@ 

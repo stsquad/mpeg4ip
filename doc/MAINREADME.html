@@ -209,6 +209,8 @@ video content, AMR, mpeg-2 audio)</li>
 <li><a href="http://www.xvid.org">xvid</a> (mpeg-4 video encoding)</li>
 <li><a href="http://www.videolan.org/x264.html">x264</a> (H.264 video encoding)</li>
 <li>V4L2 interface (comes with 2.6 kernel, Fedora Core is a special case)</li>
+<li><a href="http://srtp.sourceforge.net/srtp.html">libSRTP</a> (Adds encryption and authentication to RTP streams)<br>
+Must be version 1.5 or later.</li> 
 </ul>
 <p>
 The developer recommends ffmpeg for mpeg-4 encoding.  Please see the
@@ -437,6 +439,11 @@ with RedHat 9 and the update process.
 If you have built a previous version of mpeg4ip, do a make uninstall first,
 or go in and remove libsndfile from your shared libraries directory, unless
 you have another version installed.
+<p>
+libSRTP: After building and installing the libSRTP pkg according to its intructions, 
+run cvs_bootstrap or configure so mpeg4ip will find and (statically) include the 
+libSRTP pkg.  If it is not found or if --disable-srtp is passed to configure, the libSRTP
+dependent calls with be conditionally compiled out.
 <P>
 <b>SuSE 9.0</b>
 <p>
@@ -748,6 +755,7 @@ iso-mpeg4 -  flattened directory version of ISO MPEG-4 video encoder/decoder<br>
 	|-&gt; mpeg2t - mpeg2 transport stream utilities<br>
         |-&gt; msg_queue - SDL based Inter-thread messages utlity<br>
         |-&gt; rtp - UCL RTP <br>
+        |-&gt; srtp - interface with libSRTP <br>
         |-&gt; sdp - Our own SDP<br>
         |-&gt; win32 - libary files need for MS Windows<br>
 <P>

@@ -286,9 +286,7 @@ int main(int argc, char** argv)
 	  }
 	  free(long_options);
 	}
-
 	
-
 	pConfig->m_appAutomatic = automatic;
 
 	ProbeVideoAudioCapabilities(pConfig);

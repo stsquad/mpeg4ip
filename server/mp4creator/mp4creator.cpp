@@ -695,8 +695,8 @@ int main(int argc, char** argv)
       outputFileName = tempName;
     }
 
-    MP4FileHandle outputFile = MP4Create(outputFileName, Verbosity,
-					 createFlags);
+    MP4FileHandle outputFile = MP4CreateEx(outputFileName, Verbosity,
+					   createFlags, true, true);
     MP4SetTimeScale(outputFile, Mp4TimeScale);
     u_int32_t numTracks = MP4GetNumberOfTracks(mp4File);
     for (u_int32_t i = 0; i < numTracks; i++) {

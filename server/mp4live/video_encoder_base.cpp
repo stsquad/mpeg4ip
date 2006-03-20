@@ -395,7 +395,6 @@ static void Mpeg43016SendVideo (CMediaFrame *pFrame, CRtpDestination *list,
     rdptr = list;
     while (rdptr != NULL) {
       int rc = rdptr->send_iov(&iov, 1, rtpTimestamp, lastPacket);
-      rc -= sizeof(rtp_packet_header);
       if (rc != (int)payloadLength) {
 	error_message("send_iov error - returned %d %d", rc, payloadLength);
       }
@@ -542,7 +541,6 @@ static void Mpeg2SendVideo (CMediaFrame *pFrame,
   while (rdptr != NULL) {
     int rc = rdptr->send_iov(iov, 2, rtpTimestamp, 
 			     len_to_write >= sampleSize ? 1 : 0);
-    rc -= sizeof(rtp_packet_header);
     rc -= sizeof(rfc2250);
     if (rc != (int)len_to_write) {
       error_message("send_iov error - returned %d %d", rc, len_to_write);

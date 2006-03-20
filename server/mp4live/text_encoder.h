@@ -37,15 +37,10 @@ class CTextEncoder : public CMediaCodec {
 
   virtual bool Init(void) = 0;
 
-  void AddRtpDestination (CMediaStream *stream,
-			  bool disable_ts_offset,
-			  uint16_t max_ttl,
-			  in_port_t srcPort = 0) {
-    AddRtpDestInt(disable_ts_offset, max_ttl,
-		  stream->GetStringValue(STREAM_TEXT_DEST_ADDR),
-		  stream->GetIntegerValue(STREAM_TEXT_DEST_PORT),
-		  srcPort);
-  };
+  void AddRtpDestination(CMediaStream *stream,
+			 bool disable_ts_offset,
+			 uint16_t max_ttl,
+			 in_port_t srcPort = 0);
 
   CTextEncoder *GetNext(void) {
     return (CTextEncoder *)CMediaCodec::GetNext();

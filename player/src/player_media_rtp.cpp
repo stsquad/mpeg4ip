@@ -32,6 +32,7 @@
 #include "rfc3119_bytestream.h"
 #include "mpeg3_rtp_bytestream.h"
 #include "rtp_bytestream_plugin.h"
+#include "liblibsrtp.h"
 
 #include "codec_plugin_private.h"
 //#define DROP_PAKS 1
@@ -145,6 +146,10 @@ void CPlayerMedia::rtp_end(void)
     rtp_done(m_rtp_session);
   }
   m_rtp_session = NULL;
+  if (m_srtp_session != NULL) {
+    destroy_srtp(m_srtp_session);
+    m_srtp_session = NULL;
+  }
 }
 
 int CPlayerMedia::rtcp_send_packet (uint8_t *buffer, uint32_t buflen)
@@ -166,9 +171,6 @@ int CPlayerMedia::recv_thread (void)
   int retcode;
   CMsg *newmsg;
   int recv_thread_stop = 0;
-  connect_desc_t *cptr;
-  cptr = get_connect_desc_from_media(m_media_info);
-
 
   m_rtp_buffering = 0;
   if (m_ports != NULL) {
@@ -193,47 +195,11 @@ int CPlayerMedia::recv_thread (void)
     abort();
   }
 #endif
-  double bw;
-
-  if (find_rtcp_bandwidth_from_media(m_media_info, &bw) < 0) {
-    bw = 5000.0;
-  } else {
-    media_message(LOG_DEBUG, "Using bw from sdp %g", bw);
-  }
-  m_rtp_session = NULL;
-  if (config.get_config_string(CONFIG_MULTICAST_RX_IF) != NULL) {
-    struct in_addr if_addr;
-    if (getIpAddressFromInterface(config.get_config_string(CONFIG_MULTICAST_RX_IF),
-				  &if_addr) >= 0) {
-      m_rtp_session = rtp_init_if(m_source_addr == NULL ? 
-				  cptr->conn_addr : m_source_addr, 
-				  inet_ntoa(if_addr),
-				  m_our_port, 
-				  m_server_port, 
-				  cptr == NULL ? 1 : cptr->ttl,
-				  bw,
-				  c_recv_callback,
-				  (uint8_t *)this,
-				  0);
-    }
-  }
-
-  if (m_rtp_session == NULL) {
-    m_rtp_session = rtp_init(m_source_addr == NULL ? 
-			     cptr->conn_addr : m_source_addr,
-			     m_our_port,
-			     m_server_port,
-			     cptr == NULL ? 1 : cptr->ttl, // need ttl here
-			     bw, // rtcp bandwidth ?
-			     c_recv_callback,
-			     (uint8_t *)this);
-  }
+  rtp_init(false);
   if (m_rtp_session != NULL) {
-    rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
-    rtp_set_option(m_rtp_session, RTP_OPT_PROMISC, TRUE);
     rtp_start();
   }
-  m_rtp_inited = 1;
+
   
   while (recv_thread_stop == 0) {
     if ((newmsg = m_rtp_msg_queue.get_message()) != NULL) {
@@ -437,26 +403,52 @@ void CPlayerMedia::set_rtp_base_seq (uint16_t seq)
   }
 }
 
-void CPlayerMedia::rtp_init_tcp (void) 
+void CPlayerMedia::rtp_init (bool do_tcp) 
 {
+  rtp_stream_params_t rsp;
   connect_desc_t *cptr;
   double bw;
+
+  rtp_default_params(&rsp);
 
   if (find_rtcp_bandwidth_from_media(m_media_info, &bw) < 0) {
     bw = 5000.0;
   } 
+  rsp.rtcp_bandwidth = bw;
   cptr = get_connect_desc_from_media(m_media_info);
-  m_rtp_session = rtp_init_extern_net(m_source_addr == NULL ? 
-				      cptr->conn_addr : m_source_addr,
-				      m_our_port,
-				      m_server_port,
-				      cptr->ttl,
-				      bw, // rtcp bandwidth ?
-				      c_recv_callback,
-				      c_rtcp_send_packet,
-				      (uint8_t *)this);
+  
+  rsp.rtp_addr = m_source_addr == NULL ? cptr->conn_addr : m_source_addr;
+  rsp.rtp_rx_port = m_our_port;
+  rsp.rtp_tx_port = m_server_port;
+  rsp.rtp_ttl = cptr == NULL ? 1 : cptr->ttl;
+  rsp.rtp_callback = c_recv_callback;
+  if (do_tcp) {
+    rsp.dont_init_sockets = 1;
+    rsp.rtcp_send_packet = c_rtcp_send_packet;
+  } else {
+    // udp.  See if we have a seperate rtcp field
+    if (m_media_info->rtcp_connect.used) {
+      rsp.rtcp_rx_port = m_media_info->rtcp_port;
+      rsp.rtcp_addr = m_media_info->rtcp_connect.conn_addr;
+      rsp.rtcp_ttl = m_media_info->rtcp_connect.ttl;
+    }
+    if (config.get_config_string(CONFIG_MULTICAST_RX_IF) != NULL) {
+      struct in_addr if_addr;
+      if (getIpAddressFromInterface(config.get_config_string(CONFIG_MULTICAST_RX_IF),
+				    &if_addr) >= 0) {
+	rsp.physical_interface_addr = inet_ntoa(if_addr);
+      }
+    }
+  }
+
+  rsp.userdata = this;
+  m_rtp_session = rtp_init_stream(&rsp);
+
   rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
   rtp_set_option(m_rtp_session, RTP_OPT_PROMISC, TRUE);
+  if (strncasecmp(m_media_info->proto, "RTP/SVP", strlen("RTP/SVP")) == 0) {
+    srtp_init();
+  }
   m_rtp_inited = 1;
 
 }
@@ -655,4 +647,26 @@ void CPlayerMedia::synchronize_rtp_bytestreams (rtcp_sync_t *sync)
   if (m_rtp_byte_stream != NULL) 
     m_rtp_byte_stream->synchronize(sync);
 }
+
+int CPlayerMedia::srtp_init (void)
+{
+  if (m_rtp_session == NULL) return -1;
+
+  const char *crypto;
+
+  crypto = find_unparsed_a_value(m_media_info->unparsed_a_lines, 
+				 "a=crypto");
+  if (crypto == NULL) {
+    media_message(LOG_CRIT, "%s: can't find a=crypto line in sdp for srtp",
+		  get_name());
+    return -1;
+  }
+
+  m_srtp_session = srtp_setup_from_sdp(get_name(), m_rtp_session, crypto);
+  if (m_srtp_session == NULL)
+    media_message(LOG_ERR, "player_media_rtp.srtp_init: srtp_setup failed");
+  
+  return 0;
+}
+    
 /* end player_media_rtp.cpp */

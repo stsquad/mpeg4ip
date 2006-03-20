@@ -25,6 +25,7 @@ INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I$(top_srcdir)/lib/mp4av \
 	-I$(top_srcdir)/lib/msg_queue \
 	-I$(top_srcdir)/lib/rtp \
+	-I$(top_srcdir)/lib/srtp \
 	-I$(top_srcdir)/lib/sdp \
 	-I$(top_srcdir)/lib/utils \
 	-I$(top_srcdir)/lib \

@@ -35,6 +35,7 @@
 #include "player_session.h"
 #include "audio.h"
 #include "video.h"
+#include "srtp/liblibsrtp.h"
 
 class C2ConsecIpPort;
 class COurInByteStream;
@@ -135,7 +136,7 @@ class CPlayerMedia {
     m_user_data_size = length;
   }
   rtsp_session_t *get_rtsp_session(void) { return m_rtsp_session; };
-  void rtp_init_tcp(void);
+  void rtp_init(bool do_tcp = false);
   void rtp_periodic(void);
   void rtp_start(void);
   void rtp_end(void);
@@ -144,6 +145,7 @@ class CPlayerMedia {
   int get_rtp_media_number (void) { return m_rtp_media_number_in_session; };
   void synchronize_rtp_bytestreams(rtcp_sync_t *sync);
  private:
+  int srtp_init(void);
   int create_common(const char *media_type);
   void wait_on_bytestream(void);
   const char *m_media_type;
@@ -177,6 +179,7 @@ class CPlayerMedia {
   int m_rtp_media_number_in_session;
   int m_rtp_buffering;
   struct rtp *m_rtp_session;
+  srtp_if_t *m_srtp_session;
   CRtpByteStreamBase *m_rtp_byte_stream;
   CMsgQueue m_rtp_msg_queue;
 

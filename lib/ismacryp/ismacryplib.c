@@ -15,6 +15,7 @@
  * 
  * Contributor(s): 
  *              Alex Vanzella           alexv@cisco.com
+ *              Will Clark              will_clark@cisco.com
  */
 
 #include "ismacryplib_priv.h"
@@ -29,6 +30,29 @@ static uint32_t FOUR_CHAR_CODE (char *code)
 {
   return code[0]<<24 | code[1]<<16 | code[2]<<8 | code[3];
 }
+
+#ifdef HAVE_SRTP
+static uint8_t
+local_nibble_to_hex_char(uint8_t nibble) {
+  char buf[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
+		  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+  return buf[nibble & 0xF];
+}
+
+static char *
+v64_hex_string(const v64_t *x) {
+  int i, j;
+  char bit_string[1024];
+
+  for (i=j=0; i < 8; i++) {
+    bit_string[j++]  = local_nibble_to_hex_char(x->v8[i] >> 4);
+    bit_string[j++]  = local_nibble_to_hex_char(x->v8[i] & 0xF);
+  }
+  
+  bit_string[j] = 0; 
+  return strdup(bit_string);
+}
+#endif
 
 static void addToSessionList (ismacryp_session_t *sp) {
 
@@ -96,7 +120,7 @@ static ismacryp_rc_t removeFromSessionList (ismacryp_session_id_t sid) {
   // end critical section
 
 
-  fprintf(stdout, "Error. Try to remove non-existant session: %d\n", sid);
+  fprintf(stdout, "Error. Try to remove non -existant session: %d\n", sid);
   // end critical section
   return ismacryp_rc_sessid_error;
 
@@ -151,7 +175,7 @@ static void printSessionList (void) {
                                        temp->IV_len, 
                                        ismacryp_keytypeStr[temp->key_type][7]);
      fprintf(stdout, "                 key : %s", 
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
                 octet_string_hex_string(temp->kk.ksc.key, AES_KEY_LEN)
 #else
                 "n/a"
@@ -159,7 +183,7 @@ static void printSessionList (void) {
                 );
      fprintf(stdout, "\n");
      fprintf(stdout, "                 salt: %s", 
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
                 octet_string_hex_string(temp->kk.ksc.salt, AES_SALT_LEN)
 #else
                 "n/a"
@@ -167,7 +191,7 @@ static void printSessionList (void) {
                 );
      fprintf(stdout, "\n");
      fprintf(stdout, "                 ctr : %s", 
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
                 octet_string_hex_string(temp->kk.ksc.counter, AES_COUNTER_LEN)
 #else
                 "n/a"
@@ -183,28 +207,33 @@ static ismacryp_rc_t initSessionData (ismacryp_session_id_t session,
                                ismacryp_session_t *sp,
                                ismacryp_keytype_t keytype) 
 {
+
+#ifdef HAVE_SRTP
   FILE *fp;
   int i;
   char kms_data_file[KMS_DATA_FILE_FILENAME_MAX_LEN];
   char kms_data[KMS_DATA_FILE_MAX_LINE_LEN+1];
   char temp[25];
-#ifndef NULL_ISMACRYP
   err_status_t rc = err_status_ok;
+  size_t pathlen;
+  size_t filenamelen;
+  int foundKey = FALSE;
+  int len;
 #endif
 
   sp->sessid = session;
   sp->next = NULL;
   sp->prev = NULL;
 
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
   // get the key material
   // NULL case, key and salt have been memset to 0, nothing breaks.
 
   strncpy(kms_data_file,getenv("HOME"),KMS_DATA_FILE_FILENAME_MAX_LEN);
-  int pathlen = strlen(kms_data_file);
-  int filenamelen = strlen(KMS_DATA_FILE);
+  pathlen = strlen(kms_data_file);
+  filenamelen = strlen(KMS_DATA_FILE);
   if ( (pathlen + filenamelen + 1) > KMS_DATA_FILE_FILENAME_MAX_LEN ) { // +1 for '/'
-     fprintf(stdout,"key file name too long\n",keytype);
+     fprintf(stdout,"key file name too long\n");
      return ismacryp_rc_keyfilename_error;
   }
   kms_data_file[pathlen+1] = kms_data_file[pathlen];
@@ -212,16 +241,16 @@ static ismacryp_rc_t initSessionData (ismacryp_session_id_t session,
   strncpy(&kms_data_file[pathlen+1], KMS_DATA_FILE, filenamelen );
 
   switch( keytype) {
-      case KeyTypeVideo:
-        strcpy(temp,KMS_DATA_VIDEOKEY_STR);
-        break;
-      case KeyTypeAudio:
-        strcpy(temp,KMS_DATA_AUDIOKEY_STR);
-        break;
-      default:
-        fprintf(stdout,"Unsupported key type: %d\n",keytype);
-        fclose(fp);
-        return ismacryp_rc_keytype_error;
+  case KeyTypeVideo:
+    strcpy(temp,KMS_DATA_VIDEOKEY_STR);
+    break;
+  case KeyTypeAudio:
+    strcpy(temp,KMS_DATA_AUDIOKEY_STR);
+    break;
+  case KeyTypeOther:
+  default:
+    fprintf(stdout,"Unsupported key type: %d\n",keytype);
+    return ismacryp_rc_keytype_error;
   }
 
   if ( !(fp=fopen(kms_data_file,"r")) ) {
@@ -229,8 +258,6 @@ static ismacryp_rc_t initSessionData (ismacryp_session_id_t session,
      return(ismacryp_rc_keyfile_error);
   }
 
-  int foundKey = FALSE;
-  int len;
   i = 0;
   while ( fgets(kms_data,KMS_DATA_FILE_MAX_LINE_LEN,fp))  {
      len = strlen(kms_data);
@@ -239,7 +266,9 @@ static ismacryp_rc_t initSessionData (ismacryp_session_id_t session,
 
      if ( !strncmp(kms_data, temp, strlen(KMS_DATA_AUDIOKEY_STR)) ) {
        for (i=0;i<AES_KEY_SALT_LEN;i++) {
-          fscanf(fp, "%x", &(sp->kk.aes_overlay[i]));
+	 uint temp;
+	 fscanf(fp, "%x", &temp);
+	 sp->kk.aes_overlay[i] = temp;
        }
        foundKey = TRUE;
        break;
@@ -264,10 +293,10 @@ static ismacryp_rc_t initSessionData (ismacryp_session_id_t session,
   sp->key_type      = keytype;
   sp->selective_enc = FALSE;
 
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
   // Allocate cipher.
   //fprintf(stdout," - allocate cipher for session %d\n", session);
-  rc=aes_icm_alloc(&(sp->cp), AES_KEY_SALT_LEN);
+  rc=aes_icm_alloc_ismacryp(&(sp->cp), AES_KEY_SALT_LEN, 1);
   if ( rc != err_status_ok ) {
       fprintf(stdout," - allocate cipher for session %d FAILED  rc = %d\n", session,
                                      rc );
@@ -287,12 +316,15 @@ static ismacryp_rc_t initSessionData (ismacryp_session_id_t session,
 }
 
 static ismacryp_rc_t unInitSessionData (ismacryp_session_t *sp) {
-  if(sp == NULL) {
+#ifdef HAVE_SRTP
+  err_status_t rc;
+#endif
+  if (sp == NULL) {
     fprintf(stdout, "Error. Try to uninit NULL session.\n");
     return ismacryp_rc_sessid_error;
   }
-#ifndef NULL_ISMACRYP
-  err_status_t rc = err_status_ok;
+#ifdef HAVE_SRTP
+  rc = err_status_ok;
   rc=aes_icm_dealloc(sp->cp);
 #endif
 
@@ -595,12 +627,12 @@ ismacryp_rc_t ismacrypEncryptSampleAddHeader (ismacryp_session_id_t session,
                                               uint8_t **new_data)
 {
   ismacryp_session_t *sp;
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
   err_status_t rc = err_status_ok;
+  uint8_t  nonce[AES_KEY_LEN];
 #endif
   uint8_t  *temp_data;
   int      header_length;
-  uint8_t  nonce[AES_KEY_LEN];
 
   if (findInSessionList(session, &sp)) {
      fprintf(stdout, "Failed to encrypt+add header. Unknown session %d \n", session);
@@ -619,8 +651,8 @@ ismacryp_rc_t ismacrypEncryptSampleAddHeader (ismacryp_session_id_t session,
 
         fprintf(stdout,"E s: %d, #%05d. l: %5d BSO: %6d IV l: %d ctr: %s left: %d\n", 
                        sp->sessid, sp->sample_count, length, sp->BSO, sp->IV_len,
-#ifndef NULL_ISMACRYP
-                       v64_hex_string((v64_t)((aes_icm_ctx_t *)(sp->cp->state))->counter.v64[1]),
+#ifdef HAVE_SRTP
+		v64_hex_string((v64_t *)&(((aes_icm_ctx_t *)(sp->cp->state))->counter.v64[1])),
                        ((aes_icm_ctx_t *)(sp->cp->state))->bytes_in_buffer
 #else
                        "n/a",
@@ -646,7 +678,7 @@ ismacryp_rc_t ismacrypEncryptSampleAddHeader (ismacryp_session_id_t session,
         sp->BSO+=length;
    }
 
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
    if ( sp->sample_count == 1 ) {
        memset(nonce,0,AES_KEY_LEN);
        //rc=aes_icm_set_segment(sp->cp->state, 0); // defunct function.
@@ -654,11 +686,12 @@ ismacryp_rc_t ismacrypEncryptSampleAddHeader (ismacryp_session_id_t session,
    }
 
    // length will not be updated in calling function (obviously) awv.
-   rc=aes_icm_encrypt(sp->cp->state, &temp_data[header_length],&length);
+   rc=aes_icm_encrypt_ismacryp(sp->cp->state, &temp_data[header_length],
+			       &length, 1);
    if (rc != err_status_ok) {
         free(new_data);
         new_data = NULL;
-        fprintf(stdout, "Failed to encrypt+add header. aes error %d \n", session, rc);
+        fprintf(stdout, "Failed to encrypt+add header. aes error %d %d \n", session, rc);
         return ismacryp_rc_encrypt_error;
    }
 #endif
@@ -672,9 +705,9 @@ ismacryp_rc_t ismacrypEncryptSample (ismacryp_session_id_t session,
                                      uint8_t *data)
 {
   ismacryp_session_t *sp;
-  uint8_t  nonce[AES_KEY_LEN];
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
   err_status_t rc = err_status_ok;
+  uint8_t  nonce[AES_KEY_LEN];
 #endif
 
   if (findInSessionList(session, &sp)) {
@@ -685,15 +718,15 @@ ismacryp_rc_t ismacrypEncryptSample (ismacryp_session_id_t session,
   sp->sample_count++;
   fprintf(stdout,"E s: %d, #%05d. l: %5d BSO: %6d IV l: %d ctr: %s left: %d\n", 
                        sp->sessid, sp->sample_count, length, sp->BSO, sp->IV_len,
-#ifndef NULL_ISMACRYP
-                       v64_hex_string((v64_t)((aes_icm_ctx_t *)(sp->cp->state))->counter.v64[1]),
+#ifdef HAVE_SRTP
+	  v64_hex_string((v64_t *)&(((aes_icm_ctx_t *)(sp->cp->state))->counter.v64[1])),
                        ((aes_icm_ctx_t *)(sp->cp->state))->bytes_in_buffer
 #else
                        "n/a",
                        0
 #endif
                        );
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
   if ( sp->sample_count == 1 ) {
       memset(nonce,0,AES_KEY_LEN);
       //rc=aes_icm_set_segment(sp->cp->state, 0); // defunct function.
@@ -701,7 +734,7 @@ ismacryp_rc_t ismacrypEncryptSample (ismacryp_session_id_t session,
   }
 
   // length will not be updated in calling function (obviously) awv.
-  rc=aes_icm_encrypt(sp->cp->state, data,&length);
+  rc=aes_icm_encrypt_ismacryp(sp->cp->state, data,&length, 1);
 #endif
 
   return ismacryp_rc_ok;
@@ -715,13 +748,9 @@ ismacryp_rc_t ismacrypDecryptSampleRemoveHeader (ismacryp_session_id_t session,
                                                  uint8_t **new_data)
 {
   ismacryp_session_t *sp;
-#ifndef NULL_ISMACRYP
-  err_status_t rc = err_status_ok;
-#endif
 
   uint8_t  *temp_data;
   int      header_length;
-  int      i;
   uint32_t *IV;
 
   if (findInSessionList(session, &sp)) {
@@ -761,9 +790,9 @@ ismacryp_rc_t ismacrypDecryptSample (ismacryp_session_id_t session,
                                      uint8_t *data)
 {
   ismacryp_session_t *sp;
-  uint8_t  nonce[AES_KEY_LEN];
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
   err_status_t rc = err_status_ok;
+  uint8_t  nonce[AES_KEY_LEN];
 #endif
 
   if (findInSessionList(session, &sp)) {
@@ -773,7 +802,7 @@ ismacryp_rc_t ismacrypDecryptSample (ismacryp_session_id_t session,
 
   sp->sample_count++;
 
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
   if ( sp->sample_count == 1 ) {
       memset(nonce,0,AES_KEY_LEN);
       //rc=aes_icm_set_segment(sp->cp->state, 0); // defunct function.
@@ -783,8 +812,8 @@ ismacryp_rc_t ismacrypDecryptSample (ismacryp_session_id_t session,
 
   fprintf(stdout,"D s: %d  #%05d  L: %5d  Ctr: %s  Left: %d\n", 
                        sp->sessid, sp->sample_count, length,
-#ifndef NULL_ISMACRYP
-                       v64_hex_string((v64_t)((aes_icm_ctx_t *)(sp->cp->state))->counter.v64[1]),
+#ifdef HAVE_SRTP
+	  v64_hex_string((v64_t *)&(((aes_icm_ctx_t *)(sp->cp->state))->counter.v64[1])),
                        ((aes_icm_ctx_t *)(sp->cp->state))->bytes_in_buffer
 #else
                        "n/a",
@@ -793,9 +822,9 @@ ismacryp_rc_t ismacrypDecryptSample (ismacryp_session_id_t session,
                        );
 
 
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
   // length will not be updated in calling function (obviously) awv.
-  rc=aes_icm_encrypt(sp->cp->state, data,&length);
+  rc=aes_icm_encrypt_ismacryp(sp->cp->state, data,&length, 1);
 #endif
 
   return ismacryp_rc_ok;
@@ -809,13 +838,13 @@ ismacryp_rc_t ismacrypDecryptSampleRandomAccess (
                                     uint8_t *data)
 { 
   ismacryp_session_t *sp;
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
   err_status_t rc = err_status_ok;
+  uint8_t   fakedata[16];
 #endif
   uint32_t  counter;
   uint32_t  remainder;
   uint8_t   nonce[AES_KEY_LEN];
-  uint8_t   fakedata[16];
   
   if (findInSessionList(session, &sp)) {
      fprintf(stdout, "Failed to decrypt random access. Unknown session %d \n", session);
@@ -837,9 +866,9 @@ ismacryp_rc_t ismacrypDecryptSampleRandomAccess (
        // this is the fake decrypt of remainder bytes.
        memset(nonce,0,AES_KEY_LEN);
        *((uint32_t *)(&nonce[12])) = htonl(counter);
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
        rc=aes_icm_set_iv(sp->cp->state, nonce);
-       rc=aes_icm_encrypt(sp->cp->state, fakedata, &remainder);
+       rc=aes_icm_encrypt_ismacryp(sp->cp->state, fakedata, &remainder, 1);
 #endif
 
        // now calculate the correct counter for this data 
@@ -849,7 +878,7 @@ ismacryp_rc_t ismacrypDecryptSampleRandomAccess (
 
   memset(nonce,0,AES_KEY_LEN);
   *((uint32_t *)(&nonce[12])) = htonl(counter);
-#ifndef NULL_ISMACRYP
+#ifdef HAVE_SRTP
   rc=aes_icm_set_iv(sp->cp->state, nonce);
   // set the number of bytes the previous key should decrypt 
   ((aes_icm_ctx_t *)(sp->cp->state))->bytes_in_buffer = remainder;
@@ -857,9 +886,10 @@ ismacryp_rc_t ismacrypDecryptSampleRandomAccess (
   
   fprintf(stdout,"D s: %d      RA BSO: %7d  L: %5d  Ctr: %s  Left: %d\n",
                        sp->sessid, BSO, length,
-#ifndef NULL_ISMACRYP
-                       v64_hex_string((v64_t)((aes_icm_ctx_t *)(sp->cp->state))->counter.v64[1]),
-                       ((aes_icm_ctx_t *)(sp->cp->state))->bytes_in_buffer
+#ifdef HAVE_SRTP
+	  //v64_hex_string((v64_t *)&(((aes_icm_ctx_t *)(sp->cp->state))->counter.v64[1])),
+	  "invalid",
+	    ((aes_icm_ctx_t *)(sp->cp->state))->bytes_in_buffer
 #else
                        "n/a",
                        0
@@ -867,10 +897,11 @@ ismacryp_rc_t ismacrypDecryptSampleRandomAccess (
                        );
   
   // length will not be updated in calling function (obviously) awv.
-#ifndef NULL_ISMACRYP
-  rc=aes_icm_encrypt(sp->cp->state, data,&length);
+#ifdef HAVE_SRTP
+  rc=aes_icm_encrypt_ismacryp(sp->cp->state, data,&length, 1);
 #endif
 
   return ismacryp_rc_ok;
 }
+
 

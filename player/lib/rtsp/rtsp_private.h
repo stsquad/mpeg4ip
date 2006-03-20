@@ -88,7 +88,7 @@ struct rtsp_client_ {
    */
   struct {
     int rtp_callback_set;
-    rtp_callback_f rtp_callback;
+    process_rtp_callback_f rtp_callback;
     rtsp_thread_callback_f rtp_periodic;
     void *rtp_userdata;
   } m_callback[MAX_RTP_THREAD_SESSIONS];

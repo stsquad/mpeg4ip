@@ -244,31 +244,25 @@ static int mpeg2t_thread_start_cmd (mpeg2t_client_t *info)
     info->data_socket = udp_fd(info->udp);
   } else {
     info->rtp_session = NULL;
+    rtp_stream_params_t rsp;
+    rtp_default_params(&rsp);
+    rsp.rtp_addr = info->address;
+    rsp.rtp_rx_port = info->rx_port;
+    rsp.rtp_tx_port = info->tx_port;
+    rsp.rtp_ttl = info->ttl;
+    rsp.rtcp_bandwidth = info->rtcp_bw;
+    rsp.rtp_callback = mpeg2t_rtp_callback;
+    rsp.userdata = info;
     if (config.get_config_string(CONFIG_MULTICAST_RX_IF) != NULL) {
       struct in_addr if_addr;
 
       if (getIpAddressFromInterface(config.get_config_string(CONFIG_MULTICAST_RX_IF),
 				    &if_addr) >= 0) {
-	info->rtp_session = rtp_init_if(info->address,
-					inet_ntoa(if_addr),
-					info->rx_port,
-					info->tx_port,
-					info->ttl,
-					info->rtcp_bw,
-					mpeg2t_rtp_callback,
-					(uint8_t *)info,
-					0);
+	rsp.physical_interface_addr = inet_ntoa(if_addr);
       }
     }
-    if (info->rtp_session == NULL) {
-      info->rtp_session = rtp_init(info->address,
-				   info->rx_port,
-				   info->tx_port,
-				   info->ttl,
-				   info->rtcp_bw,
-				   mpeg2t_rtp_callback,
-				   (uint8_t *)info);
-    }
+    info->rtp_session = rtp_init_stream(&rsp);
+
     if (info->rtp_session == NULL) {
       return -1;
     }

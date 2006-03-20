@@ -579,11 +579,11 @@ int rtsp_thread_perform_callback (rtsp_client_t *info,
   return (callback_ret);
 }
 
-int rtsp_thread_set_rtp_callback (rtsp_client_t *info,
-				  rtp_callback_f rtp_callback,
-				  rtsp_thread_callback_f rtp_periodic,
-				  int rtp_interleave,
-				  void *ud)
+int rtsp_thread_set_process_rtp_callback (rtsp_client_t *info,
+					  process_rtp_callback_f rtp_callback,
+					  rtsp_thread_callback_f rtp_periodic,
+					  int rtp_interleave,
+					  void *ud)
 {
   int ret, callback_ret;
   rtsp_wrap_msg_rtp_callback_t callback_body;

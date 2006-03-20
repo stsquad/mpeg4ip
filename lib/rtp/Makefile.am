@@ -78,6 +78,7 @@ EXTRA_DIST = \
 
 check_PROGRAMS = test_rtp_client test_rtp_server
 
+AM_CFLAGS = -DDEBUG -Wall -Werror
 test_rtp_client_SOURCES = test_rtp_client.c
 test_rtp_client_LDADD = libuclmmbase.la -lsrtp
 test_rtp_server_SOURCES = test_rtp_server.c
@@ -104,4 +105,3 @@ test_rtp_server_LDADD = libuclmmbase.la -lsrtp
 version.h: VERSION
 	sed -e 's/.*/#define CCL_VERSION "v&"/' $? > version.h
 
-AM_CFLAGS = -DDEBUG -I../..
