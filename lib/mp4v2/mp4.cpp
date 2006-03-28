@@ -640,18 +640,24 @@ extern "C" MP4TrackId MP4AddEncAudioTrack(MP4FileHandle hFile,
 					  u_int32_t timeScale, 
 					  MP4Duration sampleDuration,
                                           mp4v2_ismacrypParams *icPp,
-					  u_int8_t audioType
-                                          )
+					  u_int8_t audioType)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {
-      return ((MP4File*)hFile)->
-	AddEncAudioTrack(timeScale, sampleDuration, audioType,
-                         icPp->scheme_type, icPp->scheme_version, 
-                         icPp->key_ind_len, icPp->iv_len, 
-                         icPp->selective_enc, icPp->kms_uri);
-    }
-    catch (MP4Error* e) {
+      if (icPp == NULL) {
+	return ((MP4File*)hFile)->
+	  AddEncAudioTrack(timeScale, sampleDuration, audioType,
+			   0, 0, 
+			   0, 0, 
+			   false, NULL, false);
+      } else {
+	return ((MP4File*)hFile)->
+	  AddEncAudioTrack(timeScale, sampleDuration, audioType,
+			   icPp->scheme_type, icPp->scheme_version, 
+			   icPp->key_ind_len, icPp->iv_len, 
+			   icPp->selective_enc, icPp->kms_uri, true);
+      }
+    } catch (MP4Error* e) {
       PRINT_ERROR(e);
       delete e;
     }
@@ -802,13 +808,24 @@ extern "C" MP4TrackId MP4AddEncVideoTrack(MP4FileHandle hFile,
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {
-      return ((MP4File*)hFile)->AddEncVideoTrack(timeScale, sampleDuration, 
-						 width, height, videoType,
-                                                 icPp->scheme_type, icPp->scheme_version, 
-                                                 icPp->key_ind_len, icPp->iv_len, 
-                                                 icPp->selective_enc, icPp->kms_uri);
-    }
-    catch (MP4Error* e) {
+      if (icPp == NULL) {
+	return ((MP4File*)hFile)->AddEncVideoTrack(timeScale, sampleDuration, 
+						   width, height, videoType,
+						   0, 0,
+						   0, 0,
+						   false, NULL,
+						   false
+						   );
+      } else {
+	return ((MP4File*)hFile)->AddEncVideoTrack(timeScale, sampleDuration, 
+						   width, height, videoType,
+						   icPp->scheme_type, icPp->scheme_version, 
+						   icPp->key_ind_len, icPp->iv_len, 
+						   icPp->selective_enc, icPp->kms_uri,
+						   true
+						   );
+      }
+    } catch (MP4Error* e) {
       PRINT_ERROR(e);
       delete e;
     }

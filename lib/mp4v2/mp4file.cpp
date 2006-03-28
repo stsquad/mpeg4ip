@@ -1418,7 +1418,8 @@ MP4TrackId MP4File::AddEncAudioTrack(u_int32_t timeScale,
                                      u_int8_t  key_ind_len,
                                      u_int8_t  iv_len,
                                      bool      selective_enc,
-                                     char      *kms_uri
+                                     char      *kms_uri,
+				     bool use_ismacryp
                                      )
 {
   u_int32_t original_fmt = 0;
@@ -1443,46 +1444,48 @@ MP4TrackId MP4File::AddEncAudioTrack(u_int32_t timeScale,
 
   /* set all the ismacryp-specific values */
   // original format is mp4a
-  original_fmt = ('m'<<24 | 'p'<<16 | '4'<<8 | 'a');
-  SetTrackIntegerProperty(trackId,
-			  "mdia.minf.stbl.stsd.enca.sinf.frma.data-format", 
-			  original_fmt);
+  if (use_ismacryp) {
+    original_fmt = ('m'<<24 | 'p'<<16 | '4'<<8 | 'a');
+    SetTrackIntegerProperty(trackId,
+			    "mdia.minf.stbl.stsd.enca.sinf.frma.data-format", 
+			    original_fmt);
 
-  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.enca.sinf"), 
-	       "schm");
-  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.enca.sinf"), 
-	       "schi");
-  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.enca.sinf.schi"), 
-	       "iKMS");
-  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.enca.sinf.schi"), 
-	       "iSFM");
-  SetTrackIntegerProperty(trackId,
-			  "mdia.minf.stbl.stsd.enca.sinf.schm.scheme_type", 
-			  scheme_type);
+    AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.enca.sinf"), 
+		 "schm");
+    AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.enca.sinf"), 
+		 "schi");
+    AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.enca.sinf.schi"), 
+		 "iKMS");
+    AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.enca.sinf.schi"), 
+		 "iSFM");
+    SetTrackIntegerProperty(trackId,
+			    "mdia.minf.stbl.stsd.enca.sinf.schm.scheme_type", 
+			    scheme_type);
 
-  SetTrackIntegerProperty(trackId,
-			  "mdia.minf.stbl.stsd.enca.sinf.schm.scheme_version", 
-			  scheme_version);
+    SetTrackIntegerProperty(trackId,
+			    "mdia.minf.stbl.stsd.enca.sinf.schm.scheme_version", 
+			    scheme_version);
   
-  SetTrackStringProperty(trackId,
-			 "mdia.minf.stbl.stsd.enca.sinf.schi.iKMS.kms_URI", 
-			 kms_uri);
-  if (kms_uri != NULL) {
-    free(kms_uri);
-  }  
+    SetTrackStringProperty(trackId,
+			   "mdia.minf.stbl.stsd.enca.sinf.schi.iKMS.kms_URI", 
+			   kms_uri);
+    if (kms_uri != NULL) {
+      free(kms_uri);
+    }  
 
-  SetTrackIntegerProperty(trackId,
-			  "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.selective-encryption", 
-			  selective_enc);
+    SetTrackIntegerProperty(trackId,
+			    "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.selective-encryption", 
+			    selective_enc);
 
-  SetTrackIntegerProperty(trackId,
-			  "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.key-indicator-length", 
-			  key_ind_len);
+    SetTrackIntegerProperty(trackId,
+			    "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.key-indicator-length", 
+			    key_ind_len);
 
-  SetTrackIntegerProperty(trackId,
-			  "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.IV-length", 
-			  iv_len);
-  /* end ismacryp */
+    SetTrackIntegerProperty(trackId,
+			    "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.IV-length", 
+			    iv_len);
+    /* end ismacryp */
+  }
 
   SetTrackIntegerProperty(trackId, 
 			  "mdia.minf.stbl.stsd.enca.timeScale", timeScale);
@@ -1630,7 +1633,8 @@ MP4TrackId MP4File::AddEncVideoTrack(u_int32_t timeScale,
 				     u_int8_t key_ind_len,
                                      u_int8_t iv_len,
                                      bool selective_enc,
-                                     char *kms_uri
+                                     char *kms_uri,
+				     bool use_ismacryp
                                      )
 {
   u_int32_t original_fmt = 0;
@@ -1648,47 +1652,49 @@ MP4TrackId MP4File::AddEncVideoTrack(u_int32_t timeScale,
 
   /* set all the ismacryp-specific values */
   // original format is mp4v
-  original_fmt = ATOMID("mp4v");
-  SetTrackIntegerProperty(trackId,
-			  "mdia.minf.stbl.stsd.encv.sinf.frma.data-format", 
-			  original_fmt);
+  if (use_ismacryp) {
+    original_fmt = ATOMID("mp4v");
+    SetTrackIntegerProperty(trackId,
+			    "mdia.minf.stbl.stsd.encv.sinf.frma.data-format", 
+			    original_fmt);
 
-  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.sinf"), 
-	       "schm");
-  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.sinf"), 
-	       "schi");
-  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.sinf.schi"), 
-	       "iKMS");
-  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.sinf.schi"), 
-	       "iSFM");
+    AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.sinf"), 
+		 "schm");
+    AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.sinf"), 
+		 "schi");
+    AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.sinf.schi"), 
+		 "iKMS");
+    AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.sinf.schi"), 
+		 "iSFM");
 
-  SetTrackIntegerProperty(trackId,
-			  "mdia.minf.stbl.stsd.encv.sinf.schm.scheme_type", 
-			  scheme_type);
+    SetTrackIntegerProperty(trackId,
+			    "mdia.minf.stbl.stsd.encv.sinf.schm.scheme_type", 
+			    scheme_type);
 
-  SetTrackIntegerProperty(trackId,
-			  "mdia.minf.stbl.stsd.encv.sinf.schm.scheme_version", 
-			  scheme_version);
+    SetTrackIntegerProperty(trackId,
+			    "mdia.minf.stbl.stsd.encv.sinf.schm.scheme_version", 
+			    scheme_version);
   
-  SetTrackStringProperty(trackId,
-			 "mdia.minf.stbl.stsd.encv.sinf.schi.iKMS.kms_URI", 
-			 kms_uri);
+    SetTrackStringProperty(trackId,
+			   "mdia.minf.stbl.stsd.encv.sinf.schi.iKMS.kms_URI", 
+			   kms_uri);
+
+    SetTrackIntegerProperty(trackId,
+			    "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.selective-encryption", 
+			    selective_enc);
+
+    SetTrackIntegerProperty(trackId,
+			    "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.key-indicator-length", 
+			    key_ind_len);
+
+    SetTrackIntegerProperty(trackId,
+			    "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.IV-length", 
+			    iv_len);
+  }
+  /* end ismacryp */
   if (kms_uri != NULL) {
     free(kms_uri);
   }  
-
-  SetTrackIntegerProperty(trackId,
-			  "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.selective-encryption", 
-			  selective_enc);
-
-  SetTrackIntegerProperty(trackId,
-			  "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.key-indicator-length", 
-			  key_ind_len);
-
-  SetTrackIntegerProperty(trackId,
-			  "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.IV-length", 
-			  iv_len);
-  /* end ismacryp */
 
 
   SetTrackIntegerProperty(trackId, 

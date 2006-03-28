@@ -215,7 +215,8 @@ public: /* equivalent to MP4 library API */
                 u_int8_t  key_ind_len,
                 u_int8_t  iv_len, 
                 bool      selective_enc,
-                char      *kms_uri);
+                char      *kms_uri,
+		bool      use_ismacryp);
 
 	void SetAmrVendor(
 			MP4TrackId trackId,
@@ -258,7 +259,8 @@ public: /* equivalent to MP4 library API */
                 u_int8_t  key_ind_len,
                 u_int8_t  iv_len,
                 bool      selective_enc,
-                char      *kms_uri);
+                char      *kms_uri,
+		bool      use_ismacryp);
 
 
 	void SetH263Vendor(
