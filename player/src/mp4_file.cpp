@@ -338,8 +338,8 @@ int CMp4File::create_text(CPlayerSession *psptr,
 #endif
 
       int ret;
-      plugin = check_for_text_codec(tq[text_offset].stream_type,
-				    tq[text_offset].compressor,
+      plugin = check_for_text_codec(tq[ix].stream_type,
+				    tq[ix].compressor,
 				    NULL,
 				    NULL,
 				    0, 
@@ -473,7 +473,8 @@ int CMp4File::create_media (CPlayerSession *psptr,
       for (ix = 0; pictheadersize[ix] != 0; ix++) {
 	bufsize += pictheadersize[ix] + 4;
       }
-      foo = (uint8_t *)malloc(bufsize);
+      foo = (uint8_t *)malloc(bufsize + 4);
+      memset(foo, 0, bufsize + 4);
       uint32_t copied = 0;
       // headers do not have the byte stream start code stored in the file
       for (ix = 0; seqheadersize[ix] != 0; ix++) {

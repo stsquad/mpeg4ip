@@ -1501,7 +1501,7 @@ int main (int argc, char **argv)
   gtk_window_set_title(GTK_WINDOW(main_window), buffer);
   gtk_widget_set_uposition(GTK_WIDGET(main_window), 10, 10);
   gtk_widget_set_usize(main_window, 450, 200);
-  gtk_window_set_default_size(GTK_WINDOW(main_window), 450, 200);
+  gtk_window_set_default_size(GTK_WINDOW(main_window), 460, 210);
   gtk_signal_connect(GTK_OBJECT(main_window),
 		     "delete_event",
 		     GTK_SIGNAL_FUNC(delete_event),

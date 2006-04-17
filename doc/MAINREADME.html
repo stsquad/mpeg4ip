@@ -275,10 +275,14 @@ bootstrap or cvs_bootstrap.  <code>&lt;directory&gt;</code> is required and
 must be the absolute path to where the ffmpeg code has been compiled - do not 
 use ~.  
 <p>
-For version 0.4.9, we recommend that you install the ffmpeg libraries and 
+For version 0.4.9 or later, we recommend that you install the ffmpeg libraries and 
 include files.  When installing ffmpeg, use the additional <code>make 
 installlib</code> command.  mpeg4ip should then automatically 
 detect that the ffmpeg library exists.
+<p>
+Note: as of April, 2006, the <code>make installlib</code> no longer
+appears to be required.  A regular <code>make install</code> seems
+to be enough.
 <p>
 If you wish AMR decoding, you will want to build ffmpeg with AMR support -
 see their documentation for that. (Basically, use their --enable-amr_wb and

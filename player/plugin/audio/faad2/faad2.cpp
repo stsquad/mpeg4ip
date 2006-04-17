@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: faad2.cpp,v 1.9 2006/02/18 00:57:14 wmaycisco Exp $
+** $Id: faad2.cpp,v 1.10 2006/04/17 19:03:49 wmaycisco Exp $
 **/
 #include "faad2.h"
 #include <mpeg4_audio_config.h>
@@ -378,7 +378,7 @@ static int aac_codec_check (lib_message_func_t message,
       return -1;
     }
 #endif
-    return 1;
+    return 3;
   }
   return -1;
 }

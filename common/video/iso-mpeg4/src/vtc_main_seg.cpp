@@ -260,7 +260,7 @@ Void CVTCEncoder::get_real_image(PICTURE *MyImage, Int wvtDecompLev,
       origin_y[col] = origin_y[0]/Ny[0];
     }
     ret=GetBox(inimage[col], 
-	       (Void **)&outimage[col], 
+	       (Void **)&outimage[col][0], 
 	       Width[col], Height[col], 
 	       width[col], height[col], origin_x[col], origin_y[col], 0);
     
@@ -349,7 +349,7 @@ Void CVTCEncoder::get_virtual_image(PICTURE *MyImage, Int wvtDecompLev,
       origin_y[col] = origin_y[0]/Ny[0];
     }
     ret=GetBox(inimage[col], 
-	       (Void **)&outimage[col], 
+	       (Void **)&outimage[col][0], 
 	       Width[col], Height[col], 
 	       width[col], height[col], origin_x[col], origin_y[col], 0);
     

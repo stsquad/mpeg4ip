@@ -324,6 +324,7 @@ MP4Atom* MP4Atom::ReadAtom(MP4File* pFile, MP4Atom* pParentAtom)
 	if (dataSize == 1) {
 		dataSize = pFile->ReadUInt64(); 
 		hdrSize += 8;
+		pFile->Check64BitStatus(type);
 	}
 
 	// extended type

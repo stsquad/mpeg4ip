@@ -209,65 +209,86 @@ codec_data_t *mp3_file_check (lib_message_func_t message,
       mp3->m_buffer_size += value;
       mp3->m_buffer_on = 0;
     }
-    
-    bytes = 
-      mp3->m_mp3_info->findheader(&mp3->m_buffer[mp3->m_buffer_on], 
-				  mp3->m_buffer_size - mp3->m_buffer_on, 
-				  &framesize);
-    if (bytes < 0) {
-      mp3->m_buffer_on = mp3->m_buffer_size - 3;
+    if (mp3->m_buffer[mp3->m_buffer_on] == 'I' &&
+	mp3->m_buffer[mp3->m_buffer_on + 1] == 'D' &&
+	mp3->m_buffer[mp3->m_buffer_on + 2] == '3') {
+      // have ID3 tag
+      bytes = ((mp3->m_buffer[mp3->m_buffer_on + 6] & 0x7f) << 21) |
+	((mp3->m_buffer[mp3->m_buffer_on + 7] & 0x7f) << 14) |
+	((mp3->m_buffer[mp3->m_buffer_on + 8] & 0x7f) << 7) |
+	(mp3->m_buffer[mp3->m_buffer_on + 9] & 0x7f);
+      bytes += 10;
+      if ((mp3->m_buffer[mp3->m_buffer_on + 5] & 0x10) != 0) {
+	bytes += 10;
+      }
+      bytes -= mp3->m_buffer_size - mp3->m_buffer_on;
+      mp3->m_buffer_on = mp3->m_buffer_size;
+      fseek(mp3->m_ifile, SEEK_CUR, bytes);
+      // advance bytes
     } else {
+      bytes = 
+	mp3->m_mp3_info->findheader(&mp3->m_buffer[mp3->m_buffer_on], 
+				    mp3->m_buffer_size - mp3->m_buffer_on, 
+				    &framesize);
+#if 0
+      message(LOG_DEBUG, "mp3file", "check from %u value %d", 
+	      ftell(mp3->m_ifile) - mp3->m_buffer_size, bytes);
+#endif
+      if (bytes < 0) {
+	mp3->m_buffer_on = mp3->m_buffer_size - 3;
+      } else {
 
-      mp3->m_buffer_on += bytes;  // skipped bytes
+	mp3->m_buffer_on += bytes;  // skipped bytes
 
-      // check framesize as compared to m_buffersize_max
-      if (mp3->m_buffer_on + framesize > mp3->m_buffer_size) {
-	int extra = mp3->m_buffer_on + framesize - mp3->m_buffer_size;
+	// check framesize as compared to m_buffersize_max
+	if (mp3->m_buffer_on + framesize > mp3->m_buffer_size) {
+	  int extra = mp3->m_buffer_on + framesize - mp3->m_buffer_size;
 
 	
-	int val = fseek(mp3->m_ifile, extra, SEEK_CUR);
-	mp3->m_buffer_on = 0;
-	mp3->m_buffer_size = 0;
-	if (val < 0) {
-	  message(LOG_DEBUG, "mp3", "fseek returned %d errno %d", val, errno);
-	  continue;
-	}
-      } else {
-	mp3->m_buffer_on += framesize;
-      }
-	  
-      if (first == 0) {
-	first = 1;
-	freq = mp3->m_mp3_info->getfrequency();
-	samplesperframe = 32;
-	if (mp3->m_mp3_info->getlayer() == 3) {
-	  samplesperframe *= 18;
-	  if (mp3->m_mp3_info->getversion() == 0) {
-	    samplesperframe *= 2;
+	  int val = fseek(mp3->m_ifile, extra, SEEK_CUR);
+	  mp3->m_buffer_on = 0;
+	  mp3->m_buffer_size = 0;
+	  if (val < 0) {
+	    message(LOG_DEBUG, "mp3", "fseek returned %d errno %d", val, errno);
+	    continue;
 	  }
 	} else {
-	  samplesperframe *= SCALEBLOCK;
-	  if (mp3->m_mp3_info->getlayer() == 2) {
-	    samplesperframe *= 3;
+	  mp3->m_buffer_on += framesize;
+	}
+	  
+	if (first == 0) {
+	  first = 1;
+	  freq = mp3->m_mp3_info->getfrequency();
+	  samplesperframe = 32;
+	  if (mp3->m_mp3_info->getlayer() == 3) {
+	    samplesperframe *= 18;
+	    if (mp3->m_mp3_info->getversion() == 0) {
+	      samplesperframe *= 2;
+	    }
+	  } else {
+	    samplesperframe *= SCALEBLOCK;
+	    if (mp3->m_mp3_info->getlayer() == 2) {
+	      samplesperframe *= 3;
+	    }
+	  }
+	  mp3->m_samplesperframe = samplesperframe;
+	  mp3->m_freq = freq;
+	}
+	if ((framecount % 16) == 0) {
+	  fpos_t pos;
+	  if (fgetpos(mp3->m_ifile, &pos) >= 0) {
+	    uint64_t current;
+	    FPOS_TO_VAR(pos, uint64_t, current);
+	    current -= framesize;
+	    current -= mp3->m_buffer_size - mp3->m_buffer_on;
+	    uint64_t calc;
+	    calc = framecount * mp3->m_samplesperframe * TO_U64(1000);
+	    calc /= mp3->m_freq;
+	    mp3->m_fpos->record_point(current, calc, framecount);
 	  }
 	}
-	mp3->m_samplesperframe = samplesperframe;
-	mp3->m_freq = freq;
+	framecount++;
       }
-      if ((framecount % 16) == 0) {
- 	fpos_t pos;
-	if (fgetpos(mp3->m_ifile, &pos) >= 0) {
-	  uint64_t current;
-	  FPOS_TO_VAR(pos, uint64_t, current);
-	  current -= framesize;
-	  current -= mp3->m_buffer_size - mp3->m_buffer_on;
-	  uint64_t calc;
-	  calc = framecount * mp3->m_samplesperframe * TO_U64(1000);
-	  calc /= mp3->m_freq;
-	  mp3->m_fpos->record_point(current, calc, framecount);
-	}
-      }
-      framecount++;
     }
   }
 
@@ -329,6 +350,25 @@ int mp3_file_next_frame (codec_data_t *your_data,
       mp3->m_buffer_size += readbytes;
     }
       
+    if (mp3->m_buffer[mp3->m_buffer_on] == 'I' &&
+	mp3->m_buffer[mp3->m_buffer_on + 1] == 'D' &&
+	mp3->m_buffer[mp3->m_buffer_on + 2] == '3') {
+      // have ID3 tag
+      uint bytes;
+      bytes = ((mp3->m_buffer[mp3->m_buffer_on + 6] & 0x7f) << 21) |
+	((mp3->m_buffer[mp3->m_buffer_on + 7] & 0x7f) << 14) |
+	((mp3->m_buffer[mp3->m_buffer_on + 8] & 0x7f) << 7) |
+	(mp3->m_buffer[mp3->m_buffer_on + 9] & 0x7f);
+      bytes += 10;
+      if ((mp3->m_buffer[mp3->m_buffer_on + 5] & 0x10) != 0) {
+	bytes += 10;
+      }
+      bytes -= mp3->m_buffer_size - mp3->m_buffer_on;
+      mp3->m_buffer_on = mp3->m_buffer_size;
+      fseek(mp3->m_ifile, SEEK_CUR, bytes);
+      // advance bytes
+      continue;
+    } 
     bytes_skipped = 
       mp3->m_mp3_info->findheader(&mp3->m_buffer[mp3->m_buffer_on], 
 				  mp3->m_buffer_size - mp3->m_buffer_on, 

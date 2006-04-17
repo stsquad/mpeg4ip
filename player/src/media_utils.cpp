@@ -492,6 +492,23 @@ static int create_media_from_sdp_file(CPlayerSession *psptr,
 			  cc_vft));
 }
 
+
+static int create_media_from_sdp(CPlayerSession *psptr, 
+				 const char *name, 
+				 int have_audio_driver,
+				 control_callback_vft_t *cc_vft)
+{
+  sdp_decode_info_t *sdp_info;
+
+  sdp_info = set_sdp_decode_from_memory(name);
+  return create_from_sdp(psptr, 
+			 name, 
+			 sdp_info, 
+			 have_audio_driver,
+			 cc_vft);
+}
+
+
 static int create_media_for_http (CPlayerSession *psptr,
 				  const char *name,
 				  control_callback_vft_t *cc_vft)
@@ -676,6 +693,16 @@ int parse_name_for_session (CPlayerSession *psptr,
     return err;
   }
 #endif
+
+  if (strncmp(name, "v=0\r\n", strlen("v=0\r\n")) == 0) {
+    // sdp
+    err = create_media_from_sdp(psptr, 
+				name, 
+				have_audio_driver,
+				cc_vft);
+    return err;
+  }
+
 #ifndef _WIN32
   if (strncmp(name, "mpeg2t://", strlen("mpeg2t://")) == 0) {
     err = create_mpeg2t_session(psptr, name, NULL, 

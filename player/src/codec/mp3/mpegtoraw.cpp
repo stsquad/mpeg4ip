@@ -291,7 +291,7 @@ bool MPEGaudio::loadheader(void)
   }
 
 #ifdef DEBUG_AUDIO
-  fprintf(stderr, "MPEG %d audio layer %d (%d kbps), at %d Hz %s [%d]\n", version+1, layer,  bitrate[version][layer-1][bitrateindex], frequencies[version][frequency], (mode == single) ? "mono" : "stereo", framesize);
+  fprintf(stderr, "MPEG %d audio layer %d (%d kbps), at %d Hz %s [%d]\n", version+1, layer,  bitrate[version][layer-1][bitrateindex], frequencies[sampling_freq], (mode == single) ? "mono" : "stereo", framesize);
 #endif
 
 

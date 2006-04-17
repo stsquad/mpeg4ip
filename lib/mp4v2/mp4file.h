@@ -70,7 +70,7 @@ public: /* equivalent to MP4 library API */
 	}
 
 	bool Use64Bits(const char *atomName);
-
+	void Check64BitStatus(const char *atomName);
 	/* file properties */
 
 	u_int64_t GetIntegerProperty(const char* name);

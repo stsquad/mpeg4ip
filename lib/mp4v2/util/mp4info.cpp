@@ -110,7 +110,7 @@ int main(int argc, char** argv)
 		    fprintf(stdout, " Metadata Album: %s\n", value);
 		    free(value);
 		  }
-		  if (MP4GetMetadataTrack(mp4file, &numvalue, &numvalue2)) {
+  		  if (MP4GetMetadataTrack(mp4file, &numvalue, &numvalue2)) {
 		    fprintf(stdout, " Metadata track: %u of %u\n", numvalue,
 			    numvalue2);
 		  }

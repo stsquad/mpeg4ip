@@ -314,7 +314,7 @@ bool MP4File::DeleteMetadataComment()
 
 bool MP4File::SetMetadataYear(const char* value)
 {
-  if (strlen(value) != 4) return false;
+  //if (strlen(value) != 4) return false;
 
   return SetMetadataString("\251day", value);
 }
@@ -371,15 +371,15 @@ bool MP4File::GetMetadataTrack(u_int16_t* track, u_int16_t* totalTracks)
 
     GetBytesProperty(s, (u_int8_t**)&val, &valSize);
 
-    if (valSize != 8)
-        return false;
-
-    *track = (u_int16_t)(val[3]);
-    *track += (u_int16_t)(val[2]<<8);
-    *totalTracks = (u_int16_t)(val[5]);
-    *totalTracks += (u_int16_t)(val[4]<<8);
-
-    return true;
+    if (valSize == 8) {
+      *track = (u_int16_t)(val[3]);
+      *track += (u_int16_t)(val[2]<<8);
+      *totalTracks = (u_int16_t)(val[5]);
+      *totalTracks += (u_int16_t)(val[4]<<8);
+      
+      return true;
+    } 
+    return false;
 }
 
 bool MP4File::DeleteMetadataTrack()
@@ -389,7 +389,7 @@ bool MP4File::DeleteMetadataTrack()
 
 bool MP4File::SetMetadataDisk(u_int16_t disk, u_int16_t totalDisks)
 {
-    unsigned char t[9];
+    unsigned char t[7];
     const char *s = "moov.udta.meta.ilst.disk.data";
     MP4BytesProperty *pMetadataProperty = NULL;
     MP4Atom *pMetaAtom = NULL;
@@ -404,7 +404,7 @@ bool MP4File::SetMetadataDisk(u_int16_t disk, u_int16_t totalDisks)
         pMetaAtom = m_pRootAtom->FindAtom(s);
     }
 
-    memset(t, 0, 9*sizeof(unsigned char));
+    memset(t, 0, 7*sizeof(unsigned char));
     t[2] = (unsigned char)(disk>>8)&0xFF;
     t[3] = (unsigned char)(disk)&0xFF;
     t[4] = (unsigned char)(totalDisks>>8)&0xFF;
@@ -413,7 +413,7 @@ bool MP4File::SetMetadataDisk(u_int16_t disk, u_int16_t totalDisks)
     pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
     ASSERT(pMetadataProperty);
 
-    pMetadataProperty->SetValue((u_int8_t*)t, 8);
+    pMetadataProperty->SetValue((u_int8_t*)t, 6);
 
     return true;
 }
@@ -429,14 +429,13 @@ bool MP4File::GetMetadataDisk(u_int16_t* disk, u_int16_t* totalDisks)
 
     GetBytesProperty(s, (u_int8_t**)&val, &valSize);
 
-    if (valSize != 8)
-        return false;
-
-    *disk = (u_int16_t)(val[3]);
-    *disk += (u_int16_t)(val[2]<<8);
-    *totalDisks = (u_int16_t)(val[5]);
-    *totalDisks += (u_int16_t)(val[4]<<8);
-
+    if (valSize == 6 || valSize == 8) {
+      *disk = (u_int16_t)(val[3]);
+      *disk += (u_int16_t)(val[2]<<8);
+      *totalDisks = (u_int16_t)(val[5]);
+      *totalDisks += (u_int16_t)(val[4]<<8);
+      return true;
+    }
     return true;
 }
 

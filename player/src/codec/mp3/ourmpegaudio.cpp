@@ -25,8 +25,7 @@ int MPEGaudio::findheader (uint8_t *frombuffer,
 			   uint32_t *frameptr)
 {
 
-  for (uint32_t skipped = 0; 
-       skipped <= frombuffer_len - 4;
+  for (uint32_t skipped = 0;        skipped <= frombuffer_len - 4;
        skipped++) {
     if (frombuffer[skipped] == 0xff &&
 	((frombuffer[skipped + 1] & 0xe0) == 0xe0)) {

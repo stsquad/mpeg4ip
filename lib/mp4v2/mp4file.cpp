@@ -144,16 +144,29 @@ void MP4File::Create(const char* fileName, u_int32_t flags,
 
 bool MP4File::Use64Bits (const char *atomName)
 {
-  if (!strcmp(atomName, "mdat") || !strcmp(atomName, "stbl")) {
+  uint32_t atomid = ATOMID(atomName);
+  if (atomid == ATOMID("mdat") || atomid == ATOMID("stbl")) {
     return (m_createFlags & MP4_CREATE_64BIT_DATA) == MP4_CREATE_64BIT_DATA;
-  }
-
-  if (!strcmp(atomName, "mvhd") || 
-      !strcmp(atomName, "tkhd") ||
-      !strcmp(atomName, "mdhd")) {
+  } 
+  if (atomid == ATOMID("mvhd") ||
+      atomid == ATOMID("tkhd") ||
+      atomid == ATOMID("mdhd")) {
     return (m_createFlags & MP4_CREATE_64BIT_TIME) == MP4_CREATE_64BIT_TIME;
   }
   return false;
+}
+
+void MP4File::Check64BitStatus (const char *atomName)
+{
+  uint32_t atomid = ATOMID(atomName);
+
+  if (atomid == ATOMID("mdat") || atomid == ATOMID("stbl")) {
+    m_createFlags |= MP4_CREATE_64BIT_DATA;
+  } else if (atomid == ATOMID("mvhd") ||
+	     atomid == ATOMID("tkhd") ||
+	     atomid == ATOMID("mdhd")) {
+    m_createFlags |= MP4_CREATE_64BIT_TIME;
+  }
 }
 
     

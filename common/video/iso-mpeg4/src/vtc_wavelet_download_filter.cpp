@@ -1,4 +1,4 @@
-/* $Id: vtc_wavelet_download_filter.cpp,v 1.1 2005/05/09 21:29:49 wmaycisco Exp $ */
+/* $Id: vtc_wavelet_download_filter.cpp,v 1.2 2006/04/17 19:03:49 wmaycisco Exp $ */
 /****************************************************************************/
 /*   MPEG4 Visual Texture Coding (VTC) Mode Software                        */
 /*                                                                          */
@@ -161,7 +161,7 @@ Void CVTCCommon::upload_wavelet_filters(FILTER *filter)
 
   /* poInters to filter taps */
   usptr=(UShort *)&s;
-  uIntptr=(UInt *)&f;
+  uIntptr=(UInt *)(void *)&f;
 
   /* filter lengths */
   emit_bits((UShort)filter->LPLength,4);
@@ -217,7 +217,7 @@ Int CVTCCommon::download_wavelet_filters(FILTER **Filter, Int type) // modified 
 	Int h_size = 0; // added by Sharp (99/2/16)
 
   usptr=(UShort *)&s;
-  uIntptr=(UInt *)&f;
+  uIntptr=(UInt *)(void *)&f;
 
   /* hjlee 0901 */
   filter = (FILTER *)malloc(sizeof(FILTER));
