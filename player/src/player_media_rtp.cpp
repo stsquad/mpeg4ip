@@ -38,7 +38,7 @@
 //#define DROP_PAKS 1
 static void c_recv_callback (struct rtp *session, rtp_event *e)
 {
-  CPlayerMedia *m = (CPlayerMedia *)rtp_get_userdata(session);
+  CPlayerMedia *m = (CPlayerMedia *)rtp_get_recv_userdata(session);
   m->recv_callback(session, e);
 }
 
@@ -141,7 +141,7 @@ void CPlayerMedia::rtp_start (void)
 
 void CPlayerMedia::rtp_end(void)
 {
-  if (m_rtp_session != NULL) {
+  if (m_rtp_session != NULL && m_rtp_session_from_outside == false) {
     rtp_send_bye(m_rtp_session);
     rtp_done(m_rtp_session);
   }
@@ -409,45 +409,50 @@ void CPlayerMedia::rtp_init (bool do_tcp)
   connect_desc_t *cptr;
   double bw;
 
-  rtp_default_params(&rsp);
+  if (m_rtp_session == NULL) {
+    m_rtp_session_from_outside = false;
+    rtp_default_params(&rsp);
 
-  if (find_rtcp_bandwidth_from_media(m_media_info, &bw) < 0) {
-    bw = 5000.0;
-  } 
-  rsp.rtcp_bandwidth = bw;
-  cptr = get_connect_desc_from_media(m_media_info);
+    if (find_rtcp_bandwidth_from_media(m_media_info, &bw) < 0) {
+      bw = 5000.0;
+    } 
+    rsp.rtcp_bandwidth = bw;
+    cptr = get_connect_desc_from_media(m_media_info);
   
-  rsp.rtp_addr = m_source_addr == NULL ? cptr->conn_addr : m_source_addr;
-  rsp.rtp_rx_port = m_our_port;
-  rsp.rtp_tx_port = m_server_port;
-  rsp.rtp_ttl = cptr == NULL ? 1 : cptr->ttl;
-  rsp.rtp_callback = c_recv_callback;
-  if (do_tcp) {
-    rsp.dont_init_sockets = 1;
-    rsp.rtcp_send_packet = c_rtcp_send_packet;
-  } else {
-    // udp.  See if we have a seperate rtcp field
-    if (m_media_info->rtcp_connect.used) {
-      rsp.rtcp_rx_port = m_media_info->rtcp_port;
-      rsp.rtcp_addr = m_media_info->rtcp_connect.conn_addr;
-      rsp.rtcp_ttl = m_media_info->rtcp_connect.ttl;
-    }
-    if (config.get_config_string(CONFIG_MULTICAST_RX_IF) != NULL) {
-      struct in_addr if_addr;
-      if (getIpAddressFromInterface(config.get_config_string(CONFIG_MULTICAST_RX_IF),
-				    &if_addr) >= 0) {
-	rsp.physical_interface_addr = inet_ntoa(if_addr);
+    rsp.rtp_addr = m_source_addr == NULL ? cptr->conn_addr : m_source_addr;
+    rsp.rtp_rx_port = m_our_port;
+    rsp.rtp_tx_port = m_server_port;
+    rsp.rtp_ttl = cptr == NULL ? 1 : cptr->ttl;
+    rsp.rtp_callback = c_recv_callback;
+    if (do_tcp) {
+      rsp.dont_init_sockets = 1;
+      rsp.rtcp_send_packet = c_rtcp_send_packet;
+    } else {
+      // udp.  See if we have a seperate rtcp field
+      if (m_media_info->rtcp_connect.used) {
+	rsp.rtcp_rx_port = m_media_info->rtcp_port;
+	rsp.rtcp_addr = m_media_info->rtcp_connect.conn_addr;
+	rsp.rtcp_ttl = m_media_info->rtcp_connect.ttl;
+      }
+      if (config.get_config_string(CONFIG_MULTICAST_RX_IF) != NULL) {
+	struct in_addr if_addr;
+	if (getIpAddressFromInterface(config.get_config_string(CONFIG_MULTICAST_RX_IF),
+				      &if_addr) >= 0) {
+	  rsp.physical_interface_addr = inet_ntoa(if_addr);
+	}
       }
     }
-  }
 
-  rsp.userdata = this;
-  m_rtp_session = rtp_init_stream(&rsp);
+    rsp.recv_userdata = this;
+    m_rtp_session = rtp_init_stream(&rsp);
 
-  rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
-  rtp_set_option(m_rtp_session, RTP_OPT_PROMISC, TRUE);
-  if (strncasecmp(m_media_info->proto, "RTP/SVP", strlen("RTP/SVP")) == 0) {
-    srtp_init();
+    rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
+    rtp_set_option(m_rtp_session, RTP_OPT_PROMISC, TRUE);
+    if (strncasecmp(m_media_info->proto, "RTP/SVP", strlen("RTP/SVP")) == 0) {
+      srtp_init();
+    }
+  } else {
+    m_rtp_session_from_outside = true;
   }
   m_rtp_inited = 1;
 

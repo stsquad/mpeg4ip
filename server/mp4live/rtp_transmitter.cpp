@@ -58,9 +58,36 @@ CRtpTransmitter::~CRtpTransmitter (void)
   SDL_DestroyMutex(m_destListMutex);
 }
 
+void CRtpTransmitter::DoAddRtpDestinationToQueue (CRtpDestination *dest)
+{
+  CRtpDestination *p;
+  SDL_LockMutex(m_destListMutex);
+  if (m_rtpDestination == NULL) {
+    m_rtpDestination = dest;
+  } else {
+    p = m_rtpDestination;
+    while (p->get_next() != NULL) {
+      p = p->get_next();
+    }
+    p->set_next(dest);
+  }
+  SDL_UnlockMutex(m_destListMutex);
+}
+
+void CRtpTransmitter::AddRtpDestination (struct rtp *rtp)
+{
+  CRtpDestination *dest;
+
+  dest = new CRtpDestination(rtp, m_payloadNumber);
+  
+  m_mtu = m_original_mtu - rtp_get_mtu_adjustment(rtp);
+  DoAddRtpDestinationToQueue(dest);
+}
+
+  
 void CRtpTransmitter::AddRtpDestination (mp4live_rtp_params_t *rtp_params)
 {
-  CRtpDestination *dest, *p;
+  CRtpDestination *dest;
   const char *destAddress = rtp_params->rtp_params.rtp_addr;
   in_port_t destPort = rtp_params->rtp_params.rtp_tx_port;
   in_port_t srcPort = rtp_params->rtp_params.rtp_rx_port;
@@ -100,17 +127,8 @@ void CRtpTransmitter::AddRtpDestination (mp4live_rtp_params_t *rtp_params)
       m_mtu = m_original_mtu - rtp_params->auth_len;
     }
   }
-  SDL_LockMutex(m_destListMutex);
-  if (m_rtpDestination == NULL) {
-    m_rtpDestination = dest;
-  } else {
-    p = m_rtpDestination;
-    while (p->get_next() != NULL) {
-      p = p->get_next();
-    }
-    p->set_next(dest);
-  }
-  SDL_UnlockMutex(m_destListMutex);
+
+  DoAddRtpDestinationToQueue(dest);
 }
 
 
@@ -733,19 +751,34 @@ CRtpDestination::CRtpDestination (mp4live_rtp_params_t *rtp_params,
   m_next = NULL;
   m_ref_mutex = SDL_CreateMutex();
   m_reference = 1;
+  m_destroy_rtp_session = true;
 }
+
+CRtpDestination::CRtpDestination (struct rtp *session, 
+				  uint8_t payloadNumber)
+{
+  m_rtp_params = NULL;
+  m_payloadNumber = payloadNumber;
+  m_rtpSession = session;
+  m_srtpSession = NULL;
+  m_next = NULL;
+  m_ref_mutex = SDL_CreateMutex();
+  m_reference = 1;
+  m_destroy_rtp_session = false;
+}
+  
 
 CRtpDestination::~CRtpDestination (void)
 {
-  if (m_rtpSession != NULL) {
+  if (m_rtpSession != NULL && m_destroy_rtp_session) {
     rtp_done(m_rtpSession);
-    m_rtpSession = NULL;
   }
+  m_rtpSession = NULL;
   if (m_srtpSession != NULL) {
     destroy_srtp(m_srtpSession);
     m_srtpSession = NULL;
   }
-  free(m_rtp_params);
+  CHECK_AND_FREE(m_rtp_params);
   SDL_DestroyMutex(m_ref_mutex);
 }
 
@@ -767,7 +800,7 @@ void CRtpDestination::start (void)
        if (m_srcPort == 0) m_srcPort = m_destPort;
      */
     m_rtp_params->rtp_params.rtp_callback = RtpCallback;
-    m_rtp_params->rtp_params.userdata = this;
+    m_rtp_params->rtp_params.recv_userdata = this;
 
     m_rtpSession = rtp_init_stream(&m_rtp_params->rtp_params);
 

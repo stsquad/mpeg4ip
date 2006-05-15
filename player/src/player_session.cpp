@@ -96,6 +96,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_stop_processing = SDL_CreateSemaphore(0);
   m_audio_count = m_video_count = m_text_count = 0;
   m_mouse_click_callback = NULL;
+  m_audio_rtp_session = m_video_rtp_session = NULL;
 }
 
 CPlayerSession::~CPlayerSession ()

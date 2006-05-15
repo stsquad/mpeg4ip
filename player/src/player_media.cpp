@@ -283,7 +283,8 @@ int CPlayerMedia::create_media (const char *media_type,
 int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
 				    int ondemand,
 				    int use_rtsp,
-				    int media_number_in_session)
+				    int media_number_in_session,
+				    struct rtp *rtp_session)
 {
   char buffer[80];
   rtsp_command_t cmd;
@@ -317,19 +318,25 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
 
   m_media_info = sdp_media;
   m_stream_ondemand = ondemand;
+  m_rtp_session = rtp_session;
+
   if (ondemand != 0) {
     /*
      * Get 2 consecutive IP ports.  If we don't have this, don't even
      * bother
      */
     if (use_rtsp == 0) {
-      m_ports = new C2ConsecIpPort(m_parent->get_unused_ip_port_ptr());
-      if (m_ports == NULL || !m_ports->valid()) {
-	m_parent->set_message("Could not find any valid IP ports");
-	media_message(LOG_ERR, "Couldn't get valid IP ports");
-	return (-1);
+      if (m_rtp_session != NULL) {
+	m_our_port = rtp_get_rx_port(m_rtp_session);
+      } else {
+	m_ports = new C2ConsecIpPort(m_parent->get_unused_ip_port_ptr());
+	if (m_ports == NULL || !m_ports->valid()) {
+	  m_parent->set_message("Could not find any valid IP ports");
+	  media_message(LOG_ERR, "Couldn't get valid IP ports");
+	  return (-1);
+	}
+	m_our_port = m_ports->first_port();
       }
-      m_our_port = m_ports->first_port();
 
       /*
        * Send RTSP setup message - first create the transport string for that

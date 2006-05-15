@@ -1,4 +1,3 @@
-SUBDIRS = win32
 
 noinst_LTLIBRARIES = libuclmmbase.la
 
@@ -74,6 +73,8 @@ EXTRA_DIST = \
 	VERSION \
 	test_rtp_encrypt.txt \
 	test-libcommon 
+
+INCLUDES=-I$(top_srcdir)/include 
 
 check_PROGRAMS = test_rtp_client test_rtp_server
 

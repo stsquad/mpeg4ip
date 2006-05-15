@@ -107,13 +107,13 @@ do	cd $dir
 done
 fi
 
-cd $pwd/lib/rtp
-aclocal $ACLOCAL_FLAGS || exit 3
-libtoolize --force
-autoheader
-automake --add-missing --foreign || exit 1
-autoconf || exit 1
-cd $pwd
+#cd $pwd/lib/rtp
+#aclocal $ACLOCAL_FLAGS || exit 3
+#libtoolize --force
+#autoheader
+#automake --add-missing --foreign || exit 1
+#autoconf || exit 1
+#cd $pwd
 
 cd $pwd/common/video/iso-mpeg4
 aclocal $ACLOCAL_FLAGS || exit 3

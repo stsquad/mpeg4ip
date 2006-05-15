@@ -94,7 +94,8 @@ CPlayerSession *start_session(CMsgQueue *master_queue,
 			      int screen_loc_y,
 			      int screen_size,
 			      double start_time = 0,
-			      bool use_thread = true);
+			      struct rtp *video_rtp = NULL,
+			      struct rtp *audio_rtp = NULL );
 // internal api only
 int parse_name_for_session(CPlayerSession *psptr,
 			    const char *name,

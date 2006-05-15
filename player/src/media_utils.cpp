@@ -318,7 +318,8 @@ static int create_media_from_sdp (CPlayerSession *psptr,
       err = mptr->create_streaming(vq[ix].fptr->media, 
 				   broadcast, 
 				   config.get_config_value(CONFIG_USE_RTP_OVER_RTSP),
-				   media_count);
+				   media_count, 
+				   ix == 0 ? psptr->get_video_rtp_session() : NULL);
       if (err < 0) {
 	return (-1);
       }
@@ -334,7 +335,8 @@ static int create_media_from_sdp (CPlayerSession *psptr,
       err = mptr->create_streaming(aq[ix].fptr->media, 
 				   broadcast, 
 				   config.get_config_value(CONFIG_USE_RTP_OVER_RTSP),
-				   media_count);
+				   media_count,
+				   ix == 0 ? psptr->get_audio_rtp_session() : NULL);
       if (err < 0) {
 	return (-1);
       }
@@ -350,7 +352,8 @@ static int create_media_from_sdp (CPlayerSession *psptr,
       err = mptr->create_streaming(tq[ix].fptr->media, 
 				   broadcast, 
 				   config.get_config_value(CONFIG_USE_RTP_OVER_RTSP),
-				   media_count);
+				   media_count,
+				   NULL);
       if (err < 0) {
 	return (-1);
       }
@@ -939,7 +942,9 @@ CPlayerSession *start_session (CMsgQueue *master_queue,
 			       int screen_loc_y,
 			       int screen_size,
 			       double start_time,
-			       bool start_thread)
+			       struct rtp *video_rtp,
+			       struct rtp *audio_rtp
+			       )
 {
   CPlayerSession *psptr;
 
@@ -955,6 +960,8 @@ CPlayerSession *start_session (CMsgQueue *master_queue,
 			     start_time);
   if (psptr == NULL) return NULL;
 
+  psptr->set_audio_rtp_session(audio_rtp);
+  psptr->set_video_rtp_session(video_rtp);
   psptr->set_audio_volume(audio_volume);
   psptr->set_screen_location(screen_loc_x, screen_loc_y);
   bool fullscreen = config.GetBoolValue(CONFIG_FULL_SCREEN);

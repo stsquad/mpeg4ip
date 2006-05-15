@@ -16,7 +16,7 @@
  * SOFTWARE.
  */
 #ifndef _WIN32
-#include "uclconf.h"
+#include "mpeg4ip_config.h"
 #endif
 #ifndef HAVE_INET_NTOP
 #include "config_unix.h"
@@ -127,7 +127,9 @@ inet_ntop6(src, dst, size)
 	for (i = 0; i < IN6ADDRSZ; i++)
 		words[i / 2] |= (src[i] << ((1 - (i % 2)) << 3));
 	best.base = -1;
+	best.len = 0;
 	cur.base = -1;
+	cur.len = 0;
 	for (i = 0; i < (IN6ADDRSZ / INT16SZ); i++) {
 		if (words[i] == 0) {
 			if (cur.base == -1)

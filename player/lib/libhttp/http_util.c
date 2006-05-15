@@ -305,13 +305,15 @@ void http_debug (int loglevel, const char *fmt, ...)
       OutputDebugString("\n");
 #else
       struct timeval thistime;
+      struct tm thistm;
       char buffer[80];
       time_t secs;
 
       gettimeofday(&thistime, NULL);
       // To add date, add %a %b %d to strftime
       secs = thistime.tv_sec;
-      strftime(buffer, sizeof(buffer), "%X", localtime(&secs));
+      localtime_r(&secs, &thistm);
+      strftime(buffer, sizeof(buffer), "%X", &thistm);
       printf("%s.%03ld-libhttp-%d: ",
 	     buffer, (unsigned long)thistime.tv_usec / 1000, loglevel);
       vprintf(fmt, ap);

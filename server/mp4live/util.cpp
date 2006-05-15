@@ -30,17 +30,10 @@
 void error_message (const char *fmt, ...)
 {
   va_list ap;
-  struct timeval thistime;
-  char buffer[80];
 
-  gettimeofday(&thistime, NULL);
-  // To add date, add %a %b %d to strftime
-  strftime(buffer, sizeof(buffer), "%T", localtime(&thistime.tv_sec));
-  printf("%s.%03ld-mp4live-3: ", buffer, thistime.tv_usec / 1000);
   va_start(ap, fmt);
-  vprintf(fmt, ap);
+  library_message(LOG_ERR, "mp4live", fmt, ap);
   va_end(ap);
-  printf("\n");
 }
 
 bool PrintDebugMessages = false;
@@ -52,17 +45,9 @@ void debug_message (const char *fmt, ...)
   }
 
   va_list ap;
-  struct timeval thistime;
-  char buffer[80];
-
-  gettimeofday(&thistime, NULL);
-  // To add date, add %a %b %d to strftime
-  strftime(buffer, sizeof(buffer), "%T", localtime(&thistime.tv_sec));
-  printf("%s.%03ld-mp4live-7: ", buffer, thistime.tv_usec / 1000);
   va_start(ap, fmt);
-  vprintf(fmt, ap);
+  library_message(LOG_DEBUG, "mp4live", fmt, ap);
   va_end(ap);
-  printf("\n");
 }
 
 bool ValidateIpAddress (const char *address)

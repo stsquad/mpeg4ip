@@ -269,154 +269,161 @@ static int have_recv_buf_size =
 ;
 static int recv_buf_size_value = 65536;
 
-static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_port, uint16_t tx_port, int ttl)
+static socket_udp *udp_init4 (const char *addr, const char *iface, 
+			      uint16_t rx_port, uint16_t tx_port, int ttl)
 {
-	int                 	 reuse = 1;
-	struct sockaddr_in  	 s_in;
-	int recv_buf_size;
-	int test_buffer;
-	socklen_t test_buffer_size=sizeof(test_buffer);
+  int                 	 reuse = 1;
+  struct sockaddr_in  	 s_in;
+  int recv_buf_size;
+  int test_buffer;
+  socklen_t test_buffer_size=sizeof(test_buffer);
 
-	socket_udp         	*s = (socket_udp *)malloc(sizeof(socket_udp));
-	s->mode    = IPv4;
-	s->addr    = NULL;
-	s->rx_port = rx_port;
-	s->tx_port = tx_port;
-	s->ttl     = ttl;
-	if (inet_pton(AF_INET, addr, &s->addr4) != 1) {
-		struct hostent *h = gethostbyname(addr);
-		if (h == NULL) {
-			socket_error("Can't resolve IP address for %s", addr);
-                        free(s);
-			return NULL;
-		}
-		memcpy(&(s->addr4), h->h_addr_list[0], sizeof(s->addr4));
-	}
-	if (iface != NULL) {
-		if (inet_pton(AF_INET, iface, &s->iface4_addr) != 1) {
-			rtp_message(LOG_ERR, "Illegal interface specification");
-                        free(s);
-			return NULL;
-		}
-	} else {
-		s->iface4_addr.s_addr = 0;
-	}
-	s->fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (s->fd < 0) {
-		socket_error("socket");
-		free(s);
-		return NULL;
-	}
-	if (have_recv_buf_size != 0) {
-	  recv_buf_size = recv_buf_size_value;
-	  if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_RCVBUF, (char *)&recv_buf_size, sizeof(int)) != 0) {
-	    socket_error("setsockopt SO_RCVBUF");
-	    close(s->fd);
-	    free(s);
-	    return NULL;
-	  }
+  socket_udp         	*s = (socket_udp *)malloc(sizeof(socket_udp));
+  s->mode    = IPv4;
+  s->addr    = NULL;
+  s->rx_port = rx_port;
+  s->tx_port = tx_port;
+  s->ttl     = ttl;
+  if (addr != NULL) {
+    if (inet_pton(AF_INET, addr, &s->addr4) != 1) {
+      struct hostent *h = gethostbyname(addr);
+      if (h == NULL) {
+	socket_error("Can't resolve IP address for %s", addr);
+	free(s);
+	return NULL;
+      }
+      memcpy(&(s->addr4), h->h_addr_list[0], sizeof(s->addr4));
+    }
+  } else {
+    s->addr4.s_addr = 0;
+  }
 
-        //Since setsockopt would not return the error if /proc/sys/net/core/rmem_max is smaller
-        //then the value you are trying to set. use sysctl -w net.core.rmem_max=new_val
-        //to set the value higher than what is desired in RCVBUF
-	  if( getsockopt( s->fd, SOL_SOCKET, SO_RCVBUF, (void*)&test_buffer, &test_buffer_size ) == -1 )
-	    {
-	      socket_error("getsockopt SO_RCVBUF");
-	    } else {
-	      //See if we could set the desired value
-	      if(test_buffer < recv_buf_size) {
-		rtp_message(LOG_WARNING, "Failed to set the RCVBUF to %d, only could set %d\n. Check the Max kernel receive buffer size using \"sysctl net.core.rmem_max\"\n", recv_buf_size, test_buffer);
-	      }
-	    }
+  if (iface != NULL) {
+    if (inet_pton(AF_INET, iface, &s->iface4_addr) != 1) {
+      rtp_message(LOG_ERR, "Illegal interface specification");
+      free(s);
+      return NULL;
+    }
+  } else {
+    s->iface4_addr.s_addr = 0;
+  }
+  s->fd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (s->fd < 0) {
+    socket_error("socket");
+    free(s);
+    return NULL;
+  }
+  if (have_recv_buf_size != 0) {
+    recv_buf_size = recv_buf_size_value;
+    if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_RCVBUF, (char *)&recv_buf_size, sizeof(int)) != 0) {
+      socket_error("setsockopt SO_RCVBUF");
+      close(s->fd);
+      free(s);
+      return NULL;
+    }
+
+    //Since setsockopt would not return the error if /proc/sys/net/core/rmem_max is smaller
+    //then the value you are trying to set. use sysctl -w net.core.rmem_max=new_val
+    //to set the value higher than what is desired in RCVBUF
+    if( getsockopt( s->fd, SOL_SOCKET, SO_RCVBUF, (void*)&test_buffer, &test_buffer_size ) == -1 )
+      {
+	socket_error("getsockopt SO_RCVBUF");
+      } else {
+	//See if we could set the desired value
+	if(test_buffer < recv_buf_size) {
+	  rtp_message(LOG_WARNING, "Failed to set the RCVBUF to %d, only could set %d\n. Check the Max kernel receive buffer size using \"sysctl net.core.rmem_max\"\n", recv_buf_size, test_buffer);
 	}
+      }
+  }
 	
-	if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) != 0) {
-		socket_error("setsockopt SO_REUSEADDR");
-		close(s->fd);
-		free(s);
-		return NULL;
-	}
+  if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) != 0) {
+    socket_error("setsockopt SO_REUSEADDR");
+    close(s->fd);
+    free(s);
+    return NULL;
+  }
 #ifdef SO_REUSEPORT
-	if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEPORT, (char *) &reuse, sizeof(reuse)) != 0) {
+  if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEPORT, (char *) &reuse, sizeof(reuse)) != 0) {
+    close(s->fd);
+    free(s);
+    socket_error("setsockopt SO_REUSEPORT");
+    return NULL;
+  }
+#endif
+  s_in.sin_family      = AF_INET;
+  s_in.sin_addr.s_addr = INADDR_ANY;
+  s_in.sin_port        = htons(rx_port);
+  if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
+    socket_error("bind: port %d", rx_port);
+    close(s->fd);
+    free(s);
+    return NULL;
+  }
+  if (IN_MULTICAST(ntohl(s->addr4.s_addr))) {
+    char            loop = 1;
+#ifndef HAVE_IGMP_V3
+    struct ip_mreq  imr;
+    imr.imr_multiaddr.s_addr = s->addr4.s_addr;
+    imr.imr_interface.s_addr = s->iface4_addr.s_addr;
+
+    if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) != 0) {
+      socket_error("setsockopt IP_ADD_MEMBERSHIP");
+      close(s->fd);
+      free(s);
+      return NULL;
+    }
+#else 
+    rtp_message(LOG_DEBUG,"IGMPV3 src:%s\n", G_Multicast_Src);
+    /* Join Multicast group with source filter */
+    if (G_IGMP_V3 != 0 &&
+	strcmp(G_Multicast_Src, "0.0.0.0") != 0) {
+      struct ip_mreq_source imr;
+      imr.imr_multiaddr.s_addr = s->addr4.s_addr;
+      imr.imr_interface.s_addr = s->iface4_addr.s_addr;
+      if (inet_aton(G_Multicast_Src, &imr.imr_sourceaddr) == 0) {
+	rtp_message(LOG_ERR, "inet_aton failed for %s\n",
+		    G_Multicast_Src);
+	return NULL;
+      }
+
+      if( setsockopt( s->fd, IPPROTO_IP, IP_ADD_SOURCE_MEMBERSHIP,
+		      (char*)&imr,
+		      sizeof(struct ip_mreq_source) ) == -1 )
+	{
+	  socket_error("setsockopt IP_ADD_SOURCE_MEMBERSHIP");
 	  close(s->fd);
 	  free(s);
-		socket_error("setsockopt SO_REUSEPORT");
-		return NULL;
+	  return NULL;
 	}
-#endif
-	s_in.sin_family      = AF_INET;
-	s_in.sin_addr.s_addr = INADDR_ANY;
-	s_in.sin_port        = htons(rx_port);
-	if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
-		socket_error("bind: port %d", rx_port);
-		close(s->fd);
-		free(s);
-		return NULL;
-	}
-	if (IN_MULTICAST(ntohl(s->addr4.s_addr))) {
-		char            loop = 1;
-#ifndef HAVE_IGMP_V3
-		struct ip_mreq  imr;
-		imr.imr_multiaddr.s_addr = s->addr4.s_addr;
-		imr.imr_interface.s_addr = s->iface4_addr.s_addr;
-
-		if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) != 0) {
-			socket_error("setsockopt IP_ADD_MEMBERSHIP");
-			close(s->fd);
-			free(s);
-			return NULL;
-		}
-#else 
-		rtp_message(LOG_DEBUG,"IGMPV3 src:%s\n", G_Multicast_Src);
-             /* Join Multicast group with source filter */
-		if (G_IGMP_V3 != 0 &&
-		    strcmp(G_Multicast_Src, "0.0.0.0") != 0) {
-             struct ip_mreq_source imr;
-	     imr.imr_multiaddr.s_addr = s->addr4.s_addr;
-	     imr.imr_interface.s_addr = s->iface4_addr.s_addr;
-             if (inet_aton(G_Multicast_Src, &imr.imr_sourceaddr) == 0) {
-                rtp_message(LOG_ERR, "inet_aton failed for %s\n",
-                        G_Multicast_Src);
-                return NULL;
-              }
-
-             if( setsockopt( s->fd, IPPROTO_IP, IP_ADD_SOURCE_MEMBERSHIP,
-                         (char*)&imr,
-                         sizeof(struct ip_mreq_source) ) == -1 )
-             {
-		socket_error("setsockopt IP_ADD_SOURCE_MEMBERSHIP");
-		close(s->fd);
-		free(s);
-		return NULL;
-             }
-		}
+    }
 #endif
         
 #ifndef WIN32
-		if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop)) != 0) {
-			socket_error("setsockopt IP_MULTICAST_LOOP");
-	  close(s->fd);
-	  free(s);
-			return NULL;
-		}
+    if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop)) != 0) {
+      socket_error("setsockopt IP_MULTICAST_LOOP");
+      close(s->fd);
+      free(s);
+      return NULL;
+    }
 #endif
-		if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_TTL, (char *) &s->ttl, sizeof(s->ttl)) != 0) {
-			socket_error("setsockopt IP_MULTICAST_TTL");
-			close(s->fd);
-			free(s);
-			return NULL;
-		}
-		if (s->iface4_addr.s_addr != 0) {
-			if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_IF, (char *) &s->iface4_addr, sizeof(s->iface4_addr)) != 0) {
-			  close(s->fd);
-			  free(s);
-				socket_error("setsockopt IP_MULTICAST_IF");
-				return NULL;
-			}
-		}
-	}
-        s->addr = strdup(addr);
-	return s;
+    if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_TTL, (char *) &s->ttl, sizeof(s->ttl)) != 0) {
+      socket_error("setsockopt IP_MULTICAST_TTL");
+      close(s->fd);
+      free(s);
+      return NULL;
+    }
+    if (s->iface4_addr.s_addr != 0) {
+      if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_IF, (char *) &s->iface4_addr, sizeof(s->iface4_addr)) != 0) {
+	close(s->fd);
+	free(s);
+	socket_error("setsockopt IP_MULTICAST_IF");
+	return NULL;
+      }
+    }
+  }
+  if (addr != NULL) 
+    s->addr = strdup(addr);
+  return s;
 }
 
 static void udp_exit4(socket_udp *s)
@@ -460,11 +467,12 @@ static void udp_exit4(socket_udp *s)
 		rtp_message(LOG_INFO,  "Dropped membership of multicast group");
 	}
 	close(s->fd);
-        free(s->addr);
+	if (s->addr != NULL)
+	  free(s->addr);
 	free(s);
 }
 
-static int udp_send4(socket_udp *s, uint8_t *buffer, uint32_t buflen)
+static int udp_send4(socket_udp *s, const uint8_t *buffer, uint32_t buflen)
 {
 	struct sockaddr_in	s_in;
 	
@@ -552,92 +560,96 @@ static int udp_addr_valid6(const char *dst)
 static socket_udp *udp_init6(const char *addr, const char *iface, uint16_t rx_port, uint16_t tx_port, int ttl)
 {
 #ifdef HAVE_IPv6
-	int                 reuse = 1;
-	struct sockaddr_in6 s_in;
-	socket_udp         *s = (socket_udp *) malloc(sizeof(socket_udp));
-	s->mode    = IPv6;
-	s->addr    = NULL;
-	s->rx_port = rx_port;
-	s->tx_port = tx_port;
-	s->ttl     = ttl;
+  int                 reuse = 1;
+  struct sockaddr_in6 s_in;
+  socket_udp         *s = (socket_udp *) malloc(sizeof(socket_udp));
+  s->mode    = IPv6;
+  s->addr    = NULL;
+  s->rx_port = rx_port;
+  s->tx_port = tx_port;
+  s->ttl     = ttl;
 	
-	if (iface != NULL) {
-		debug_msg("Not yet implemented\n");
-		abort();
-	}
+  if (iface != NULL) {
+    debug_msg("Not yet implemented\n");
+    abort();
+  }
 
-	if (inet_pton(AF_INET6, addr, &s->addr6) != 1) {
-		/* We should probably try to do a DNS lookup on the name */
-		/* here, but I'm trying to get the basics going first... */
-		debug_msg("IPv6 address conversion failed\n");
-                free(s);
-		return NULL;	
-	}
-	s->fd = socket(AF_INET6, SOCK_DGRAM, 0);
-	if (s->fd < 0) {
-		socket_error("socket");
-		return NULL;
-	}
-	if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) != 0) {
-		socket_error("setsockopt SO_REUSEADDR");
-		return NULL;
-	}
+  if (addr != NULL) {
+    if (inet_pton(AF_INET6, addr, &s->addr6) != 1) {
+      /* We should probably try to do a DNS lookup on the name */
+      /* here, but I'm trying to get the basics going first... */
+      debug_msg("IPv6 address conversion failed\n");
+      free(s);
+      return NULL;	
+    }
+  }
+  s->fd = socket(AF_INET6, SOCK_DGRAM, 0);
+  if (s->fd < 0) {
+    socket_error("socket");
+    return NULL;
+  }
+  if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) != 0) {
+    socket_error("setsockopt SO_REUSEADDR");
+    return NULL;
+  }
 #ifdef SO_REUSEPORT
-	if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEPORT, (char *) &reuse, sizeof(reuse)) != 0) {
-		socket_error("setsockopt SO_REUSEPORT");
-		return NULL;
-	}
+  if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEPORT, (char *) &reuse, sizeof(reuse)) != 0) {
+    socket_error("setsockopt SO_REUSEPORT");
+    return NULL;
+  }
 #endif
 	
-	memset((char *)&s_in, 0, sizeof(s_in));
-	s_in.sin6_family = AF_INET6;
-	s_in.sin6_port   = htons(rx_port);
+  memset((char *)&s_in, 0, sizeof(s_in));
+  s_in.sin6_family = AF_INET6;
+  s_in.sin6_port   = htons(rx_port);
 #ifdef HAVE_SIN6_LEN
-	s_in.sin6_len    = sizeof(s_in);
+  s_in.sin6_len    = sizeof(s_in);
 #endif
-	s_in.sin6_addr = in6addr_any;
-	if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
-		socket_error("bind");
-		return NULL;
-	}
+  s_in.sin6_addr = in6addr_any;
+  if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
+    socket_error("bind");
+    return NULL;
+  }
 	
-	if (IN6_IS_ADDR_MULTICAST(&(s->addr6))) {
-		unsigned int      loop = 1;
-		struct ipv6_mreq  imr;
+  if (addr != NULL && IN6_IS_ADDR_MULTICAST(&(s->addr6))) {
+    unsigned int      loop = 1;
+    struct ipv6_mreq  imr;
 #ifdef MUSICA_IPV6
-		imr.i6mr_interface = 1;
-		imr.i6mr_multiaddr = s->addr6;
+    imr.i6mr_interface = 1;
+    imr.i6mr_multiaddr = s->addr6;
 #else
-		imr.ipv6mr_multiaddr = s->addr6;
-		imr.ipv6mr_interface = 0;
+    imr.ipv6mr_multiaddr = s->addr6;
+    imr.ipv6mr_interface = 0;
 #endif
 		
-		if (SETSOCKOPT(s->fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &imr, sizeof(imr)) != 0) {
-			socket_error("setsockopt IPV6_ADD_MEMBERSHIP");
-			return NULL;
-		}
+    if (SETSOCKOPT(s->fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &imr, sizeof(imr)) != 0) {
+      socket_error("setsockopt IPV6_ADD_MEMBERSHIP");
+      return NULL;
+    }
 		
-		if (SETSOCKOPT(s->fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, (char *) &loop, sizeof(loop)) != 0) {
-			socket_error("setsockopt IPV6_MULTICAST_LOOP");
-			return NULL;
-		}
-		if (SETSOCKOPT(s->fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *) &ttl, sizeof(ttl)) != 0) {
-			socket_error("setsockopt IPV6_MULTICAST_HOPS");
-			return NULL;
-		}
-	}
+    if (SETSOCKOPT(s->fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, (char *) &loop, sizeof(loop)) != 0) {
+      socket_error("setsockopt IPV6_MULTICAST_LOOP");
+      return NULL;
+    }
+    if (SETSOCKOPT(s->fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *) &ttl, sizeof(ttl)) != 0) {
+      socket_error("setsockopt IPV6_MULTICAST_HOPS");
+      return NULL;
+    }
+  }
 
-	ASSERT(s != NULL);
-
-        s->addr = strdup(addr);
-	return s;
+  ASSERT(s != NULL);
+  
+  if (addr != NULL) {
+    s->addr = strdup(addr);
+  }
+  return s;
 #else
-	UNUSED(addr);
-	UNUSED(iface);
-	UNUSED(rx_port);
-	UNUSED(tx_port);
-	UNUSED(ttl);
-	return NULL;
+  UNUSED(addr);
+  UNUSED(iface);
+  UNUSED(rx_port);
+  UNUSED(tx_port);
+  UNUSED(ttl);
+  return NULL;
 #endif
 }
 
@@ -660,14 +672,16 @@ static void udp_exit6(socket_udp *s)
 		}
 	}
 	close(s->fd);
-        free(s->addr);
+	if (s->addr != NULL) {
+	  free(s->addr);
+	}
 	free(s);
 #else
 	UNUSED(s);
 #endif  /* HAVE_IPv6 */
 }
 
-static int udp_send6(socket_udp *s, uint8_t *buffer, uint32_t buflen)
+static int udp_send6(socket_udp *s, const uint8_t *buffer, uint32_t buflen)
 {
 #ifdef HAVE_IPv6
 	struct sockaddr_in6	s_in;
@@ -859,6 +873,13 @@ socket_udp *udp_init_if(const char *addr, const char *iface, uint16_t rx_port, u
 	return res;
 }
 
+socket_udp *udp_init_for_receive (const char *iface, uint16_t rx_port, int is_ipv4)
+{
+  if (is_ipv4) {
+    return udp_init4(NULL, iface, rx_port, 0, 0);
+  }
+  return udp_init6(NULL, iface, rx_port, 0, 0);
+}
 /**
  * udp_exit:
  * @s: UDP session to be terminated.
@@ -885,7 +906,7 @@ void udp_exit(socket_udp *s)
  * 
  * Return value: 0 on success, -1 on failure.
  **/
-int udp_send(socket_udp *s, uint8_t *buffer, uint32_t buflen)
+int udp_send(socket_udp *s, const uint8_t *buffer, uint32_t buflen)
 {
 	switch (s->mode) {
 	case IPv4 : return udp_send4(s, buffer, buflen);
@@ -893,6 +914,16 @@ int udp_send(socket_udp *s, uint8_t *buffer, uint32_t buflen)
 	default   : abort(); /* Yuk! */
 	}
 	return -1;
+}
+
+int udp_sendto (socket_udp *s, const uint8_t *buffer, uint32_t buflen, 
+		const struct sockaddr *to, const socklen_t tolen)
+{
+	ASSERT(s != NULL);
+	ASSERT(buffer != NULL);
+	ASSERT(buflen > 0);
+	
+	return sendto(s->fd, buffer, buflen, 0, to, tolen);
 }
 
 #ifndef _WIN32
@@ -904,6 +935,24 @@ int udp_send_iov(socket_udp *s, struct iovec *iov, int count)
 	default   : abort();
 	}
 	return -1;
+}
+
+int udp_sendto_iov(socket_udp *s, struct iovec *iov, int count,
+		   const struct sockaddr *to, const socklen_t tolen)
+{
+	struct msghdr 		msg;
+	
+	ASSERT(s != NULL);
+	ASSERT(iov != NULL);
+	ASSERT(count > 0);
+	
+	memset(&msg, 0, sizeof(msg));
+	msg.msg_name 		 = (void *)to;
+	msg.msg_namelen 	 = tolen;
+	msg.msg_iov 		 = iov;
+	msg.msg_iovlen 		 = count;
+
+	return sendmsg(s->fd, &msg, 0);
 }
 #endif
 
@@ -917,7 +966,8 @@ int udp_send_iov(socket_udp *s, struct iovec *iov, int count)
  *
  * Return value: number of bytes read, returns 0 if no data is available.
  **/
-uint32_t udp_recv(socket_udp *s, uint8_t *buffer, uint32_t buflen)
+uint32_t udp_recv_with_source (socket_udp *s, uint8_t *buffer, uint32_t buflen,
+			       struct sockaddr *sock, socklen_t *socklen)
 {
 	/* Reads data into the buffer, returning the number of bytes read.   */
 	/* If no data is available, this returns the value zero immediately. */
@@ -928,7 +978,7 @@ uint32_t udp_recv(socket_udp *s, uint8_t *buffer, uint32_t buflen)
 	ASSERT(buffer != NULL);
 	ASSERT(buflen > 0);
 
-	len = recvfrom(s->fd, buffer, buflen, 0, 0, 0);
+	len = recvfrom(s->fd, buffer, buflen, 0, sock, socklen);
 	if (len > 0) {
 		return len;
 	}
@@ -936,6 +986,15 @@ uint32_t udp_recv(socket_udp *s, uint8_t *buffer, uint32_t buflen)
 		socket_error("recvfrom");
 	}
 	return 0;
+}
+
+uint32_t udp_recv(socket_udp *s, uint8_t *buffer, uint32_t buflen)
+{
+	/* Reads data into the buffer, returning the number of bytes read.   */
+	/* If no data is available, this returns the value zero immediately. */
+	/* Note: since we don't care about the source address of the packet  */
+	/* we receive, this function becomes protocol independent.           */
+  return udp_recv_with_source(s, buffer, buflen, NULL, 0);
 }
 
 struct udp_set_ {

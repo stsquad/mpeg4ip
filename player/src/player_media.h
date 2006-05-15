@@ -50,7 +50,8 @@ class CPlayerMedia {
   int create_streaming(media_desc_t *sdp_media,
 		       int on_demand,
 		       int use_rtsp,
-		       int media_number_in_session);
+		       int media_number_in_session,
+		       struct rtp *rtp_session);
   /* API routine - create - where we provide the bytestream */
   int create_media(const char *media_type, 
 		   COurInByteStream *b, 
@@ -180,6 +181,7 @@ class CPlayerMedia {
   int m_rtp_buffering;
   struct rtp *m_rtp_session;
   srtp_if_t *m_srtp_session;
+  bool m_rtp_session_from_outside;
   CRtpByteStreamBase *m_rtp_byte_stream;
   CMsgQueue m_rtp_msg_queue;
 

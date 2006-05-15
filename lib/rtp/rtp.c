@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.28 $ 
- * $Date: 2006/03/20 23:13:25 $
+ * $Revision: 1.29 $ 
+ * $Date: 2006/05/15 22:25:34 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -230,7 +230,7 @@ struct rtp {
   source		*db[RTP_DB_SIZE];
   rtcp_rr_wrapper  rr[RTP_DB_SIZE][RTP_DB_SIZE]; 	/* Indexed by [hash(reporter)][hash(reportee)] */
   options		*opt;
-  uint8_t		*userdata;
+  uint8_t		*recv_userdata, *send_userdata;
   int		 invalid_rtp_count;
   int		 invalid_rtcp_count;
   int		 bye_count;
@@ -278,7 +278,11 @@ struct rtp {
     } des;
   } crypto_state;
   rtp_callback_f	 callback;
-  rtcp_send_packet_f rtcp_send_packet;
+  send_packet_f rtcp_send_packet;
+  send_packet_f rtp_send_packet;
+#ifndef _WIN32
+  send_packet_iov_f rtp_send_packet_iov;
+#endif
   uint32_t	 magic;				/* For debugging...  */
   uint8_t *m_output_buffer; // to consolidate IOVs for encryption
   uint32_t m_output_buffer_size;
@@ -988,8 +992,8 @@ rtp_stream_params_t *rtp_default_params (rtp_stream_params_t *ptr)
     ptr = (rtp_stream_params_t *)malloc(sizeof(rtp_stream_params_t));
   }
   memset(ptr, 0, sizeof(*ptr));
-  ptr->rtp_socket = -1;
-  ptr->rtcp_socket = -1;
+  ptr->rtp_socket = NULL;
+  ptr->rtcp_socket = NULL;
    
   return ptr;
 }
@@ -1031,7 +1035,7 @@ struct rtp *rtp_init(const char *addr,
   rsp.rtp_ttl = ttl;
   rsp.rtcp_bandwidth = rtcp_bw;
   rsp.rtp_callback = callback;
-  rsp.userdata = userdata;
+  rsp.recv_userdata = userdata;
   
   return rtp_init_stream(&rsp);
 }
@@ -1051,23 +1055,17 @@ struct rtp *rtp_init_xmitter (const char *addr,
   rsp.rtp_ttl = ttl;
   rsp.rtcp_bandwidth = rtcp_bw;
   rsp.rtp_callback = callback;
-  rsp.userdata = userdata;
+  rsp.recv_userdata = userdata;
   rsp.transmit_initial_rtcp = 1;
 
   return rtp_init_stream(&rsp);
-}
-
-static int rtcp_udp_send (void *ifptr, uint8_t *buffer, uint32_t buflen)
-{
-  struct rtp *session = (struct rtp *)ifptr;
-  return (udp_send(session->rtcp_socket, buffer, buflen));
 }
 
 struct rtp *rtp_init_extern_net (const char *addr, 
 				 uint16_t rx_port, uint16_t tx_port, 
 				 int ttl, double rtcp_bw, 
 				 rtp_callback_f callback,
-				 rtcp_send_packet_f rtcp_send_packet,
+				 send_packet_f rtcp_send_packet,
 				 uint8_t *userdata)
 {
   rtp_t rtp_ptr = rtp_init_if(addr, NULL, rx_port, tx_port, ttl, rtcp_bw, callback, userdata, 1);
@@ -1115,7 +1113,7 @@ struct rtp *rtp_init_if(const char *addr, char *iface,
   rsp.rtp_ttl = ttl;
   rsp.rtcp_bandwidth = rtcp_bw;
   rsp.rtp_callback = callback;
-  rsp.userdata = userdata;
+  rsp.recv_userdata = userdata;
   rsp.dont_init_sockets = dont_init_sockets;
 
   return rtp_init_stream(&rsp);
@@ -1132,7 +1130,8 @@ rtp_t rtp_init_stream (rtp_stream_params_t *rsp)
   memset(session, 0, sizeof(*session));
   session->magic		= 0xfeedface;
   session->opt		= (options *) xmalloc(sizeof(options));
-  session->userdata	= rsp->userdata;
+  session->recv_userdata	= rsp->recv_userdata;
+  session->send_userdata = rsp->send_userdata != NULL ? rsp->send_userdata : rsp->recv_userdata;
   session->addr		= xstrdup(rsp->rtp_addr);
   session->rx_port	= rsp->rtp_rx_port;
   session->tx_port	= rsp->rtp_tx_port;
@@ -1168,8 +1167,8 @@ rtp_t rtp_init_stream (rtp_stream_params_t *rsp)
       return NULL;
     }
   } else {
-    session->rtp_socket = NULL;
-    session->rtcp_socket = NULL;
+    session->rtp_socket = rsp->rtp_socket;
+    session->rtcp_socket = rsp->rtcp_socket;
   }
 
   hname = udp_host_addr(session->rtp_socket);
@@ -1179,10 +1178,9 @@ rtp_t rtp_init_stream (rtp_stream_params_t *rsp)
   }
 
   session->my_ssrc            = (uint32_t) lrand48();
-  if (rsp->rtcp_send_packet == NULL)
-    session->rtcp_send_packet = rtcp_udp_send;
-  else 
-    session->rtcp_send_packet = rsp->rtcp_send_packet;
+  session->rtcp_send_packet   = rsp->rtcp_send_packet;
+  session->rtp_send_packet    = rsp->rtp_send_packet;
+  session->rtp_send_packet_iov= rsp->rtp_send_packet_iov;
   session->callback           = rsp->rtp_callback;
   session->invalid_rtp_count  = 0;
   session->invalid_rtcp_count = 0;
@@ -1346,10 +1344,10 @@ int rtp_get_option(struct rtp *session, rtp_option optname, int *optval)
  *
  * Returns: pointer to userdata.
  */
-uint8_t *rtp_get_userdata(struct rtp *session)
+uint8_t *rtp_get_recv_userdata(struct rtp *session)
 {
   check_database(session);
-  return session->userdata;
+  return session->recv_userdata;
 }
 
 /**
@@ -2404,8 +2402,13 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m,
 	return 0;
       }
     }
+  if (session->rtp_send_packet != NULL) {
+    rc = (session->rtp_send_packet)(session->send_userdata, 
+				    buffer + RTP_PACKET_HEADER_SIZE, 
+				    buffer_len);
+  } else 
+    rc = udp_send(session->rtp_socket, buffer + RTP_PACKET_HEADER_SIZE, buffer_len);
 
-  rc = udp_send(session->rtp_socket, buffer + RTP_PACKET_HEADER_SIZE, buffer_len);
   xfree(buffer);
 
   /* Update the RTCP statistics... */
@@ -2511,7 +2514,10 @@ int rtp_send_data_iov (struct rtp *session, uint32_t rtp_ts,
   }
   buffer_len += payload_len;
     /* Send the data */
-  rc = udp_send_iov(session->rtp_socket, my_iov, my_iov_count);
+  if (session->rtp_send_packet_iov != NULL) {
+    rc = (session->rtp_send_packet_iov)(session->send_userdata, my_iov, my_iov_count);
+  } else 
+    rc = udp_send_iov(session->rtp_socket, my_iov, my_iov_count);
   
   xfree(buffer);
   xfree(my_iov);
@@ -2881,7 +2887,11 @@ static void send_rtcp(struct rtp *session,
     if (new_length != length) ptr += new_length - length;
   }
   if (session->rtcp_bw != 0.0) {
-    (session->rtcp_send_packet)(session, buffer, ptr - buffer);
+    if (session->rtcp_send_packet != NULL) {
+      (session->rtcp_send_packet)(session->send_userdata, buffer, ptr - buffer);
+    } else {
+      udp_send(session->rtcp_socket, buffer, ptr - buffer);
+    }
   }
 
   check_database(session);
@@ -3087,7 +3097,11 @@ static void rtp_send_bye_now(struct rtp *session)
     (session->rtcp_encrypt_func)(session->encrypt_userdata, buffer, &new_length);//nori
     ptr += new_length - length;
   }
-  (session->rtcp_send_packet)(session, buffer, ptr - buffer);
+  if (session->rtcp_send_packet != NULL) {
+    (session->rtcp_send_packet)(session->send_userdata, buffer, ptr - buffer);
+  } else {
+    udp_send(session->rtcp_socket, buffer, ptr - buffer);
+  }
 
   check_database(session);
 }
@@ -3584,4 +3598,10 @@ socket_udp *get_rtp_data_socket (struct rtp *session)
 socket_udp *get_rtp_rtcp_socket (struct rtp *session)
 {
   return session->rtcp_socket;
+}
+
+uint rtp_get_mtu_adjustment (struct rtp *session)
+{
+  return MAX(session->rtp_encryption_lenadd, 
+	     session->rtcp_encryption_lenadd);
 }

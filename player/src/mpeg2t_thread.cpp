@@ -185,12 +185,12 @@ static void mpeg2t_rtp_callback (struct rtp *session, rtp_event *e)
   if (e->type == RX_RTP) {
     rtp_packet *rpak;
     rpak = (rtp_packet *)e->data;
-    info = (mpeg2t_client_t *)rtp_get_userdata(session);
+    info = (mpeg2t_client_t *)rtp_get_recv_userdata(session);
 
     info->rtp_seq = rpak->rtp_pak_seq + 1;
 
     // need to handle "left over" here...
-    mpeg2t_decode_buffer((mpeg2t_client_t *)rtp_get_userdata(session), 
+    mpeg2t_decode_buffer(info,
 			 rpak->rtp_data, 
 			 rpak->rtp_data_len);
     xfree(rpak);
@@ -252,7 +252,7 @@ static int mpeg2t_thread_start_cmd (mpeg2t_client_t *info)
     rsp.rtp_ttl = info->ttl;
     rsp.rtcp_bandwidth = info->rtcp_bw;
     rsp.rtp_callback = mpeg2t_rtp_callback;
-    rsp.userdata = info;
+    rsp.recv_userdata = info;
     if (config.get_config_string(CONFIG_MULTICAST_RX_IF) != NULL) {
       struct in_addr if_addr;
 

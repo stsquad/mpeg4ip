@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.17 $ 
- * $Date: 2006/03/20 23:13:25 $
+ * $Revision: 1.18 $ 
+ * $Date: 2006/05/15 22:25:34 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -73,6 +73,7 @@ typedef struct rtp_packet_data {
   uint32_t       rtp_pd_buflen; /* received buffer len (w/rtp header) */
   int            rtp_pd_have_timestamp;
   uint64_t       rtp_pd_timestamp;
+  struct sockaddr_storage rtp_rx_addr;
 } rtp_packet_data;
 
   
@@ -197,8 +198,9 @@ typedef struct {
 /* Callback types */
 typedef void (*rtp_callback_f)(struct rtp *session, rtp_event *e);
 typedef rtcp_app* (*rtcp_app_callback_f)(struct rtp *session, uint32_t rtp_ts, uint32_t max_size);
-  typedef int (*rtcp_send_packet_f)(void *userdata, uint8_t *buffer, uint32_t buflen);
 
+typedef int (*send_packet_f)(void *userdata, uint8_t *buffer, uint32_t buflen);
+typedef int (*send_packet_iov_f)(void *userdata, struct iovec *iov, int count);
 /* SDES packet types... */
 typedef enum  {
         RTCP_SDES_END   = 0,
@@ -225,6 +227,8 @@ typedef enum {
         RTP_OPT_FILTER_MY_PACKETS = 3
 } rtp_option;
 
+typedef struct socket_udp_ socket_udp; 
+
 typedef struct rtp_stream_params_t {
   const char *rtp_addr;
   in_port_t   rtp_rx_port;
@@ -242,13 +246,16 @@ typedef struct rtp_stream_params_t {
 
   double rtcp_bandwidth;  
   
-  int  rtp_socket;  // rtp socket to use
-  int  rtcp_socket; // rtcp socket to use
+  socket_udp  *rtp_socket;  // rtp socket to use
+  socket_udp  *rtcp_socket; // rtcp socket to use
   // callbacks
   rtp_callback_f rtp_callback;
-  rtcp_send_packet_f rtcp_send_packet;
+  send_packet_f rtp_send_packet;
+  send_packet_iov_f rtp_send_packet_iov;
+  send_packet_f rtcp_send_packet;
   // user data
-  void *userdata;
+  void *send_userdata;
+  void *recv_userdata;
 } rtp_stream_params_t;
 
 typedef struct rtp_encryption_params_t {
@@ -269,25 +276,25 @@ rtp_t		rtp_init(const char *addr,
 			 uint16_t rx_port, uint16_t tx_port, 
 			 int ttl, double rtcp_bw, 
 			 rtp_callback_f callback,
-			 uint8_t *userdata);
+			 uint8_t *recv_userdata);
   // rtp_init_xmitter - for transmitters - send an RTCP with the first packet
 rtp_t		rtp_init_xmitter(const char *addr, 
 				 uint16_t rx_port, uint16_t tx_port, 
 				 int ttl, double rtcp_bw, 
 				 rtp_callback_f callback,
-				 uint8_t *userdata);
+				 uint8_t *recv_userdata);
 rtp_t		rtp_init_if(const char *addr, char *iface, 
 			    uint16_t rx_port, uint16_t tx_port, 
 			    int ttl, double rtcp_bw, 
 			    rtp_callback_f callback,
-			    uint8_t *userdata,
+			    uint8_t *recv_userdata,
 			    int dont_init_sockets);
 rtp_t		rtp_init_extern_net(const char *addr, 
 				    uint16_t rx_port, uint16_t tx_port, 
 				    int ttl, double rtcp_bw, 
 				    rtp_callback_f callback,
-				    rtcp_send_packet_f rtcp_send_packet,
-				    uint8_t *userdata);
+				    send_packet_f rtcp_send_packet,
+				    uint8_t *recv_userdata);
 
 void		 rtp_send_bye(struct rtp *session);
 void		 rtp_done(struct rtp *session);
@@ -337,7 +344,7 @@ char 		*rtp_get_addr(struct rtp *session);
 uint16_t	 rtp_get_rx_port(struct rtp *session);
 uint16_t	 rtp_get_tx_port(struct rtp *session);
 int		 rtp_get_ttl(struct rtp *session);
-uint8_t		*rtp_get_userdata(struct rtp *session);
+uint8_t		*rtp_get_recv_userdata(struct rtp *session);
 
   
 int rtp_process_recv_data(struct rtp *session,
@@ -351,18 +358,18 @@ void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, uint32_t buflen);
   int rtp_set_encryption(struct rtp *session, 
 		       rtp_encrypt_f rtp_efunc, rtp_decrypt_f rtp_dfunc , 
 		       rtp_encrypt_f rtcp_efunc, rtp_decrypt_f rtcp_dfunc,
-		       void *userdata, unsigned int rtp_payload_add);
+		       void *enc_userdata, unsigned int rtp_payload_add);
   
   int rtp_set_encryption_params (struct rtp *session, rtp_encryption_params_t *params);
   
   int rtp_get_encryption_enabled(struct rtp *session);
   
-typedef struct socket_udp_ socket_udp; 
 
 socket_udp *get_rtp_data_socket(struct rtp *session);
 socket_udp *get_rtp_rtcp_socket(struct rtp *session);
 
   void rtp_set_receive_buffer_default_size(int bufsize);  
+  uint rtp_get_mtu_adjustment (struct rtp *session);
 #ifdef __cplusplus
 }
 #endif

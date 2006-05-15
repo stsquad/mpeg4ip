@@ -510,7 +510,11 @@ void CVideoEncoder::AddRtpDestination (CMediaStream *stream,
 				       in_port_t srcPort)
 {
   mp4live_rtp_params_t *mrtp;
-
+  
+  if (stream->m_video_rtp_session != NULL) {
+    AddRtpDestInt(disable_ts_offset, stream->m_video_rtp_session);
+    return;
+  } 
   mrtp = MALLOC_STRUCTURE(mp4live_rtp_params_t);
   rtp_default_params(&mrtp->rtp_params);
   mrtp->rtp_params.rtp_addr = stream->GetStringValue(STREAM_VIDEO_DEST_ADDR);

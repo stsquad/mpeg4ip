@@ -59,6 +59,7 @@ class CRtpDestination
  public:
   CRtpDestination(mp4live_rtp_params_t *rtp_params, 
 		  uint8_t payloadNumber);
+  CRtpDestination(struct rtp *session, uint8_t payloadNumber);
   virtual ~CRtpDestination();
   void start(void);
   void send_rtcp(u_int32_t rtpTimestamp,
@@ -102,6 +103,7 @@ class CRtpDestination
   struct rtp *m_rtpSession;
   srtp_if_t *m_srtpSession;
   uint32_t m_reference;
+  bool m_destroy_rtp_session;
 };
 
 typedef void (*rtp_transmitter_f)(CMediaFrame *pak, CRtpDestination *list,
@@ -180,6 +182,7 @@ public:
 
 	}
 	void AddRtpDestination(mp4live_rtp_params_t *rtp_params);
+	void AddRtpDestination(struct rtp *rtp_session);
 	
 	static const uint32_t MSG_RTP_DEST_START = 8192;
 	static const uint32_t MSG_RTP_DEST_STOP  = MSG_RTP_DEST_START + 1;
@@ -207,6 +210,7 @@ protected:
 	virtual void DoStopTransmit(void);
 	virtual void DoSendFrame(CMediaFrame* pFrame) = 0;
 
+	void DoAddRtpDestinationToQueue(CRtpDestination *dest);
 	void DoStartRtpDestination(const char *destAddr, in_port_t port);
 	void DoStopRtpDestination(const char *destAddr, in_port_t port);
 

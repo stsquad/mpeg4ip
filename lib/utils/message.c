@@ -80,6 +80,7 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
 {
   va_list ap;
   struct timeval thistime;
+  struct tm thistm;
   time_t secs;
   char buffer[80];
 #if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
@@ -103,13 +104,14 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
   gettimeofday(&thistime, NULL);
   secs = thistime.tv_sec;
   // To add date, add %a %b %d to strftime
+  localtime_r(&secs, &thistm);
   strftime(buffer, sizeof(buffer), 
 #ifndef _WIN32
 	       "%T",
 #else
 		   "%H:%M:%S",
 #endif
-		   localtime(&secs));
+		   &thistm);
   fprintf(outfile, "%s.%03lu-%s-%d: ",
 	 buffer, (unsigned long)thistime.tv_usec / 1000, lib, loglevel);
   va_start(ap, fmt);
@@ -124,6 +126,7 @@ void library_message (int loglevel,
 		      va_list ap)
 {
   struct timeval thistime;
+  struct tm thistm;
   time_t secs;
   char buffer[80];
 #if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
@@ -148,13 +151,14 @@ void library_message (int loglevel,
   if (loglevel > global_loglevel) return;
   gettimeofday(&thistime, NULL);
   secs = thistime.tv_sec;
+  localtime_r(&secs, &thistm);
   strftime(buffer, sizeof(buffer), 
 #ifndef _WIN32
 	       "%T",
 #else
 		   "%H:%M:%S",
 #endif
-		   localtime(&secs));
+	   &thistm);
   fprintf(outfile, "%s.%03lu-%s-%d: ",
 	 buffer,
 	 (unsigned long)thistime.tv_usec / 1000,

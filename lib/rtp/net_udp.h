@@ -46,15 +46,25 @@ extern "C" {
   udp_set *udp_init_for_session(void);
   void udp_close_session(udp_set *s);
 int         udp_addr_valid(const char *addr);
+
+
 socket_udp *udp_init(const char *addr, uint16_t rx_port, uint16_t tx_port, int ttl);
 socket_udp *udp_init_if(const char *addr, const char *iface, uint16_t rx_port, uint16_t tx_port, int ttl);
+socket_udp *udp_init_for_receive(const char *iface, uint16_t rx_port, int is_ipv4);
 void        udp_exit(socket_udp *s);
 
-int         udp_send(socket_udp *s, uint8_t *buffer, uint32_t buflen);
+int         udp_send(socket_udp *s, const uint8_t *buffer, uint32_t buflen);
+int         udp_sendto(socket_udp *s, const uint8_t *buffer, uint32_t buflen,  const struct sockaddr *to, const socklen_t tolen);
 #ifndef _WIN32
 int udp_send_iov(socket_udp *s, struct iovec *iov, int count);
+int udp_sendto_iov(socket_udp *s, struct iovec *iov, int count,
+		   const struct sockaddr *to, const socklen_t tolen);
 #endif
+
 uint32_t         udp_recv(socket_udp *s, uint8_t *buffer, uint32_t buflen);
+
+uint32_t  udp_recv_with_source(socket_udp *s, uint8_t *buffer, uint32_t buflen, 
+			       struct sockaddr *source, socklen_t *source_len);
 
 char *udp_host_addr(socket_udp *s);
 int         udp_fd(socket_udp *s);

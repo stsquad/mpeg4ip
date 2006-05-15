@@ -68,16 +68,16 @@ CMediaStream *GetSelectedStream (void)
 static void DisplayFinishTime (Timestamp t)
 {
 	time_t secs;
-	const struct tm *local;
+	struct tm local;
 	char buffer[128];
 
 	secs = (time_t)GetSecsFromTimestamp(t);
-	local = localtime(&secs);
-	strftime(buffer, sizeof(buffer), "%l:%M:%S", local);
+	localtime_r(&secs, &local);
+	strftime(buffer, sizeof(buffer), "%l:%M:%S", &local);
 	GtkWidget *temp;
 	temp = lookup_widget(MainWindow, "EndTimeLabel");
 	gtk_label_set_text(GTK_LABEL(temp), buffer);
-	strftime(buffer, sizeof(buffer), "%p", local);
+	strftime(buffer, sizeof(buffer), "%p", &local);
 	temp = lookup_widget(MainWindow, "EndTimeSuffix");
 	gtk_label_set_text(GTK_LABEL(temp), buffer);
 }
@@ -139,17 +139,17 @@ static guint status_timer_id;
 static void status_start()
 {
 	time_t secs;
-	const struct tm *local;
+	struct tm local;
 	char buffer[128];
 	GtkWidget *temp;
 
 	// start time
 	secs = (time_t)GetSecsFromTimestamp(StartTime);
-	local = localtime(&secs);
-	strftime(buffer, sizeof(buffer), "%l:%M:%S", local);
+	localtime_r(&secs, &local);
+	strftime(buffer, sizeof(buffer), "%l:%M:%S", &local);
 	temp = lookup_widget(MainWindow, "StartTimeLabel");
 	gtk_label_set_text(GTK_LABEL(temp), buffer);
-	strftime(buffer, sizeof(buffer), "%p", local);
+	strftime(buffer, sizeof(buffer), "%p", &local);
 	temp = lookup_widget(MainWindow, "StartTimeSuffix");
 	gtk_label_set_text(GTK_LABEL(temp), buffer);
 
@@ -190,7 +190,7 @@ static void status_start()
 static gint status_timer (gpointer raw)
 {
 	time_t secs;
-	const struct tm *local;
+	struct tm local;
 	char buffer[80];
 	GtkWidget *temp;
 
@@ -204,11 +204,11 @@ static gint status_timer (gpointer raw)
 
 	Timestamp now = GetTimestamp();
 	secs = (time_t)GetSecsFromTimestamp(now);
-	local = localtime(&secs);
-	strftime(buffer, sizeof(buffer), "%l:%M:%S", local);
+	localtime_r(&secs, &local);
+	strftime(buffer, sizeof(buffer), "%l:%M:%S", &local);
 	temp = lookup_widget(MainWindow, "CurrentTimeLabel");
 	gtk_label_set_text(GTK_LABEL(temp), buffer);
-	strftime(buffer, sizeof(buffer), "%p", local);
+	strftime(buffer, sizeof(buffer), "%p", &local);
 	temp = lookup_widget(MainWindow, "CurrentTimeSuffix");
 	gtk_label_set_text(GTK_LABEL(temp), buffer);
 

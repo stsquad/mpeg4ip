@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(mpeg4ip, 1.5)
+AC_INIT(mpeg4ip, 1.5.1)
 AM_CONFIG_HEADER(mpeg4ip_config.h)
 dnl Prevent user from running just ./configure
 AC_CHECK_FILE(./bootstrapped, [did_bootstrap=yes], [did_bootstrap=no])
@@ -37,7 +37,7 @@ if test $have_macosx = false; then
    AC_CONFIG_SUBDIRS(lib/SDLAudio)
 fi
 AM_CONDITIONAL(HAVE_MAC_OSX, $have_macosx)
-AC_CONFIG_SUBDIRS(lib/rtp common/video/iso-mpeg4)
+AC_CONFIG_SUBDIRS(common/video/iso-mpeg4)
 
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
@@ -84,6 +84,7 @@ AC_LANG_POP(C++)
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
 AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h sys/time.h)
 
+AC_CHECK_FILE(/dev/urandom, AC_DEFINE([HAVE_DEV_URANDOM], [1], [have /dev/urandom]))
 dnl AC_LANG_PUSH(C++)
 
 AC_ARG_ENABLE(id3tags,
@@ -265,7 +266,7 @@ LIBS=$saved_LIBS
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getopt_long_only getrusage socketpair strsep inet_ntoa)
+AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getopt_long_only getrusage socketpair strsep inet_ntoa inet_pton inet_ntop inet_aton)
 
 
 AC_CHECK_TYPES([in_port_t, socklen_t], , , 
@@ -604,6 +605,46 @@ AC_ARG_ENABLE(ipv6,
 if test x$enable_ipv6 = xyes; then
    AC_DEFINE(HAVE_IPv6, 1, [enable IPv6 architecture])
    AC_MSG_NOTICE([ipv6 enabled $enable_ipv6])
+   
+   AC_CACHE_CHECK(for getipnodebyname in <netdb.h>, ucl_cv_getipnodebyname_in_netdb_h,
+	[AC_EGREP_HEADER(getipnodebyname,
+		netdb.h,
+		ucl_cv_getipnodebyname_in_netdb_h=yes,	
+		ucl_cv_getipnodebyname_in_netdb_h=no)])
+   if test $ucl_cv_getipnodebyname_in_netdb_h
+   then
+	AC_DEFINE([HAVE_GETIPNODEBYNAME], [1], [have getipnodebyname])  
+   fi
+
+   AC_CHECK_HEADERS(netinet6/in6.h)
+   AC_CHECK_HEADERS(netinet/ip6.h)
+
+   AC_CHECK_TYPES([addrinfo], , , 
+		  [#include <netdb.h>])
+
+   AC_CACHE_CHECK(for sin6_len in struct sockaddr_in6, ucl_cv_sin6_len,
+	[AC_TRY_COMPILE([
+		#ifdef HAVE_NETINET6_IN6_H
+		#include <netinet6/in6.h>
+		#else
+		#ifdef HAVE_NETINET_IP6_H
+		#include <netinet/ip6.h>
+		#else
+		#include <netinet/in.h>
+		#endif
+		#endif /* HAVE_NETINET_IN6_H */
+	],[
+		struct sockaddr_in6	s_in;
+		s_in.sin6_len = 0;
+	],
+		ucl_cv_sin6_len=yes,	
+		ucl_cv_sin6_len=no
+	)])
+   if test $ucl_cv_sin6_len = yes
+   then
+	AC_DEFINE([HAVE_SIN6_LEN], [1], [have sin6_len]) 
+   fi
+
 else
    AC_MSG_NOTICE([ipv6 not enabled $enable_ipv6])
 fi
@@ -815,6 +856,7 @@ AC_OUTPUT( \
 	lib/mpeg2ps/Makefile \
 	lib/mpeg2t/Makefile \
 	lib/msg_queue/Makefile \
+	lib/rtp/Makefile \
 	lib/sdp/Makefile \
 	lib/utils/Makefile \
 	server/Makefile \

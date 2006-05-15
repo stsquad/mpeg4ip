@@ -95,6 +95,14 @@ class CPlayerSession {
     vsnprintf(m_message, sizeof(m_message) - 1, fmt, ap);
     va_end(ap);
   };
+  struct rtp *get_audio_rtp_session (void) { return m_audio_rtp_session; };
+  void set_audio_rtp_session (struct rtp *session) { 
+    m_audio_rtp_session = session;
+  };
+  struct rtp *get_video_rtp_session (void) { return m_video_rtp_session; };
+  void set_video_rtp_session (struct rtp *session) { 
+    m_video_rtp_session = session;
+  };
   int create_streaming_broadcast(session_desc_t *sdp);
   int create_streaming_ondemand(const char *url,
 				int use_rtp_tcp);
@@ -297,6 +305,8 @@ class CPlayerSession {
   SDL_sem *m_stop_processing;
   mouse_click_callback_f m_mouse_click_callback;
   void *m_mouse_click_callback_ud;
+
+  struct rtp *m_audio_rtp_session, *m_video_rtp_session;
 };
 
 int c_sync_thread(void *data);

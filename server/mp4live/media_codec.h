@@ -69,6 +69,14 @@ public:
 	}
 protected:
 	virtual void StopEncoder(void) = 0;
+	void InitRtpSink (bool disable_ts_offset) {
+	  if (m_rtp_sink == NULL) {
+	    m_rtp_sink = CreateRtpTransmitter(disable_ts_offset);
+	    m_rtp_sink->StartThread();
+	    AddSink(m_rtp_sink);
+	  }
+	};
+	  
 	CMediaCodec*    m_nextCodec;
 	CConfigEntry *m_pConfig;
 	bool m_realTime;
@@ -76,12 +84,13 @@ protected:
 	uint16_t m_mtu;
 	virtual CRtpTransmitter *CreateRtpTransmitter(bool disable_ts_offset) = 0;
 	void AddRtpDestInt(bool disable_ts_offset, 
+			   struct rtp *rtp) {
+	  InitRtpSink(disable_ts_offset);
+	  m_rtp_sink->AddRtpDestination(rtp);
+	};
+	void AddRtpDestInt(bool disable_ts_offset, 
 			   mp4live_rtp_params_t *rtp_params) {
-	  if (m_rtp_sink == NULL) {
-	    m_rtp_sink = CreateRtpTransmitter(disable_ts_offset);
-	    m_rtp_sink->StartThread();
-	    AddSink(m_rtp_sink);
-	  }
+	  InitRtpSink(disable_ts_offset);
 	  if (rtp_params->use_srtp && rtp_params->srtp_params.rtp_auth) {
 	    rtp_params->auth_len = AUTHENTICATION_DEFAULT_LEN;
 	  }

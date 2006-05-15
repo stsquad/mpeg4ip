@@ -25,7 +25,8 @@
 //#define DEBUG_H264_HINT 1
 
 extern "C" MP4TrackId MP4AV_H264_HintTrackCreate (MP4FileHandle mp4File,
-						  MP4TrackId mediaTrackId)
+						  MP4TrackId mediaTrackId,
+						  uint16_t maxPayload)
 {
   MP4TrackId hintTrackId =
     MP4AddHintTrack(mp4File, mediaTrackId);
@@ -38,7 +39,7 @@ extern "C" MP4TrackId MP4AV_H264_HintTrackCreate (MP4FileHandle mp4File,
 
   // don't include mpeg4-esid
   MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
-			    "H264", &payloadNumber, 0,
+			    "H264", &payloadNumber, maxPayload,
 			    NULL, true, false);
 
   /* get the mpeg4 video configuration */

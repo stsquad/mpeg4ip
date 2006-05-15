@@ -221,6 +221,7 @@ class CMediaStream : public CConfigEntry
   const char *m_video_salt;
   const char *m_text_key;
   const char *m_text_salt;
+  struct rtp *m_video_rtp_session, *m_audio_rtp_session;
 };
 
 class CMediaStreamList : public CConfigList
