@@ -39,6 +39,10 @@ class CTextSource : public CMediaSource
   float GetProgress() {
     return 0.0;		// live capture device is inexhaustible
   }
+
+  virtual const char* name() {
+    return "CTextSource";
+  }
 };
   
 class CFileTextSource : public CTextSource
@@ -48,6 +52,10 @@ class CFileTextSource : public CTextSource
 
   ~CFileTextSource() {
   };
+
+  virtual const char* name() {
+    return "CFileTextSource";
+  }
 
 
  protected:

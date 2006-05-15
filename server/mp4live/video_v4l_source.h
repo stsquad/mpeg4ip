@@ -65,6 +65,10 @@ public:
 	  SDL_SemPost(m_myMsgQueueSemaphore);
 	};
 
+	virtual const char* name() {
+	  return "CV4LVideoSource";
+	}
+
 
 protected:
 	int ThreadMain(void);

@@ -66,4 +66,4 @@ libmp4_la_SOURCES = \
 	rtphint.h \
 	sizes.h
 
-EXTRA_DIST=libmp460.dsp libmp4_st60.dsp README README_ORIGINAL 
+EXTRA_DIST=libmp460.dsp README README_ORIGINAL 

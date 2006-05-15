@@ -68,6 +68,11 @@ public:
 	virtual bool PushTextFrame (const char *frame) {
 	  return false;
 	}
+
+	virtual const char* name() {
+	  return "CMediaSource";
+	}
+
 protected:
 	// Video & Audio support
 	virtual bool IsEndOfVideo() { 

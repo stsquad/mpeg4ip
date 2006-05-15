@@ -85,6 +85,7 @@ extern "C" bool MP4AV_Rfc2429Hinter (MP4FileHandle file,
 
     if (!rc) {
       MP4DeleteTrack(file, hid);
+      free(pSampleBuffer);
       return false;
     }
 
@@ -115,5 +116,8 @@ extern "C" bool MP4AV_Rfc2429Hinter (MP4FileHandle file,
     }
     MP4WriteRtpHint(file, hid, duration, true);
   }
+
+  free(pSampleBuffer);
+
   return true;
 }

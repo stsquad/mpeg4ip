@@ -34,7 +34,6 @@ EXTRA_DIST = \
 	addrsize.h \
 	asarray.h \
 	base64.h \
-	srtp.h \
 	bittypes.h \
 	boxes-fst.dat \
 	btree.h \

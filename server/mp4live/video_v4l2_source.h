@@ -63,6 +63,11 @@ class CV4LVideoSource : public CMediaSource {
   };
 
   void ReleaseOldFrame(uint hardware_version, uint8_t index);
+
+  virtual const char* name() {
+    return "CV4L2VideoSource";
+  }
+
  protected:
   int ThreadMain(void);
   void DoStartCapture(void);

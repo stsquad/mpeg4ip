@@ -59,7 +59,7 @@ class CRtpDestination
  public:
   CRtpDestination(mp4live_rtp_params_t *rtp_params, 
 		  uint8_t payloadNumber);
-  ~CRtpDestination();
+  virtual ~CRtpDestination();
   void start(void);
   void send_rtcp(u_int32_t rtpTimestamp,
 		 u_int64_t ntpTimestamp);
@@ -89,6 +89,10 @@ class CRtpDestination
     return strcasecmp(dest_addr, m_rtp_params->rtp_params.rtp_addr) == 0;
   };
   in_port_t get_source_port (void) { return m_rtp_params->rtp_params.rtp_rx_port; };
+
+  virtual const char* name() {
+    return "CRtpTransmitter";
+  }
  protected:
   SDL_mutex *m_ref_mutex;
   CRtpDestination *m_next;

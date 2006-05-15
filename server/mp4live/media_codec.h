@@ -63,6 +63,10 @@ public:
 				       bool disable_ts_offset, 
 				       uint16_t max_ttl,
 				       in_port_t srcPort = 0) = 0;
+
+	virtual const char* name() {
+	  return "CMediaCodec";
+	}
 protected:
 	virtual void StopEncoder(void) = 0;
 	CMediaCodec*    m_nextCodec;

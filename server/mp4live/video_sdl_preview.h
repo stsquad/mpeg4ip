@@ -32,6 +32,9 @@ public:
 		m_w = m_h = 0;
 	}
 
+	virtual const char* name() {
+	  return "CSDLVideoPreview";
+	}
 protected:
 	int ThreadMain(void);
 

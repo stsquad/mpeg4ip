@@ -43,19 +43,24 @@ static const char* h261SizeNames[] = {
 
 #if defined(HAVE_FFMPEG) || defined(HAVE_XVID_H) || defined(HAVE_XVID10)
 static u_int16_t mpeg4SizeWidthValues[] = {
-	128, 176, 320, 352, 352,
+  128, 160, 176, 320, 352, 352, 352, 384, 480, 544,
 	640, 704, 720, 704, 720, 768,
 };
 static u_int16_t mpeg4SizeHeightValues[] = {
-	96, 144, 240, 288, 480,
+  96, 120, 144, 240, 288, 480, 576, 576, 576, 576,
 	480, 480, 480, 576, 576, 576,
 };
 static const char* mpeg4SizeNames[] = {
 	"128 x 96 SQCIF", 
+	"160 x 120 1/4 SIF",
 	"176 x 144 QCIF",
 	"320 x 240 SIF",
 	"352 x 288 CIF",
 	"352 x 480 Half D1",
+	"352 x 576",
+	"384 x 576",
+	"480 x 576",
+	"544 x 576",
 	"640 x 480 4SIF",
 	"704 x 480 D1",
 	"720 x 480 NTSC CCIR601",

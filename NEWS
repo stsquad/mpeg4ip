@@ -1,3 +1,22 @@
+05/11/06 Version 1.5
+    Added integration with libsrtp for player and mp4live
+    Updated for gcc 4.0
+    Integrated changes from SDL-1.2.9
+    Added support for Quicktime .mov aac audio
+    Fixed some issues with H.264 hinting.
+    Fixed some issues with mp4v2 and metadata
+    Added some atoms for OpenIPMP for mp4v2.
+    Added some APIs for mp4v2 to access atom properties.
+    Added wide filenames for mp4v2 for Windows.
+    Changed RTP library APIs to use unsigned, const when applicable.
+    Added new RTP library APIs for session creation.
+    Added RFC 3605 (rtcp port doesn't have to be rtp port + 1) in player
+      and mp4live.
+    Smoothed out changes to audio correction in player
+    Fixed player initialization when media takes a long time.
+    Fixed playback of mp3 files with id3 tags.
+    Added some H.264 nerd knobs in mp4live
+    
 11/10/05 Version 1.4
     Added restart of file recording in mp4live
     Autodetection of SRTP library for ISMACryp

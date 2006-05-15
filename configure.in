@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(mpeg4ip, 1.4.23)
+AC_INIT(mpeg4ip, 1.5)
 AM_CONFIG_HEADER(mpeg4ip_config.h)
 dnl Prevent user from running just ./configure
 AC_CHECK_FILE(./bootstrapped, [did_bootstrap=yes], [did_bootstrap=no])
@@ -481,7 +481,7 @@ if test x$disable_ffmpeg = xfalse; then
   else
      saved_LIBS="$LIBS"
      LIBS="$LIBS -lm -lz"
-     AC_CHECK_LIB(avutil, av_i2int, [have_avutil=true], [have_avutil=false])
+     AC_CHECK_LIB(avutil, av_crc_init, [have_avutil=true], [have_avutil=false])
      if test x$have_avutil = xtrue; then
         LIBS="$LIBS -lavutil"
 	ffmpeg_add_libs="-lavutil"

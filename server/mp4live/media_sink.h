@@ -59,6 +59,9 @@ public:
 		}
 	}
 
+	virtual const char* name() {
+	  return "CMediaSink";
+	}
 protected:
 	static const uint32_t MSG_SINK = 4096;
 	static const uint32_t MSG_SINK_FRAME = MSG_SINK + 1;

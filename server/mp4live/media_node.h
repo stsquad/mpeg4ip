@@ -29,6 +29,7 @@
 #include "mp4live_config.h"
 #include "media_frame.h"
 
+
 class CMediaNode {
 public:
 	CMediaNode() {
@@ -72,6 +73,10 @@ public:
 	virtual void Stop(void) {
 		m_myMsgQueue.send_message(MSG_NODE_STOP,
 					  m_myMsgQueueSemaphore);
+	}
+
+	virtual const char* name() {
+	  return "CMediaNode";
 	}
 
 	virtual ~CMediaNode() {

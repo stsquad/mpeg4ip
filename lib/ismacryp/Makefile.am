@@ -10,6 +10,5 @@ AM_CFLAGS = -D_REENTRANT @BILLS_CWARNINGS@
 
 EXTRA_DIST = \
 	libismacryp.dsp \
-	libismacryp_st.dsp \
 	README \
 	README.html

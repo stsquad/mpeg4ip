@@ -196,8 +196,10 @@ int main (int argc, char *argv[])
       break;
     case 'c':
       do_rtcp = 1;
+ 	break;
     case 'd':
       dump_pak = true;
+ 	break;
     case 'e':
       do_encrypt = 0;
       break;

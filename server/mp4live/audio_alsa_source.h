@@ -46,6 +46,11 @@ class CALSAAudioSource : public CMediaSource {
     return 0.0;		// live capture device is inexhaustible
   }
 
+  virtual const char* name() {
+    return "CALSAAudioSource";
+  }
+
+
  protected:
   int ThreadMain();
 

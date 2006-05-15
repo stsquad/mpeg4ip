@@ -20,13 +20,14 @@
 #include "liblibsrtp.h"
 #include "rtp.h"
 #include "mp4.h"
+#include <assert.h>
 
 #ifdef HAVE_SRTP
 struct srtp_if_t_ {
   srtp_policy_t in_policy, out_policy;
   srtp_t in_ctx, out_ctx;
-  uint8_t tx_keysalt[30];
-  uint8_t rx_keysalt[30];
+  uint8_t tx_keysalt[32]; // 32, not 30, due to brokenness in libsrtp
+  uint8_t rx_keysalt[32]; // 32, not 30, due to brokenness in libsrtp
 };
 #endif
 
@@ -143,7 +144,9 @@ static int our_srtp_decrypt (void *foo,
     printf("\n");
   }
   err = srtp_unprotect(srtp_if->in_ctx, buffer, &retdata);
-  srtp_if_debug(LOG_DEBUG,"called srtp_unprotect: ERR %d", err);
+  if(err != 0) {
+    srtp_if_debug(LOG_DEBUG,"called srtp_unprotect: ERR %d", err);
+  }
 
   if (DUMP_RAW_PAK) {
     for (i = 0; i < *len; i++) {
@@ -238,21 +241,30 @@ static bool string_to_hex (uint8_t *to, const char *from, uint to_len)
 #endif
 
 #ifdef HAVE_SRTP
-static void configure_cipher_auth (uint8_t inbound, srtp_policy_t *policy, 
+static void configure_cipher_auth (srtp_policy_t *policy, 
 				   srtp_if_params_t *sparam) {
+
+  assert(policy != 0);
+  // bko -- protect
+  crypto_policy_set_rtp_default(&policy->rtp);
+  crypto_policy_set_rtcp_default(&policy->rtcp);
+
   if (sparam->rtp_enc == true) {
     srtp_if_debug(LOG_DEBUG, "configure_cipher_auth: RTP encryption selectd");
     if (sparam->enc_algo == SRTP_ENC_AES_CM_128) {
       srtp_if_debug(LOG_DEBUG, "configure_cipher_auth: 128bit RTP encryption");
       policy->rtp.cipher_type = AES_128_ICM;
       policy->rtp.cipher_key_len = 30;
-    } else
+    } else {
       srtp_if_debug(LOG_ALERT, "unrecognized cipher type for RTP");
+      assert(0);
+    }
   } else {
     srtp_if_debug(LOG_DEBUG, "configure_cipher_auth: null RTP encryption");
     policy->rtp.cipher_type     = NULL_CIPHER;
     policy->rtp.cipher_key_len  = 0; 
   }    
+
   if (sparam->rtp_auth == true) {
     if (sparam->auth_algo == SRTP_AUTH_HMAC_SHA1_80) {
       srtp_if_debug(LOG_DEBUG, "configure_cipher_auth: SHA1_80 auth");
@@ -264,13 +276,18 @@ static void configure_cipher_auth (uint8_t inbound, srtp_policy_t *policy,
       policy->rtp.auth_type = HMAC_SHA1;
       policy->rtp.auth_key_len = 20;
       policy->rtp.auth_tag_len = 4;    
+    } else {
+      srtp_if_debug(LOG_ALERT, "unrecognized auth type for RTP");
+      assert(0);
     }
+
   } else {
     srtp_if_debug(LOG_DEBUG, "configure_cipher_auth: no auth");
     policy->rtp.auth_type       = NULL_AUTH;
     policy->rtp.auth_key_len    = 0;
     policy->rtp.auth_tag_len    = 0;    
   }
+
   if (sparam->rtp_enc == true && sparam->rtp_auth == true)
     policy->rtp.sec_serv = sec_serv_conf_and_auth;
   else if (sparam->rtp_enc == true && sparam->rtp_auth == false)
@@ -286,14 +303,12 @@ static void configure_cipher_auth (uint8_t inbound, srtp_policy_t *policy,
     if (sparam->enc_algo == SRTP_ENC_AES_CM_128) {
       policy->rtcp.cipher_type = AES_128_ICM;
       policy->rtcp.cipher_key_len = 30;
-    } else
+    } else {
       srtp_if_debug(LOG_ALERT, "unrecognized cipher type for RTCP");
-  } else {
-    //TODO check this
-    policy->rtcp.sec_serv = sec_serv_auth;
-    policy->rtcp.cipher_type     = NULL_CIPHER;
-    policy->rtcp.cipher_key_len  = 0;
-  //rtcp is always authenticated
+      assert(0);
+    }
+
+    //rtcp is always authenticated
     if (sparam->auth_algo == SRTP_AUTH_HMAC_SHA1_80) {
       policy->rtcp.auth_type = HMAC_SHA1;
       policy->rtcp.auth_key_len = 20;
@@ -302,6 +317,27 @@ static void configure_cipher_auth (uint8_t inbound, srtp_policy_t *policy,
       policy->rtcp.auth_type = HMAC_SHA1;
       policy->rtcp.auth_key_len = 20;
       policy->rtcp.auth_tag_len = 4;    
+    } else {
+      srtp_if_debug(LOG_ALERT, "unrecognized auth type for RTCP");
+      assert(0);
+    }
+  } else {
+    //TODO check this
+    policy->rtcp.sec_serv = sec_serv_auth;
+    policy->rtcp.cipher_type     = NULL_CIPHER;
+    policy->rtcp.cipher_key_len  = 0;
+    //rtcp is always authenticated
+    if (sparam->auth_algo == SRTP_AUTH_HMAC_SHA1_80) {
+      policy->rtcp.auth_type = HMAC_SHA1;
+      policy->rtcp.auth_key_len = 20;
+      policy->rtcp.auth_tag_len = 10;
+    } else if (sparam->auth_algo == SRTP_AUTH_HMAC_SHA1_32) {
+      policy->rtcp.auth_type = HMAC_SHA1;
+      policy->rtcp.auth_key_len = 20;
+      policy->rtcp.auth_tag_len = 4;    
+    } else {
+      srtp_if_debug(LOG_ALERT, "unrecognized auth type for RTCP");
+      assert(0);
     }
   }
   policy->next = NULL;
@@ -344,10 +380,13 @@ srtp_if_t* srtp_setup (struct rtp *session, srtp_if_params_t *sparam)
 
   srtp_if->in_policy.key = rx_key;
   srtp_if->in_policy.ssrc.type = ssrc_any_inbound;
+  srtp_if->in_policy.rtp.sec_serv = sec_serv_conf;
+  srtp_if->in_policy.rtcp.sec_serv = sec_serv_none;
   srtp_if->out_policy.key = tx_key;
   srtp_if->out_policy.ssrc.type  = ssrc_any_outbound;
-  configure_cipher_auth(1, &srtp_if->in_policy, sparam);
-  configure_cipher_auth(0, &srtp_if->out_policy, sparam);
+
+  configure_cipher_auth(&srtp_if->in_policy, sparam);
+  configure_cipher_auth(&srtp_if->out_policy, sparam);
 
   //now create the struct for passing data to rtp
   status = srtp_create(&srtp_if->in_ctx, &srtp_if->in_policy);
@@ -357,6 +396,7 @@ srtp_if_t* srtp_setup (struct rtp *session, srtp_if_params_t *sparam)
     return NULL;
   }
 
+  assert(srtp_if->out_policy.rtcp.auth_key_len < 50);
   status = srtp_create(&srtp_if->out_ctx,&srtp_if->out_policy);
   if (status) {
     srtp_if_debug(LOG_ALERT, "OUTbound policy create failed with code %d", 
@@ -381,12 +421,13 @@ srtp_if_t* srtp_setup (struct rtp *session, srtp_if_params_t *sparam)
   return NULL;
 }
 
-srtp_if_t *srtp_setup_from_sdp (const char *media_type, 
-				struct rtp *session, 
-				const char *crypto)
+
+bool
+srtp_parse_sdp(const char *media_type, 
+	       const char* crypto,
+	       srtp_if_params_t* params)
 {
 #ifdef HAVE_SRTP
-  srtp_if_params_t params;
   const char *inptr, *base64;
   uint32_t key_size;
   uint8_t *key;
@@ -395,16 +436,19 @@ srtp_if_t *srtp_setup_from_sdp (const char *media_type,
   uint32_t ix;
 
   if (crypto == NULL) {
-    return NULL;
+    return false;
+  }
+  if(params == NULL) {
+    return false;
   }
   
-  memset(&params, 0, sizeof(params));
+  memset(params, 0, sizeof(srtp_if_params_t));
 
   crypto += strlen("a=crypto");
   ADV_SPACE(crypto);
   if (*crypto != ':') {
     srtp_if_debug(LOG_ERR, "%s: no : after a=crypto", media_type);
-    return NULL;
+    return false;
   }
   crypto++;
   while (!isspace(*crypto) && *crypto != '\0') crypto++;
@@ -415,29 +459,29 @@ srtp_if_t *srtp_setup_from_sdp (const char *media_type,
   if (strncasecmp(crypto, "AES_CM_128_HMAC_SHA1_80", 
 		  strlen("AES_CM_128_HMAC_SHA1_80")) == 0) {
     crypto += strlen("AES_CM_128_HMAC_SHA1_80");
-    params.enc_algo = SRTP_ENC_AES_CM_128;
-    params.auth_algo = SRTP_AUTH_HMAC_SHA1_80;
+    params->enc_algo = SRTP_ENC_AES_CM_128;
+    params->auth_algo = SRTP_AUTH_HMAC_SHA1_80;
   } else if (strncasecmp(crypto, "AES_CM_128_HMAC_SHA1_32", 
 		  strlen("AES_CM_128_HMAC_SHA1_32")) == 0) {
     crypto += strlen("AES_CM_128_HMAC_SHA1_32");
-    params.enc_algo = SRTP_ENC_AES_CM_128;
-    params.auth_algo = SRTP_AUTH_HMAC_SHA1_32;
+    params->enc_algo = SRTP_ENC_AES_CM_128;
+    params->auth_algo = SRTP_AUTH_HMAC_SHA1_32;
   } else {
     srtp_if_debug(LOG_ERR, "%s: unknown crypto format %s", media_type,
 		  crypto);
-    return NULL;
+    return false;
   }
   ADV_SPACE(crypto);
   inptr = strcasestr(crypto, "inline");
   if (inptr == NULL) {
     srtp_if_debug(LOG_ERR, "%s: can't find inline: in crypto", media_type);
-    return NULL;
+    return false;
   }
   inptr += strlen("inline");
   ADV_SPACE(inptr);
   if (*inptr != ':') {
     srtp_if_debug(LOG_ERR, "%s: can't find : after inline", media_type);
-    return NULL;
+    return false;
   }
   inptr++;
   ADV_SPACE(inptr);
@@ -447,14 +491,24 @@ srtp_if_t *srtp_setup_from_sdp (const char *media_type,
   }
   
   key = Base64ToBinary(base64, inptr - base64, &key_size);
+
+  // clone the key to a 32 byte long thing, not because we need to,
+  // but because libsrtp reads off the end (!)
+  if((key != NULL) && (key_size < 32)) {
+    uint8_t *tmp_key = malloc(32);
+    memcpy(tmp_key, key, key_size);
+    free(key);
+    key = tmp_key;
+  }
+
   if (key == NULL) {
     srtp_if_debug(LOG_ERR, "%s:Can't decode base 64", media_type);
-    return NULL;
+    return false;
   }
 
   srtp_if_debug(LOG_DEBUG, "key size is %u", key_size);
 #if 1
-  printf("\n");
+  printf("\nparsed key: ");
   for (ix = 0; ix < key_size; ix++) {
     printf("%02x", key[ix]);
   }
@@ -488,18 +542,34 @@ srtp_if_t *srtp_setup_from_sdp (const char *media_type,
     }
     if (!isspace(*inptr) && *inptr != '\0') {
       srtp_if_debug(LOG_ERR, "%s:Illegal kdr value", media_type);
-      return NULL;
+      return false;
     }
   }
 
   //TODO use the SDP values to configure cipher type instead of SRTP default
-  params.rx_keysalt = key;
-  params.rx_key = params.rx_salt = NULL;
-  params.tx_keysalt = key; 
-  params.rtp_enc = rtp_enc;
-  params.rtcp_enc = rtcp_enc;
-  params.rtp_auth = rtp_auth;
-  
+  params->rx_keysalt = key;
+  params->rx_key = params->rx_salt = NULL;
+  params->tx_keysalt = key; 
+  params->rtp_enc = rtp_enc;
+  params->rtcp_enc = rtcp_enc;
+  params->rtp_auth = rtp_auth;
+  return true;
+#else
+  return false;
+#endif
+}
+
+srtp_if_t *srtp_setup_from_sdp (const char *media_type, 
+				struct rtp *session, 
+				const char *crypto)
+{
+#ifdef HAVE_SRTP
+  srtp_if_params_t params;
+
+  if(!srtp_parse_sdp(media_type, crypto, &params)) {
+    return NULL;
+  }
+
   return srtp_setup(session, &params);
 #else
   return NULL;

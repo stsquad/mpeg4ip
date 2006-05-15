@@ -17,6 +17,7 @@
  * 
  * Contributor(s): 
  *		Bill May wmay@cisco.com
+ *     SAR width and height: Peter Maersk-Moller peter@maersk-moller.net
  */
 
 #include "mp4live.h"
@@ -37,6 +38,8 @@ static config_index_t CFG_X264_USE_VBV;
 static config_index_t CFG_X264_VBV_BITRATE_MULT;
 static config_index_t CFG_X264_VBV_BUFFER_SIZE_MULT;
 static config_index_t CFG_X264_THREADS;
+static config_index_t CFG_X264_SAR_WIDTH;
+static config_index_t CFG_X264_SAR_HEIGHT;
 
 static SConfigVariable X264EncoderVariables[] = {
   CONFIG_BOOL(CFG_X264_FORCE_BASELINE, "x264ForceBaseline", false),
@@ -47,6 +50,8 @@ static SConfigVariable X264EncoderVariables[] = {
   CONFIG_FLOAT(CFG_X264_VBV_BITRATE_MULT, "x264VbvBitRateMult", 1.0),
   CONFIG_FLOAT(CFG_X264_VBV_BUFFER_SIZE_MULT, "x264VbvBufferSizeMult", 10.0),
   CONFIG_INT(CFG_X264_THREADS, "x264Threads", 1),
+  CONFIG_INT(CFG_X264_SAR_WIDTH, "x264SarWidth", 0),
+  CONFIG_INT(CFG_X264_SAR_HEIGHT, "x264SarHeight", 0),
 };
 
 GUI_BOOL(gui_baseline, CFG_X264_FORCE_BASELINE, "Force Baseline (overrides below)");
@@ -64,7 +69,8 @@ GUI_FLOAT_RANGE(gui_vbvm, CFG_X264_VBV_BITRATE_MULT,
 GUI_FLOAT_RANGE(gui_vbv2, CFG_X264_VBV_BUFFER_SIZE_MULT,
 		"VBV Buffer Size Multiplier", 0.0001, 100.0);
 GUI_INT_RANGE(gui_threads, CFG_X264_THREADS, "Number of Threads", 1, 8);
-
+GUI_INT_RANGE(gui_sar_w, CFG_X264_SAR_WIDTH, "Source Aspect Ratio Width", 0, 65536);
+GUI_INT_RANGE(gui_sar_h, CFG_X264_SAR_HEIGHT, "Source Aspect Ratio Height", 0, 65536);
 
 DECLARE_TABLE(x264_gui_options) = {
   TABLE_GUI(gui_baseline),
@@ -77,6 +83,8 @@ DECLARE_TABLE(x264_gui_options) = {
   TABLE_GUI(gui_vbvm),
   TABLE_GUI(gui_vbv2),
   TABLE_GUI(gui_threads),
+  TABLE_GUI(gui_sar_w),
+  TABLE_GUI(gui_sar_h),
 };
 DECLARE_TABLE_FUNC(x264_gui_options);
 
@@ -145,6 +153,8 @@ bool CX264VideoEncoder::Init (void)
   x264_param_default(&m_param);
   m_param.i_width = Profile()->m_videoWidth;
   m_param.i_height = Profile()->m_videoHeight;
+  m_param.vui.i_sar_width = Profile()->GetIntegerValue(CFG_X264_SAR_WIDTH);
+  m_param.vui.i_sar_height = Profile()->GetIntegerValue(CFG_X264_SAR_HEIGHT);
   m_param.i_fps_num = 
     (int)((Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE) + .5) * 1000);
   m_param.i_fps_den = 1000;

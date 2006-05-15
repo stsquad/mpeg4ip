@@ -184,5 +184,6 @@ extern "C" bool MP4AV_Rfc3267Hinter (MP4FileHandle mp4File,
     MP4Duration duration = toc_on * (isAmrWb ? 320 : 160);
     MP4WriteRtpHint(mp4File, hintTrackId, duration);
   }
+  free(buffer);
   return true;
 }

@@ -430,16 +430,19 @@ void CSDLVideo::display_image (const uint8_t *y, const uint8_t *u,
   // unlock, then display
   SDL_UnlockYUVOverlay(m_image);
   // Actually display the video
-  int rval = SDL_DisplayYUVOverlay(m_image, &m_dstrect);
+#ifndef darwin
+  int rval = 
+#endif
+    SDL_DisplayYUVOverlay(m_image, &m_dstrect);
   SDL_UnlockMutex(m_mutex);
 #ifndef darwin
 #define CORRECT_RETURN 0
-#else
-#define CORRECT_RETURN 1
-#endif
   if (rval != CORRECT_RETURN) {
     video_message(LOG_ERR, "Return from display is %d", rval);
   }
+#else
+#define CORRECT_RETURN 1
+#endif
 }
 
 #define BLANK_Y (0)

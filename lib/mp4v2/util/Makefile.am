@@ -39,5 +39,5 @@ mp4syncfiles_SOURCES = mp4syncfiles.cpp
 mp4syncfiles_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la
 
-EXTRA_DIST = mp4dump60.dsp mp4extract60.dsp \
+EXTRA_DIST = mp4dump60.dsp  \
 	mp4info.dsp mp4tags.dsp

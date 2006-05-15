@@ -72,6 +72,12 @@ extern "C" {
 
   
   srtp_if_t *srtp_setup(struct rtp *session, srtp_if_params_t *sparams);
+
+  bool
+  srtp_parse_sdp(const char *media_type, 
+		 const char* crypto,
+		 srtp_if_params_t* params);
+
   srtp_if_t *srtp_setup_from_sdp(const char *media_name,
 				 struct rtp *session, 
 				 const char *aeqcryptoline);
