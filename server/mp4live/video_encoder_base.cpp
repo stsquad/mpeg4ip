@@ -210,7 +210,8 @@ media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
 				    bool *is3gp,
 				    uint8_t *videoProfile,
 				    uint8_t **videoConfig,
-				    uint32_t *videoConfigLen)
+				    uint32_t *videoConfigLen,
+				    uint8_t *pPayload_number)
 {
   // do the work here for mpeg4 - we know pretty much everything
   media_desc_t *sdpMediaVideo;
@@ -218,6 +219,8 @@ media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
   rtpmap_desc_t *sdpVideoRtpMap;
   char videoFmtpBuf[512];
   MediaType mtype;
+  bool add_to_payload = true;
+  uint8_t payload_number = pPayload_number == NULL ? 96 : *pPayload_number;
 
   mtype = get_video_mp4_fileinfo(pConfig,
 				 createIod,
@@ -242,12 +245,7 @@ media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
     sdpMediaVideoFormat->rtpmap = sdpVideoRtpMap;
     sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines, 
 			   "a=mpeg4-esid:20");
-#ifndef HAVE_XVID10
-    // it's more complex than this, but tough.
-    sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines,
-			   "a=x-mpeg4-simple-profile-decoder");
-#endif
-    sdpMediaVideoFormat->fmt = strdup("96");
+    sdpMediaVideoFormat->fmt = create_payload_number_string(payload_number);
 	
     sdpVideoRtpMap->encode_name = strdup("MP4V-ES");
     sdpVideoRtpMap->clock_rate = 90000;
@@ -264,18 +262,20 @@ media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
 
     sdpMediaVideoFormat->fmt_param = strdup(videoFmtpBuf);
   } else if (mtype == H261VIDEOFRAME) {
-    sdpMediaVideoFormat->fmt = strdup("31");
+    sdpMediaVideoFormat->fmt = create_payload_number_string(31);
+    add_to_payload = false;
 #if 0
     sdpVideoRtpMap->encode_name = strdup("h261");
     sdpVideoRtpMap->clock_rate = 90000;
 #endif
   } else if (mtype == MPEG2VIDEOFRAME) {
-    sdpMediaVideoFormat->fmt = strdup("32");
+    sdpMediaVideoFormat->fmt = create_payload_number_string(32);
+    add_to_payload = false;
   } else if (mtype == H263VIDEOFRAME) {
     *is3gp = true;
     sdpVideoRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
     memset(sdpVideoRtpMap, 0, sizeof(*sdpVideoRtpMap));
-    sdpMediaVideoFormat->fmt = strdup("96");
+    sdpMediaVideoFormat->fmt = create_payload_number_string(payload_number);
     sdpMediaVideoFormat->media = sdpMediaVideo;
     sdpMediaVideoFormat->rtpmap = sdpVideoRtpMap;
     sdpVideoRtpMap->clock_rate = 90000;
@@ -288,7 +288,7 @@ media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
   } else if (mtype == H264VIDEOFRAME) {
     sdpVideoRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
     memset(sdpVideoRtpMap, 0, sizeof(*sdpVideoRtpMap));
-    sdpMediaVideoFormat->fmt = strdup("96");
+    sdpMediaVideoFormat->fmt = create_payload_number_string(payload_number);
     sdpMediaVideoFormat->media = sdpMediaVideo;
     sdpMediaVideoFormat->rtpmap = sdpVideoRtpMap;
     sdpVideoRtpMap->clock_rate = 90000;
@@ -301,6 +301,9 @@ media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
     
   }
 
+  if (add_to_payload && pPayload_number != NULL) {
+    *pPayload_number = *pPayload_number + 1;
+  }
   return sdpMediaVideo;
 }
 

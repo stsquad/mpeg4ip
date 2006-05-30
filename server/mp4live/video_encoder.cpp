@@ -65,7 +65,8 @@ media_desc_t *create_video_sdp (CVideoProfile *pConfig,
 				bool *is3gp,
 				uint8_t *videoProfile,
 				uint8_t **videoConfig,
-				uint32_t *videoConfigLen)
+				uint32_t *videoConfigLen,
+				uint8_t *payload_number)
 {
  return create_video_sdp_base(pConfig,
 			      createIod,
@@ -73,7 +74,8 @@ media_desc_t *create_video_sdp (CVideoProfile *pConfig,
 			      is3gp,
 			      videoProfile,
 			      videoConfig,
-			      videoConfigLen);
+			      videoConfigLen,
+			      payload_number);
 }
 
 

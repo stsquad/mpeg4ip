@@ -47,9 +47,10 @@ media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
 				    bool *createIod,
 				    bool *isma_compliant,
 				    bool *is3gp,
-				    uint8_t *audioProfile,
-				    uint8_t **audioConfig,
-				    uint32_t *audioConfigLen);
+				    uint8_t *videoProfile,
+				    uint8_t **videoConfig,
+				    uint32_t *videoConfigLen,
+				    uint8_t *payload_number);
 
 void create_mp4_video_hint_track_base(CVideoProfile *pConfig,
 				      MP4FileHandle mp4file,

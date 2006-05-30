@@ -162,6 +162,7 @@ mp4live_LDADD = \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/rtp/libuclmmbase.la \
+	$(top_builddir)/lib/utils/libmutex.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/lib/utils/libutils.la \

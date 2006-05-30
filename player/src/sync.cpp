@@ -171,8 +171,15 @@ int CPlayerSession::process_msg_queue (int state)
       state = SYNC_STATE_PAUSED;
       break;
     case MSG_START_SESSION:
-      if (state != SYNC_STATE_INIT)
+      switch (state) {
+      case SYNC_STATE_INIT:
+      case SYNC_STATE_WAIT_AUDIO_READY:
+      case SYNC_STATE_WAIT_TIMED_INIT:
+	break;
+      default:
 	state = SYNC_STATE_WAIT_SYNC;
+	break;
+      }
       break;
     case MSG_STOP_THREAD:
       state = SYNC_STATE_EXIT;

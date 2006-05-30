@@ -74,7 +74,7 @@ EXTRA_DIST = \
 	test_rtp_encrypt.txt \
 	test-libcommon 
 
-INCLUDES=-I$(top_srcdir)/include 
+INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib/utils
 
 check_PROGRAMS = test_rtp_client test_rtp_server
 

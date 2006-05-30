@@ -69,10 +69,10 @@ static void free_connect_desc (connect_desc_t *cptr)
 }
 
 /*
- * free_media_desc()
+ * sdp_free_media_desc()
  * Frees all memory associated with a media descriptor(mptr)
  */
-static void free_media_desc (media_desc_t *mptr)
+void sdp_free_media_desc (media_desc_t *mptr)
 {
   free_bandwidth_desc(mptr->media_bandwidth);
   mptr->media_bandwidth = NULL;
@@ -130,7 +130,7 @@ void sdp_free_session_desc (session_desc_t *sptr)
     while (mptr != NULL) {
       q = mptr;
       mptr = q->next;
-      free_media_desc(q);
+      sdp_free_media_desc(q);
     }
 
     FREE_CHECK(sptr, etag);
@@ -1464,7 +1464,7 @@ static media_desc_t *sdp_decode_parse_media (char *lptr,
     sep = strsep(&lptr, SPACES);
     if (sep != NULL) {
       if (sdp_add_format_to_list(new, sep) == NULL) {
-	free_media_desc(new);
+	sdp_free_media_desc(new);
 	*err = ENOMEM;
 	return (NULL);
       }

@@ -53,6 +53,7 @@ CMediaStream::CMediaStream (const char *filename,
   m_video_salt = NULL;
   m_text_key = NULL;
   m_text_salt = NULL;
+  m_video_rtp_session = m_audio_rtp_session = NULL;
 }
 
 CMediaStream::~CMediaStream (void)

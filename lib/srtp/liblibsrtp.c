@@ -21,6 +21,13 @@
 #include "rtp.h"
 #include "mp4.h"
 #include <assert.h>
+#include "mutex.h"
+
+//#define DEBUG_SRTP_CALLS 1
+#define DUMP_RAW_RTP_PAK 0
+#define DUMP_ENC_RTP_PAK 0
+#define DUMP_RAW_RTCP_PAK 1
+#define DUMP_ENC_RTCP_PAK 1
 
 #ifdef HAVE_SRTP
 struct srtp_if_t_ {
@@ -28,6 +35,7 @@ struct srtp_if_t_ {
   srtp_t in_ctx, out_ctx;
   uint8_t tx_keysalt[32]; // 32, not 30, due to brokenness in libsrtp
   uint8_t rx_keysalt[32]; // 32, not 30, due to brokenness in libsrtp
+  mutex_t mutex;
 };
 #endif
 
@@ -66,8 +74,6 @@ static void srtp_if_debug (int loglevel, const char *fmt, ...)
 }
 #endif
 
-#define DUMP_RAW_PAK 0
-#define DUMP_ENC_PAK 0
 #ifdef HAVE_SRTP
 static bool srtp_if_initialize(void)
 {
@@ -96,7 +102,7 @@ static int our_srtp_encrypt (void *foo,
   srtp_if_t *srtp_if = (srtp_if_t *)foo;
   unsigned int i;
   retdata = *len;
-  if (DUMP_RAW_PAK) {
+  if (DUMP_RAW_RTP_PAK) {
     srtp_if_debug(LOG_DEBUG,"Calling srtp_protect, len %d", *len);
     for (i = 0; i < *len; i++) {
       printf("%02x ", buffer[i]);
@@ -105,10 +111,16 @@ static int our_srtp_encrypt (void *foo,
     printf("\n");
   }
 
-  err = srtp_protect(srtp_if->out_ctx, buffer, &retdata);
-  //  srtp_if_debug(LOG_DEBUG,"called srtp_protect: len %d", err);
+#ifdef DEBUG_SRTP_CALLS
+  srtp_if_debug(LOG_DEBUG,"calling srtp_protect: len %d proto %u seq %u", *len,
+		buffer[1] & 0x7f, ntohs(*(uint16_t *)(buffer + 2)));
+#endif
 
-  if (DUMP_ENC_PAK) {
+  MutexLock(srtp_if->mutex);
+  err = srtp_protect(srtp_if->out_ctx, buffer, &retdata);
+  MutexUnlock(srtp_if->mutex);
+
+  if (DUMP_ENC_RTP_PAK) {
     srtp_if_debug(LOG_DEBUG,"Calling srtp_protect, ERR %d\n", *len);
     for (i = 0; i < *len; i++) {
       printf("%02x ", buffer[i]);
@@ -118,6 +130,7 @@ static int our_srtp_encrypt (void *foo,
   }
 
   if (err != 0) {
+    srtp_if_debug(LOG_ERR, "failing srtp encrypts error %d len %u", err, *len);
     return FALSE;
   }
   *len = retdata;
@@ -135,7 +148,7 @@ static int our_srtp_decrypt (void *foo,
 
   retdata = *len;
 
-  if (DUMP_ENC_PAK) {
+  if (DUMP_ENC_RTP_PAK) {
     srtp_if_debug(LOG_DEBUG,"Calling srtp_unprotect, len %d", *len);
     for (i = 0; i < *len; i++) {
       printf("%02x ", buffer[i]);
@@ -143,12 +156,18 @@ static int our_srtp_decrypt (void *foo,
     }
     printf("\n");
   }
+#ifdef DEBUG_SRTP_CALLS
+  srtp_if_debug(LOG_DEBUG,"calling srtp_unprotect: len %d proto %u seq %u", *len,
+		buffer[1] & 0x7f, ntohs(*(uint16_t *)(buffer + 2)));
+#endif
+  MutexLock(srtp_if->mutex);
   err = srtp_unprotect(srtp_if->in_ctx, buffer, &retdata);
+  MutexUnlock(srtp_if->mutex);
   if(err != 0) {
     srtp_if_debug(LOG_DEBUG,"called srtp_unprotect: ERR %d", err);
   }
 
-  if (DUMP_RAW_PAK) {
+  if (DUMP_RAW_RTP_PAK) {
     for (i = 0; i < *len; i++) {
       printf("%02x ", buffer[i]);
       if (((i + 1) % 12) == 0) printf("\n");
@@ -157,8 +176,8 @@ static int our_srtp_decrypt (void *foo,
     srtp_if_debug(LOG_DEBUG,"exiting srtp_decrypt");
   }
   if (err != 0) {
-    srtp_if_debug(LOG_ERR, "return from srtp_unprotect %d  length %d",
-		  err, retdata);
+    srtp_if_debug(LOG_ERR, "return from srtp_unprotect %d len %d orig %u",
+		  err, retdata, *len);
     return FALSE;
   }
   *len = retdata;
@@ -171,12 +190,33 @@ static int our_srtcp_encrypt (void *foo,
 {
   err_status_t err;
   int retdata;
-	srtp_if_t *srtp_if = (srtp_if_t *)foo;
-  retdata = *len;
+  srtp_if_t *srtp_if = (srtp_if_t *)foo;
+  unsigned int i;
 
+  retdata = *len;
+  if (DUMP_ENC_RTCP_PAK) {
+    srtp_if_debug(LOG_DEBUG,"Calling srtp_protect_rtcp, len %d", *len);
+    for (i = 0; i < *len; i++) {
+      printf("%02x ", buffer[i]);
+      if (((i + 1) % 16) == 0) printf("\n");
+    }
+    printf("\n");
+  }
+
+  MutexLock(srtp_if->mutex);
   err = srtp_protect_rtcp(srtp_if->out_ctx, (void *)buffer, &retdata);
+  MutexUnlock(srtp_if->mutex);
+  if (DUMP_RAW_RTCP_PAK) {
+    for (i = 0; i < (unsigned int)retdata; i++) {
+      printf("%02x ", buffer[i]);
+      if (((i + 1) % 16) == 0) printf("\n");
+    }
+    printf("\n");
+    srtp_if_debug(LOG_DEBUG,"exiting srtcp_encrypt %d %d", err, retdata);
+  }
 
   if (err != 0) {
+    srtp_if_debug(LOG_ERR, "failing srtcp encrypts error %d len %u", err, *len);
     return FALSE;
   }
   *len = retdata;
@@ -189,12 +229,11 @@ static int our_srtcp_decrypt (void *foo,
 {
   err_status_t err;
   int retdata;
-	srtp_if_t *srtp_if = (srtp_if_t *)foo;
+  srtp_if_t *srtp_if = (srtp_if_t *)foo;
   unsigned int i;
 
   retdata = *len;
-
-  if (DUMP_ENC_PAK) {
+  if (DUMP_ENC_RTCP_PAK) {
     srtp_if_debug(LOG_DEBUG,"Calling srtp_unprotect_rtcp, len %d", *len);
     for (i = 0; i < *len; i++) {
       printf("%02x ", buffer[i]);
@@ -202,17 +241,20 @@ static int our_srtcp_decrypt (void *foo,
     }
     printf("\n");
   }
+  MutexLock(srtp_if->mutex);
   err = srtp_unprotect_rtcp(srtp_if->in_ctx, (void *)buffer, &retdata);
-  if (DUMP_RAW_PAK) {
-    for (i = 0; i < *len; i++) {
+  MutexUnlock(srtp_if->mutex);
+  if (DUMP_RAW_RTCP_PAK) {
+    for (i = 0; i < (unsigned int)retdata; i++) {
       printf("%02x ", buffer[i]);
       if (((i + 1) % 16) == 0) printf("\n");
     }
     printf("\n");
-    srtp_if_debug(LOG_DEBUG,"exiting srtp_decrypt");
+    srtp_if_debug(LOG_DEBUG,"exiting srtcp_decrypt %d %d", err, retdata);
   }
   if (err != 0) {
-    srtp_if_debug(LOG_DEBUG,"return from srtp_unprotect_rtcp %d  length %d",err, retdata);
+    srtp_if_debug(LOG_ERR,"return from srtp_unprotect_rtcp %d len %d orig %u",err, retdata,
+		  *len);
     return FALSE;
   }
   *len = retdata;
@@ -349,17 +391,19 @@ static void configure_cipher_auth (srtp_policy_t *policy,
 
 srtp_if_t* srtp_setup (struct rtp *session, srtp_if_params_t *sparam)
 {
+  srtp_if_t *srtp_if = NULL;
 #ifdef HAVE_SRTP
   err_status_t status;
-  rtp_encryption_params_t *rtp_params = NULL;
+  rtp_encryption_params_t rtp_params;
   uint8_t *tx_key, *rx_key;
-  srtp_if_t *srtp_if;
+  int ret;
 
   if (srtp_if_initialize() == false) return NULL;
 
   srtp_if = MALLOC_STRUCTURE(srtp_if_t);
   memset(srtp_if, 0, sizeof(srtp_if));
   
+  srtp_if->mutex = MutexCreate();
   if (sparam->tx_key != NULL) {
     // create hex key and salt
     string_to_hex(srtp_if->tx_keysalt, sparam->tx_key, 16);
@@ -403,22 +447,24 @@ srtp_if_t* srtp_setup (struct rtp *session, srtp_if_params_t *sparam)
 		  status);
     return NULL;
   }
-  rtp_params = MALLOC_STRUCTURE(rtp_encryption_params_t);
+  memset(&rtp_params, 0, sizeof(rtp_params));
   // huh ?  we're going to remove it from the mtu - this shouldn't be needed
-  rtp_params->rtp_auth_alloc_extra = srtp_if->out_policy.rtp.auth_tag_len;
-  rtp_params->rtcp_auth_alloc_extra= srtp_if->out_policy.rtcp.auth_tag_len;
+  rtp_params.rtp_auth_alloc_extra = srtp_if->out_policy.rtp.auth_tag_len;
+  rtp_params.rtcp_auth_alloc_extra= srtp_if->out_policy.rtcp.auth_tag_len;
 
-  rtp_params->userdata = srtp_if;
-  rtp_params->rtp_encrypt = our_srtp_encrypt;
-  rtp_params->rtp_decrypt = our_srtp_decrypt;
-  rtp_params->rtcp_encrypt = our_srtcp_encrypt;
-  rtp_params->rtcp_decrypt = our_srtcp_decrypt;
+  rtp_params.userdata = srtp_if;
+  rtp_params.rtp_encrypt = our_srtp_encrypt;
+  rtp_params.rtp_decrypt = our_srtp_decrypt;
+  rtp_params.rtcp_encrypt = our_srtcp_encrypt;
+  rtp_params.rtcp_decrypt = our_srtcp_decrypt;
 
-  if (rtp_set_encryption_params(session, rtp_params) == 0)
-    return srtp_if;
-
+  ret = rtp_set_encryption_params(session, &rtp_params);
+  if (ret != 0) {
+    destroy_srtp(srtp_if);
+    srtp_if = NULL;
+  }
 #endif  
-  return NULL;
+  return srtp_if;
 }
 
 

@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(mpeg4ip, 1.5.1)
+AC_INIT(mpeg4ip, 1.5.2)
 AM_CONFIG_HEADER(mpeg4ip_config.h)
 dnl Prevent user from running just ./configure
 AC_CHECK_FILE(./bootstrapped, [did_bootstrap=yes], [did_bootstrap=no])
@@ -758,8 +758,14 @@ if test x$enable_mmx = xyes; then
 fi
 AM_CONDITIONAL(USE_MMX, test x$test_use_mmx = xtrue)
 
+AC_PATH_X
+AC_PATH_XTRA
+extra=
+if test x$have_x = xyes; then
+    extra="$X_LIBS -lX11 -lXext"
+fi
 dnl Get SDL cflags and SDL libraries to include
-SDL_LIBS="`sdl-config --libs`"
+SDL_LIBS="`sdl-config --libs` $extra"
 AC_SUBST(SDL_LIBS)
 SDL_LIB_LIBS="`sdl-config --libs | sed /-lSDLmain/s///`"
 AC_SUBST(SDL_LIB_LIBS)

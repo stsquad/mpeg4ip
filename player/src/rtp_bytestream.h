@@ -91,9 +91,9 @@ class CRtpByteStreamBase : public COurInByteStream
   };
   int can_skip_frame (void) { return 1; } ;
   void set_wallclock_offset (uint64_t wclock, uint32_t rtp_ts);
-  void recv_callback(struct rtp *session, rtp_event *e);
+  int recv_callback(struct rtp *session, rtp_event *e);
   virtual void flush_rtp_packets(void);
-  int recv_task(int waiting);
+  void rtp_periodic(void);
   uint32_t get_last_rtp_timestamp (void) {return m_last_rtp_ts; };
   void remove_packet_rtp_queue(rtp_packet *pak, int free);
   void pause(void);
@@ -105,6 +105,8 @@ class CRtpByteStreamBase : public COurInByteStream
   bool find_mbit(void);
   void display_status(void);
   void set_rtp_buffer_time (uint64_t ts) { m_rtp_buffer_time = ts; };
+  virtual bool check_rtp_frame_complete_for_payload_type(void);
+  int check_buffering(void);
  protected:
   void init(void);
   // Make sure all classes call this to calculate real time.
@@ -132,7 +134,6 @@ class CRtpByteStreamBase : public COurInByteStream
   int m_buffering;
   uint64_t m_rtp_buffer_time;
   unsigned int m_rtp_pt;
-  virtual bool check_rtp_frame_complete_for_payload_type(void);
   bool m_recvd_pak;
   bool m_recvd_pak_timeout;
   uint64_t m_recvd_pak_timeout_time;
@@ -208,6 +209,7 @@ class CAudioRtpByteStream : public CRtpByteStream
   bool check_rtp_frame_complete_for_payload_type(void);
   bool start_next_frame(uint8_t **buffer, uint32_t *buflen,
 			frame_timestamp_t *ts, void **userdata);
+  void flush_rtp_packets(void);
   void reset(void);
  private:
   rtp_packet *m_working_pak;

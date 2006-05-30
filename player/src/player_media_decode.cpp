@@ -86,6 +86,9 @@ void CPlayerMedia::parse_decode_message (int &thread_stop, int &decoding)
       if (m_sync != NULL) {
 	m_sync->flush_decode_buffers();
       }
+      if (m_rtp_byte_stream != NULL) {
+	m_rtp_byte_stream->flush_rtp_packets();
+      }
       break;
     case MSG_START_DECODING:
       if (m_sync != NULL) {

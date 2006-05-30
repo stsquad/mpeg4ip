@@ -33,8 +33,6 @@
 #include "our_config_file.h"
 
 //#define VIDEO_SYNC_FILL 1
-//#define SWAP_UV 1
-
 
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(video_message, "videosync")
@@ -134,6 +132,8 @@ int CSDLVideoSync::initialize (const char *name)
     if (m_config_set) {
       if (m_sdl_video == NULL) {
 	if (m_video_persistence != NULL) {
+	  video_message(LOG_DEBUG, "initializing with video perist of %p", 
+			m_video_persistence);
 	  m_sdl_video = (CSDLVideo *)m_video_persistence;
 	} else {
 	  m_sdl_video = new CSDLVideo(m_screen_pos_x, m_screen_pos_y);

@@ -273,6 +273,7 @@ int sdp_decode(sdp_decode_info_t *decode,
 	       int *translated);
 
 void sdp_free_session_desc(session_desc_t *sptr);
+  void sdp_free_media_desc(media_desc_t *mptr);
 
 /*
  * dump routines
@@ -301,9 +302,12 @@ void sdp_set_error_func(error_msg_func_t func);
   
 /* utils */
 format_list_t *sdp_add_format_to_list(media_desc_t *mptr, const char *val);
+  format_list_t *sdp_add_format_to_end_of_list(format_list_t *list,
+					       format_list_t *newone);
 void sdp_free_format_list (format_list_t **fptr);
 
 int sdp_add_string_to_list(string_list_t **list, const char *val);
+  int sdp_add_strings_to_list(string_list_t **list, const char *val);
 void sdp_free_string_list (string_list_t **list);
 
 void sdp_time_offset_to_str(uint32_t val, char *buff, uint32_t buflen);

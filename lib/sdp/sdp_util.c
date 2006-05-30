@@ -44,6 +44,22 @@
  *   pointer to added value.  This could be a new one, or one previously
  *   added
  */
+format_list_t *sdp_add_format_to_end_of_list(format_list_t *list,
+					     format_list_t *newone)
+{
+  format_list_t *p;
+  if (list == NULL) {
+    list = newone;
+  } else {
+    p = list;
+    while (p->next != NULL) {
+      p = p->next;
+    }
+    p->next = newone;
+  }
+  return list;
+}
+
 format_list_t *sdp_add_format_to_list (media_desc_t *mptr, const char *val)
 {
   format_list_t *new, *p;
@@ -139,6 +155,43 @@ int sdp_add_string_to_list (string_list_t **list, const char *val)
     p = *list;
     while (p->next != NULL) p = p->next;
     p->next = new;
+  }
+  return (TRUE);
+}
+
+int sdp_add_strings_to_list (string_list_t **list, const char *val)
+{
+  string_list_t *new, *p;
+  const char *end;
+  bool added = FALSE;
+  while (*val != '\0') {
+    end = val;
+    while (*end != '\0' && *end != '\n' && *end != '\n') end++;
+    if (end == val) {
+      return added;
+    }
+    added = TRUE;
+    new = malloc(sizeof(string_list_t));
+    if (new == NULL) {
+      return (FALSE);
+    }
+    
+    new->next = NULL;
+    new->string_val = strndup(val, end - val);
+    if (new->string_val == NULL) {
+      free(new);
+      return (FALSE);
+    }
+    
+    if (*list == NULL) {
+      *list = new;
+    } else {
+      p = *list;
+      while (p->next != NULL) p = p->next;
+      p->next = new;
+    }
+    val = end;
+    while (*val == '\n' || *val == '\r' || isspace(*val)) val++;
   }
   return (TRUE);
 }

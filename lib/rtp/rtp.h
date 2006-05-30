@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.18 $ 
- * $Date: 2006/05/15 22:25:34 $
+ * $Revision: 1.19 $ 
+ * $Date: 2006/05/30 19:48:11 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -370,6 +370,9 @@ socket_udp *get_rtp_rtcp_socket(struct rtp *session);
 
   void rtp_set_receive_buffer_default_size(int bufsize);  
   uint rtp_get_mtu_adjustment (struct rtp *session);
+
+  void rtp_set_rtp_callback(struct rtp *session, rtp_callback_f rtp,
+			    void *userdata);
 #ifdef __cplusplus
 }
 #endif

@@ -184,6 +184,7 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/mpeg2t/libmpeg2_transport.la \
 	$(top_builddir)/lib/rtp/libuclmmbase.la \
+	$(top_builddir)/lib/utils/libmutex.la \
 	$(top_builddir)/player/lib/rtsp/librtsp.la \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
@@ -206,7 +207,7 @@ mp4player_LDADD = \
 	$(top_builddir)/lib/audio/libaudio.la \
 	$(top_builddir)/lib/ismacryp/libismacryp.la \
 	$(top_builddir)/lib/srtp/libsrtpif.la \
-	@SDL_LIBS@ @SRTPLIB@
+	@SDL_LIBS@ -lX11 @SRTPLIB@
 
 gmp4player_LDFLAGS= $(SDL_AUDIO_FLAGS)
 gmp4player_LDADD = $(mp4player_LDADD) \

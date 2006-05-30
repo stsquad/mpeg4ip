@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.29 $ 
- * $Date: 2006/05/15 22:25:34 $
+ * $Revision: 1.30 $ 
+ * $Date: 2006/05/30 19:48:11 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -58,6 +58,7 @@
 #include "qfDES.h"
 #include "md5.h"
 #include "ntp.h"
+#include "mutex.h"
 
 #include "rtp.h"
 
@@ -173,7 +174,7 @@ typedef struct _source {
   char		*tool;
   char		*note;
   char		*priv;
-  rtcp_sr		*sr;
+  rtcp_sr		sr;
   struct timeval	 last_sr;
   struct timeval	 last_active;
   int		 should_advertise_sdes;	/* TRUE if this source is a CSRC which we need to advertise SDES for */
@@ -286,7 +287,31 @@ struct rtp {
   uint32_t	 magic;				/* For debugging...  */
   uint8_t *m_output_buffer; // to consolidate IOVs for encryption
   uint32_t m_output_buffer_size;
+
+  mutex_t mutex;
+  int use_mutex;
 };
+
+static inline void lock_mutex (struct rtp *session)
+{
+  if (session->use_mutex) {
+    MutexLock(session->mutex);
+  }
+}
+
+static inline void unlock_mutex (struct rtp *session)
+{
+  if (session->use_mutex) {
+    MutexUnlock(session->mutex);
+  }
+}
+
+static void local_callback (struct rtp *session, rtp_event *e)
+{
+  if (e->type == RX_RTP || e->type == RX_APP) {
+    xfree(e->data);
+  }
+}
 
 static inline int filter_event(struct rtp *session, uint32_t ssrc)
 {
@@ -341,6 +366,7 @@ static uint32_t next_csrc(struct rtp *session)
   for (chain = 0; chain < RTP_DB_SIZE; chain++) {
     /* Check that the linked lists making up the chains in */
     /* the hash table are correctly linked together...     */
+    lock_mutex(session);
     for (s = session->db[chain]; s != NULL; s = s->next) {
       if (s->should_advertise_sdes) {
 	if (cc == session->last_advertised_csrc) {
@@ -348,6 +374,7 @@ static uint32_t next_csrc(struct rtp *session)
 	  if (session->last_advertised_csrc == session->csrc_count) {
 	    session->last_advertised_csrc = 0;
 	  }
+	  unlock_mutex(session);
 	  return s->ssrc;
 	} else {
 	  cc++;
@@ -385,6 +412,7 @@ static void insert_rr(struct rtp *session, uint32_t reporter_ssrc, rtcp_rr *rr, 
 
   rtcp_rr_wrapper *cur, *start;
 
+  lock_mutex(session);
   start = &session->rr[ssrc_hash(reporter_ssrc)][ssrc_hash(rr->ssrc)];
   cur   = start->next;
 
@@ -395,6 +423,7 @@ static void insert_rr(struct rtp *session, uint32_t reporter_ssrc, rtcp_rr *rr, 
       xfree(cur->ts);
       cur->rr = rr;
       cur->ts = (struct timeval *) xmalloc(sizeof(struct timeval));
+      unlock_mutex(session);
       memcpy(cur->ts, ts, sizeof(struct timeval));
       return;
     }
@@ -412,6 +441,7 @@ static void insert_rr(struct rtp *session, uint32_t reporter_ssrc, rtcp_rr *rr, 
   cur->next->prev = cur;
   cur->prev       = start;
   cur->prev->next = cur;
+  unlock_mutex(session);
 
   rtp_message(LOG_INFO, "Created new rr entry for 0x%08x from source 0x%08x", rr->ssrc, reporter_ssrc);
   return;
@@ -424,6 +454,7 @@ static void remove_rr(struct rtp *session, uint32_t ssrc)
   rtcp_rr_wrapper *start, *cur, *tmp;
   int i;
 
+  lock_mutex(session);
   /* Remove rows, i.e. ssrc == reporter_ssrc                   */
   for(i = 0; i < RTP_DB_SIZE; i++) {
     start = &session->rr[ssrc_hash(ssrc)][i];
@@ -459,6 +490,7 @@ static void remove_rr(struct rtp *session, uint32_t ssrc)
       cur = cur->next;
     }
   }
+  unlock_mutex(session);
 }
 
 static void timeout_rr(struct rtp *session, struct timeval *curr_ts)
@@ -469,6 +501,7 @@ static void timeout_rr(struct rtp *session, struct timeval *curr_ts)
   rtp_event	 event;
   int 		 i, j;
 
+  lock_mutex(session);
   for(i = 0; i < RTP_DB_SIZE; i++) {
     for(j = 0; j < RTP_DB_SIZE; j++) {
       start = &session->rr[i][j];
@@ -496,21 +529,25 @@ static void timeout_rr(struct rtp *session, struct timeval *curr_ts)
       }
     }
   }
+  unlock_mutex(session);
 }
 
 static const rtcp_rr* get_rr(struct rtp *session, uint32_t reporter_ssrc, uint32_t reportee_ssrc)
 {
   rtcp_rr_wrapper *cur, *start;
 
+  lock_mutex(session);
   start = &session->rr[ssrc_hash(reporter_ssrc)][ssrc_hash(reportee_ssrc)];
   cur   = start->next;
   while (cur != start) {
     if (cur->reporter_ssrc == reporter_ssrc &&
 	cur->rr->ssrc      == reportee_ssrc) {
+      unlock_mutex(session);
       return cur->rr;
     }
     cur = cur->next;
   }
+  unlock_mutex(session);
   return NULL;
 }
 
@@ -539,6 +576,7 @@ check_database(struct rtp *session)
   ASSERT(session != NULL);
   ASSERT(session->magic == 0xfeedface);
 
+  lock_mutex(session);
   /* Check that we have a database entry for our ssrc... */
   /* We only do this check if ssrc_count > 0 since it is */
   /* performed during initialisation whilst creating the */
@@ -568,15 +606,14 @@ check_database(struct rtp *session)
 	ASSERT(s->next->prev == s);
       }
       /* Check that the SR is for this source... */
-      if (s->sr != NULL) {
-	if (s->sr->ssrc != s->ssrc) {
-	  rtp_message(LOG_CRIT, "database error ssrc sr->ssrc is %d should be %d",
-		      s->sr->ssrc, s->ssrc);
-	  ASSERT(s->sr->ssrc == s->ssrc);
-	}
+      if (s->sr.ssrc != 0 && s->sr.ssrc != s->ssrc) {
+	rtp_message(LOG_CRIT, "database error ssrc sr->ssrc is %d should be %d",
+		    s->sr.ssrc, s->ssrc);
+	ASSERT(s->sr.ssrc == s->ssrc);
       }
     }
   }
+  unlock_mutex(session);
   /* Check that the number of entries in the hash table  */
   /* matches session->ssrc_count                         */
   ASSERT(source_count == session->ssrc_count);
@@ -594,12 +631,15 @@ get_source(struct rtp *session, uint32_t ssrc)
   source *s;
 
   check_database(session);
+  lock_mutex(session);
   for (s = session->db[ssrc_hash(ssrc)]; s != NULL; s = s->next) {
     if (s->ssrc == ssrc) {
       check_source(s);
+      unlock_mutex(session);
       return s;
     }
   }
+  unlock_mutex(session);
   return NULL;
 }
 
@@ -626,7 +666,6 @@ create_source(struct rtp *session, uint32_t ssrc, int probation)
   s = (source *) xmalloc(sizeof(source));
   memset(s, 0, sizeof(source));
   s->magic          = 0xc001feed;
-  s->next           = session->db[h];
   s->ssrc           = ssrc;
   if (probation) {
     /* This is a probationary source, which only counts as */
@@ -638,10 +677,13 @@ create_source(struct rtp *session, uint32_t ssrc, int probation)
 
   gettimeofday(&(s->last_active), NULL);
   /* Now, add it to the database... */
+  lock_mutex(session);
+  s->next           = session->db[h];
   if (session->db[h] != NULL) {
     session->db[h]->prev = s;
   }
-  session->db[ssrc_hash(ssrc)] = s;
+  session->db[h] = s;
+  unlock_mutex(session);
   session->ssrc_count++;
   check_database(session);
 
@@ -676,6 +718,8 @@ static void delete_source(struct rtp *session, uint32_t ssrc)
 
   check_source(s);
   check_database(session);
+
+  lock_mutex(session);
   if (session->db[h] == s) {
     /* It's the first entry in this chain... */
     session->db[h] = s->next;
@@ -689,6 +733,8 @@ static void delete_source(struct rtp *session, uint32_t ssrc)
       s->next->prev = s->prev;
     }
   }
+  unlock_mutex(session);
+
   /* Free the memory allocated to a source... */
   if (s->cname != NULL) xfree(s->cname);
   if (s->name  != NULL) xfree(s->name);
@@ -698,7 +744,6 @@ static void delete_source(struct rtp *session, uint32_t ssrc)
   if (s->tool  != NULL) xfree(s->tool);
   if (s->note  != NULL) xfree(s->note);
   if (s->priv  != NULL) xfree(s->priv);
-  if (s->sr    != NULL) xfree(s->sr);
 
   remove_rr(session, ssrc); 
 
@@ -1132,7 +1177,7 @@ rtp_t rtp_init_stream (rtp_stream_params_t *rsp)
   session->opt		= (options *) xmalloc(sizeof(options));
   session->recv_userdata	= rsp->recv_userdata;
   session->send_userdata = rsp->send_userdata != NULL ? rsp->send_userdata : rsp->recv_userdata;
-  session->addr		= xstrdup(rsp->rtp_addr);
+  session->addr		= rsp->rtp_addr != NULL ? xstrdup(rsp->rtp_addr) : NULL;
   session->rx_port	= rsp->rtp_rx_port;
   session->tx_port	= rsp->rtp_tx_port;
   session->ttl		= min(rsp->rtp_ttl, 127);
@@ -1206,7 +1251,8 @@ rtp_t rtp_init_stream (rtp_stream_params_t *rsp)
   session->rtp_encryption_enabled = 0;
   session->rtcp_encryption_enabled = 0;
   session->encryption_algorithm = NULL;
-
+  session->mutex = MutexCreate();
+  session->use_mutex = 1;
   /* Calculate when we're supposed to send our first RTCP packet... */
   if (rsp->transmit_initial_rtcp == 0) {
     tv_add(&(session->next_rtcp_send_time), rtcp_interval(session));
@@ -1261,6 +1307,7 @@ int rtp_set_my_ssrc(struct rtp *session, uint32_t ssrc)
   }
   /* Remove existing source */
   h = ssrc_hash(session->my_ssrc);
+  lock_mutex(session);
   s = session->db[h];
   session->db[h] = NULL;
   /* Fill in new ssrc       */
@@ -1269,6 +1316,7 @@ int rtp_set_my_ssrc(struct rtp *session, uint32_t ssrc)
   h                = ssrc_hash(ssrc);
   /* Put source back        */
   session->db[h]   = s;
+  unlock_mutex(session);
   return TRUE;
 }
 
@@ -1685,8 +1733,8 @@ static void process_rtcp_sr(struct rtp *session, rtcp_t *packet, struct timeval 
 {
   uint32_t	 ssrc;
   rtp_event	 event;
-  rtcp_sr		*sr;
-  source		*s;
+  source	*s;
+  rtcp_sr       *sr;
 
   ssrc = ntohl(packet->r.sr.sr.ssrc);
   s = create_source(session, ssrc, FALSE);
@@ -1702,7 +1750,7 @@ static void process_rtcp_sr(struct rtp *session, rtcp_t *packet, struct timeval 
   }
 
   /* Process the SR... */
-  sr = (rtcp_sr *) xmalloc(sizeof(rtcp_sr));
+  sr = (rtcp_sr *) &s->sr;
   sr->ssrc          = ssrc;
   sr->ntp_sec       = ntohl(packet->r.sr.sr.ntp_sec);
   sr->ntp_frac      = ntohl(packet->r.sr.sr.ntp_frac);
@@ -1711,10 +1759,6 @@ static void process_rtcp_sr(struct rtp *session, rtcp_t *packet, struct timeval 
   sr->sender_bcount = ntohl(packet->r.sr.sr.sender_bcount);
 
   /* Store the SR for later retrieval... */
-  if (s->sr != NULL) {
-    xfree(s->sr);
-  }
-  s->sr = sr;
   s->last_sr = *event_ts;
 
   /* Call the event handler... */
@@ -2119,9 +2163,11 @@ int rtp_set_sdes(struct rtp *session, uint32_t ssrc, rtcp_sdes_type type, const 
   check_source(s);
 
   v = (char *) xmalloc(length + 1);
-  memset(v, '\0', length + 1);
+  v[length] = '\0';
+  //  memset(v, '\0', length + 1);
   memcpy(v, value, length);
 
+  lock_mutex(session);
   switch (type) {
   case RTCP_SDES_CNAME: 
     if (s->cname) xfree(s->cname);
@@ -2159,8 +2205,10 @@ int rtp_set_sdes(struct rtp *session, uint32_t ssrc, rtcp_sdes_type type, const 
     rtp_message(LOG_NOTICE, "Unknown SDES item (type=%d, value=%s)", type, v);
     xfree(v);
     check_database(session);
+    unlock_mutex(session);
     return FALSE;
   }
+  unlock_mutex(session);
   check_database(session);
   return TRUE;
 }
@@ -2240,7 +2288,7 @@ const rtcp_sr *rtp_get_sr(struct rtp *session, uint32_t ssrc)
     return NULL;
   } 
   check_source(s);
-  return s->sr;
+  return &s->sr;
 }
 
 /**
@@ -2568,13 +2616,9 @@ static int format_report_blocks(rtcp_rr *rrp, int remaining_length, struct rtp *
 	  fraction = (lost_interval << 8) / expected_interval;
 	}
 
-	if (s->sr == NULL) {
-	  lsr = 0;
-	  dlsr = 0;
-	} else {
-	  lsr = ntp64_to_ntp32(s->sr->ntp_sec, s->sr->ntp_frac);
-	  dlsr = (uint32_t)(tv_diff(now, s->last_sr) * 65536);
-	}
+	lsr = ntp64_to_ntp32(s->sr.ntp_sec, s->sr.ntp_frac);
+	dlsr = (uint32_t)(tv_diff(now, s->last_sr) * 65536);
+
 	rrp->ssrc       = htonl(s->ssrc);
 	rrp->fract_lost = fraction;
 	rrp->total_lost = lost & 0x00ffffff;
@@ -2799,6 +2843,7 @@ static void send_rtcp(struct rtp *session,
   /* compound packet is defined by section 6.1 of draft-ietf-avt-rtp-new-03.txt and  */
   /* we follow the recommended order.                                                */
   uint8_t	   buffer[RTP_MAX_PACKET_LEN + MAX_ENCRYPTION_PAD + 1024];	/* The +8 is to allow for padding when encrypting */
+  uint8_t   *start = buffer;
   uint8_t	  *ptr = buffer;
   uint8_t   *old_ptr;
   uint8_t   *lpt;		/* the last packet in the compound */
@@ -2811,6 +2856,7 @@ static void send_rtcp(struct rtp *session,
     {
       *((uint32_t *) ptr) = lbl_random();
       ptr += 4;
+      start = ptr;
     }
 
   /* The first RTCP packet in the compound packet MUST always be a report packet...  */
@@ -2857,7 +2903,7 @@ static void send_rtcp(struct rtp *session,
   /* Loop the data back to ourselves so local participant can */
   /* query own stats when using unicast or multicast with no  */
   /* loopback.                                                */
-  rtp_process_rtcp(session, buffer, ptr - buffer);
+  rtp_process_rtcp(session, start, ptr - start);
 
   /* And encrypt if desired... */
   if (session->rtcp_encryption_enabled) {
@@ -3604,4 +3650,15 @@ uint rtp_get_mtu_adjustment (struct rtp *session)
 {
   return MAX(session->rtp_encryption_lenadd, 
 	     session->rtcp_encryption_lenadd);
+}
+
+void rtp_set_rtp_callback (struct rtp *session, rtp_callback_f callback,
+			   void *userdata)
+{
+  if (callback == NULL) {
+    session->callback = local_callback;
+  } else {
+    session->callback = callback;
+  }
+  session->recv_userdata	= userdata;
 }

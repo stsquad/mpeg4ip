@@ -262,7 +262,8 @@ void createStreamSdp (CLiveConfig *pGlobal,
 				     &videoIs3gp,
 				     &videoProfile,
 				     &pVideoConfig,
-				     &videoConfigLength);
+				     &videoConfigLength,
+				     NULL);
     if (sdpMediaVideo != NULL) {
       if (videoCreateIod == false) createIod = false;
       

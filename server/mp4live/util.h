@@ -58,6 +58,7 @@ void debug_message(const char *fmt, ...)
        __attribute__((format(__printf__, 1, 2)))
 	   ;
 
+char *create_payload_number_string(uint8_t payload);
 
 #ifdef __cplusplus
 }

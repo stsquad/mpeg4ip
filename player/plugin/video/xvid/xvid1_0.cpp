@@ -55,6 +55,7 @@ static int look_for_vol (xvid_codec_t *xvid,
   uint8_t timeBits;
   uint16_t timeTicks, dur, width, height;
   uint8_t aspect_ratio, aspect_ratio_w, aspect_ratio_h;
+  aspect_ratio = aspect_ratio_w = aspect_ratio_h = 0;
   if (MP4AV_Mpeg4ParseVol(volptr, 
 			  vollen, 
 			  &timeBits, 

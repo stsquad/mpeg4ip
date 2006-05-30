@@ -69,6 +69,10 @@ int CPlayerMedia::rtp_receive_packet (unsigned char interleaved,
   return ret;
 }
 
+/*
+ * rtp_peridic - called from receive task; generates RTCP when needed; also
+ * checks for end of stream - if so, it kicks the decoder task, to finish off
+ */
 void CPlayerMedia::rtp_periodic (void)
 {
   rtp_send_ctrl(m_rtp_session, 
@@ -77,47 +81,58 @@ void CPlayerMedia::rtp_periodic (void)
 		NULL);
   rtp_update(m_rtp_session);
   if (m_rtp_byte_stream != NULL) {
-    int ret = m_rtp_byte_stream->recv_task(m_decode_thread_waiting);
-    if (ret > 0) {
-      if (m_rtp_buffering == 0) {
-	m_rtp_buffering = 1;
-	start_decoding();
-      } else {
-	bytestream_primed();
-      }
+    m_rtp_byte_stream->rtp_periodic();
+    if (m_rtp_byte_stream->eof()) {
+      bytestream_primed();
     }
-    return;
   }
+}
+
+/*
+ * rtp_check_payload - this is called after receiving packets, but before a
+ * m_rtp_byte_stream is selected.
+ */
+void CPlayerMedia::rtp_check_payload (void)
+{
   // note wmay - 3/16/2005 - need to push in text here.
   // we'll only every allow 1 type to be read, so we'll be able to
   // set up the interface directly.
+  bool try_bytestream_buffering = false;
 
   if (get_sync_type() == TIMED_TEXT_SYNC) {
     determine_payload_type_from_rtp();
     // set the buffer time to 0, so we can pass buffering immediately
     m_rtp_byte_stream->set_rtp_buffer_time(0);
-    rtp_periodic();
-    return;
-  }
-
-  if (m_head != NULL) {
-    /*
-     * Make sure that the payload type is the same
-     */
-    if (m_head->rtp_pak_pt == m_tail->rtp_pak_pt) {
-      // we either want only 1 possible protocol, or at least
-      // 10 packets of the same consecutively.  10 is arbitrary.
-      if (m_media_info->fmt->next == NULL || 
-	  m_rtp_queue_len > 10) { 
-	if (determine_payload_type_from_rtp() == FALSE) {
-	  clear_rtp_packets(); 
+    try_bytestream_buffering = true;
+  } else {
+    if (m_head != NULL) {
+      /*
+       * Make sure that the payload type is the same
+       */
+      if (m_head->rtp_pak_pt == m_tail->rtp_pak_pt) {
+	// we either want only 1 possible protocol, or at least
+	// 10 packets of the same consecutively.  10 is arbitrary.
+	if (m_media_info->fmt->next == NULL || 
+	    m_rtp_queue_len > 10) { 
+	  if (determine_payload_type_from_rtp() == FALSE) {
+	    clear_rtp_packets(); 
+	  } else {
+	    // call this function again so we begin the buffering check
+	    // right away - better than a go-to.
+	    try_bytestream_buffering = true;
+	  }
 	}
-	// call this function again so we begin the buffering check
-	// right away - better than a go-to.
-	rtp_periodic(); 
+      } else {
+	clear_rtp_packets();
       }
-    } else {
-      clear_rtp_packets();
+    }
+  }
+  // if we've set the rtp bytestream, immediately try and see if they are done
+  // buffering;  if so, start the decode task moving.
+  if (try_bytestream_buffering) {
+    if (m_rtp_byte_stream->check_buffering() != 0) {
+      m_rtp_buffering = 1;
+      start_decoding();
     }
   }
 }
@@ -134,7 +149,7 @@ void CPlayerMedia::rtp_start (void)
   }
   if (m_rtp_byte_stream != NULL) {
     //m_rtp_byte_stream->reset(); - gets called when pausing
-    m_rtp_byte_stream->flush_rtp_packets();
+    //    m_rtp_byte_stream->flush_rtp_packets();
   }
   m_rtp_buffering = 0;
 }
@@ -144,7 +159,10 @@ void CPlayerMedia::rtp_end(void)
   if (m_rtp_session != NULL && m_rtp_session_from_outside == false) {
     rtp_send_bye(m_rtp_session);
     rtp_done(m_rtp_session);
+  } else {
+    rtp_set_rtp_callback(m_rtp_session, NULL, NULL);
   }
+
   m_rtp_session = NULL;
   if (m_srtp_session != NULL) {
     destroy_srtp(m_srtp_session);
@@ -255,6 +273,7 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
    */
   if (m_paused) {
     if (e->type == RX_RTP) {
+      media_message(LOG_DEBUG, "%s dropping pak", get_name());
       xfree(e->data);
       return;
     }
@@ -269,14 +288,29 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
     }
 #endif
   if (m_rtp_byte_stream != NULL) {
-    m_rtp_byte_stream->recv_callback(session, e);
+    if ((m_rtp_byte_stream->recv_callback(session, e) > 0) &&
+	(e->type == RX_RTP)) {
+      // indicates they are done buffering.
+      if (m_rtp_buffering == 0) {
+	m_rtp_buffering = 1;
+	start_decoding();
+      } else {
+	// we're not buffering, but the decode thread might be waiting; if so, 
+	// tweak it if we have a complete frame.
+	if (m_decode_thread_waiting) {
+	  if (m_rtp_byte_stream->check_rtp_frame_complete_for_payload_type()) {
+	    bytestream_primed();
+	  }
+	}
+      }
+    }
     return;
   }
+  // we only get here if there is not a valid rtp bytestream yet.
   switch (e->type) {
   case RX_RTP:
     /* regular rtp packet - add it to the queue */
     rtp_packet *rpak;
-
       
     rpak = (rtp_packet *)e->data;
     if (rpak->rtp_data_len == 0) {
@@ -287,6 +321,7 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
       add_rtp_packet_to_queue(rpak, &m_head, &m_tail, 
 			      get_name());
       m_rtp_queue_len++;
+      rtp_check_payload();
     }
     break;
   case RX_SR:
@@ -453,6 +488,7 @@ void CPlayerMedia::rtp_init (bool do_tcp)
     }
   } else {
     m_rtp_session_from_outside = true;
+    rtp_set_rtp_callback(m_rtp_session, c_recv_callback, this);
   }
   m_rtp_inited = 1;
 

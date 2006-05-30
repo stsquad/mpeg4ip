@@ -368,10 +368,61 @@ CRtpByteStreamBase::calculate_wallclock_offset_from_rtcp (uint32_t ntp_frac,
 }
 
 /*
+ * check_buffering is called to check and see if we should be buffering
+ */
+int CRtpByteStreamBase::check_buffering (void)
+{
+  if (m_buffering == 0) {
+    uint32_t head_ts, tail_ts;
+    if (m_head != NULL) {
+      /*
+       * Payload type the same.  Make sure we have at least 2 seconds of
+       * good data
+       */
+      if (check_rtp_frame_complete_for_payload_type()) {
+	head_ts = m_head->rtp_pak_ts;
+	tail_ts = m_tail->rtp_pak_ts;
+	if (head_ts > tail_ts &&
+	    ((head_ts & (1 << 31)) == (tail_ts & (1 << 31)))) {
+	  return 0;
+	}
+	uint64_t calc;
+	calc = tail_ts;
+	calc -= head_ts;
+	calc *= TO_U64(1000);
+	calc /= m_timescale;
+	if (calc >= m_rtp_buffer_time) {
+	  if (m_base_ts_set == false) {
+	    rtp_message(LOG_NOTICE, 
+			"%s - Setting rtp seq and time from 1st pak",
+			m_name);
+	    set_rtp_base_ts(m_head->rtp_pak_ts);
+	    m_rtpinfo_set_from_pak = 1;
+	  } else {
+	    m_rtpinfo_set_from_pak = 0;
+	  }
+	  m_buffering = 1;
+#if 1
+	  rtp_message(LOG_INFO, 
+		      "%s buffering complete - head seq %d %u tail seq %d %u "D64, 
+		      m_name, m_head->rtp_pak_seq, head_ts, 
+		      m_tail->rtp_pak_seq,
+		      tail_ts, calc);
+#endif
+	  m_next_seq = m_head->rtp_pak_seq - 1;
+	  
+	}
+      }
+    }
+  }
+  return m_buffering;
+}
+  
+/*
  * recv_callback - callback for when bytestream is active - basically, 
  * put things on the queue
  */
-void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
+int CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
 {
   switch (e->type) {
   case RX_RTP:
@@ -402,22 +453,26 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
       }
       if (SDL_mutexP(m_rtp_packet_mutex) == -1) {
 	rtp_message(LOG_CRIT, "SDL Lock mutex failure in rtp bytestream recv");
-	return;
+	break;
       }
       add_rtp_packet_to_queue(rpak, &m_head, &m_tail, m_name);
       if (SDL_mutexV(m_rtp_packet_mutex) == -1) {
 	rtp_message(LOG_CRIT, "SDL Lock mutex failure in rtp bytestream recv");
-	return;
+	break;
       }
       m_recvd_pak = true;
+      check_buffering();
     }
     break;
   case RX_SR:
     rtcp_sr *srpak;
     srpak = (rtcp_sr *)e->data;
-    calculate_wallclock_offset_from_rtcp(srpak->ntp_frac, 
-					 srpak->ntp_sec, 
-					 srpak->rtp_ts);
+    if (rtp_my_ssrc(session) != e->ssrc) {
+      //rtp_message(LOG_DEBUG, "%s received rtcp", m_name);
+      calculate_wallclock_offset_from_rtcp(srpak->ntp_frac, 
+					   srpak->ntp_sec, 
+					   srpak->rtp_ts);
+    }
     break;
   case RX_APP:
     free(e->data);
@@ -429,6 +484,7 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
 #endif
     break;
   }
+  return m_buffering;
 }
 
 /*
@@ -550,10 +606,13 @@ void CRtpByteStreamBase::remove_packet_rtp_queue (rtp_packet *pak,
 
 void CRtpByteStreamBase::flush_rtp_packets (void)
 {
+  rtp_message(LOG_DEBUG, "%s flushed", m_name);
   while (m_head != NULL) {
     remove_packet_rtp_queue(m_head, 1);
   }
   m_buffering = 0;
+  m_recvd_pak = false;
+  m_recvd_pak_timeout = false;
 }
 
 void CRtpByteStreamBase::pause(void)
@@ -561,69 +620,12 @@ void CRtpByteStreamBase::pause(void)
   reset();
 }
 /*
- * recv_task - called from the player media rtp task - make sure
- * we have 2 seconds of buffering, then go...
+ * rtp_periodic - called from the player media rtp task.  This basically just
+ * checks for the end of the range.
  */
-int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
+void CRtpByteStreamBase::rtp_periodic (void)
 {
-  /*
-   * We need to make sure we have some buffering.  We'll buffer
-   * about 2 seconds worth, then let the decode task know to go...
-   */
-  if (m_buffering == 0) {
-    uint32_t head_ts, tail_ts;
-    if (m_head != NULL) {
-      /*
-       * Payload type the same.  Make sure we have at least 2 seconds of
-       * good data
-       */
-      if (check_rtp_frame_complete_for_payload_type()) {
-	head_ts = m_head->rtp_pak_ts;
-	tail_ts = m_tail->rtp_pak_ts;
-	if (head_ts > tail_ts &&
-	    ((head_ts & (1 << 31)) == (tail_ts & (1 << 31)))) {
-	  return 0;
-	}
-	uint64_t calc;
-	calc = tail_ts;
-	calc -= head_ts;
-	calc *= TO_U64(1000);
-	calc /= m_timescale;
-	if (calc >= m_rtp_buffer_time) {
-	  if (m_base_ts_set == false) {
-	    rtp_message(LOG_NOTICE, 
-			"%s - Setting rtp seq and time from 1st pak",
-			m_name);
-	    set_rtp_base_ts(m_head->rtp_pak_ts);
-	    m_rtpinfo_set_from_pak = 1;
-	  } else {
-	    m_rtpinfo_set_from_pak = 0;
-	  }
-	  m_buffering = 1;
-#if 1
-	  rtp_message(LOG_INFO, 
-		      "%s buffering complete - head seq %d %u tail seq %d %u "D64, 
-		      m_name, m_head->rtp_pak_seq, head_ts, 
-		      m_tail->rtp_pak_seq,
-		      tail_ts, calc);
-#endif
-	  m_next_seq = m_head->rtp_pak_seq - 1;
-	  
-	}
-      }
-    }
-
-  } else {
-    if (decode_thread_waiting != 0) {
-      /*
-       * We're good with buffering - but the decode thread might have
-       * caught up, and will be waiting.  Post a message to kickstart
-       * it
-       */
-      if (check_rtp_frame_complete_for_payload_type()) {
-	return (1);
-      }
-    }
+  if (m_buffering != 0) {
     if (m_recvd_pak == false) {
       if (m_recvd_pak_timeout == false) {
 	m_recvd_pak_timeout_time = get_time_of_day();
@@ -633,32 +635,32 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 #endif
       } else {
 	uint64_t timeout;
-	timeout = get_time_of_day() - m_recvd_pak_timeout_time;
-	if (m_stream_ondemand && get_max_playtime() != 0.0) {
-	  uint64_t range_end = (uint64_t)(get_max_playtime() * 1000.0);
-	  if (m_last_realtime + timeout >= range_end) {
-	    rtp_message(LOG_DEBUG, 
-			"%s Timedout at range end - last "U64" range end "U64" "U64, 
-			m_name, m_last_realtime, range_end, timeout);
-	    m_eof = 1;
-	  }
-	} else {
+	if (m_eof == 0) {
+	  timeout = get_time_of_day() - m_recvd_pak_timeout_time;
+	  if (m_stream_ondemand && get_max_playtime() != 0.0) {
+	    uint64_t range_end = (uint64_t)(get_max_playtime() * 1000.0);
+	    if (m_last_realtime + timeout >= range_end) {
+	      rtp_message(LOG_DEBUG, 
+			  "%s Timedout at range end - last "U64" range end "U64" "U64, 
+			  m_name, m_last_realtime, range_end, timeout);
+	      m_eof = 1;
+	    }
+	  } else {
 	  // broadcast - perhaps if we time out for a second or 2, we
 	  // should re-init rtp ?  We definately need to put some timing
 	  // checks here.
-	  session_desc_t *sptr = m_fmt->media->parent;
-	  if (sptr->time_desc != NULL &&
-	      sptr->time_desc->end_time != 0) {
-	    time_t this_time;
-	    this_time = time(NULL);
-	    if (this_time > sptr->time_desc->end_time && 
-		timeout >= TO_U64(1000)) {
-	      m_eof = 1;
+	    session_desc_t *sptr = m_fmt->media->parent;
+	    if (sptr->time_desc != NULL &&
+		sptr->time_desc->end_time != 0) {
+	      time_t this_time;
+	      this_time = time(NULL);
+	      if (this_time > sptr->time_desc->end_time && 
+		  timeout >= TO_U64(1000)) {
+		m_eof = 1;
+	      }
 	    }
 	  }
-	  
 	}
-	
       }
       m_recvd_pak_timeout = true;
     } else {
@@ -666,7 +668,6 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
       m_recvd_pak_timeout = false;
     }
   }
-  return (m_buffering);
 }
 
 bool CRtpByteStreamBase::check_rtp_frame_complete_for_payload_type (void)
@@ -747,6 +748,7 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
       // triggers the synchronization effort.
       if (m_rtcp_received) {
 	// calculate other stuff
+	//rtp_message(LOG_DEBUG, "%s rtp_ts_to_msec calling wallclock", m_name);
 	set_wallclock_offset(m_rtcp_ts, m_rtcp_rtp_ts);
       }
     }
@@ -1107,12 +1109,19 @@ bool CAudioRtpByteStream::check_rtp_frame_complete_for_payload_type (void)
 
 void CAudioRtpByteStream::reset (void)
 {
+  rtp_message(LOG_DEBUG, "in audiortpreset");
+  CRtpByteStream::reset();
+}
+
+void CAudioRtpByteStream::flush_rtp_packets(void) 
+{
   if (m_working_pak != NULL) {
     xfree(m_working_pak);
     m_working_pak = NULL;
   }
-  CRtpByteStream::reset();
+  CRtpByteStream::flush_rtp_packets();
 }
+  
 bool CAudioRtpByteStream::start_next_frame (uint8_t **buffer, 
 					    uint32_t *buflen,
 					    frame_timestamp_t *pts,

@@ -593,6 +593,7 @@ int CPlayerMedia::do_play (double start_time_offset)
 {
 
   if (m_streaming) {
+    m_paused = false;
     if (m_stream_ondemand != 0) {
       /*
        * We're streaming - send the RTSP play command
@@ -653,7 +654,6 @@ int CPlayerMedia::do_play (double start_time_offset)
     if (m_byte_stream != NULL) {
       m_byte_stream->play((uint64_t)(start_time_offset * 1000.0));
     }
-    m_paused = false;
     if (m_rtp_use_rtsp) {
       rtsp_thread_perform_callback(m_parent->get_rtsp_client(),
 				   c_rtp_start, 

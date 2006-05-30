@@ -122,3 +122,10 @@ in_port_t GetRandomPort(void)
   // Get random block of 4 port numbers above 20000
   return (in_port_t)(20000 + ((random() >> 18) << 2));
 }
+
+char *create_payload_number_string (uint8_t payload)
+{
+  char *ret = (char *)malloc(4);
+  sprintf(ret, "%u", payload);
+  return ret;
+}
