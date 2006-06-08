@@ -41,7 +41,8 @@ audio_encoder_table_t g711_alaw_audio_encoder_table = {
   g711_sample_rate,
   NUM_ELEMENTS_IN_ARRAY(g711_sample_rate),
   g711_bitrate_for_samplerate,
-  1
+  1, 
+  NULL
 };
 
 audio_encoder_table_t g711_ulaw_audio_encoder_table = {
@@ -51,7 +52,8 @@ audio_encoder_table_t g711_ulaw_audio_encoder_table = {
   g711_sample_rate,
   NUM_ELEMENTS_IN_ARRAY(g711_sample_rate),
   g711_bitrate_for_samplerate,
-  1
+  1,
+  NULL
 };
 
 MediaType g711_mp4_fileinfo (CAudioProfile *pConfig,

@@ -697,7 +697,7 @@ int parse_name_for_session (CPlayerSession *psptr,
   }
 #endif
 
-  if (strncmp(name, "v=0\r\n", strlen("v=0\r\n")) == 0) {
+  if (strncmp(name, "v=0", strlen("v=0")) == 0) {
     // sdp
     err = create_media_from_sdp(psptr, 
 				name, 

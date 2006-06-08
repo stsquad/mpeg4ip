@@ -755,14 +755,16 @@ extern "C" uint16_t MP4GetAmrModeSet(
 
 extern "C" MP4TrackId MP4AddHrefTrack (MP4FileHandle hFile,
 				       uint32_t timeScale,
-				       MP4Duration sampleDuration)
+				       MP4Duration sampleDuration,
+				       const char *base_url)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {
       MP4File *pFile = (MP4File *)hFile;
 
       return pFile->AddHrefTrack(timeScale, 
-				 sampleDuration);
+				 sampleDuration,
+				 base_url);
     }
     catch (MP4Error* e) {
       PRINT_ERROR(e);
@@ -770,6 +772,22 @@ extern "C" MP4TrackId MP4AddHrefTrack (MP4FileHandle hFile,
     }
   }
   return MP4_INVALID_TRACK_ID;
+}
+
+extern "C" const char *MP4GetHrefTrackBaseUrl (MP4FileHandle hFile,
+					       MP4TrackId trackId)
+{
+  if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+    try {
+      return ((MP4File*)hFile)->GetTrackStringProperty(trackId,
+						       "mdia.minf.stbl.stsd.href.burl.base_url");
+    }
+    catch (MP4Error* e) {
+      PRINT_ERROR(e);
+      delete e;
+    }
+  }
+  return NULL;
 }
 
 extern "C" MP4TrackId MP4AddVideoTrack(

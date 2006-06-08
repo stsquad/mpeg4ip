@@ -260,8 +260,46 @@ void create_TextSourceDialog (void)
  *************************************************************************/
 static const char **encoderNames = NULL;
 
+static GtkWidget *TextProfileDialog;
+void
+on_TextProfileEncoder_changed          (GtkOptionMenu   *optionmenu,
+                                        gpointer         user_data)
+{
+  uint32_t encoderIndex = gtk_option_menu_get_history(optionmenu);
+
+  bool set;
+  set = text_encoder_table[encoderIndex].get_gui_options != NULL;
+  if (set) {
+    set = (text_encoder_table[encoderIndex].get_gui_options)(NULL, NULL);
+  }
+  GtkWidget *temp = lookup_widget(TextProfileDialog, "TextEncoderSettingsButton");
+  gtk_widget_set_sensitive(temp, set);
+}
+
+
+void
+on_TextEncoderSettingsButton_clicked   (GtkButton       *button,
+                                        gpointer         user_data)
+{
+  CTextProfile *profile = (CTextProfile *)user_data;
+  GtkWidget *temp;
+  temp = lookup_widget(TextProfileDialog, "TextProfileEncoder");
+  encoder_gui_options_base_t **settings_array;
+  uint settings_array_count;
+  uint index = gtk_option_menu_get_history(GTK_OPTION_MENU(temp));
+  
+  if ((text_encoder_table[index].get_gui_options)(&settings_array, &settings_array_count) == false) {
+    return;
+  }
+  
+  CreateEncoderSettingsDialog(profile, TextProfileDialog,
+			      text_encoder_table[index].dialog_selection_name,
+			      settings_array,
+			      settings_array_count);
+}
+
 static void
-on_TextEncoderDialog_response          (GtkDialog       *dialog,
+on_TextProfileDialog_response          (GtkDialog       *dialog,
                                         gint             response_id,
                                         gpointer         user_data)
 {
@@ -288,7 +326,7 @@ on_TextEncoderDialog_response          (GtkDialog       *dialog,
       tp = AVFlow->m_text_profile_list->FindProfile(name);
       ret_profile = tp;
     }
-    wid = lookup_widget(GTK_WIDGET(dialog), "TextEncodingOptionMenu");
+    wid = lookup_widget(GTK_WIDGET(dialog), "TextProfileEncoder");
     
     tp->SetStringValue(CFG_TEXT_ENCODING, 
 		       text_encoder_table[gtk_option_menu_get_history(GTK_OPTION_MENU(wid))].text_encoding);
@@ -303,40 +341,45 @@ on_TextEncoderDialog_response          (GtkDialog       *dialog,
   gtk_widget_destroy(GTK_WIDGET(dialog));
 }
 
-
-void create_TextProfileDialog (CTextProfile *tp)
+void create_TextProfileDialog(CTextProfile *tp)
 {
-  GtkWidget *TextEncoderDialog;
   GtkWidget *dialog_vbox11;
   GtkWidget *table8;
-  GtkWidget *TextEncodingOptionMenu;
+  GtkWidget *TextProfileEncoder;
   GtkWidget *label211;
   GtkWidget *label212;
   GtkObject *TextRepeatTimeSpinner_adj;
   GtkWidget *TextRepeatTimeSpinner;
   GtkWidget *label213;
-  GtkWidget *TextProfileEntry;
+  GtkWidget *TextProfileName;
+  GtkWidget *label224;
+  GtkWidget *TextEncoderSettingsButton;
+  GtkWidget *alignment38;
+  GtkWidget *hbox117;
+  GtkWidget *image43;
+  GtkWidget *label225;
   GtkWidget *dialog_action_area10;
   GtkWidget *cancelbutton8;
   GtkWidget *okbutton10;
 
-  TextEncoderDialog = gtk_dialog_new();
-  gtk_window_set_title(GTK_WINDOW(TextEncoderDialog), _("Text Encoder"));
-  gtk_window_set_modal(GTK_WINDOW(TextEncoderDialog), TRUE);
-  gtk_window_set_resizable(GTK_WINDOW(TextEncoderDialog), FALSE);
+  TextProfileDialog = gtk_dialog_new();
+  gtk_window_set_title(GTK_WINDOW(TextProfileDialog), _("Text Encoder"));
+  gtk_window_set_modal(GTK_WINDOW(TextProfileDialog), TRUE);
+  gtk_window_set_resizable(GTK_WINDOW(TextProfileDialog), FALSE);
+  gtk_window_set_type_hint(GTK_WINDOW(TextProfileDialog), GDK_WINDOW_TYPE_HINT_DIALOG);
 
-  dialog_vbox11 = GTK_DIALOG(TextEncoderDialog)->vbox;
+  dialog_vbox11 = GTK_DIALOG(TextProfileDialog)->vbox;
   gtk_widget_show(dialog_vbox11);
 
-  table8 = gtk_table_new(3, 2, TRUE);
+  table8 = gtk_table_new(4, 2, FALSE);
   gtk_widget_show(table8);
   gtk_box_pack_start(GTK_BOX(dialog_vbox11), table8, TRUE, TRUE, 0);
   gtk_table_set_row_spacings(GTK_TABLE(table8), 11);
   gtk_table_set_col_spacings(GTK_TABLE(table8), 7);
 
-  TextEncodingOptionMenu = gtk_option_menu_new();
-  gtk_widget_show(TextEncodingOptionMenu);
-  gtk_table_attach(GTK_TABLE(table8), TextEncodingOptionMenu, 1, 2, 1, 2,
+  TextProfileEncoder = gtk_option_menu_new();
+  gtk_widget_show(TextProfileEncoder);
+  gtk_table_attach(GTK_TABLE(table8), TextProfileEncoder, 1, 2, 1, 2,
                    (GtkAttachOptions)(GTK_FILL),
                    (GtkAttachOptions)(0), 0, 0);
 
@@ -354,7 +397,8 @@ void create_TextProfileDialog (CTextProfile *tp)
                    (GtkAttachOptions)(0), 0, 0);
   gtk_misc_set_alignment(GTK_MISC(label212), 0, 0.5);
 
-  TextRepeatTimeSpinner_adj = gtk_adjustment_new(tp != NULL ? tp->GetFloatValue(CFG_TEXT_REPEAT_TIME_SECS) : 1, 0, 100, 1, 10, 10);
+  TextRepeatTimeSpinner_adj = gtk_adjustment_new(tp != NULL ?
+						 tp->GetFloatValue(CFG_TEXT_REPEAT_TIME_SECS) : 1, 0, 100, 1, 10, 10);
   TextRepeatTimeSpinner = gtk_spin_button_new(GTK_ADJUSTMENT(TextRepeatTimeSpinner_adj), 1, 1);
   gtk_widget_show(TextRepeatTimeSpinner);
   gtk_table_attach(GTK_TABLE(table8), TextRepeatTimeSpinner, 1, 2, 2, 3,
@@ -369,43 +413,84 @@ void create_TextProfileDialog (CTextProfile *tp)
                    (GtkAttachOptions)(0), 0, 0);
   gtk_misc_set_alignment(GTK_MISC(label213), 0, 0.5);
 
-  TextProfileEntry = gtk_entry_new();
-  gtk_widget_show (TextProfileEntry);
-  gtk_table_attach (GTK_TABLE(table8), TextProfileEntry, 1, 2, 0, 1,
-                    (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions)(0), 0, 0);
+  TextProfileName = gtk_entry_new();
+  gtk_widget_show(TextProfileName);
+  gtk_table_attach(GTK_TABLE(table8), TextProfileName, 1, 2, 0, 1,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
 
-  dialog_action_area10 = GTK_DIALOG(TextEncoderDialog)->action_area;
+  label224 = gtk_label_new(_("Encoder Settings:"));
+  gtk_widget_show(label224);
+  gtk_table_attach(GTK_TABLE(table8), label224, 0, 1, 3, 4,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label224), 0, 0.5);
+
+  TextEncoderSettingsButton = gtk_button_new();
+  gtk_widget_show(TextEncoderSettingsButton);
+  gtk_table_attach(GTK_TABLE(table8), TextEncoderSettingsButton, 1, 2, 3, 4,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+
+  alignment38 = gtk_alignment_new(0.5, 0.5, 0, 0);
+  gtk_widget_show(alignment38);
+  gtk_container_add(GTK_CONTAINER(TextEncoderSettingsButton), alignment38);
+
+  hbox117 = gtk_hbox_new(FALSE, 2);
+  gtk_widget_show(hbox117);
+  gtk_container_add(GTK_CONTAINER(alignment38), hbox117);
+
+  image43 = gtk_image_new_from_stock("gtk-preferences", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_show(image43);
+  gtk_box_pack_start(GTK_BOX(hbox117), image43, FALSE, FALSE, 0);
+
+  label225 = gtk_label_new_with_mnemonic(_("Settings"));
+  gtk_widget_show(label225);
+  gtk_box_pack_start(GTK_BOX(hbox117), label225, FALSE, FALSE, 0);
+
+  dialog_action_area10 = GTK_DIALOG(TextProfileDialog)->action_area;
   gtk_widget_show(dialog_action_area10);
   gtk_button_box_set_layout(GTK_BUTTON_BOX(dialog_action_area10), GTK_BUTTONBOX_END);
 
   cancelbutton8 = gtk_button_new_from_stock("gtk-cancel");
   gtk_widget_show(cancelbutton8);
-  gtk_dialog_add_action_widget(GTK_DIALOG(TextEncoderDialog), cancelbutton8, GTK_RESPONSE_CANCEL);
+  gtk_dialog_add_action_widget(GTK_DIALOG(TextProfileDialog), cancelbutton8, GTK_RESPONSE_CANCEL);
   GTK_WIDGET_SET_FLAGS(cancelbutton8, GTK_CAN_DEFAULT);
 
   okbutton10 = gtk_button_new_from_stock("gtk-ok");
   gtk_widget_show(okbutton10);
-  gtk_dialog_add_action_widget(GTK_DIALOG(TextEncoderDialog), okbutton10, GTK_RESPONSE_OK);
+  gtk_dialog_add_action_widget(GTK_DIALOG(TextProfileDialog), okbutton10, GTK_RESPONSE_OK);
   GTK_WIDGET_SET_FLAGS(okbutton10, GTK_CAN_DEFAULT);
 
-  g_signal_connect((gpointer) TextEncoderDialog, "response",
-                    G_CALLBACK(on_TextEncoderDialog_response),
+  g_signal_connect((gpointer) TextProfileDialog, "response",
+                    G_CALLBACK(on_TextProfileDialog_response),
+                    tp);
+  g_signal_connect((gpointer) TextProfileEncoder, "changed",
+                    G_CALLBACK(on_TextProfileEncoder_changed),
+                    tp);
+  g_signal_connect((gpointer) TextEncoderSettingsButton, "clicked",
+                    G_CALLBACK(on_TextEncoderSettingsButton_clicked),
                     tp);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
-  GLADE_HOOKUP_OBJECT_NO_REF(TextEncoderDialog, TextEncoderDialog, "TextEncoderDialog");
-  GLADE_HOOKUP_OBJECT_NO_REF(TextEncoderDialog, dialog_vbox11, "dialog_vbox11");
-  GLADE_HOOKUP_OBJECT(TextEncoderDialog, table8, "table8");
-  GLADE_HOOKUP_OBJECT(TextEncoderDialog, TextEncodingOptionMenu, "TextEncodingOptionMenu");
-  GLADE_HOOKUP_OBJECT(TextEncoderDialog, label211, "label211");
-  GLADE_HOOKUP_OBJECT(TextEncoderDialog, label212, "label212");
-  GLADE_HOOKUP_OBJECT(TextEncoderDialog, TextRepeatTimeSpinner, "TextRepeatTimeSpinner");
-  GLADE_HOOKUP_OBJECT (TextEncoderDialog, label213, "label213");
-  GLADE_HOOKUP_OBJECT (TextEncoderDialog, TextProfileEntry, "TextProfileEntry");
-  GLADE_HOOKUP_OBJECT_NO_REF(TextEncoderDialog, dialog_action_area10, "dialog_action_area10");
-  GLADE_HOOKUP_OBJECT(TextEncoderDialog, cancelbutton8, "cancelbutton8");
-  GLADE_HOOKUP_OBJECT(TextEncoderDialog, okbutton10, "okbutton10");
+  GLADE_HOOKUP_OBJECT_NO_REF(TextProfileDialog, TextProfileDialog, "TextProfileDialog");
+  GLADE_HOOKUP_OBJECT_NO_REF(TextProfileDialog, dialog_vbox11, "dialog_vbox11");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, table8, "table8");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, TextProfileEncoder, "TextProfileEncoder");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, label211, "label211");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, label212, "label212");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, TextRepeatTimeSpinner, "TextRepeatTimeSpinner");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, label213, "label213");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, TextProfileName, "TextProfileName");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, label224, "label224");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, TextEncoderSettingsButton, "TextEncoderSettingsButton");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, alignment38, "alignment38");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, hbox117, "hbox117");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, image43, "image43");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, label225, "label225");
+  GLADE_HOOKUP_OBJECT_NO_REF(TextProfileDialog, dialog_action_area10, "dialog_action_area10");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, cancelbutton8, "cancelbutton8");
+  GLADE_HOOKUP_OBJECT(TextProfileDialog, okbutton10, "okbutton10");
 
   uint encoderIndex = 0;
   uint ix = 0;
@@ -419,16 +504,16 @@ void create_TextProfileDialog (CTextProfile *tp)
     }
     encoderNames[ix] = text_encoder_table[ix].dialog_selection_name;
   }
-  CreateOptionMenu(TextEncodingOptionMenu,
+  CreateOptionMenu(TextProfileEncoder,
 		   encoderNames, 
 		   text_encoder_table_size, 
 		   encoderIndex);
   if (tp != NULL) {
-    gtk_entry_set_text(GTK_ENTRY(TextProfileEntry), 
+    gtk_entry_set_text(GTK_ENTRY(TextProfileName), 
 		       tp->GetStringValue(CFG_TEXT_PROFILE_NAME));
-    gtk_widget_set_sensitive(TextProfileEntry, false);
+    gtk_widget_set_sensitive(TextProfileName, false);
   }
-  gtk_widget_show(TextEncoderDialog);
+  gtk_widget_show(TextProfileDialog);
 
 }
 

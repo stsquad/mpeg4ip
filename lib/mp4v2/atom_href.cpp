@@ -28,6 +28,7 @@ MP4HrefAtom::MP4HrefAtom()
 
 	AddProperty( /* 1 */
 		new MP4Integer16Property("dataReferenceIndex"));
+	ExpectChildAtom("burl", Optional, OnlyOne);
 }
 
 void MP4HrefAtom::Generate()

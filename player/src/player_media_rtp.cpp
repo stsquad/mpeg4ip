@@ -241,9 +241,13 @@ int CPlayerMedia::recv_thread (void)
     if (m_rtp_session == NULL) {
       SDL_Delay(50); 
     } else {
-      timeout.tv_sec = 0;
-      timeout.tv_usec = 500000;
-      retcode = rtp_recv(m_rtp_session, &timeout, 0);
+      if (m_rtp_session_from_outside) {
+	SDL_Delay(500);
+      } else {
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 500000;
+	retcode = rtp_recv(m_rtp_session, &timeout, 0);
+      }
       //      player_debug_message("rtp_recv return %d", retcode);
       // Run rtp periodic after each packet received or idle time.
       if (m_paused == false || m_stream_ondemand != 0)

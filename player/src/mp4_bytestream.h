@@ -118,8 +118,20 @@ class CMp4VideoByteStream : public CMp4ByteStream
 class CMp4TextByteStream : public CMp4ByteStream
 {
  public:
-  CMp4TextByteStream(CMp4File *parent, MP4TrackId track) :
-    CMp4ByteStream(parent, track, "cntl", 0) {};
+  CMp4TextByteStream(CMp4File *parent, MP4TrackId track,
+		     const char *base_url) :
+    CMp4ByteStream(parent, track, "cntl", 0) {
+    m_base_url = base_url;
+  };
+  ~CMp4TextByteStream(void) {
+    //CHECK_AND_FREE(m_base_url);
+  };
+  bool start_next_frame(uint8_t **buffer, 
+			uint32_t *buflen,
+			frame_timestamp_t *ptr,
+			void **ud);
+ protected:
+  const char *m_base_url;
 };
 
 			  

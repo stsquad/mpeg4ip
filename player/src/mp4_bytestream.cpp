@@ -442,4 +442,22 @@ bool CMp4H264VideoByteStream::start_next_frame (uint8_t **buffer,
   }
   return ret;
 }
+
+bool CMp4TextByteStream::start_next_frame (uint8_t **buffer, 
+					   uint32_t *buflen,
+					   frame_timestamp_t *ptr,
+					   void **ud)
+{
+  bool ret;
+
+  ret = CMp4ByteStream::start_next_frame(buffer, buflen, ptr, ud);
+
+  if (ret == false) return false;
+
+  if (buflen == 0) return ret;
+
+  *ud = (void *)strdup(m_base_url);
+
+  return true;
+}
 /* end file mp4_bytestream.cpp */

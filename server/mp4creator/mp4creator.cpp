@@ -1322,15 +1322,17 @@ void ExtractTrack (MP4FileHandle mp4File, MP4TrackId trackId,
     }
   }
 
-#if 0
   MP4SampleId numSamples = 
+#if 1
     MP4GetTrackNumberOfSamples(mp4File, trackId);
+#else
+  1;
 #endif
   u_int8_t* pSample;
   u_int32_t sampleSize;
 
   // extraction loop
-  for (MP4SampleId sampleId = 1 ; sampleId <= 1; sampleId++) {
+  for (MP4SampleId sampleId = 1 ; sampleId <= numSamples; sampleId++) {
     int rc;
 
     // signal to ReadSample() 

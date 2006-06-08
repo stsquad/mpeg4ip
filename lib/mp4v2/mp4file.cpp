@@ -1555,9 +1555,17 @@ MP4TrackId MP4File::AddCntlTrackDefault (uint32_t timeScale,
 }
 
 MP4TrackId MP4File::AddHrefTrack (uint32_t timeScale, 
-				  MP4Duration sampleDuration)
+				  MP4Duration sampleDuration,
+				  const char *base_url)
 {
   MP4TrackId trackId = AddCntlTrackDefault(timeScale, sampleDuration, "href");
+
+  if (base_url != NULL) {
+    AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.href"), 
+		 "burl");
+    SetTrackStringProperty(trackId, "mdia.minf.stbl.stsd.href.burl.base_url",
+			   base_url);
+  }
 
   return trackId;
 }

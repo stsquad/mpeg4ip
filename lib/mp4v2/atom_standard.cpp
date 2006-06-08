@@ -55,6 +55,8 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
     AddProperty( new MP4Integer32Property("bufferSizeDB")); /* 0 */
     AddProperty( new MP4Integer32Property("avgBitrate"));   /* 1 */
     AddProperty( new MP4Integer32Property("maxBitrate"));   /* 2 */
+  } else if (ATOMID(type) == ATOMID("burl")) {
+    AddProperty( new MP4StringProperty("base_url"));
   /*
    * c???
    */

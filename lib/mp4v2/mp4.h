@@ -473,8 +473,11 @@ uint16_t MP4GetAmrModeSet(MP4FileHandle hFile, MP4TrackId trackId);
 
 MP4TrackId MP4AddHrefTrack(MP4FileHandle hFile, 
 			   uint32_t timeScale, 
-			   MP4Duration sampleDuration);
+			   MP4Duration sampleDuration,
+			   const char *base_url DEFAULT(NULL));
 
+const char *MP4GetHrefTrackBaseUrl(MP4FileHandle hFile,
+				   MP4TrackId trackId);
 MP4TrackId MP4AddVideoTrack(
 	MP4FileHandle hFile, 
 	u_int32_t timeScale, 

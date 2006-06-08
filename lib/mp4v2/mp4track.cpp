@@ -100,17 +100,37 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 
 	// get handles on sample size information
 
-	success &= m_pTrakAtom->FindProperty(
-		"trak.mdia.minf.stbl.stsz.sampleSize",
-		(MP4Property**)&m_pStszFixedSampleSizeProperty);
+
+	m_pStszFixedSampleSizeProperty = NULL;
+	bool have_stsz = 
+	  m_pTrakAtom->FindProperty("trak.mdia.minf.stbl.stsz.sampleSize",
+				    (MP4Property**)&m_pStszFixedSampleSizeProperty);
 	
-	success &= m_pTrakAtom->FindProperty(
+	if (have_stsz) {
+	  success &= m_pTrakAtom->FindProperty(
 		"trak.mdia.minf.stbl.stsz.sampleCount",
 		(MP4Property**)&m_pStszSampleCountProperty);
 
-	success &= m_pTrakAtom->FindProperty(
-		"trak.mdia.minf.stbl.stsz.entries.sampleSize",
+	  success &= m_pTrakAtom->FindProperty(
+		"trak.mdia.minf.stbl.stsz.entries.entrySize",
 		(MP4Property**)&m_pStszSampleSizeProperty);
+	  m_stsz_sample_bits = 32;
+	} else {
+	  success &= m_pTrakAtom->FindProperty(
+		"trak.mdia.minf.stbl.stz2.sampleCount",
+		(MP4Property**)&m_pStszSampleCountProperty);
+	  success &= m_pTrakAtom->FindProperty(
+		"trak.mdia.minf.stbl.stz2.entries.entrySize",
+		(MP4Property**)&m_pStszSampleSizeProperty);
+	  MP4Integer8Property *stz2_field_size;
+	  if (m_pTrakAtom->FindProperty(
+					"trak.mdia.minf.stbl.stz2.fieldSize",
+					(MP4Property **)&stz2_field_size)) {
+	    m_stsz_sample_bits = stz2_field_size->GetValue();
+	    m_have_stz2_4bit_sample = false;
+	  } else success = false;
+	}
+	  
 
 	// get handles on information needed to map sample id's to file offsets
 
@@ -460,6 +480,13 @@ void MP4Track::FinishWrite()
 {
 	// write out any remaining samples in chunk buffer
 	WriteChunkBuffer();
+	if (m_pStszFixedSampleSizeProperty == NULL &&
+	    m_stsz_sample_bits == 4) {
+	  if (m_have_stz2_4bit_sample) {
+	    ((MP4Integer8Property *)m_pStszSampleSizeProperty)->AddValue(m_stz2_4bit_sample_value);
+	    m_pStszSampleSizeProperty->IncrementValue();
+	  }
+	}
 
 	// record buffer size and bitrates
 	MP4BitfieldProperty* pBufferSizeProperty;
@@ -502,24 +529,36 @@ u_int32_t MP4Track::GetNumberOfSamples()
 
 u_int32_t MP4Track::GetSampleSize(MP4SampleId sampleId)
 {
+  if (m_pStszFixedSampleSizeProperty != NULL) {
 	u_int32_t fixedSampleSize = 
 		m_pStszFixedSampleSizeProperty->GetValue(); 
 
 	if (fixedSampleSize != 0) {
 	  return fixedSampleSize * m_bytesPerSample;
 	}
-	return m_bytesPerSample * 
-	  m_pStszSampleSizeProperty->GetValue(sampleId - 1);
+  }
+  // will have to check for 4 bit sample size here
+  if (m_stsz_sample_bits == 4) {
+    uint8_t value = m_pStszSampleSizeProperty->GetValue((sampleId - 1) / 2);
+    if ((sampleId - 1) / 2 == 0) {
+      value >>= 4;
+    } else value &= 0xf;
+    return m_bytesPerSample * value;
+  }
+  return m_bytesPerSample * 
+    m_pStszSampleSizeProperty->GetValue(sampleId - 1);
 }
 
 u_int32_t MP4Track::GetMaxSampleSize()
 {
+  if (m_pStszFixedSampleSizeProperty != NULL) {
 	u_int32_t fixedSampleSize = 
 		m_pStszFixedSampleSizeProperty->GetValue(); 
 
 	if (fixedSampleSize != 0) {
 		return fixedSampleSize * m_bytesPerSample;
 	}
+  }
 
 	u_int32_t maxSampleSize = 0;
 	u_int32_t numSamples = m_pStszSampleSizeProperty->GetCount();
@@ -536,6 +575,7 @@ u_int32_t MP4Track::GetMaxSampleSize()
 u_int64_t MP4Track::GetTotalOfSampleSizes()
 {
   uint64_t retval;
+  if (m_pStszFixedSampleSizeProperty != NULL) {
 	u_int32_t fixedSampleSize = 
 		m_pStszFixedSampleSizeProperty->GetValue(); 
 
@@ -546,6 +586,7 @@ u_int64_t MP4Track::GetTotalOfSampleSizes()
 	  retval *= GetNumberOfSamples();
 	  return retval;
 	}
+  }
 
 	// else non-fixed sample size, sum them
 	u_int64_t totalSampleSizes = 0;
@@ -556,6 +597,37 @@ u_int64_t MP4Track::GetTotalOfSampleSizes()
 		totalSampleSizes += sampleSize;
 	}
 	return totalSampleSizes * m_bytesPerSample;
+}
+
+void MP4Track::SampleSizePropertyAddValue (uint32_t size)
+{
+  // this has to deal with different sample size values
+  switch (m_pStszSampleSizeProperty->GetType()) {
+  case Integer32Property:
+    ((MP4Integer32Property *)m_pStszSampleSizeProperty)->AddValue(size);
+    break;
+  case Integer16Property:
+    ((MP4Integer16Property *)m_pStszSampleSizeProperty)->AddValue(size);
+    break;
+  case Integer8Property:
+    if (m_stsz_sample_bits == 4) {
+      if (m_have_stz2_4bit_sample == false) {
+	m_have_stz2_4bit_sample = true;
+	m_stz2_4bit_sample_value = size << 4;
+	return;
+      } else {
+	m_have_stz2_4bit_sample = false;
+	size &= 0xf;
+	size |= m_stz2_4bit_sample_value;
+      }
+    }
+    ((MP4Integer8Property *)m_pStszSampleSizeProperty)->AddValue(size);
+    break;
+  default: break;
+  }
+
+
+  //  m_pStszSampleSizeProperty->IncrementValue();
 }
 
 void MP4Track::UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes)
@@ -572,39 +644,44 @@ void MP4Track::UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes)
   }
 	// for first sample
 	if (sampleId == 1) {
-		if (numBytes > 0) {
-			// presume sample size is fixed
-			m_pStszFixedSampleSizeProperty->SetValue(numBytes); 
-		} else {
-			// special case of first sample is zero bytes in length
-			// leave m_pStszFixedSampleSizeProperty at 0
-			// start recording variable sample sizes
-		        m_pStszFixedSampleSizeProperty->SetValue(0); 
-			m_pStszSampleSizeProperty->AddValue(0);
-		}
-
+	  if (m_pStszFixedSampleSizeProperty == NULL ||
+	      numBytes == 0) {
+	    // special case of first sample is zero bytes in length
+	    // leave m_pStszFixedSampleSizeProperty at 0
+	    // start recording variable sample sizes
+	    if (m_pStszFixedSampleSizeProperty != NULL)
+	      m_pStszFixedSampleSizeProperty->SetValue(0); 
+	    SampleSizePropertyAddValue(0);
+	  } else {
+	    // presume sample size is fixed
+	    m_pStszFixedSampleSizeProperty->SetValue(numBytes); 
+	  }
 	} else { // sampleId > 1
-		u_int32_t fixedSampleSize = 
-			m_pStszFixedSampleSizeProperty->GetValue(); 
 
-		if (fixedSampleSize == 0 || numBytes != fixedSampleSize) {
-			// sample size is not fixed
+	  u_int32_t fixedSampleSize = 0;
+	  if (m_pStszFixedSampleSizeProperty != NULL) {
+	    fixedSampleSize = m_pStszFixedSampleSizeProperty->GetValue(); 
+	  }
 
-			if (fixedSampleSize) {
-				// need to clear fixed sample size
-				m_pStszFixedSampleSizeProperty->SetValue(0); 
+	  // if we don't have a fixed size, or the current sample size
+	  // doesn't match our sample size, we need to write the current
+	  // sample size into the table
+	  if (fixedSampleSize == 0 || numBytes != fixedSampleSize) {
 
-				// and create sizes for all previous samples
-				for (MP4SampleId sid = 1; sid < sampleId; sid++) {
-					m_pStszSampleSizeProperty->AddValue(fixedSampleSize);
-				}
-			}
-
-			// add size value for this sample
-			m_pStszSampleSizeProperty->AddValue(numBytes);
-		}
+	    if (fixedSampleSize != 0) {
+	      // fixed size was set; we need to clear fixed sample size
+	      m_pStszFixedSampleSizeProperty->SetValue(0); 
+	      
+	      // and create sizes for all previous samples
+	      for (MP4SampleId sid = 1; sid < sampleId; sid++) {
+		SampleSizePropertyAddValue(fixedSampleSize);
+	      }
+	    }
+	    // add size value for this sample
+	    SampleSizePropertyAddValue(numBytes);
+	  }
 	}
-
+	// either way, we increment the number of samples.
 	m_pStszSampleCountProperty->IncrementValue();
 #if 0
 	printf("track %u sample id %u bytes %u fixed %u count %u prop %u\n", 

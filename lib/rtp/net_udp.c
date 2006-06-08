@@ -461,7 +461,7 @@ static void udp_exit4(socket_udp *s)
                          sizeof(struct ip_mreq_source) ) == -1 )
              {
 		socket_error("setsockopt IP_DROP_SOURCE_MEMBERSHIP");
-		abort();
+		//abort();
              }
 #endif
 		rtp_message(LOG_INFO,  "Dropped membership of multicast group");
@@ -941,7 +941,8 @@ int udp_sendto_iov(socket_udp *s, struct iovec *iov, int count,
 		   const struct sockaddr *to, const socklen_t tolen)
 {
 	struct msghdr 		msg;
-	
+	int ret;
+
 	ASSERT(s != NULL);
 	ASSERT(iov != NULL);
 	ASSERT(count > 0);
@@ -952,7 +953,13 @@ int udp_sendto_iov(socket_udp *s, struct iovec *iov, int count,
 	msg.msg_iov 		 = iov;
 	msg.msg_iovlen 		 = count;
 
-	return sendmsg(s->fd, &msg, 0);
+	ret = sendmsg(s->fd, &msg, 0);
+	if (ret < 0) {
+	  rtp_message(LOG_ERR, "sendmsg %d %s", 
+		      errno, strerror(errno));
+	}
+	return ret;
+
 }
 #endif
 

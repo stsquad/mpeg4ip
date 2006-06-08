@@ -218,7 +218,12 @@ protected:
 
 	MP4Integer32Property* m_pStszFixedSampleSizeProperty;
 	MP4Integer32Property* m_pStszSampleCountProperty;
-	MP4Integer32Property* m_pStszSampleSizeProperty;
+	
+	void SampleSizePropertyAddValue(uint32_t bytes);
+	uint8_t m_stsz_sample_bits;
+	bool m_have_stz2_4bit_sample;
+	uint8_t m_stz2_4bit_sample_value;
+	MP4IntegerProperty* m_pStszSampleSizeProperty;
 
 	MP4Integer32Property* m_pStscCountProperty;
 	MP4Integer32Property* m_pStscFirstChunkProperty;

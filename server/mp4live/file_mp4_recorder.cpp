@@ -150,7 +150,7 @@ void CMp4Recorder::DoStartRecord()
   }
   debug_message("Creating huge file - %s", hugeFile ? "yes" : "no");
   u_int32_t verbosity =
-    MP4_DETAILS_ERROR /* DEBUG | MP4_DETAILS_WRITE_ALL */;
+    MP4_DETAILS_ERROR  /*DEBUG  | MP4_DETAILS_WRITE_ALL */;
 
   bool create = false;
   switch (m_pConfig->GetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS)) {
@@ -410,10 +410,11 @@ void CMp4Recorder::DoStartRecord()
   if (m_stream == NULL) {
       m_recordText = false;
     } else {
-      m_textFrameType = get_text_mp4_fileinfo(m_text_profile);
+      const char *url;
+      m_textFrameType = get_text_mp4_fileinfo(m_text_profile, &url);
       debug_message("text type %u", m_textFrameType);
       if (m_textFrameType == HREFTEXTFRAME) {
-	m_textTrackId = MP4AddHrefTrack(m_mp4File, m_textTimeScale, MP4_INVALID_DURATION);
+	m_textTrackId = MP4AddHrefTrack(m_mp4File, m_textTimeScale, MP4_INVALID_DURATION, url);
 	debug_message("Added text track %u", m_textTrackId);
       } else {
 	m_recordText = false;

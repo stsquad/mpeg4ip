@@ -271,7 +271,7 @@ media_desc_t *ffmpeg_create_audio_sdp (CAudioProfile *pConfig,
       sdpAudioRtpMap->clock_rate = 8000;
       sdpMediaAudioFormat->fmt = strdup("97");
       sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
-			     strdup("a=fmtp:97 octet-align=1"));
+			     "a=fmtp:97 octet-align=1");
       sdpAudioRtpMap->encode_param = 1;
     } else if (type == AMRWBAUDIOFRAME) {
       *is3gp = true;
@@ -279,7 +279,7 @@ media_desc_t *ffmpeg_create_audio_sdp (CAudioProfile *pConfig,
       sdpAudioRtpMap->clock_rate = 16000;
       sdpMediaAudioFormat->fmt = strdup("97");
       sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
-			     strdup("a=fmtp:97 octet-align=1"));
+			     "a=fmtp:97 octet-align=1");
       sdpAudioRtpMap->encode_param = 1;
     }
       

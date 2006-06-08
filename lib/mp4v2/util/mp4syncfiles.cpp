@@ -470,7 +470,10 @@ int main(int argc, char** argv)
 	  found = true;
 	} else {
 	  char *lastslash = strrchr(toFileName, '/');
-	  lastslash++;
+	  if (lastslash == NULL) {
+	    lastslash = toFileName;
+	  } else
+	    lastslash++;
 	  if (lastslash[2] != ' ') {
 	    char *nextspace = lastslash;
 	    while (!isspace(*nextspace)) nextspace++;

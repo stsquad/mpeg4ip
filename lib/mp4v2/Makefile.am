@@ -45,6 +45,7 @@ libmp4v2_la_SOURCES = \
 	atom_stsc.cpp \
 	atom_stsd.cpp \
 	atom_stsz.cpp \
+	atom_stz2.cpp \
 	atom_tfhd.cpp \
 	atom_tkhd.cpp \
 	atom_treftype.cpp \

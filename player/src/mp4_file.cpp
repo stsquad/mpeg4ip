@@ -334,7 +334,9 @@ int CMp4File::create_text(CPlayerSession *psptr,
       }
       MP4SetVerbosity(m_mp4file, verb);
 #else
-      tbyte = new CMp4TextByteStream(this, tq[ix].track_id);
+      tbyte = new CMp4TextByteStream(this, tq[ix].track_id,
+				     MP4GetHrefTrackBaseUrl(m_mp4file,
+							    tq[ix].track_id));
 #endif
 
       int ret;

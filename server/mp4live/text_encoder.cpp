@@ -23,13 +23,34 @@
 #include "text_encoder.h"
 #include "mp4av.h"
 
+static config_index_t CFG_TEXT_HREF_BASE_URL;
+
+static SConfigVariable hrefEncoderVariables[] = {
+  CONFIG_STRING(CFG_TEXT_HREF_BASE_URL, "hrefBaseUrl", NULL),
+};
+
+GUI_STRING(gui_href_base, CFG_TEXT_HREF_BASE_URL, "Base Url");
+DECLARE_TABLE(href_gui_options) = {
+  TABLE_GUI(gui_href_base),
+};
+
+DECLARE_TABLE_FUNC(href_gui_options);
+
+void AddTextProfileEncoderVariables (CTextProfile *pConfig)
+{
+  pConfig->AddConfigVariables(hrefEncoderVariables, 
+			      NUM_ELEMENTS_IN_ARRAY(hrefEncoderVariables));
+}
+
 //#define DEBUG_TEXT
 text_encoder_table_t text_encoder_table[] = {
   { "Plain Text",
     TEXT_ENCODING_PLAIN,
+    NULL,
   },
   { "ISMA Href",
     TEXT_ENCODING_HREF,
+    TABLE_FUNC(href_gui_options),
   }
 };
 
@@ -73,9 +94,12 @@ class CHrefTextEncoder : public CTextEncoder
  public:
   CHrefTextEncoder(CTextProfile *profile, uint16_t mtu, CTextEncoder *next, 
 		    bool realTime = true) :
-    CTextEncoder(profile, mtu, next, realTime) { };
+    CTextEncoder(profile, mtu, next, realTime) { 
+  };
   bool Init(void) { 
     m_encodedFrame = NULL;
+    m_base_url = Profile()->GetStringValue(CFG_TEXT_HREF_BASE_URL);
+    m_base_url_len = strlen(m_base_url);
     return true; 
   };
   MediaType GetFrameType(void) { return HREFTEXTFRAME; };
@@ -96,11 +120,31 @@ class CHrefTextEncoder : public CTextEncoder
     CHECK_AND_FREE(m_encodedFrame);
     if (*fptr == 'A' || *fptr == '<') {
       // we have an already formatted href
-      m_encodedFrame = strdup(fptr);
+      const char *check = fptr + 1;
+      if (*check == '<') {
+	check++;
+      }
+      if (strncmp(check, m_base_url, m_base_url_len) == 0) {
+	check += m_base_url_len;
+	m_encodedFrame = (char *)malloc(strlen(check) + 
+					*fptr == 'A' ? 2 : 1);
+	char *copyto = m_encodedFrame;
+	if (*fptr == 'A') {
+	  *copyto++ = 'A';
+	}
+	*copyto++ = '<';
+	strcpy(copyto, check);
+	debug_message("%s", m_encodedFrame);
+      } else {
+	m_encodedFrame = strdup(fptr);
+      }
       chomp();
     } else {
       // we need to add <> and maybe an A
       uint32_t size = strlen(fptr) + 1; // add \0 at end
+      if (strncmp(fptr, m_base_url, m_base_url_len) == 0) {
+	fptr += m_base_url_len;
+      }
       debug_message("string \"%s\"", fptr);
       size += 2; // add <>
       if (Profile()->GetBoolValue(CFG_TEXT_HREF_MAKE_AUTOMATIC)) size++;
@@ -132,6 +176,8 @@ class CHrefTextEncoder : public CTextEncoder
   };
   char *m_encodedFrame;
   uint32_t m_encodedFrameLen;
+  const char *m_base_url;
+  uint32_t m_base_url_len;
 };
 
 CTextEncoder* TextEncoderCreate(CTextProfile *tp, 
@@ -149,10 +195,13 @@ CTextEncoder* TextEncoderCreate(CTextProfile *tp,
   return NULL;
 }
 
-MediaType get_text_mp4_fileinfo (CTextProfile *pConfig)
+MediaType get_text_mp4_fileinfo (CTextProfile *pConfig,
+				 const char **url)
 {
   const char *encoding = pConfig->GetStringValue(CFG_TEXT_ENCODING);
+  *url = NULL;
   if (strcmp(encoding, TEXT_ENCODING_HREF) == 0) {
+    *url = pConfig->GetStringValue(CFG_TEXT_HREF_BASE_URL);
     return HREFTEXTFRAME;
   }
 
@@ -189,6 +238,12 @@ media_desc_t *create_text_sdp (CTextProfile *pConfig)
   } else {
     sdpRtpMap->encode_name = strdup("X-HREF");
     sdpMedia->media = strdup("control");
+    const char *base_url = pConfig->GetStringValue(CFG_TEXT_HREF_BASE_URL);
+    if (base_url != NULL) {
+      char *temp = (char *)malloc(strlen("base_url=") + strlen(base_url) + 1);
+      sprintf(temp,"base_url=%s", base_url);
+      sdpMediaFormat->fmt_param = temp;
+    }
   }
   
   return sdpMedia;

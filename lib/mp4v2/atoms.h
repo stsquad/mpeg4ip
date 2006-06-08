@@ -333,6 +333,12 @@ public:
 	void Write();
 };
 
+class MP4Stz2Atom : public MP4Atom {
+public:
+	MP4Stz2Atom();
+	void Read();
+};
+
 class MP4TfhdAtom : public MP4Atom {
 public:
 	MP4TfhdAtom();

@@ -26,6 +26,7 @@
 #include "media_frame.h"
 #include <sdp.h>
 #include <mp4.h>
+#include "encoder_gui_options.h"
 #include "profile_text.h"
 
 class CTextEncoder : public CMediaCodec {
@@ -77,7 +78,7 @@ CTextEncoder* TextEncoderCreate(CTextProfile *ap,
 
 media_desc_t *create_text_sdp(CTextProfile *pConfig);
 
-MediaType get_text_mp4_fileinfo(CTextProfile *pConfig);
+MediaType get_text_mp4_fileinfo(CTextProfile *pConfig, const char **base_url);
 
 void create_mp4_text_hint_track(CTextProfile *pConfig, 
 				MP4FileHandle mp4file,
@@ -92,10 +93,13 @@ rtp_transmitter_f GetTextRtpTransmitRoutine(CTextProfile *pConfig,
 typedef struct text_encoder_table_t {
   char *dialog_selection_name;
   char *text_encoding;
+  get_gui_options_list_f get_gui_options;
 } text_encoder_table_t;
 
 extern text_encoder_table_t text_encoder_table[];
 extern uint32_t text_encoder_table_size;
+
+void AddTextProfileEncoderVariables(CTextProfile *pConfig);
 
 #endif /* __TEXT_ENCODER_H__ */
 

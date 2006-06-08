@@ -145,8 +145,11 @@ static GtkWidget *CreateString (CConfigEntry *pConfig,
 {
   GtkWidget *ret;
   ret = gtk_entry_new();
-  gtk_widget_show(ret);
   const char *str = pConfig->GetStringValue(*bptr->index);
+  if (str != NULL) {
+    gtk_entry_set_width_chars(GTK_ENTRY(ret), strlen(str) + 5);
+  }
+  gtk_widget_show(ret);
   if (str != NULL)
     gtk_entry_set_text(GTK_ENTRY(ret), str);
   return ret;
@@ -191,9 +194,10 @@ void CreateEncoderSettingsDialog (CConfigEntry *config,
   sprintf(buffer, "%s Encoder Settings", encoder_name);
   gtk_window_set_title(GTK_WINDOW(EncoderSettingsDialog), buffer);
   gtk_window_set_modal(GTK_WINDOW(EncoderSettingsDialog), TRUE);
-  gtk_window_set_resizable(GTK_WINDOW(EncoderSettingsDialog), FALSE);
+  gtk_window_set_resizable(GTK_WINDOW(EncoderSettingsDialog), TRUE);
   gtk_window_set_transient_for(GTK_WINDOW(EncoderSettingsDialog), 
 			       GTK_WINDOW(calling_dialog));
+  gtk_window_set_type_hint(GTK_WINDOW(EncoderSettingsDialog), GDK_WINDOW_TYPE_HINT_DIALOG);
 
   dialog_vbox4 = GTK_DIALOG(EncoderSettingsDialog)->vbox;
   gtk_widget_show(dialog_vbox4);
@@ -204,10 +208,12 @@ void CreateEncoderSettingsDialog (CConfigEntry *config,
   gtk_table_set_row_spacings(GTK_TABLE(EncoderSettingsTable), 3);
   GtkWidget *label = gtk_label_new(buffer);
   gtk_widget_show(label);
+#define OUR_TABLE_OPTIONS (GTK_EXPAND | GTK_FILL)
+  //#define OUR_TABLE_OPTIONS (GTK_FILL)
   gtk_table_attach(GTK_TABLE(EncoderSettingsTable), label, 
 		   0, 2, 0, 1,
-		   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
-		   (GtkAttachOptions)(0),
+		   (GtkAttachOptions)(OUR_TABLE_OPTIONS),
+		   (GtkAttachOptions)(OUR_TABLE_OPTIONS),
 		   0, 0);
   GLADE_HOOKUP_OBJECT(EncoderSettingsDialog, label, "label");
 
@@ -219,8 +225,8 @@ void CreateEncoderSettingsDialog (CConfigEntry *config,
       gtk_widget_show(label);
       gtk_table_attach(GTK_TABLE(EncoderSettingsTable), label, 
 		       0, 1, ix + 1, ix + 2,
-		       (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
-		       (GtkAttachOptions)(0),
+		       (GtkAttachOptions)(OUR_TABLE_OPTIONS),
+		       (GtkAttachOptions)(OUR_TABLE_OPTIONS),
 		       0, 0);
       sprintf(buffer, "label%u", ix);
       GLADE_HOOKUP_OBJECT(EncoderSettingsDialog, label, buffer);
@@ -251,8 +257,8 @@ void CreateEncoderSettingsDialog (CConfigEntry *config,
       if (bptr->type == GUI_TYPE_BOOL) start = 0;
       gtk_table_attach(GTK_TABLE(EncoderSettingsTable), action,
 		       start, 2, ix + 1, ix + 2,
-		       (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
-		       (GtkAttachOptions)(0),
+		       (GtkAttachOptions)(OUR_TABLE_OPTIONS),
+		       (GtkAttachOptions)(OUR_TABLE_OPTIONS),
 		       0, 0);
       sprintf(buffer, "action%u", ix);
       GLADE_HOOKUP_OBJECT(EncoderSettingsDialog, action, buffer);

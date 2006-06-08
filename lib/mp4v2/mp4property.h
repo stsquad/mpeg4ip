@@ -440,10 +440,10 @@ public:
 		return m_pProperties[index];
 	}
 
-	u_int32_t GetCount() {
+	virtual u_int32_t GetCount() {
 	  return m_pCountProperty->GetValue();
 	}
-	void SetCount(u_int32_t count) {
+	virtual void SetCount(u_int32_t count) {
 	  m_pCountProperty->SetValue(count);
 	}
 

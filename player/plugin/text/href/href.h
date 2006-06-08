@@ -34,6 +34,8 @@ typedef struct href_codec_t {
   codec_data_t c;
   char *m_buffer;
   uint32_t m_buffer_len;
+  char *m_base_url;
+  char *m_url;
 } href_codec_t;
 
 #endif

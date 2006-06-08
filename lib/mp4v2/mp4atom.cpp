@@ -197,6 +197,8 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4StszAtom();
       } else if (ATOMID(type) == ATOMID("stsc")) {
 	pAtom = new MP4StscAtom();
+      } else if (ATOMID(type) == ATOMID("stz2")) {
+	pAtom = new MP4Stz2Atom();
       } else if (ATOMID(type) == ATOMID("stdp")) {
 	pAtom = new MP4StdpAtom();
       } else if (ATOMID(type) == ATOMID("sdp ")) {

@@ -163,7 +163,9 @@ int sdp_add_strings_to_list (string_list_t **list, const char *val)
 {
   string_list_t *new, *p;
   const char *end;
+  char *string_val;
   bool added = FALSE;
+  if (val == NULL) return TRUE;
   while (*val != '\0') {
     end = val;
     while (*end != '\0' && *end != '\n' && *end != '\n') end++;
@@ -177,11 +179,14 @@ int sdp_add_strings_to_list (string_list_t **list, const char *val)
     }
     
     new->next = NULL;
-    new->string_val = strndup(val, end - val);
-    if (new->string_val == NULL) {
+    string_val = malloc(end - val);
+    if (string_val == NULL) {
       free(new);
       return (FALSE);
     }
+    memcpy(string_val, val, end - val);
+    string_val[end - val] = '\0';
+    new->string_val = string_val;
     
     if (*list == NULL) {
       *list = new;

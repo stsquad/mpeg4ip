@@ -239,7 +239,8 @@ public: /* equivalent to MP4 library API */
 			bool isAmrWB);
 
 	MP4TrackId AddHrefTrack(uint32_t timeScale,
-				MP4Duration sampleDuration);
+				MP4Duration sampleDuration,
+				const char *base_url);
 
 	MP4TrackId AddMP4VideoTrack(
 		u_int32_t timeScale, 

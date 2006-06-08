@@ -42,6 +42,12 @@ static codec_data_t *href_codec_create (const char *stream_type,
   href->m_vft = vft;
   href->m_ifptr = ifptr;
 
+  if (media_fmt != NULL && media_fmt->fmt_param != NULL) {
+    const char *base_url = strstr(media_fmt->fmt_param, "base_url=");
+    if (base_url != NULL) {
+      href->m_base_url = strdup(base_url + strlen("base_url="));
+    }
+  }
   (href->m_vft->text_configure)(ifptr, TEXT_DISPLAY_TYPE_HREF, NULL);
   return (codec_data_t *)href;
 }
@@ -49,7 +55,8 @@ static codec_data_t *href_codec_create (const char *stream_type,
 static void href_close (codec_data_t *ptr)
 {
   href_codec_t *href = (href_codec_t *)ptr;
-
+  CHECK_AND_FREE(href->m_base_url);
+  CHECK_AND_FREE(href->m_url);
   free(href);
 }
 
@@ -76,6 +83,14 @@ static int href_decode (codec_data_t *cptr,
   uint32_t orig_buflen = buflen;
   uint64_t ts = pts->msec_timestamp;
 
+  if (ud != NULL) {
+    const char *base_url = (const char *)ud;
+    if (href->m_base_url == NULL ||
+	strcmp(href->m_base_url, base_url) != 0) {
+      href->m_base_url = strdup(base_url);
+    }
+    free(ud);
+  }
   //LOGIT(LOG_DEBUG, "hrefd", "buffer %s", buffer);
   // use href_display_structure_t to pass the 
 #ifdef DEBUG_HREF
@@ -110,6 +125,18 @@ static int href_decode (codec_data_t *cptr,
     return orig_buflen;
   }
   *ptr = '\0';
+  if (href->m_base_url != NULL) {
+    const char *slash = strchr(display.url, '/');
+    const char *colon = strchr(display.url, ':');
+    if (slash == NULL || colon == NULL || colon > slash) {
+      // need to add base url
+      CHECK_AND_FREE(href->m_url);
+      href->m_url = (char *)malloc(strlen(href->m_base_url) + strlen(display.url) + 1);
+      strcpy(href->m_url, href->m_base_url);
+      strcat(href->m_url, display.url);
+      display.url = href->m_url;
+    }
+  }
   ptr++;
   while (*ptr != '\0') {
     char *val = ptr, *start;

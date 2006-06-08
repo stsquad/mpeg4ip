@@ -58,6 +58,12 @@ CMediaStream::CMediaStream (const char *filename,
 
 CMediaStream::~CMediaStream (void)
 {
+  CHECK_AND_FREE(m_audio_key);
+  CHECK_AND_FREE(m_audio_salt);
+  CHECK_AND_FREE(m_video_key);
+  CHECK_AND_FREE(m_video_salt);
+  CHECK_AND_FREE(m_text_key);
+  CHECK_AND_FREE(m_text_salt);
 }
 
 void CMediaStream::SetVideoProfile (const char *name)

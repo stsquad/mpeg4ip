@@ -21,10 +21,13 @@
 
 #define DECLARE_CONFIG_VARIABLES 1
 #include "profile_text.h"
+#undef DECLARE_CONFIG_VARIABLES
+#include "text_encoder.h"
 
 void CTextProfile::LoadConfigVariables (void)
 {
   AddConfigVariables(TextProfileConfigVariables, 
 		     NUM_ELEMENTS_IN_ARRAY(TextProfileConfigVariables));
   // eventually will add interface to read each encoder's variables
+  AddTextProfileEncoderVariables(this);
 }

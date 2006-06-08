@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.30 $ 
- * $Date: 2006/05/30 19:48:11 $
+ * $Revision: 1.31 $ 
+ * $Date: 2006/06/08 19:01:55 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -222,6 +222,7 @@ struct rtp {
   udp_set         *udp_session;
   socket_udp	*rtp_socket;
   socket_udp	*rtcp_socket;
+  int           free_sockets;
   char		*addr;
   uint16_t	 rx_port;
   uint16_t	 tx_port;
@@ -1211,7 +1212,9 @@ rtp_t rtp_init_stream (rtp_stream_params_t *rsp)
       xfree(session);
       return NULL;
     }
+    session->free_sockets = 1;
   } else {
+    session->free_sockets = 0;
     session->rtp_socket = rsp->rtp_socket;
     session->rtcp_socket = rsp->rtcp_socket;
   }
@@ -1226,7 +1229,11 @@ rtp_t rtp_init_stream (rtp_stream_params_t *rsp)
   session->rtcp_send_packet   = rsp->rtcp_send_packet;
   session->rtp_send_packet    = rsp->rtp_send_packet;
   session->rtp_send_packet_iov= rsp->rtp_send_packet_iov;
-  session->callback           = rsp->rtp_callback;
+  if (rsp->rtp_callback == NULL) {
+    session->callback = local_callback;
+  } else {
+    session->callback           = rsp->rtp_callback;
+  }
   session->invalid_rtp_count  = 0;
   session->invalid_rtcp_count = 0;
   session->bye_count          = 0;
@@ -3268,11 +3275,15 @@ void rtp_done(struct rtp *session)
   */
 
   if (session->rtp_socket != NULL) {
-    udp_exit(session->rtp_socket);
+    if (session->free_sockets != 0) {
+      udp_exit(session->rtp_socket);
+    }
     session->rtp_socket = NULL;
   }
   if (session->rtcp_socket != NULL) {
-    udp_exit(session->rtcp_socket);
+    if (session->free_sockets != 0) {
+      udp_exit(session->rtcp_socket);
+    }
     session->rtcp_socket = NULL;
   }
   if (session->udp_session != NULL) {
@@ -3282,6 +3293,10 @@ void rtp_done(struct rtp *session)
   if (session->m_output_buffer != NULL) {
     xfree(session->m_output_buffer);
     session->m_output_buffer = NULL;
+  }
+  if (session->mutex != NULL) {
+    MutexDestroy(session->mutex);
+    session->mutex = NULL;
   }
 	  
   xfree(session->addr);

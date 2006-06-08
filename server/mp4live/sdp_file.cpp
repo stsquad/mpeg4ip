@@ -55,8 +55,10 @@ static void create_srtp_for_media (const char *type,
 
   char *line = srtp_create_sdp(type, &ifp);
 
-  if (line != NULL) 
+  if (line != NULL) {
     sdp_add_string_to_list(&sdpMedia->unparsed_a_lines, line);
+    free(line);
+  }
 }
   
 static void create_conn_for_media (media_desc_t *sdpMedia,
