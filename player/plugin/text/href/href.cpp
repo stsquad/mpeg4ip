@@ -206,8 +206,8 @@ static int href_codec_check (lib_message_func_t message,
 						    
   if (strcasecmp(stream_type, STREAM_TYPE_RTP) == 0 &&
       fptr != NULL) {
-    if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {
-      if (strcasecmp(fptr->rtpmap->encode_name, "X-HREF") == 0) {
+    if (fptr->rtpmap_name != NULL) {
+      if (strcasecmp(fptr->rtpmap_name, "X-HREF") == 0) {
 	return 1;
       }
     }

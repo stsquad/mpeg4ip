@@ -75,6 +75,17 @@ public:
 					  m_myMsgQueueSemaphore);
 	}
 
+	void SendThreadMessage(uint32_t msg_type,
+			       const void *msg = NULL,
+			       uint32_t msg_len = 0,
+			       uint32_t param = 0) {
+	  m_myMsgQueue.send_message(msg_type, 
+				    msg,
+				    msg_len,
+				    m_myMsgQueueSemaphore,
+				    param);
+	};
+
 	virtual const char* name() {
 	  return "CMediaNode";
 	}
@@ -92,8 +103,10 @@ protected:
 	static const uint32_t MSG_NODE_START		= MSG_NODE + 1;
 	static const uint32_t MSG_NODE_STOP		= MSG_NODE + 2;
 	static const uint32_t MSG_NODE_STOP_THREAD	= MSG_NODE + 3;
-
 	virtual int ThreadMain(void) = 0;
+ public:
+	static const uint32_t MSG_NODE_LAST             = MSG_NODE + 4;
+
 
 protected:
 	SDL_Thread*			m_myThread;

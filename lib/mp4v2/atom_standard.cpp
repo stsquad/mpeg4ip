@@ -78,11 +78,15 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
   } else if (ATOMID(type) == ATOMID("covr")) { /* Apple iTunes */
     ExpectChildAtom("data", Required, Many);
   } else if (ATOMID(type) == ATOMID("cprt")) {
+#if 0
     AddVersionAndFlags();
     AddProperty(
 		new MP4Integer16Property("language"));
     AddProperty(
 		new MP4StringProperty("notice"));
+#else
+    ExpectChildAtom("data", Required, OnlyOne);
+#endif
 
   } else if (ATOMID(type) == ATOMID("ctts")) {
     AddVersionAndFlags();

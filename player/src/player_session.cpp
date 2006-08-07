@@ -70,7 +70,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_screen_pos_x = 0;
   m_screen_pos_y = 0;
   m_hardware_error = 0;
-  m_fullscreen = 0;
+  m_fullscreen = false;
   m_pixel_height = -1;
   m_pixel_width = -1;
   m_session_control_url = NULL;
@@ -245,6 +245,7 @@ bool CPlayerSession::start_session_work (void)
 				       : MSG_SESSION_STARTED,
 				       m_master_msg_queue_sem);
     }
+    m_init_time = get_time_of_day();
   } else {
     err = true;
   }
@@ -620,7 +621,7 @@ void CPlayerSession::set_screen_location (int x, int y)
 }
 
 void CPlayerSession::set_screen_size (int scaletimes2, 
-				      int fullscreen, 
+				      bool fullscreen, 
 				      int pixel_width, 
 				      int pixel_height,
 				      int max_width, 

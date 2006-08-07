@@ -30,6 +30,7 @@ extern "C" {
   char *unconvert_url(const char *from_convert);
   char *convert_url(const char *to_convert);
 
+  int get_global_loglevel(void);
   void set_global_loglevel(int loglevel);
   void open_log_file(const char *filename);
   void flush_log_file(void);

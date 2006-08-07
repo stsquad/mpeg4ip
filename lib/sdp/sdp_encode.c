@@ -405,7 +405,7 @@ static int encode_media (media_desc_t *mptr, sdp_encode_t *se)
   ADD_STR_TO_ENCODE_WITH_RETURN(se, " ");
   ADD_STR_TO_ENCODE_WITH_RETURN(se, mptr->proto);
 
-  fptr = mptr->fmt;
+  fptr = mptr->fmt_list;
   while (fptr != NULL) {
     ADD_STR_TO_ENCODE_WITH_RETURN(se, " ");
     ADD_STR_TO_ENCODE_WITH_RETURN(se, fptr->fmt);
@@ -458,17 +458,17 @@ static int encode_media (media_desc_t *mptr, sdp_encode_t *se)
     ADD_STR_TO_ENCODE_WITH_RETURN(se, "\n");
   }
 
-  fptr = mptr->fmt;
+  fptr = mptr->fmt_list;
   while (fptr != NULL) {
-    if (fptr->rtpmap != NULL) {
+    if (fptr->rtpmap_name != NULL) {
       ADD_STR_TO_ENCODE_WITH_RETURN(se, "a=rtpmap:");
       ADD_STR_TO_ENCODE_WITH_RETURN(se, fptr->fmt);
       ADD_STR_TO_ENCODE_WITH_RETURN(se, " ");
-      ADD_STR_TO_ENCODE_WITH_RETURN(se, fptr->rtpmap->encode_name);
-      sprintf(buffer, "/%u", fptr->rtpmap->clock_rate);
+      ADD_STR_TO_ENCODE_WITH_RETURN(se, fptr->rtpmap_name);
+      sprintf(buffer, "/%u", fptr->rtpmap_clock_rate);
       ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
-      if (fptr->rtpmap->encode_param != 0) {
-	sprintf(buffer, "/%u", fptr->rtpmap->encode_param);
+      if (fptr->rtpmap_encode_param != 0) {
+	sprintf(buffer, "/%u", fptr->rtpmap_encode_param);
 	ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       }
       ADD_STR_TO_ENCODE_WITH_RETURN(se, "\n");

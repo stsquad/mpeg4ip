@@ -377,6 +377,7 @@ class CCapabilities
   CCapabilities (const char *deviceName) {
     m_deviceName = strdup(deviceName);
     m_canOpen = false;
+    m_next = NULL;
   };
 
   virtual ~CCapabilities() {
@@ -396,9 +397,22 @@ class CCapabilities
 
   const char *m_deviceName;
   bool m_canOpen;
+  bool Match(const char *deviceName) {
+    return strcmp(deviceName, m_deviceName) == 0;
+  }
+  void SetNext(CCapabilities *next) {
+    m_next = next;
+  };
+  CCapabilities *GetNext(void) { return m_next; };
  protected:
   virtual bool ProbeDevice(void) = 0;
+  CCapabilities *m_next;
 };
+
+CCapabilities *FindAudioCapabilitiesByDevice(const char *device);
+CVideoCapabilities *FindVideoCapabilitiesByDevice(const char *device);
+extern CCapabilities *AudioCapabilities;
+extern CVideoCapabilities *VideoCapabilities;
 
 #endif /* __LIVE_CONFG_H__ */
 

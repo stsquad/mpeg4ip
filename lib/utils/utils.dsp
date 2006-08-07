@@ -93,6 +93,10 @@ SOURCE=.\message.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\mutex.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\network.c
 # End Source File
 # Begin Source File
@@ -106,6 +110,10 @@ SOURCE=.\url.c
 # Begin Source File
 
 SOURCE=.\mpeg4ip_utils.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mutex.h
 # End Source File
 # End Group
 # End Target

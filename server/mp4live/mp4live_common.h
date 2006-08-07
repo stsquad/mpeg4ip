@@ -26,4 +26,6 @@ void InstallSignalHandler(const char *list,
 			  bool setsigint = false);
 
 void GetHomeDirectory (char *base);
+
+void CapabilitiesCleanUp(void);
 #endif

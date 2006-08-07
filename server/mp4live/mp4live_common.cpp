@@ -5,6 +5,7 @@
 #include "audio_oss_source.h"
 #include "signal.h"
 #include "net_udp.h"
+#include "video_v4l_source.h"
 
 int ReadConfigFile (const char *configFileName, 
 		    CLiveConfig *pConfig)
@@ -49,14 +50,24 @@ void ProbeVideoAudioCapabilities (CLiveConfig *pConfig)
   }
 
   // probe for sound card capabilities
-  if (!strcasecmp(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE), AUDIO_SOURCE_OSS)) {
-    pConfig->m_audioCapabilities = new CAudioCapabilities(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+  const char *deviceName = pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME);
+  pConfig->m_audioCapabilities = FindAudioCapabilitiesByDevice(deviceName);
+  if (pConfig->m_audioCapabilities == NULL) {
+    if (!strcasecmp(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE), 
+		    AUDIO_SOURCE_OSS)) {
+    
+      pConfig->m_audioCapabilities = new CAudioCapabilities(deviceName);
 #ifdef HAVE_ALSA
-  } else if (!strcasecmp(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE), AUDIO_SOURCE_ALSA)) {
-    pConfig->m_audioCapabilities = new CALSAAudioCapabilities(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+    } else if (!strcasecmp(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE), 
+			   AUDIO_SOURCE_ALSA)) {
+      pConfig->m_audioCapabilities = new CALSAAudioCapabilities(deviceName);
 #endif
+    }
+    if (pConfig->m_audioCapabilities != NULL) {
+      pConfig->m_audioCapabilities->SetNext(AudioCapabilities);
+      AudioCapabilities = pConfig->m_audioCapabilities;
+    }
   }
-
 }
 
 void SetupRealTimeFeatures (CLiveConfig *pConfig)
@@ -150,5 +161,21 @@ void GetHomeDirectory (char *base)
   if (home) {
     strcpy(base, home);
     strcat(base, "/");
+  }
+}
+
+void CapabilitiesCleanUp (void)
+{
+  CCapabilities *aud;
+  while (AudioCapabilities != NULL) {
+    aud = AudioCapabilities->GetNext();
+    delete AudioCapabilities;
+    AudioCapabilities = aud;
+  }
+  CVideoCapabilities *vid;
+  while (VideoCapabilities != NULL) {
+    vid = (CVideoCapabilities *)VideoCapabilities->GetNext();
+    delete VideoCapabilities;
+    VideoCapabilities = vid;
   }
 }

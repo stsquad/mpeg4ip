@@ -75,11 +75,13 @@ int CPlayerMedia::rtp_receive_packet (unsigned char interleaved,
  */
 void CPlayerMedia::rtp_periodic (void)
 {
-  rtp_send_ctrl(m_rtp_session, 
-		m_rtp_byte_stream != NULL ? 
-		m_rtp_byte_stream->get_last_rtp_timestamp() : 0, 
-		NULL);
-  rtp_update(m_rtp_session);
+  if (m_rtp_session_from_outside == false) {
+    rtp_send_ctrl(m_rtp_session, 
+		  m_rtp_byte_stream != NULL ? 
+		  m_rtp_byte_stream->get_last_rtp_timestamp() : 0, 
+		  NULL);
+    rtp_update(m_rtp_session);
+  }
   if (m_rtp_byte_stream != NULL) {
     m_rtp_byte_stream->rtp_periodic();
     if (m_rtp_byte_stream->eof()) {
@@ -112,7 +114,7 @@ void CPlayerMedia::rtp_check_payload (void)
       if (m_head->rtp_pak_pt == m_tail->rtp_pak_pt) {
 	// we either want only 1 possible protocol, or at least
 	// 10 packets of the same consecutively.  10 is arbitrary.
-	if (m_media_info->fmt->next == NULL || 
+	if (m_media_info->fmt_list->next == NULL || 
 	    m_rtp_queue_len > 10) { 
 	  if (determine_payload_type_from_rtp() == FALSE) {
 	    clear_rtp_packets(); 
@@ -341,6 +343,15 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
     free(e->data);
     break;
   default:
+  case RX_RR:
+  case RX_SDES:
+  case RX_BYE:
+  case SOURCE_CREATED:
+  case SOURCE_DELETED:
+  case RX_RR_EMPTY:
+  case RX_RTCP_START:
+  case RX_RTCP_FINISH:
+  case RR_TIMEOUT:
 #if 0
     media_message(LOG_DEBUG, "Thread %u - Callback from rtp with %d %p", 
 		  SDL_ThreadID(),e->type, e->data);
@@ -362,16 +373,16 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
   if (m_head != NULL) {
     payload_type = m_head->rtp_pak_pt;
   } else {
-    payload_type = atoi(m_media_info->fmt->fmt);
+    payload_type = atoi(m_media_info->fmt_list->fmt);
   }
-  fmt = m_media_info->fmt;
+  fmt = m_media_info->fmt_list;
   while (fmt != NULL) {
     // rtp payloads are all numeric
     temp = atoi(fmt->fmt);
     if (temp == payload_type) {
       m_media_fmt = fmt;
-      if (fmt->rtpmap != NULL) {
-	tickpersec = fmt->rtpmap->clock_rate;
+      if (fmt->rtpmap_name != NULL) {
+	tickpersec = fmt->rtpmap_clock_rate;
       } else {
 	if (payload_type >= 96) {
 	  media_message(LOG_ERR, "Media %s, rtp payload type of %u, no rtp map",
@@ -562,6 +573,7 @@ void CPlayerMedia::create_rtp_byte_stream (uint8_t rtp_pt,
 	return;
       }
 
+    case RTP_PLUGIN_NO_MATCH:
     default:
       break;
     }
@@ -591,9 +603,9 @@ void CPlayerMedia::create_rtp_byte_stream (uint8_t rtp_pt,
       } else if (rtp_pt <= 23) {
 	codec = MPEG4IP_AUDIO_GENERIC;
       }  else {
-	if (fmt->rtpmap == NULL) return;
+	if (fmt->rtpmap_name == NULL) return;
 
-	codec = lookup_audio_codec_by_name(fmt->rtpmap->encode_name);
+	codec = lookup_audio_codec_by_name(fmt->rtpmap_name);
 	if (codec < 0) {
 	  codec = MPEG4IP_AUDIO_NONE; // fall through everything to generic
 	}

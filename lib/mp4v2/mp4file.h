@@ -590,7 +590,8 @@ public: /* equivalent to MP4 library API */
 	bool GetMetadataGrouping(char **value);
 	bool GetMetadataTempo(u_int16_t* tempo);
 	bool GetMetadataCompilation(u_int8_t* compilation);
-	bool GetMetadataCoverArt(u_int8_t **coverArt, u_int32_t* size);
+	bool GetMetadataCoverArt(u_int8_t **coverArt, u_int32_t* size,
+				 uint32_t index = 0);
 	u_int32_t GetMetadataCoverArtCount(void);
 	bool GetMetadataFreeForm(char *name, 
 				 u_int8_t** pValue, 

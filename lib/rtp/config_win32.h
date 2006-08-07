@@ -3,8 +3,8 @@
  *
  *  Windows specific definitions and includes.
  *  
- *  $Revision: 1.10 $
- *  $Date: 2006/03/20 23:13:25 $
+ *  $Revision: 1.11 $
+ *  $Date: 2006/08/07 18:27:02 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -231,4 +231,15 @@ void ShowMessage(int level, char *msg);
 
 typedef uint16_t in_port_t;
 
+struct sockaddr_storage {
+	unsigned short ss_family;
+	uint32_t ss_align;
+	char __ss_padding[128 - 2 * sizeof(uint32_t)];
+};
+
+#ifndef MAX
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#endif
+
+#define localtime_r(a, b) localtime(a)
 #endif

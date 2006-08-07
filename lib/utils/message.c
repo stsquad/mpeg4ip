@@ -42,6 +42,11 @@ static void unlock_mutex(void)
 
 static FILE *outfile = NULL;
 static int global_loglevel = LOG_DEBUG;
+int get_global_loglevel (void) 
+{
+  return global_loglevel;
+}
+
 void set_global_loglevel (int loglevel) 
 {
   if (loglevel > LOG_DEBUG || loglevel < 0) return;
@@ -148,7 +153,7 @@ void library_message (int loglevel,
 #endif
 
   if (outfile == NULL) outfile = stdout;
-  if (loglevel > global_loglevel) return;
+  //  if (loglevel > global_loglevel) return;
   gettimeofday(&thistime, NULL);
   secs = thistime.tv_sec;
   localtime_r(&secs, &thistm);

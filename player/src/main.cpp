@@ -42,7 +42,7 @@
 
 static int session_paused;
 static int screen_size = 2;
-static int fullscreen = 0;
+static bool fullscreen = false;
 
 static void media_list_query (CPlayerSession *psptr,
 			      uint num_video, 
@@ -150,24 +150,24 @@ int process_sdl_key_events (CPlayerSession *psptr,
     }
     break;
   case SDLK_PAGEUP:
-    if (screen_size < 4 && fullscreen == 0) {
+    if (screen_size < 4 && fullscreen == false) {
       screen_size *= 2;
       psptr->set_screen_size(screen_size);
     }
     break;
   case SDLK_PAGEDOWN:
-    if (screen_size > 1 && fullscreen == 0) {
+    if (screen_size > 1 && fullscreen == false) {
       screen_size /= 2;
       psptr->set_screen_size(screen_size);
     }
     break;
   case SDLK_RETURN:
     if ((msg->mod & (KMOD_ALT | KMOD_META)) != 0) {
-		fullscreen = 1;
+		fullscreen = true;
 	}
 	break;
   case SDLK_ESCAPE:
-	  fullscreen = 0;
+	  fullscreen = false;
 	  break;
 
   case SDLK_0:

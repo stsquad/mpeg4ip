@@ -66,8 +66,8 @@ static codec_data_t *mp3_codec_create (const char *stream_type,
   // streaming packet for use locally.  This will allow us, if we need
   // to skip, to get the next frame.
   // we really shouldn't need to set this here...
-  if (media_fmt && media_fmt->rtpmap) 
-    mp3->m_freq = media_fmt->rtpmap->clock_rate;
+  if (media_fmt && media_fmt->rtpmap_name) 
+    mp3->m_freq = media_fmt->rtpmap_clock_rate;
   else if (audio)
     mp3->m_freq = audio->freq;
   else 
@@ -350,11 +350,11 @@ static int mp3_codec_check (lib_message_func_t message,
     if (strcmp(fptr->fmt, "14") == 0) {
       return 2;
     }
-    if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {
-      if (strcasecmp(fptr->rtpmap->encode_name, "MPA") == 0) {
+    if (fptr->rtpmap_name != NULL) {
+      if (strcasecmp(fptr->rtpmap_name, "MPA") == 0) {
 	return 2;
       }
-      if (strcasecmp(fptr->rtpmap->encode_name, "mpa-robust") == 0) {
+      if (strcasecmp(fptr->rtpmap_name, "mpa-robust") == 0) {
 	return 2;
       }
     }

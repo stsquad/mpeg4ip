@@ -47,7 +47,7 @@
 
 #ifndef lint
 static const char rcsid[] =
-     "@(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/lib/rtp/getaddrinfo.c,v 1.1 2001/08/01 00:34:01 wmaycisco Exp $";
+     "@(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/lib/rtp/getaddrinfo.c,v 1.2 2006/08/07 18:27:02 wmaycisco Exp $";
 #endif
 
 #include "config_unix.h"
@@ -62,7 +62,7 @@ static const char rcsid[] =
 #include "cdecl_ext.h"
 #endif 
 
-#ifndef HAVE_SOCKADDR_STORAGE
+#ifndef HAVE_STRUCT_SOCKADDR_STORAGE
 #include "sockstorage.h"
 #endif 
 
@@ -248,8 +248,7 @@ do { \
 	((x) == (y) || ((w) && ((x) == ANY || (y) == ANY)))
 
 char *
-gai_strerror(ecode)
-	int ecode;
+gai_strerror(int ecode)
 {
 	if (ecode < 0 || ecode > EAI_MAX)
 		ecode = EAI_MAX;
@@ -257,8 +256,7 @@ gai_strerror(ecode)
 }
 
 void
-freeaddrinfo(ai)
-	struct addrinfo *ai;
+freeaddrinfo(struct addrinfo *ai)
 {
 	struct addrinfo *next;
 
@@ -272,8 +270,7 @@ freeaddrinfo(ai)
 }
 
 static int
-str_isnumber(p)
-	const char *p;
+str_isnumber(const char *p)
 {
 	char *q = (char *)p;
 	while (*q) {
@@ -285,10 +282,8 @@ str_isnumber(p)
 }
 
 int
-getaddrinfo(hostname, servname, hints, res)
-	const char *hostname, *servname;
-	const struct addrinfo *hints;
-	struct addrinfo **res;
+getaddrinfo(const char *hostname, const char *servname, 
+	    const struct addrinfo *hints, struct addrinfo **res)
 {
 	struct addrinfo sentinel;
 	struct addrinfo *cur;
@@ -504,11 +499,10 @@ getaddrinfo(hostname, servname, hints, res)
  * FQDN hostname, DNS lookup
  */
 static int
-explore_fqdn(pai, hostname, servname, res)
-	const struct addrinfo *pai;
-	const char *hostname;
-	const char *servname;
-	struct addrinfo **res;
+explore_fqdn(const struct addrinfo *pai, 
+	     const char *hostname, 
+	     const char *servname, 
+	     struct addrinfo **res)
 {
 	struct hostent *hp;
 	int h_error;
@@ -678,11 +672,10 @@ free:
  * non-passive socket -> localhost (127.0.0.1 or ::1)
  */
 static int
-explore_null(pai, hostname, servname, res)
-	const struct addrinfo *pai;
-	const char *hostname;
-	const char *servname;
-	struct addrinfo **res;
+explore_null(const struct addrinfo *pai, 
+	     const char *hostname, 
+	     const char *servname, 
+	     struct addrinfo **res)
 {
 	int s;
 	const struct afd *afd;
@@ -741,11 +734,10 @@ free:
  * numeric hostname
  */
 static int
-explore_numeric(pai, hostname, servname, res)
-	const struct addrinfo *pai;
-	const char *hostname;
-	const char *servname;
-	struct addrinfo **res;
+explore_numeric(const struct addrinfo *pai,
+		const char *hostname,
+		const char *servname,
+		struct addrinfo **res)
 {
 	const struct afd *afd;
 	struct addrinfo *cur;
@@ -830,11 +822,10 @@ bad:
  * numeric hostname with scope
  */
 static int
-explore_numeric_scope(pai, hostname, servname, res)
-	const struct addrinfo *pai;
-	const char *hostname;
-	const char *servname;
-	struct addrinfo **res;
+explore_numeric_scope(const struct addrinfo *pai,
+		      const char *hostname,
+		      const char *servname,
+		      struct addrinfo **res)
 {
 #ifndef SCOPE_DELIMITER
 	return explore_numeric(pai, hostname, servname, res);
@@ -901,13 +892,12 @@ explore_numeric_scope(pai, hostname, servname, res)
 }
 
 static int
-get_name(addr, afd, res, numaddr, pai, servname)
-	const char *addr;
-	const struct afd *afd;
-	struct addrinfo **res;
-	char *numaddr;
-	const struct addrinfo *pai;
-	const char *servname;
+get_name(const char *addr,
+	 const struct afd *afd,
+	 struct addrinfo **res,
+	 char *numaddr,
+	 const struct addrinfo *pai,
+	 const char *servname)
 {
 	struct hostent *hp = NULL;
 	struct addrinfo *cur = NULL;
@@ -970,10 +960,9 @@ get_name(addr, afd, res, numaddr, pai, servname)
 }
 
 static int
-get_canonname(pai, ai, str)
-	const struct addrinfo *pai;
-	struct addrinfo *ai;
-	const char *str;
+get_canonname(const struct addrinfo *pai,
+	      struct addrinfo *ai,
+	      const char *str)
 {
 	if ((pai->ai_flags & AI_CANONNAME) != 0) {
 		ai->ai_canonname = (char *)malloc(strlen(str) + 1);
@@ -985,10 +974,9 @@ get_canonname(pai, ai, str)
 }
 
 static struct addrinfo *
-get_ai(pai, afd, addr)
-	const struct addrinfo *pai;
-	const struct afd *afd;
-	const char *addr;
+get_ai(const struct addrinfo *pai,
+       const struct afd *afd,
+       const char *addr)
 {
 	char *p;
 	struct addrinfo *ai;
@@ -1012,9 +1000,8 @@ get_ai(pai, afd, addr)
 }
 
 static int
-get_portmatch(ai, servname)
-	const struct addrinfo *ai;
-	const char *servname;
+get_portmatch(const struct addrinfo *ai,
+	      const char *servname)
 {
 
 	/* get_port does not touch first argument. when matchonly == 1. */
@@ -1022,10 +1009,9 @@ get_portmatch(ai, servname)
 }
 
 static int
-get_port(ai, servname, matchonly)
-	struct addrinfo *ai;
-	const char *servname;
-	int matchonly;
+get_port(struct addrinfo *ai,
+	 const char *servname,
+	 int matchonly)
 {
 	const char *proto;
 	struct servent *sp;
@@ -1099,8 +1085,7 @@ get_port(ai, servname, matchonly)
 }
 
 static const struct afd *
-find_afd(af)
-	int af;
+find_afd(int af)
 {
 	const struct afd *afd;
 

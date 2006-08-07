@@ -109,7 +109,6 @@ media_desc_t *faac_create_audio_sdp (CAudioProfile *pConfig,
 {
   media_desc_t *sdpMediaAudio;
   format_list_t *sdpMediaAudioFormat;
-  rtpmap_desc_t *sdpAudioRtpMap;
   char audioFmtpBuf[512];
 
   faac_mp4_fileinfo(pConfig, mpeg4, isma_compliant, audioProfile, audioConfig,
@@ -124,18 +123,16 @@ media_desc_t *faac_create_audio_sdp (CAudioProfile *pConfig,
   sdpMediaAudioFormat->media = sdpMediaAudio;
   sdpMediaAudioFormat->fmt = strdup("97");
 
-  sdpAudioRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
-  memset(sdpAudioRtpMap, 0, sizeof(*sdpAudioRtpMap));
-  sdpAudioRtpMap->clock_rate = pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
+  sdpMediaAudioFormat->rtpmap_clock_rate = pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
 
   char* sConfig = MP4BinaryToBase16(*audioConfig, *audioConfigLen);
   if(pConfig->GetBoolValue(CFG_RTP_RFC3016)) {
-    sdpAudioRtpMap->encode_name = strdup("MP4A-LATM");
+    sdpMediaAudioFormat->rtpmap_name = strdup("MP4A-LATM");
     sprintf(audioFmtpBuf, "profile-level-id=15;object=2;cpresent=0; config=%s ", sConfig); 
 
   } else {
     sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines, "a=mpeg4-esid:10");
-    sdpAudioRtpMap->encode_name = strdup("mpeg4-generic");
+    sdpMediaAudioFormat->rtpmap_name = strdup("mpeg4-generic");
 
     sprintf(audioFmtpBuf,
 	    "streamtype=5; profile-level-id=15; mode=AAC-hbr; config=%s; "
@@ -145,8 +142,7 @@ media_desc_t *faac_create_audio_sdp (CAudioProfile *pConfig,
 
   free(sConfig);
   sdpMediaAudioFormat->fmt_param = strdup(audioFmtpBuf);
-  sdpMediaAudioFormat->rtpmap = sdpAudioRtpMap;
-  sdpMediaAudio->fmt = sdpMediaAudioFormat;
+  sdpMediaAudio->fmt_list = sdpMediaAudioFormat;
 
   return sdpMediaAudio;
 }

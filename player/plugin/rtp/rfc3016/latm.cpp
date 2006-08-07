@@ -33,10 +33,10 @@ static rtp_check_return_t check (lib_message_func_t msg,
 				 CConfigSet *pConfig)
 {
 
-  if (fmt == NULL || fmt->rtpmap == NULL) 
+  if (fmt == NULL || fmt->rtpmap_name == NULL) 
     return RTP_PLUGIN_NO_MATCH;
 
-  if (strcasecmp(fmt->rtpmap->encode_name, "mp4a-latm") != 0) {
+  if (strcasecmp(fmt->rtpmap_name, "mp4a-latm") != 0) {
     return RTP_PLUGIN_NO_MATCH;
   }
 
@@ -52,7 +52,7 @@ static rtp_check_return_t check (lib_message_func_t msg,
   cpresent = fmtp->cpresent;
   free_fmtp_parse(fmtp);
   if (len == 0 || cpresent != 0) {
-    (msg)(LOG_ERR, latmrtp, "%s len %u cpresent %u", fmt->rtpmap->encode_name,
+    (msg)(LOG_ERR, latmrtp, "%s len %u cpresent %u", fmt->rtpmap_name,
 	  len, cpresent);
     return RTP_PLUGIN_NO_MATCH;
   }

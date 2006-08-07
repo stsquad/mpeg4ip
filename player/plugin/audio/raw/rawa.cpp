@@ -51,17 +51,17 @@ static codec_data_t *rawa_codec_create (const char *stream_type,
     /*
      * Raw pcm - L8 or L16
      */
-    rawa->m_freq = media_fmt->rtpmap->clock_rate;
-    rawa->m_chans = media_fmt->rtpmap->encode_param != 0 ?
-      media_fmt->rtpmap->encode_param : 1;
-    if (strcasecmp(media_fmt->rtpmap->encode_name, "L16") == 0) {
-    } else if ((*media_fmt->rtpmap->encode_name == '1') &&
-	       (media_fmt->rtpmap->encode_name[1] == '0') ||
-	       (media_fmt->rtpmap->encode_name[1] == '1')) {
+    rawa->m_freq = media_fmt->rtpmap_clock_rate;
+    rawa->m_chans = media_fmt->rtpmap_encode_param != 0 ?
+      media_fmt->rtpmap_encode_param : 1;
+    if (strcasecmp(media_fmt->rtpmap_name, "L16") == 0) {
+    } else if ((*media_fmt->rtpmap_name == '1') &&
+	       (media_fmt->rtpmap_name[1] == '0') ||
+	       (media_fmt->rtpmap_name[1] == '1')) {
       rawa->m_bitsperchan = 16;
       rawa->m_convert_bytes = 1;
       rawa->m_freq = 44100;
-      rawa->m_chans = media_fmt->rtpmap->encode_name[1] == '0' ? 2 : 1;
+      rawa->m_chans = media_fmt->rtpmap_name[1] == '0' ? 2 : 1;
     } else
       rawa->m_bitsperchan = 8;
 #ifndef WORDS_BIGENDIAN
@@ -295,11 +295,11 @@ static int rawa_codec_check (lib_message_func_t message,
 						    
   if (strcasecmp(stream_type, STREAM_TYPE_RTP) == 0 &&
       fptr != NULL) {
-    if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {
-      if (strcasecmp(fptr->rtpmap->encode_name, "L16") == 0) {
+    if (fptr->rtpmap_name != NULL) {
+      if (strcasecmp(fptr->rtpmap_name, "L16") == 0) {
 	return 1;
       }
-      if (strcasecmp(fptr->rtpmap->encode_name, "L8") == 0) {
+      if (strcasecmp(fptr->rtpmap_name, "L8") == 0) {
 	return 1;
       }
     }

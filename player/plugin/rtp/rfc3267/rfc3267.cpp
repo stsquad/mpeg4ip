@@ -33,11 +33,11 @@ static rtp_check_return_t check (lib_message_func_t msg,
 				 CConfigSet *pConfig)
 {
 
-  if (fmt == NULL || fmt->rtpmap == NULL) 
+  if (fmt == NULL || fmt->rtpmap_name == NULL) 
     return RTP_PLUGIN_NO_MATCH;
 
-  if ((strcasecmp(fmt->rtpmap->encode_name, "AMR") != 0) &&
-      (strcasecmp(fmt->rtpmap->encode_name, "AMR-WB") != 0)) {
+  if ((strcasecmp(fmt->rtpmap_name, "AMR") != 0) &&
+      (strcasecmp(fmt->rtpmap_name, "AMR-WB") != 0)) {
     return RTP_PLUGIN_NO_MATCH;
   }
   const char *interleave = strcasestr(fmt->fmt_param, "interleaving");
@@ -75,7 +75,7 @@ rtp_plugin_data_t *rfc3267_plugin_create (format_list_t *media_fmt,
   iptr->m_ifptr = ifptr;
 
   iptr->m_amr_is_wb = 
-    strcasecmp(media_fmt->rtpmap->encode_name, "AMR-WB") == 0; 
+    strcasecmp(media_fmt->rtpmap_name, "AMR-WB") == 0; 
 #ifdef RFC3267_DUMP_OUTPUT_TO_FILE
   iptr->m_outfile = fopen("raw.amr", "w");
 #endif

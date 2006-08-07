@@ -107,14 +107,17 @@ static void SourceDevice()
   const char* source_type = inputTypes[gtk_option_menu_get_history(GTK_OPTION_MENU(wid))];
   CAudioCapabilities* pNewAudioCaps;
   debug_message("trying source %s", source_type);
-  if (!strcasecmp(source_type, AUDIO_SOURCE_OSS)) {
-    pNewAudioCaps = new CAudioCapabilities(newSourceName);
+  pNewAudioCaps = (CAudioCapabilities *)FindAudioCapabilitiesByDevice(newSourceName);
+  if (pNewAudioCaps == NULL) {
+    if (!strcasecmp(source_type, AUDIO_SOURCE_OSS)) {
+      pNewAudioCaps = new CAudioCapabilities(newSourceName);
 #ifdef HAVE_ALSA
-  } else if (!strcasecmp(source_type, AUDIO_SOURCE_ALSA)) {
-    pNewAudioCaps = new CALSAAudioCapabilities(newSourceName);
+    } else if (!strcasecmp(source_type, AUDIO_SOURCE_ALSA)) {
+      pNewAudioCaps = new CALSAAudioCapabilities(newSourceName);
 #endif
-  } else {
-    return;
+    } else {
+      return;
+    }
   }
   
   // check for errors
@@ -220,8 +223,11 @@ on_AudioSourceDialog_response          (GtkDialog       *dialog,
       MyConfig->SetStringValue(CONFIG_AUDIO_SOURCE_NAME, source_name);
       MyConfig->SetStringValue(CONFIG_AUDIO_SOURCE_TYPE, source_type);
       if (MyConfig->m_audioCapabilities != pAudioCaps) {
-        delete MyConfig->m_audioCapabilities;
+        // never do this any more delete MyConfig->m_audioCapabilities;
         MyConfig->m_audioCapabilities = pAudioCaps;
+	pAudioCaps->SetNext(AudioCapabilities);
+	AudioCapabilities = pAudioCaps;
+
         pAudioCaps = NULL;
       }
     }

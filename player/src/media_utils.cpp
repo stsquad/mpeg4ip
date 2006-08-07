@@ -125,8 +125,8 @@ static int create_media_from_sdp (CPlayerSession *psptr,
   if (sdp->media != NULL &&
       sdp->media->next == NULL &&
       strcasecmp(sdp->media->media, "video") == 0 &&
-      sdp->media->fmt != NULL &&
-      strcmp(sdp->media->fmt->fmt, "33") == 0) {
+      sdp->media->fmt_list != NULL &&
+      strcmp(sdp->media->fmt_list->fmt, "33") == 0) {
     // we have a mpeg2 transport stream
     return (create_mpeg2t_session(psptr, NULL, sdp, 
 				  have_audio_driver, cc_vft));
@@ -179,7 +179,7 @@ static int create_media_from_sdp (CPlayerSession *psptr,
 
     if (have_audio_driver != 0 &&
 	strcasecmp(sdp_media->media, "audio") == 0) {
-      fmt = sdp_media->fmt;
+      fmt = sdp_media->fmt_list;
       codec = NULL;
       while (codec == NULL && fmt != NULL) {
 	codec = check_for_audio_codec(STREAM_TYPE_RTP,
@@ -215,7 +215,7 @@ static int create_media_from_sdp (CPlayerSession *psptr,
 	audio_offset++;
       }
     } else if (strcasecmp(sdp_media->media, "video") == 0) {
-	fmt = sdp_media->fmt;
+	fmt = sdp_media->fmt_list;
 	codec = NULL;
 	while (codec == NULL && fmt != NULL) {
 	  codec = check_for_video_codec(STREAM_TYPE_RTP,
@@ -252,7 +252,7 @@ static int create_media_from_sdp (CPlayerSession *psptr,
 	}
       } else if (strcasecmp(sdp_media->media, "application") == 0 ||
 		 strcasecmp(sdp_media->media, "control") == 0) {
-	fmt = sdp_media->fmt;
+	fmt = sdp_media->fmt_list;
 	codec = NULL;
 	while (codec == NULL && fmt != NULL) {
 	  codec = check_for_text_codec(STREAM_TYPE_RTP, 
@@ -268,7 +268,7 @@ static int create_media_from_sdp (CPlayerSession *psptr,
 	      fmt = fmt->next;
 	    }
 	  } else {
-	    if (fmt != sdp_media->fmt || fmt->next != NULL) {
+	    if (fmt != sdp_media->fmt_list || fmt->next != NULL) {
 	      player_error_message("Disallow sdp stream %s - more than 1 possible format", sdp_media->media);
 	      codec = NULL;
 	      fmt = fmt->next;

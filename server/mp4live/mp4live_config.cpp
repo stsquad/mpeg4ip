@@ -24,6 +24,9 @@
 #include "video_v4l_source.h"
 #include "audio_oss_source.h"
 
+CCapabilities *AudioCapabilities = NULL;
+CVideoCapabilities *VideoCapabilities = NULL;
+
 CLiveConfig::CLiveConfig(
 	SConfigVariable* variables, 
 	config_index_t numVariables, 
@@ -43,8 +46,10 @@ CLiveConfig::CLiveConfig(
 
 CLiveConfig::~CLiveConfig()
 {
-	delete m_videoCapabilities;
-	delete m_audioCapabilities;
+  // we don't do the below any more - we hold on to the capabilities
+  // in a global variable
+  // delete m_videoCapabilities;
+  // delete m_audioCapabilities;
 	CHECK_AND_FREE(m_videoMpeg4Config);
 }
 
@@ -189,3 +194,26 @@ bool CLiveConfig::IsFileAudioSource()
 	return !strcasecmp(sourceType, FILE_SOURCE);
 }
 
+CCapabilities *FindAudioCapabilitiesByDevice (const char *device)
+{
+  CCapabilities *ret = AudioCapabilities;
+  while (ret != NULL) {
+    if (ret->Match(device)) {
+      return ret;
+    }
+    ret = ret->GetNext();
+  }
+  return NULL;
+}
+
+CVideoCapabilities *FindVideoCapabilitiesByDevice (const char *device)
+{
+  CVideoCapabilities *ret = VideoCapabilities;
+  while (ret != NULL) {
+    if (ret->Match(device)) {
+      return ret;
+    }
+    ret = (CVideoCapabilities *)ret->GetNext();
+  }
+  return NULL;
+}

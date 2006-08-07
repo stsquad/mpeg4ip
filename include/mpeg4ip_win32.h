@@ -54,6 +54,7 @@ typedef unsigned int uint;
 #define snprintf _snprintf
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
+#define localtime_r(a,b) localtime(a)
 
 #include <io.h>
 #include <fcntl.h>
@@ -126,5 +127,11 @@ char *strcasestr(const char *haystack, const char *needle);
 
 
 #define SIZEOF_BOOL 1
+
+struct sockaddr_storage {
+	unsigned short ss_family;
+	uint32_t ss_align;
+	char __ss_padding[128 - 2 * sizeof(uint32_t)];
+};
 
 #endif

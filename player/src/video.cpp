@@ -65,7 +65,7 @@ void CVideoApi::set_screen_size (int scaletimes2)
 {
 }
 
-void CVideoApi::set_fullscreen (int fullscreen)
+void CVideoApi::set_fullscreen (bool fullscreen)
 {
 }
 

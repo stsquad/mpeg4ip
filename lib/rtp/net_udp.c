@@ -487,7 +487,7 @@ static int udp_send4(socket_udp *s, const uint8_t *buffer, uint32_t buflen)
 	return sendto(s->fd, buffer, buflen, 0, (struct sockaddr *) &s_in, sizeof(s_in));
 }
 
-#ifndef _WIN32
+#ifdef HAVE_STRUCT_IOVEC
 static int udp_send_iov4(socket_udp *s, struct iovec *iov, int count)
 {
 	struct sockaddr_in	s_in;
@@ -707,7 +707,7 @@ static int udp_send6(socket_udp *s, const uint8_t *buffer, uint32_t buflen)
 #endif
 }
 
-#ifndef _WIN32
+#ifdef HAVE_STRUCT_IOVEC
 static int udp_send_iov6(socket_udp *s, struct iovec *iov, int count)
 {
 #ifdef HAVE_IPv6
@@ -926,7 +926,7 @@ int udp_sendto (socket_udp *s, const uint8_t *buffer, uint32_t buflen,
 	return sendto(s->fd, buffer, buflen, 0, to, tolen);
 }
 
-#ifndef _WIN32
+#ifdef HAVE_STRUCT_IOVEC
 int udp_send_iov(socket_udp *s, struct iovec *iov, int count)
 {
 	switch (s->mode) {

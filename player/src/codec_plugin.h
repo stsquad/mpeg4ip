@@ -30,12 +30,14 @@
  * When you change the plugin version, you should add a "HAVE_PLUGIN_VERSION"
  * for easier makes
  */
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 #define HAVE_PLUGIN_VERSION_0_8 1
 #define HAVE_PLUGIN_VERSION_0_9 1
 #define HAVE_PLUGIN_VERSION_0_A 1
 #define HAVE_PLUGIN_VERSION_0_B 1
 #define HAVE_PLUGIN_VERSION_1_0 1
+// version 1.1 for sdp redos
+#define HAVE_PLUGIN_VERSION_1_1 1
 
 /*
  * frame_timestamp_t structure is the method that the bytestreams will

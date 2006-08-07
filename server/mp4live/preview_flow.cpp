@@ -5,7 +5,9 @@
 #include "video_sdl_preview.h"
 #include "video_encoder.h"
 
-void CPreviewAVMediaFlow::Start (void)
+void CPreviewAVMediaFlow::Start (bool startvideo, 
+				 bool startaudio,
+				 bool starttext)
 {
   // If we're getting an encoded preview, we're going to delete the
   // encoder, then recreate the preview below
@@ -18,9 +20,10 @@ void CPreviewAVMediaFlow::Start (void)
     m_PreviewEncoder = NULL;
   }
     
-  CAVMediaFlow::Start();
+  CAVMediaFlow::Start(startvideo, startaudio, starttext);
 
-  if (m_pConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+  if (m_pConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW) && 
+      startvideo) {
     CreatePreview();
     ConnectPreview(false);
   }

@@ -777,7 +777,7 @@ void MP4File::CreateIsmaODUpdateCommandFromFileForStream(
 
 		// SL config needs to change from 2 (file) to 1 (null)
 		pVideoEsd->FindProperty("slConfigDescr.predefined", 
-			(MP4Property**)&pVideoSLConfigPredef);
+					(MP4Property **)&pVideoSLConfigPredef);
 		ASSERT(pVideoSLConfigPredef);
 		pVideoSLConfigPredef->SetValue(0);
 

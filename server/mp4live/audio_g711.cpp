@@ -106,7 +106,7 @@ media_desc_t *g711_create_audio_sdp (CAudioProfile *pConfig,
 
   sdpMediaAudioFormat = MALLOC_STRUCTURE(format_list_t);
   memset(sdpMediaAudioFormat, 0, sizeof(*sdpMediaAudioFormat));
-  sdpMediaAudio->fmt = sdpMediaAudioFormat;
+  sdpMediaAudio->fmt_list = sdpMediaAudioFormat;
   sdpMediaAudioFormat->media = sdpMediaAudio;
   
 

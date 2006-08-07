@@ -35,9 +35,9 @@ static rtp_check_return_t check (lib_message_func_t msg,
   if (fmt == NULL)
     return RTP_PLUGIN_NO_MATCH;
 
-  if (fmt->rtpmap != NULL) {
-    if (strcasecmp(fmt->rtpmap->encode_name, "h263-1998") == 0 ||
-	strcasecmp(fmt->rtpmap->encode_name, "h263-2000") == 0) {
+  if (fmt->rtpmap_name != NULL) {
+    if (strcasecmp(fmt->rtpmap_name, "h263-1998") == 0 ||
+	strcasecmp(fmt->rtpmap_name, "h263-2000") == 0) {
       return RTP_PLUGIN_MATCH;
     }
   }

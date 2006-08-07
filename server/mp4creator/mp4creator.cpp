@@ -509,7 +509,7 @@ int main(int argc, char** argv)
 	const char* extension = strrchr(inputFileName, '.');
         if (extension == NULL) {
           fprintf(stderr,
-                  "%s: unknown file type: %s\n", ProgName, inputFileName);
+                  "%s: unknown file type: %s: file has no extension\n", ProgName, inputFileName);
           exit(EXIT_COMMAND_LINE);
         }
 
@@ -938,7 +938,7 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName,
     trackIds[0] = H264Creator(mp4File, inFile);
   } else {
     fprintf(stderr, 
-	    "%s: unknown file type\n", ProgName);
+	    "%s: unknown file extension in %s\n", ProgName, inputFileName);
     return NULL;
   }
 

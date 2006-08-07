@@ -308,7 +308,7 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
     media_message(LOG_ERR, "SRTP required for media %s but not installed", 
 		  sdp_media->media);
 #endif
-  if (sdp_media->fmt == NULL) {
+  if (sdp_media->fmt_list == NULL) {
     m_parent->set_message("Media %s doesn't have any usuable formats",
 			  sdp_media->media);
     media_message(LOG_ERR, "%s doesn't have any formats", 

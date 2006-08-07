@@ -979,11 +979,18 @@ bool CV4LVideoSource::InitialVideoProbe(CLiveConfig* pConfig)
   const char* deviceName = pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME);
   CVideoCapabilities* pVideoCaps;
 
+  pVideoCaps = FindVideoCapabilitiesByDevice(deviceName);
+  if (pVideoCaps != NULL && pVideoCaps->IsValid()) {
+    pConfig->m_videoCapabilities = pVideoCaps;
+    return true;
+  }
   // first try the device we're configured with
   pVideoCaps = new CVideoCapabilities(deviceName);
 
   if (pVideoCaps->IsValid()) {
     pConfig->m_videoCapabilities = pVideoCaps;
+    pVideoCaps->SetNext(VideoCapabilities);
+    VideoCapabilities = pVideoCaps;
     return true;
   }
 
@@ -1002,6 +1009,8 @@ bool CV4LVideoSource::InitialVideoProbe(CLiveConfig* pConfig)
     if (pVideoCaps->IsValid()) {
       pConfig->SetStringValue(CONFIG_VIDEO_SOURCE_NAME, devices[i]);
       pConfig->m_videoCapabilities = pVideoCaps;
+      pVideoCaps->SetNext(VideoCapabilities);
+      VideoCapabilities = pVideoCaps;
       return true;
     }
 		

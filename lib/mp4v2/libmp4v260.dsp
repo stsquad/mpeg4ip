@@ -226,6 +226,10 @@ SOURCE=.\atom_stsz.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\atom_stz2.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\atom_tfhd.cpp
 # End Source File
 # Begin Source File

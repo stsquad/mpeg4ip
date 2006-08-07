@@ -31,6 +31,7 @@
 
 //#define RTP_DEBUG 1
 //#define DEBUG_WRAP_TS 1
+//#define DEBUG_SEND 1
 CRtpTransmitter::CRtpTransmitter (uint16_t mtu, bool disable_ts_offset) : CMediaSink()
 {
   //SetConfig(pConfig);
@@ -258,7 +259,14 @@ void CVideoRtpTransmitter::DoSendFrame (CMediaFrame *pFrame)
       TimestampToRtp(pFrame->GetPtsTimestamp());
     u_int64_t ntpTimestamp = 
       TimestampToNtp(pFrame->GetTimestamp());
-	  
+	
+#ifdef DEBUG_SEND  
+    debug_message("V ts "U64" rtp %u ntp %u.%u",
+		pFrame->GetTimestamp(),
+		rtpTimestamp,
+		(u_int32_t)(ntpTimestamp >> 32),
+		(u_int32_t)ntpTimestamp);
+#endif
     CRtpDestination *rdptr;
 	  
     rdptr = m_rtpDestination;
@@ -473,7 +481,7 @@ void CAudioRtpTransmitter::SendQueuedAudioFrames(void)
 	u_int64_t ntpTimestamp =
 		TimestampToNtp(m_audioQueue[0]->GetTimestamp());
 
-#ifdef RTP_DEBUG
+#ifdef DEBUG_SEND
 	debug_message("A ts "U64" rtp %u ntp %u.%u",
 		m_audioQueue[0]->GetTimestamp(),
 		rtpTimestamp,
@@ -545,7 +553,7 @@ void CAudioRtpTransmitter::SendAudioJumboFrame(CMediaFrame* pFrame)
     TimestampToNtp(pFrame->GetTimestamp());
   CRtpDestination *rdptr;
 
-#if RTP_DEBUG
+#ifdef DEBUG_SEND
   debug_message("A ts "U64" rtp %u ntp %u.%u",
 		pFrame->GetTimestamp(),
 		rtpTimestamp,

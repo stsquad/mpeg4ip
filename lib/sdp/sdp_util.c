@@ -71,7 +71,9 @@ format_list_t *sdp_add_format_to_list (media_desc_t *mptr, const char *val)
 
   new->next = NULL;
   new->fmt = strdup(val);
-  new->rtpmap = NULL;
+  new->rtpmap_name = NULL;
+  new->rtpmap_clock_rate = 0;
+  new->rtpmap_encode_param = 0;
   new->fmt_param = NULL;
   new->media = mptr;
   
@@ -80,10 +82,10 @@ format_list_t *sdp_add_format_to_list (media_desc_t *mptr, const char *val)
     return (NULL);
   }
   
-  if (mptr->fmt == NULL) {
-    mptr->fmt = new;
+  if (mptr->fmt_list == NULL) {
+    mptr->fmt_list = new;
   } else {
-    p = mptr->fmt;
+    p = mptr->fmt_list;
     if (strcmp(p->fmt, new->fmt) == 0) {
       free(new);
       return (p);
@@ -100,12 +102,6 @@ format_list_t *sdp_add_format_to_list (media_desc_t *mptr, const char *val)
   return (new);
 }
 
-static void free_rtpmap_desc (rtpmap_desc_t *rtpptr)
-{
-  FREE_CHECK(rtpptr, encode_name);
-  free(rtpptr);
-}
-				   
 void sdp_free_format_list (format_list_t **fptr)
 {
   format_list_t *p;
@@ -114,10 +110,7 @@ void sdp_free_format_list (format_list_t **fptr)
     p = *fptr;
     *fptr = p->next;
     p->next = NULL;
-    if (p->rtpmap != NULL) {
-      free_rtpmap_desc(p->rtpmap);
-      p->rtpmap = NULL;
-    }
+    FREE_CHECK(p, rtpmap_name);
     FREE_CHECK(p, fmt_param);
     FREE_CHECK(p, fmt);
     free(p);
@@ -179,7 +172,7 @@ int sdp_add_strings_to_list (string_list_t **list, const char *val)
     }
     
     new->next = NULL;
-    string_val = malloc(end - val);
+    string_val = malloc(1 + end - val);
     if (string_val == NULL) {
       free(new);
       return (FALSE);

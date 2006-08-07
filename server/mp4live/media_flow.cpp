@@ -39,20 +39,12 @@
 #include "profile_text.h"
 #include "text_source.h"
 
-// Generic Flow
-
-bool CMediaFlow::GetStatus(u_int32_t valueName, void* pValue) 
-{
-	switch (valueName) {
-	default:
-		return false;
-	}
-	return true;
-}
 
 CAVMediaFlow::CAVMediaFlow(CLiveConfig* pConfig)
-		: CMediaFlow(pConfig) 
 {
+  m_pConfig = pConfig;
+  m_started = false;
+
   m_videoSource = NULL;
   m_audioSource = NULL;
   m_textSource = NULL;
@@ -282,7 +274,7 @@ bool CAVMediaFlow::GetStatus(u_int32_t valueName, void* pValue)
 		}
 		break;
 	default:
-		return CMediaFlow::GetStatus(valueName, pValue);
+	  return false;
 	}
 	return true;
 }
@@ -625,25 +617,34 @@ void CAVMediaFlow::ValidateAndUpdateStreams (void)
 }
 
 // Start
-void CAVMediaFlow::Start(void)
+void CAVMediaFlow::Start (bool startvideo, 
+			  bool startaudio,
+			  bool starttext)
 {
-  if (m_started || m_pConfig == NULL) {
+  if (m_pConfig == NULL) {
     return;
   }
   
+  if (!startvideo && !startaudio && !starttext) return;
+
   // Create audio and video sources
-  if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
+  if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE) &&
+      m_audioSource == NULL &&
+      startaudio) {
     m_audioSource = CreateAudioSource(m_pConfig, m_videoSource);
   }
-  if (m_pConfig->GetBoolValue(CONFIG_TEXT_ENABLE)) {
+  if (m_pConfig->GetBoolValue(CONFIG_TEXT_ENABLE) &&
+      m_textSource == NULL &&
+      starttext) {
     m_textSource = CreateTextSource(m_pConfig);
     debug_message("Created text source %p", m_textSource);
   }
 
-  if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) 
-      && m_videoSource == NULL) {
-    debug_message("start - creating video source");
-    m_videoSource = CreateVideoSource(m_pConfig);
+  if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) && startvideo) {
+    if (m_videoSource == NULL) {
+      debug_message("start - creating video source");
+      m_videoSource = CreateVideoSource(m_pConfig);
+    }
     if (m_audioSource != NULL) {
       m_audioSource->SetVideoSource(m_videoSource);
     }
@@ -660,13 +661,13 @@ void CAVMediaFlow::Start(void)
     CAudioEncoder *ae_ptr = NULL;
     CVideoEncoder *ve_ptr = NULL;
     CTextEncoder *te_ptr = NULL;
-    if (s->GetBoolValue(STREAM_VIDEO_ENABLED)) {
+    if (s->GetBoolValue(STREAM_VIDEO_ENABLED) && startvideo) {
       // see if profile has already been started
       ve_ptr = FindOrCreateVideoEncoder(s->GetVideoProfile());
       s->SetVideoEncoder(ve_ptr);
       m_pConfig->SetBoolValue(CONFIG_VIDEO_ENABLE, true);
     }
-    if (s->GetBoolValue(STREAM_AUDIO_ENABLED)) {
+    if (s->GetBoolValue(STREAM_AUDIO_ENABLED) && startaudio) {
       // see if profile has already been started
       ae_ptr = FindOrCreateAudioEncoder(s->GetAudioProfile());
       s->SetAudioEncoder(ae_ptr);
@@ -675,7 +676,7 @@ void CAVMediaFlow::Start(void)
       // configured, as well as the initial sample rate (basically, 
       // replicate SetAudioSrc here...
     }
-    if (s->GetBoolValue(STREAM_TEXT_ENABLED)) {
+    if (s->GetBoolValue(STREAM_TEXT_ENABLED) && starttext) {
       // see if profile has already been started
       te_ptr = FindOrCreateTextEncoder(s->GetTextProfile());
       s->SetTextEncoder(te_ptr);
@@ -723,24 +724,34 @@ void CAVMediaFlow::Start(void)
     debug_message("Setting source sample per frame %u", m_maxAudioSamplesPerFrame);
   }
   // If we need raw stuff, we do it here
+  bool createdRaw = false;
   if (m_pConfig->GetBoolValue(CONFIG_RAW_ENABLE)) {
-    m_rawSink = new CRawFileSink();
-    m_rawSink->SetConfig(m_pConfig);
+    if (m_rawSink == NULL) {
+      m_rawSink = new CRawFileSink();
+      m_rawSink->SetConfig(m_pConfig);
+      createdRaw = true;
+    }
     if (m_audioSource != NULL) {
       m_audioSource->AddSink(m_rawSink);
     }
     if (m_videoSource != NULL) {
       m_videoSource->AddSink(m_rawSink);
     }
-    m_rawSink->StartThread();
-    m_rawSink->Start();
+    if (createdRaw) {
+      m_rawSink->StartThread();
+      m_rawSink->Start();
+    }
   }
 
   if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4)) {
     if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_VIDEO) ||
 	m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_AUDIO)) {
-      m_mp4RawRecorder = new CMp4Recorder(NULL);
-      m_mp4RawRecorder->SetConfig(m_pConfig);
+      bool createMp4Raw = false;
+      if (m_mp4RawRecorder == NULL) {
+	m_mp4RawRecorder = new CMp4Recorder(NULL);
+	m_mp4RawRecorder->SetConfig(m_pConfig);
+	createMp4Raw = true;
+      }
       if (m_audioSource != NULL &&
 	  m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_AUDIO)) {
 	m_audioSource->AddSink(m_mp4RawRecorder);
@@ -749,8 +760,10 @@ void CAVMediaFlow::Start(void)
 	  m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_VIDEO)) {
 	m_videoSource->AddSink(m_mp4RawRecorder);
       }
-      m_mp4RawRecorder->StartThread();
-      m_mp4RawRecorder->Start();
+      if (createMp4Raw) {
+	m_mp4RawRecorder->StartThread();
+	m_mp4RawRecorder->Start();
+      }
     }
   }
   // start encoders and any sinks...  This may result in some sinks
@@ -793,7 +806,7 @@ void CAVMediaFlow::Start(void)
     m_textSource->Start();
   }
 
-  if (m_videoSource) {
+  if (m_videoSource && startaudio) {
     // force video source to generate a key frame
     // so that sinks can quickly sync up
     m_videoSource->RequestKeyFrame(0);

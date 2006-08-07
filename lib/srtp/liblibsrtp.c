@@ -95,12 +95,12 @@ static bool srtp_if_initialize(void)
 #ifdef HAVE_SRTP
 static int our_srtp_encrypt (void *foo, 
 			     uint8_t *buffer, 
-			     unsigned int *len)
+			     uint32_t *len)
 {
   err_status_t err;
   int retdata;
   srtp_if_t *srtp_if = (srtp_if_t *)foo;
-  unsigned int i;
+  uint32_t i;
   retdata = *len;
   if (DUMP_RAW_RTP_PAK) {
     srtp_if_debug(LOG_DEBUG,"Calling srtp_protect, len %d", *len);
@@ -139,12 +139,12 @@ static int our_srtp_encrypt (void *foo,
 
 static int our_srtp_decrypt (void *foo, 
 			     uint8_t *buffer, 
-			     unsigned int *len)
+			     uint32_t *len)
 {
   err_status_t err;
   int retdata;
 	srtp_if_t *srtp_if = (srtp_if_t *)foo;
-  unsigned int i;
+  uint32_t i;
 
   retdata = *len;
 
@@ -173,7 +173,7 @@ static int our_srtp_decrypt (void *foo,
       if (((i + 1) % 12) == 0) printf("\n");
     }
     printf("\n");
-    srtp_if_debug(LOG_DEBUG,"exiting srtp_decrypt");
+    srtp_if_debug(LOG_DEBUG,"exiting srtp_decrypt %d %d", err, retdata);
   }
   if (err != 0) {
     srtp_if_debug(LOG_ERR, "return from srtp_unprotect %d len %d orig %u",
@@ -186,12 +186,12 @@ static int our_srtp_decrypt (void *foo,
 
 static int our_srtcp_encrypt (void *foo, 
 			     unsigned char *buffer, 
-			     unsigned int *len)
+			     uint32_t *len)
 {
   err_status_t err;
   int retdata;
   srtp_if_t *srtp_if = (srtp_if_t *)foo;
-  unsigned int i;
+  uint32_t i;
 
   retdata = *len;
   if (DUMP_ENC_RTCP_PAK) {
@@ -207,7 +207,7 @@ static int our_srtcp_encrypt (void *foo,
   err = srtp_protect_rtcp(srtp_if->out_ctx, (void *)buffer, &retdata);
   MutexUnlock(srtp_if->mutex);
   if (DUMP_RAW_RTCP_PAK) {
-    for (i = 0; i < (unsigned int)retdata; i++) {
+    for (i = 0; i < (uint32_t)retdata; i++) {
       printf("%02x ", buffer[i]);
       if (((i + 1) % 16) == 0) printf("\n");
     }
@@ -225,12 +225,12 @@ static int our_srtcp_encrypt (void *foo,
 
 static int our_srtcp_decrypt (void *foo, 
 			     unsigned char *buffer, 
-			     unsigned int *len)
+			     uint32_t *len)
 {
   err_status_t err;
   int retdata;
   srtp_if_t *srtp_if = (srtp_if_t *)foo;
-  unsigned int i;
+  uint32_t i;
 
   retdata = *len;
   if (DUMP_ENC_RTCP_PAK) {
@@ -245,7 +245,7 @@ static int our_srtcp_decrypt (void *foo,
   err = srtp_unprotect_rtcp(srtp_if->in_ctx, (void *)buffer, &retdata);
   MutexUnlock(srtp_if->mutex);
   if (DUMP_RAW_RTCP_PAK) {
-    for (i = 0; i < (unsigned int)retdata; i++) {
+    for (i = 0; i < (uint32_t)retdata; i++) {
       printf("%02x ", buffer[i]);
       if (((i + 1) % 16) == 0) printf("\n");
     }

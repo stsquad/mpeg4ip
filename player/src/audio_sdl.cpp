@@ -243,8 +243,8 @@ void CSDLAudioSync::CopyBytesToHardware (uint8_t *from,
 					 uint8_t *to, 
 					 uint32_t bytes)
 {
-  SDL_MIXAUDIO((unsigned char *)to, 
-		   (const unsigned char *)from,
+  SDL_MIXAUDIO(/*(unsigned char *)*/to, 
+		   /*(const unsigned char *)*/from,
 		   bytes, 
 		   m_volume);
 }

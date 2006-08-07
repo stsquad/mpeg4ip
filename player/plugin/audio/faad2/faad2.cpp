@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: faad2.cpp,v 1.10 2006/04/17 19:03:49 wmaycisco Exp $
+** $Id: faad2.cpp,v 1.11 2006/08/07 18:27:06 wmaycisco Exp $
 **/
 #include "faad2.h"
 #include <mpeg4_audio_config.h>
@@ -68,7 +68,7 @@ static codec_data_t *aac_codec_create (const char *stream_type,
     // This is not necessarilly right - it is, for the most part, but
     // we should be reading the fmtp statement, and looking at the config.
     // (like we do below in the userdata section...
-    aac->m_freq = media_fmt->rtpmap->clock_rate;
+    aac->m_freq = media_fmt->rtpmap_clock_rate;
     fmtp = parse_fmtp_for_mpeg4(media_fmt->fmt_param, vft->log_msg);
     if (fmtp != NULL) {
       userdata = fmtp->config_binary;
@@ -348,10 +348,9 @@ static int aac_codec_check (lib_message_func_t message,
   }
   if (strcasecmp(stream_type, STREAM_TYPE_RTP) == 0 &&
       fptr != NULL && 
-      fptr->rtpmap != NULL &&
-      fptr->rtpmap->encode_name != NULL) {
-    if ((strcasecmp(fptr->rtpmap->encode_name, "mpeg4-generic") != 0) &&
-        (strcasecmp(fptr->rtpmap->encode_name, "enc-mpeg4-generic") != 0)) {
+      fptr->rtpmap_name != NULL) {
+    if ((strcasecmp(fptr->rtpmap_name, "mpeg4-generic") != 0) &&
+        (strcasecmp(fptr->rtpmap_name, "enc-mpeg4-generic") != 0)) {
       return -1;
     }
     if (userdata == NULL) {

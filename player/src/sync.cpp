@@ -277,8 +277,8 @@ int CPlayerSession::sync_thread_init (void)
   } 
 
   if ((m_audio_sync != NULL && audio_inited) || any_timed_inited) {
-    m_init_tries_made_with_no_media++;
-    if (m_init_tries_made_with_no_media > 5 * 100) {
+    m_init_tries_made_with_media++;
+    if (m_init_tries_made_with_media > 5 * 100) {
       sync_message(LOG_CRIT, "One media is not initializing; it might not be receiving correctly");
       if ((failed & 0x2) != 0 ) {
 	sync_message(LOG_INFO, "video failed");
@@ -293,8 +293,10 @@ int CPlayerSession::sync_thread_init (void)
       ret = -1;
     }
   }  else {
+    uint64_t nowtime = get_time_of_day();
+    uint64_t difftime = nowtime - m_init_time;
     m_init_tries_made_with_no_media++;
-    if (m_init_tries_made_with_no_media > 30 * 100) {
+    if ( difftime > TO_U64(30 * 1000)) {
       sync_message(LOG_CRIT, "No media has been initialized or received");
       ret = -1;
     }
@@ -331,8 +333,8 @@ int CPlayerSession::sync_thread_init (void)
       m_sync_pause_done = 1;
     }
   }
-
   SDL_SemWaitTimeout(m_sync_sem, 10);
+
 	
   return (SYNC_STATE_INIT);
 }
@@ -595,6 +597,27 @@ int CPlayerSession::sync_thread_wait_timed_init (void)
   int state;
   state = process_msg_queue(SYNC_STATE_WAIT_TIMED_INIT);
   if (state == SYNC_STATE_WAIT_TIMED_INIT) {
+    bool have_audio_eof = false;
+    bool need_audio_restart = false;
+    bool need_audio_resync = false;
+    uint64_t audio_resync_time = 0;
+    int64_t wait_audio_time;
+    get_current_time();
+    need_audio_resync = m_audio_sync->check_audio_sync(m_current_time, 
+						       audio_resync_time,
+						       wait_audio_time,
+						       have_audio_eof,
+						       need_audio_restart);
+    if (need_audio_resync) {
+      for (CTimedSync *ts = m_timed_sync_list;
+	   ts != NULL;
+	   ts = ts->GetNext()) {
+	ts->flush_sync_buffers();
+	ts->flush_decode_buffers();
+      }
+      return SYNC_STATE_WAIT_AUDIO_READY;
+    }
+
     uint failed;
     bool any_inited;
     if (initialize_timed_sync(failed, any_inited)) {

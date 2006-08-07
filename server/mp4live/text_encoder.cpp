@@ -212,8 +212,6 @@ media_desc_t *create_text_sdp (CTextProfile *pConfig)
 {
   media_desc_t *sdpMedia;
   format_list_t *sdpMediaFormat;
-  rtpmap_desc_t *sdpRtpMap;
-
   sdpMedia = MALLOC_STRUCTURE(media_desc_t);
   memset(sdpMedia, 0, sizeof(*sdpMedia));
 
@@ -223,20 +221,16 @@ media_desc_t *create_text_sdp (CTextProfile *pConfig)
   sdpMediaFormat->media = sdpMedia;
   sdpMediaFormat->fmt = strdup("98");
 
-  sdpRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
-  memset(sdpRtpMap, 0, sizeof(*sdpRtpMap));
-  sdpRtpMap->clock_rate = 90000;
-
-  sdpMediaFormat->rtpmap = sdpRtpMap;
-  sdpMedia->fmt = sdpMediaFormat;
+  sdpMediaFormat->rtpmap_clock_rate = 90000;
+  sdpMedia->fmt_list = sdpMediaFormat;
 
   if (strcmp(pConfig->GetStringValue(CFG_TEXT_ENCODING), 
 	     TEXT_ENCODING_PLAIN) == 0) {
     // text
-    sdpRtpMap->encode_name = strdup("x-plain-text");
+    sdpMediaFormat->rtpmap_name = strdup("x-plain-text");
     sdpMedia->media = strdup("application");
   } else {
-    sdpRtpMap->encode_name = strdup("X-HREF");
+    sdpMediaFormat->rtpmap_name = strdup("X-HREF");
     sdpMedia->media = strdup("control");
     const char *base_url = pConfig->GetStringValue(CFG_TEXT_HREF_BASE_URL);
     if (base_url != NULL) {

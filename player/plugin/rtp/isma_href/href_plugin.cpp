@@ -35,12 +35,12 @@ static rtp_check_return_t check (lib_message_func_t msg,
   if (fmt == NULL)
     return RTP_PLUGIN_NO_MATCH;
 
-  if (fmt->rtpmap != NULL) {
-    if (strcasecmp(fmt->rtpmap->encode_name, "X-HREF") == 0) {
+  if (fmt->rtpmap_name != NULL) {
+    if (strcasecmp(fmt->rtpmap_name, "X-HREF") == 0) {
       return RTP_PLUGIN_MATCH;
     }
     // handle just a plain text url, as well...
-    if (strcasecmp(fmt->rtpmap->encode_name, "x-plain-text") == 0) {
+    if (strcasecmp(fmt->rtpmap_name, "x-plain-text") == 0) {
       return RTP_PLUGIN_MATCH_USE_VIDEO_DEFAULT;
     }
   }

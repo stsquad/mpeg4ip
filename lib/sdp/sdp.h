@@ -117,7 +117,11 @@ typedef struct format_list_t {
   struct format_list_t *next;
   struct media_desc_t *media;
   const char *fmt;
-  rtpmap_desc_t *rtpmap;
+  /* rtp map parameters */
+  const char *rtpmap_name;
+  uint32_t rtpmap_clock_rate;
+  uint32_t rtpmap_encode_param;
+  /* fmtp line */
   const char *fmt_param;
 } format_list_t;
 
@@ -156,7 +160,7 @@ typedef struct media_desc_t {
   const char *lang;
   const char *media_desc;      // description string
   const char *control_string;  // rtsp control string
-  format_list_t *fmt;    // All possible formats for this media
+  format_list_t *fmt_list;    // All possible formats for this media
   string_list_t *unparsed_a_lines;  // Any unparsed lines
   int recvonly, sendrecv, sendonly;
   uint16_t port;       // ip port

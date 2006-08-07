@@ -395,8 +395,8 @@ static int xvid_codec_check (lib_message_func_t message,
       fptr != NULL) {
     // find format. If matches, call parse_fmtp_for_mpeg4, look at
     // profile level.
-    if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {
-      if (strcasecmp(fptr->rtpmap->encode_name, "MP4V-ES") == 0) {
+    if (fptr->rtpmap_name != NULL) {
+      if (strcasecmp(fptr->rtpmap_name, "MP4V-ES") == 0) {
 	fmtp_parse_t *fmtp;
 	media_desc_t *mptr = fptr->media;
 	if (find_unparsed_a_value(mptr->unparsed_a_lines, "a=x-mpeg4-simple-profile-decoder") != NULL) {

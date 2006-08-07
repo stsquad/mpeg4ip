@@ -36,30 +36,6 @@ class CVideoEncoder;
 class CAudioEncoder;
 class CTextSource;
 
-// abstract parent class
-class CMediaFlow {
-public:
-	CMediaFlow(CLiveConfig* pConfig = NULL) {
-		m_pConfig = pConfig;
-		m_started = false;
-	}
-	virtual ~CMediaFlow(void) {};
-	virtual void Start() = 0;
-
-	virtual void Stop() = 0; 
-
-	void SetConfig(CLiveConfig* pConfig) {
-		m_pConfig = pConfig;
-	}
-	CLiveConfig *GetConfig(void) { return m_pConfig; };
-	virtual bool GetStatus(u_int32_t valueName, void* pValue);
-
-protected:
-	CLiveConfig*		m_pConfig;
-	bool				m_started;
-
-};
-
 enum {
 	FLOW_STATUS_DONE,
 	FLOW_STATUS_DURATION,
@@ -69,14 +45,16 @@ enum {
 	FLOW_STATUS_MAX
 };
 
-class CAVMediaFlow : public CMediaFlow {
+class CAVMediaFlow {
 public:
         CAVMediaFlow(CLiveConfig* pConfig = NULL);
         
+	CLiveConfig *GetConfig(void) { return m_pConfig; };
 	virtual ~CAVMediaFlow();
 
-	void Start(void);
-	void Stop(void);
+	virtual void Start(bool startvideo = true, bool startaudio = true,
+		   bool starttext = true);
+	virtual void Stop(void);
 
 	void SetPictureControls(void);
 
@@ -107,6 +85,9 @@ protected:
 	//void RemoveSink(CMediaSink* pSink);
 	void StartStreams(void);
 protected:
+	CLiveConfig*		m_pConfig;
+	bool				m_started;
+
 	CMediaSource* 	m_videoSource;
 	CMediaSource*	m_audioSource;
 	CTextSource*   m_textSource;

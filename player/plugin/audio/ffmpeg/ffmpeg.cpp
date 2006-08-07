@@ -103,11 +103,11 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
     if (strcmp(fptr->fmt, "0") == 0) {
       return CODEC_ID_PCM_MULAW;
     }
-    if (fptr->rtpmap != NULL) {
+    if (fptr->rtpmap_name != NULL) {
 #ifdef HAVE_AMR_CODEC
-      if (strcasecmp(fptr->rtpmap->encode_name, "AMR-WB") == 0)
+      if (strcasecmp(fptr->rtpmap_name, "AMR-WB") == 0)
 	return CODEC_ID_AMR_WB;
-      if (strcasecmp(fptr->rtpmap->encode_name, "AMR") == 0) 
+      if (strcasecmp(fptr->rtpmap_name, "AMR") == 0) 
 	return CODEC_ID_AMR_NB;
 #endif
     }

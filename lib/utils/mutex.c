@@ -1,6 +1,9 @@
+#include "mpeg4ip_sdl_includes.h"
+#if 0
 #include <SDL/SDL.h>
 #include <SDL/SDL_mutex.h>
 #include <SDL/SDL_thread.h>
+#endif
 
 #include "mpeg4ip.h"
 #include "mutex.h"

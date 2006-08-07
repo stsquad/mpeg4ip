@@ -3975,11 +3975,12 @@ extern "C" bool MP4SetMetadataCoverArt(MP4FileHandle hFile,
 }
  
 extern "C" bool MP4GetMetadataCoverArt(MP4FileHandle hFile,
-				       u_int8_t **coverArt, u_int32_t* size)
+				       u_int8_t **coverArt, u_int32_t* size,
+				       uint32_t index)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {
-      return ((MP4File*)hFile)->GetMetadataCoverArt(coverArt, size);
+      return ((MP4File*)hFile)->GetMetadataCoverArt(coverArt, size, index);
     }
     catch (MP4Error* e) {
       PRINT_ERROR(e);

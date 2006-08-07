@@ -78,7 +78,7 @@ void sdp_free_media_desc (media_desc_t *mptr)
   mptr->media_bandwidth = NULL;
   free_connect_desc(&mptr->media_connect);
   free_connect_desc(&mptr->rtcp_connect);
-  sdp_free_format_list(&mptr->fmt);
+  sdp_free_format_list(&mptr->fmt_list);
   sdp_free_string_list(&mptr->unparsed_a_lines);
   FREE_CHECK(mptr, media);
   FREE_CHECK(mptr, media_desc);
@@ -448,7 +448,7 @@ static int sdp_decode_parse_a_fmtp (int arg,
   /*
    * See our format matches a value in the media's format list.
    */
-  fptr = sdp_find_format_in_line(mptr->fmt,lptr) ;
+  fptr = sdp_find_format_in_line(mptr->fmt_list, lptr) ;
 
   if (fptr == NULL) {
     sdp_debug(LOG_ALERT, "Can't find fmtp format %s in media format list", lptr);
@@ -486,7 +486,7 @@ static int sdp_decode_parse_a_rtpmap (int arg,
   /*
    * See our format matches a value in the media's format list.
    */
-  fptr = sdp_find_format_in_line(mptr->fmt,lptr) ;
+  fptr = sdp_find_format_in_line(mptr->fmt_list, lptr);
 
   if (fptr == NULL) {
     sdp_debug(LOG_ALERT, "Can't find rtpmap format %s in media list", lptr);
@@ -539,12 +539,9 @@ static int sdp_decode_parse_a_rtpmap (int arg,
     b = 0;
   }
   
-  fptr->rtpmap = malloc(sizeof(rtpmap_desc_t));
-  if (fptr->rtpmap == NULL)
-    return (-1);
-  fptr->rtpmap->encode_name = strdup(enc);
-  fptr->rtpmap->clock_rate = a;
-  fptr->rtpmap->encode_param = b;
+  fptr->rtpmap_name = strdup(enc);
+  fptr->rtpmap_clock_rate = a;
+  fptr->rtpmap_encode_param = b;
   
   return (0);
 }

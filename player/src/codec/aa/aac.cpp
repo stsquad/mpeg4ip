@@ -67,8 +67,8 @@ static codec_data_t *aac_codec_create (const char *stream_type,
     // This is not necessarilly right - it is, for the most part, but
     // we should be reading the fmtp statement, and looking at the config.
     // (like we do below in the userdata section...
-    aac->m_freq = media_fmt->rtpmap->clock_rate;
-    if (strcasecmp(media_fmt->rtpmap->encode_name, "mp4a-latm") == 0) {
+    aac->m_freq = media_fmt->rtpmap_clock_rate;
+    if (strcasecmp(media_fmt->rtpmap_name, "mp4a-latm") == 0) {
       fmtp = parse_fmtp_for_rfc3016(media_fmt->fmt_param, vft->log_msg);
       parse_streammux = true;
     } else {
@@ -346,9 +346,8 @@ static int aac_codec_check (lib_message_func_t message,
   }
   if (strcasecmp(stream_type, STREAM_TYPE_RTP) == 0 &&
       fptr != NULL && 
-      fptr->rtpmap != NULL &&
-      fptr->rtpmap->encode_name != NULL) {
-    if (strcasecmp(fptr->rtpmap->encode_name, "mp4a-latm") == 0) {
+      fptr->rtpmap_name != NULL) {
+    if (strcasecmp(fptr->rtpmap_name, "mp4a-latm") == 0) {
       fmtp = parse_fmtp_for_rfc3016(fptr->fmt_param, message);
       if (fmtp == NULL) {
 	return -1;
@@ -360,8 +359,8 @@ static int aac_codec_check (lib_message_func_t message,
       userdata_size = fmtp->config_binary_len;
       use_streammux = true;
     } else {
-      if ((strcasecmp(fptr->rtpmap->encode_name, "mpeg4-generic") != 0) &&
-	  (strcasecmp(fptr->rtpmap->encode_name, "enc-mpeg4-generic") != 0)) {
+      if ((strcasecmp(fptr->rtpmap_name, "mpeg4-generic") != 0) &&
+	  (strcasecmp(fptr->rtpmap_name, "enc-mpeg4-generic") != 0)) {
 	return -1;
       }
       if (userdata == NULL) {

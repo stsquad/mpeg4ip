@@ -133,16 +133,17 @@ SConfigVariableDeclare SConfigVariable {
 		    sprintf(sBuf, "\"\"");
 		    return sBuf;
 		  } 
-			if (strchr(m_value.m_svalue, ' ')) {
-				sBuf[0] = '"';
-				strncpy(&sBuf[1], m_value.m_svalue, CONFIG_MAX_STRLEN);
-				strcpy(&sBuf[
-					MIN(strlen(m_value.m_svalue), CONFIG_MAX_STRLEN)+1], "\"");
-			}
-			return m_value.m_svalue;
+		  if (strchr(m_value.m_svalue, ' ')) {
+		    sBuf[0] = '"';
+		    strncpy(&sBuf[1], m_value.m_svalue, CONFIG_MAX_STRLEN);
+		    strcpy(&sBuf[MIN(strlen(m_value.m_svalue), 
+				     CONFIG_MAX_STRLEN)+1], "\"");
+		  }
+		  return m_value.m_svalue;
 		case CONFIG_TYPE_FLOAT:
 			sprintf(sBuf, "%f", m_value.m_fvalue);
 			return sBuf;
+		case CONFIG_TYPE_UNDEFINED:
 		default:
 			return "";
 		}
@@ -179,6 +180,7 @@ SConfigVariableDeclare SConfigVariable {
 		  }
 		case CONFIG_TYPE_FLOAT:
 			return (sscanf(s, " %f ", &m_value.m_fvalue) == 1);
+		case CONFIG_TYPE_UNDEFINED:
 		default:
 			return false;
 		}
@@ -206,6 +208,7 @@ SConfigVariableDeclare SConfigVariable {
 		case CONFIG_TYPE_FLOAT:
 			m_value.m_fvalue = m_defaultValue.m_fvalue;
 			break;
+		case CONFIG_TYPE_UNDEFINED:
 		default:
 			break;
 		} 
@@ -225,6 +228,7 @@ SConfigVariableDeclare SConfigVariable {
 			return (strcmp(m_value.m_svalue, m_defaultValue.m_svalue) == 0);
 		case CONFIG_TYPE_FLOAT:
 			return m_value.m_fvalue == m_defaultValue.m_fvalue;
+		case CONFIG_TYPE_UNDEFINED:
 		default:
 			return false;
 		} 

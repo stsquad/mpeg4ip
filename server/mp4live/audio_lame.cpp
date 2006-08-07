@@ -123,7 +123,6 @@ media_desc_t *lame_create_audio_sdp (CAudioProfile *pConfig,
 {
   media_desc_t *sdpMediaAudio;
   format_list_t *sdpMediaAudioFormat;
-  rtpmap_desc_t *sdpAudioRtpMap;
 
   lame_mp4_fileinfo(pConfig, mpeg4, isma_compliant, audioProfile,
 		    audioConfig, audioConfigLen, NULL);
@@ -133,25 +132,19 @@ media_desc_t *lame_create_audio_sdp (CAudioProfile *pConfig,
 
   sdpMediaAudioFormat = MALLOC_STRUCTURE(format_list_t);
   memset(sdpMediaAudioFormat, 0, sizeof(*sdpMediaAudioFormat));
-  sdpMediaAudio->fmt = sdpMediaAudioFormat;
+  sdpMediaAudio->fmt_list = sdpMediaAudioFormat;
   sdpMediaAudioFormat->media = sdpMediaAudio;
   
-  sdpAudioRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
-  memset(sdpAudioRtpMap, 0, sizeof(*sdpAudioRtpMap));
-
-		
   if (pConfig->GetBoolValue(CFG_RTP_USE_MP3_PAYLOAD_14)) {
     sdpMediaAudioFormat->fmt = strdup("14");
-    sdpAudioRtpMap->clock_rate = 90000;
+    sdpMediaAudioFormat->rtpmap_clock_rate = 90000;
   } else {
-    sdpAudioRtpMap->clock_rate = 
+    sdpMediaAudioFormat->rtpmap_clock_rate = 
       pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
     sdpMediaAudioFormat->fmt = strdup("97");
   }
-  sdpAudioRtpMap->encode_name = strdup("MPA");
+  sdpMediaAudioFormat->rtpmap_name = strdup("MPA");
   
-  sdpMediaAudioFormat->rtpmap = sdpAudioRtpMap;
-	    
 	
   return sdpMediaAudio;
 

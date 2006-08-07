@@ -153,7 +153,7 @@ class CPlayerSession {
   void set_audio_volume(int volume);
   int get_audio_volume(void) { return m_audio_volume; };
   void set_screen_location(int x, int y);
-  void set_screen_size(int scaletimes2, int fullscreen = 0,
+  void set_screen_size(int scaletimes2, bool fullscreen = false,
 		       int pixel_width = -1, int pixel_height = -1,
 		       int max_width = -1, int max_height = -1);
   void set_cursor(bool on);
@@ -274,7 +274,7 @@ class CPlayerSession {
   int m_waiting_for_audio;
   int m_audio_volume;
   int m_screen_scale;
-  int m_fullscreen;
+  bool m_fullscreen;
   int m_pixel_height;
   int m_pixel_width;
   int m_seekable;
@@ -298,6 +298,7 @@ class CPlayerSession {
   bool m_grabbed_video_persistence;
   int m_max_width;
   int m_max_height;
+  uint64_t m_init_time;
   uint m_init_tries_made_with_media;
   uint m_init_tries_made_with_no_media;
   char m_message[512];

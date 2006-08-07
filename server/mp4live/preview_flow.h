@@ -15,7 +15,9 @@ class CPreviewAVMediaFlow : public CAVMediaFlow {
     StopVideoPreview();
   };
 
-  void Start(void);
+  void Start(bool startvideo = true, bool start_audio = true,
+	     bool starttext = true);
+
   void Stop(void);
   void StartVideoPreview(void);
   void StopVideoPreview(bool delete_it = true);

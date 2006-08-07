@@ -40,7 +40,7 @@ static rtp_check_return_t check (lib_message_func_t msg,
     return RTP_PLUGIN_MATCH;
   }
 
-  if (fmt->rtpmap && strcasecmp(fmt->rtpmap->encode_name, "h261") == 0) {
+  if (fmt->rtpmap_name && strcasecmp(fmt->rtpmap_name, "h261") == 0) {
     return RTP_PLUGIN_MATCH;
   }
 

@@ -33,10 +33,10 @@ static rtp_check_return_t check (lib_message_func_t msg,
 				 CConfigSet *pConfig)
 {
 
-  if (fmt == NULL || fmt->rtpmap == NULL)
+  if (fmt == NULL || fmt->rtpmap_name == NULL)
     return RTP_PLUGIN_NO_MATCH;
 
-  if ( (strcasecmp(fmt->rtpmap->encode_name, "enc-mpeg4-generic") != 0) ) {
+  if ( (strcasecmp(fmt->rtpmap_name, "enc-mpeg4-generic") != 0) ) {
     return RTP_PLUGIN_NO_MATCH;
   }
 

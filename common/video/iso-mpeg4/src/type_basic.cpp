@@ -323,7 +323,7 @@ Void CMotionVector::setToZero (Void)
 }
 
 // RRV insertion
-Void CMotionVector::scaleup (Void)
+Void CMotionVector::scaleup ()
 {
 	if(m_vctTrueHalfPel.x == 0){
 		m_vctTrueHalfPel_x2.x = 0;

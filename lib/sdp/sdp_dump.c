@@ -251,7 +251,7 @@ static void media_dump (media_desc_t *mptr)
   }
   range_dump(&mptr->media_range, "\t");
   printf("\tMedia formats: ");
-  fptr = mptr->fmt;
+  fptr = mptr->fmt_list;
   ix = 0;
   while (fptr != NULL) {
     if (ix >= 6) {
@@ -260,10 +260,10 @@ static void media_dump (media_desc_t *mptr)
     }
 
     printf("%s", fptr->fmt);
-    if (fptr->rtpmap != NULL) {
-      printf("(%s %u", fptr->rtpmap->encode_name, fptr->rtpmap->clock_rate);
-      if (fptr->rtpmap->encode_param != 0){
-	printf(" %u", fptr->rtpmap->encode_param);
+    if (fptr->rtpmap_name != NULL) {
+      printf("(%s %u", fptr->rtpmap_name, fptr->rtpmap_clock_rate);
+      if (fptr->rtpmap_encode_param != 0){
+	printf(" %u", fptr->rtpmap_encode_param);
       }
       printf(")");
       ix += 2;

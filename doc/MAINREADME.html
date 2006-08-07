@@ -280,6 +280,12 @@ include files.  When installing ffmpeg, use the additional <code>make
 installlib</code> command.  mpeg4ip should then automatically 
 detect that the ffmpeg library exists.
 <p>
+If you install ffmpeg, it is not recommend to link it with any external
+libraries other than the AMR libraries below.  If you do, you will have
+to add the extra libraries to the Makefiles that use ffmpeg (in
+player/plugin/video/ffmpeg, player/plugin/audio/ffmpeg, and
+server/mp4live).
+<p>
 Note: as of April, 2006, the <code>make installlib</code> no longer
 appears to be required.  A regular <code>make install</code> seems
 to be enough.

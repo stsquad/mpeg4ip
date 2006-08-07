@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.19 $ 
- * $Date: 2006/05/30 19:48:11 $
+ * $Revision: 1.20 $ 
+ * $Date: 2006/08/07 18:27:03 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -38,11 +38,11 @@
 
 #ifndef __RTP_H__
 #define __RTP_H__
-#if 0
-#include "config_unix.h"
-#include "config_win32.h"
-#include "net_udp.h"
+
+#ifndef HAVE_STRUCT_SOCKADDR_STORAGE
+#include "sogckstorage.h"
 #endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,8 +53,8 @@ extern "C" {
 
 
   // moved here by nori
-typedef int (*rtp_encrypt_f)(void *, uint8_t *, unsigned int *);
-typedef int (*rtp_decrypt_f)(void *ud, uint8_t *packet_head, unsigned int *packet_len);
+typedef int (*rtp_encrypt_f)(void *, uint8_t *, uint32_t *);
+typedef int (*rtp_decrypt_f)(void *ud, uint8_t *packet_head, uint32_t *packet_len);
 
 struct rtp;
 
@@ -276,25 +276,25 @@ rtp_t		rtp_init(const char *addr,
 			 uint16_t rx_port, uint16_t tx_port, 
 			 int ttl, double rtcp_bw, 
 			 rtp_callback_f callback,
-			 uint8_t *recv_userdata);
+			 void *recv_userdata);
   // rtp_init_xmitter - for transmitters - send an RTCP with the first packet
 rtp_t		rtp_init_xmitter(const char *addr, 
 				 uint16_t rx_port, uint16_t tx_port, 
 				 int ttl, double rtcp_bw, 
 				 rtp_callback_f callback,
-				 uint8_t *recv_userdata);
+				 void *recv_userdata);
 rtp_t		rtp_init_if(const char *addr, char *iface, 
 			    uint16_t rx_port, uint16_t tx_port, 
 			    int ttl, double rtcp_bw, 
 			    rtp_callback_f callback,
-			    uint8_t *recv_userdata,
+			    void *recv_userdata,
 			    int dont_init_sockets);
 rtp_t		rtp_init_extern_net(const char *addr, 
 				    uint16_t rx_port, uint16_t tx_port, 
 				    int ttl, double rtcp_bw, 
 				    rtp_callback_f callback,
 				    send_packet_f rtcp_send_packet,
-				    uint8_t *recv_userdata);
+				    void *recv_userdata);
 
 void		 rtp_send_bye(struct rtp *session);
 void		 rtp_done(struct rtp *session);
@@ -310,14 +310,12 @@ int 		 rtp_send_data(struct rtp *session,
 			       unsigned int cc, uint32_t csrc[], 
                                uint8_t *data, uint32_t data_len, 
 			       uint8_t *extn, uint16_t extn_len, uint16_t extn_type);
-#ifndef _WIN32
 int            rtp_send_data_iov(struct rtp *session, 
 				 uint32_t rtp_ts, int8_t pt, int m, 
 				 unsigned int cc, uint32_t csrc[], 
 				 struct iovec *iov, uint32_t iov_count, 
 				 uint8_t *extn, uint16_t extn_len, 
 				 uint16_t extn_type, uint16_t seq_num_add);
-#endif
 void 		 rtp_send_ctrl(struct rtp *session, uint32_t rtp_ts, 
 			       rtcp_app_callback_f appcallback);
 void 		 rtp_send_ctrl_2(struct rtp *session, uint32_t rtp_ts,
@@ -344,7 +342,7 @@ char 		*rtp_get_addr(struct rtp *session);
 uint16_t	 rtp_get_rx_port(struct rtp *session);
 uint16_t	 rtp_get_tx_port(struct rtp *session);
 int		 rtp_get_ttl(struct rtp *session);
-uint8_t		*rtp_get_recv_userdata(struct rtp *session);
+void		*rtp_get_recv_userdata(struct rtp *session);
 
   
 int rtp_process_recv_data(struct rtp *session,
@@ -369,7 +367,7 @@ socket_udp *get_rtp_data_socket(struct rtp *session);
 socket_udp *get_rtp_rtcp_socket(struct rtp *session);
 
   void rtp_set_receive_buffer_default_size(int bufsize);  
-  uint rtp_get_mtu_adjustment (struct rtp *session);
+  unsigned int rtp_get_mtu_adjustment (struct rtp *session);
 
   void rtp_set_rtp_callback(struct rtp *session, rtp_callback_f rtp,
 			    void *userdata);

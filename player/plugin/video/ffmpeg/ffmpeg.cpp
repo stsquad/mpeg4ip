@@ -111,16 +111,16 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
   if ((strcasecmp(stream_type, STREAM_TYPE_RTP) == 0) && fptr != NULL) {
     if (strcmp(fptr->fmt, "32") == 0)
       return CODEC_ID_MPEG2VIDEO;
-    if (fptr->rtpmap != NULL) {
-      if (strcasecmp(fptr->rtpmap->encode_name, "h263-1998") == 0 ||
-	  strcasecmp(fptr->rtpmap->encode_name, "h263-2000") == 0) {
+    if (fptr->rtpmap_name != NULL) {
+      if (strcasecmp(fptr->rtpmap_name, "h263-1998") == 0 ||
+	  strcasecmp(fptr->rtpmap_name, "h263-2000") == 0) {
 	return CODEC_ID_H263;
       }
-      if (strcasecmp(fptr->rtpmap->encode_name, "MP4V-ES") == 0) {
+      if (strcasecmp(fptr->rtpmap_name, "MP4V-ES") == 0) {
 	// may want to check level and profile
 	return CODEC_ID_MPEG4;
       }
-      if (strcasecmp(fptr->rtpmap->encode_name, "h264") == 0) {
+      if (strcasecmp(fptr->rtpmap_name, "h264") == 0) {
 	// may want to check for sprop-parameters
 	return CODEC_ID_H264;
       }

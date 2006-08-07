@@ -39,7 +39,7 @@ class CSDLVideo {
   void set_name(const char *name);
   void set_image_size(unsigned int w, unsigned int h,
 		      double aspect_ratio);
-  void set_screen_size(int fullscreen, int scale = 0, 
+  void set_screen_size(bool fullscreen, int scale = 0, 
 		       int pixel_width = -1, int pixel_height = -1,
 		       int max_width = -1, int max_height = -1);
 
@@ -49,6 +49,7 @@ class CSDLVideo {
   void set_cursor(bool setit);
   uint get_width (void) { return m_image_w; };
   uint get_height (void) { return m_image_h; };
+  bool get_fullscreen(void) { return m_fullscreen; };
  protected:
   int m_pos_x, m_pos_y;
   uint32_t m_mask;
@@ -65,7 +66,7 @@ class CSDLVideo {
   int m_pixel_height;
   int m_max_width;
   int m_max_height;
-  int m_fullscreen;
+  bool m_fullscreen;
   int m_video_scale;
 };
     

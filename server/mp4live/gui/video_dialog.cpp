@@ -89,7 +89,7 @@ static bool ValidateAndSave(void)
 #endif
 
     if (MyConfig->m_videoCapabilities != pVideoCaps) {
-      delete MyConfig->m_videoCapabilities;
+      // don't do this any more - save old delete MyConfig->m_videoCapabilities;
       MyConfig->m_videoCapabilities = pVideoCaps;
       pVideoCaps = NULL;
     }
@@ -318,8 +318,15 @@ static void SourceV4LDevice()
   }
 
   // probe new source device
-  CVideoCapabilities* pNewVideoCaps = 
-    new CVideoCapabilities(newSourceName);
+  CVideoCapabilities* pNewVideoCaps;
+  pNewVideoCaps = FindVideoCapabilitiesByDevice(newSourceName);
+  if (pNewVideoCaps == NULL) {
+    pNewVideoCaps = new CVideoCapabilities(newSourceName);
+    if (pNewVideoCaps->IsValid()) {
+      MyConfig->m_videoCapabilities = pNewVideoCaps;
+      pNewVideoCaps->SetNext(VideoCapabilities);
+    }
+  }
 	
   // check for errors
   if (!pNewVideoCaps->IsValid()) {
@@ -385,7 +392,7 @@ static void ChangeSource()
 	SourceV4LDevice();
       } else {
 	if (pVideoCaps != MyConfig->m_videoCapabilities) {
-	  delete pVideoCaps;
+	  // don't delete these anymoredelete pVideoCaps;
 	}
 	pVideoCaps = NULL;
 	

@@ -343,6 +343,7 @@ int main(int argc, char** argv)
 
 	// cleanup
 	delete pConfig;
+	CapabilitiesCleanUp();
 	exit (rc);
 }
 

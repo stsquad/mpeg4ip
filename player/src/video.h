@@ -41,8 +41,8 @@ class CVideoApi {
   virtual ~CVideoApi(void);
 
   virtual void set_screen_size(int scaletimes2); // 1 gets 50%, 2, normal, 4, 2 times
-  virtual void set_fullscreen(int fullscreen);
-  virtual int get_fullscreen (void) { return 0;};
+  virtual void set_fullscreen(bool fullscreen);
+  virtual bool get_fullscreen (void) { return false;};
 
   virtual int initialize(const char *name);  // from sync task
   virtual void do_video_resize(int pixel_width = -1, int pixel_height = -1, int max_width = -1, int max_height = -1);

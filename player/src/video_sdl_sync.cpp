@@ -60,7 +60,7 @@ CSDLVideoSync::CSDLVideoSync (CPlayerSession *psptr,
 
   m_video_scale = 2;
   m_msec_per_frame = 100;
-  m_fullscreen = 0;
+  m_fullscreen = false;
   m_filled_frames = 0;
   video_message(LOG_DEBUG, "persistence is %p", video_persistence);
 #ifdef WRITE_YUV
@@ -73,7 +73,7 @@ CSDLVideoSync::~CSDLVideoSync (void)
 {
   if ((m_grabbed_video_persistence == 0) &&
       (m_sdl_video != NULL)){
-    if (m_fullscreen != 0) {
+    if (m_fullscreen) {
       m_sdl_video->set_screen_size(0, 2);
     }
     video_message(LOG_ERR, "deleteing video sdl");
@@ -303,7 +303,7 @@ void CSDLVideoSync::set_screen_size (int scaletimes2)
   m_video_scale = scaletimes2;
 }
 
-void CSDLVideoSync::set_fullscreen (int fullscreen)
+void CSDLVideoSync::set_fullscreen (bool fullscreen)
 {
   m_fullscreen = fullscreen;
 }

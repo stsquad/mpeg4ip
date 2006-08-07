@@ -771,14 +771,18 @@ bool MP4File::SetMetadataCoverArt(u_int8_t *coverArt, u_int32_t size)
     return true;
 }
 
-bool MP4File::GetMetadataCoverArt(u_int8_t **coverArt, u_int32_t *size)
+bool MP4File::GetMetadataCoverArt(u_int8_t **coverArt, u_int32_t *size,
+				  uint32_t index)
 {
-    const char *s = "moov.udta.meta.ilst.covr.data.metadata";
+  char buffer[256];
+  if (index > 0 && index > GetMetadataCoverArtCount()) return false;
+
+  sprintf(buffer, "moov.udta.meta.ilst.covr.data[%d].metadata", index);
 
     *coverArt = NULL;
     *size = 0;
 
-    GetBytesProperty(s, coverArt, size);
+    GetBytesProperty(buffer, coverArt, size);
 
     if (size == 0)
         return false;

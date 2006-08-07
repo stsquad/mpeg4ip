@@ -34,6 +34,8 @@ uint32_t audio_encoder_table_size = 0;
 
 void InitAudioEncoders (void)
 {
+  if (audio_encoder_table_size != 0) return;
+
   AddAudioEncoderTable(&g711_alaw_audio_encoder_table);
   AddAudioEncoderTable(&g711_ulaw_audio_encoder_table);
 #ifdef HAVE_LAME

@@ -34,11 +34,11 @@ static rtp_check_return_t check (lib_message_func_t msg,
 				 uint8_t rtp_payload_type,
                                  CConfigSet *pConfig)
 {
-  if (fmt == NULL || fmt->rtpmap == NULL )  {
+  if (fmt == NULL || fmt->rtpmap_name == NULL )  {
     return RTP_PLUGIN_NO_MATCH;
   }
 
-  if ( (strcasecmp(fmt->rtpmap->encode_name, "enc-mpeg4-generic") != 0) ) {
+  if ( (strcasecmp(fmt->rtpmap_name, "enc-mpeg4-generic") != 0) ) {
     return RTP_PLUGIN_NO_MATCH;
   }
 
@@ -127,11 +127,11 @@ rtp_plugin_data_t *isma_rtp_plugin_create (format_list_t *media_fmt,
     iptr->m_rtp_ts_add = audio_config.codec.celp.samples_per_frame;
     isma_message(LOG_DEBUG, ismaencrtp, "celp spf is %d", iptr->m_rtp_ts_add);
   }
-  iptr->m_rtp_ts_add = (iptr->m_rtp_ts_add * media_fmt->rtpmap->clock_rate) /
+  iptr->m_rtp_ts_add = (iptr->m_rtp_ts_add * media_fmt->rtpmap_clock_rate) /
     audio_config.frequency;
   isma_message(LOG_DEBUG, ismaencrtp,
 	       "Rtp ts add is %d (%d %d)", iptr->m_rtp_ts_add,
-	       media_fmt->rtpmap->clock_rate, 
+	       media_fmt->rtpmap_clock_rate, 
 	       audio_config.frequency);
   iptr->m_fmtp = fmtp;
   iptr->m_min_first_header_bits = iptr->m_fmtp->size_length + iptr->m_fmtp->index_length;

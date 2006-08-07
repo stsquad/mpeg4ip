@@ -231,7 +231,6 @@ media_desc_t *ffmpeg_create_audio_sdp (CAudioProfile *pConfig,
 {
   media_desc_t *sdpMediaAudio;
   format_list_t *sdpMediaAudioFormat;
-  rtpmap_desc_t *sdpAudioRtpMap;
   MediaType type;
 
   type = ffmpeg_mp4_fileinfo(pConfig, mpeg4, isma_compliant, audioProfile,
@@ -242,7 +241,7 @@ media_desc_t *ffmpeg_create_audio_sdp (CAudioProfile *pConfig,
 
   sdpMediaAudioFormat = MALLOC_STRUCTURE(format_list_t);
   memset(sdpMediaAudioFormat, 0, sizeof(*sdpMediaAudioFormat));
-  sdpMediaAudio->fmt = sdpMediaAudioFormat;
+  sdpMediaAudio->fmt_list = sdpMediaAudioFormat;
   sdpMediaAudioFormat->media = sdpMediaAudio;
   
 
@@ -251,39 +250,34 @@ media_desc_t *ffmpeg_create_audio_sdp (CAudioProfile *pConfig,
   } else if (type == ULAWAUDIOFRAME) {
     sdpMediaAudioFormat->fmt = strdup("0");
   } else {
-    sdpAudioRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
-    memset(sdpAudioRtpMap, 0, sizeof(*sdpAudioRtpMap));
     if (type == MP3AUDIOFRAME) {
       if (pConfig->GetBoolValue(CFG_RTP_USE_MP3_PAYLOAD_14)) {
 	sdpMediaAudioFormat->fmt = strdup("14");
-	sdpAudioRtpMap->clock_rate = 90000;
+	sdpMediaAudioFormat->rtpmap_clock_rate = 90000;
       } else {
-	sdpAudioRtpMap->clock_rate = 
+	sdpMediaAudioFormat->rtpmap_clock_rate = 
 	  pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
 	sdpMediaAudioFormat->fmt = strdup("97");
 	sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
 			       "a=mpeg4-esid:10");
       }
-      sdpAudioRtpMap->encode_name = strdup("MPA");
+      sdpMediaAudioFormat->rtpmap_name = strdup("MPA");
     } else if (type == AMRNBAUDIOFRAME) {
       *is3gp = true;
-      sdpAudioRtpMap->encode_name = strdup("AMR");
-      sdpAudioRtpMap->clock_rate = 8000;
+      sdpMediaAudioFormat->rtpmap_name = strdup("AMR");
+      sdpMediaAudioFormat->rtpmap_clock_rate = 8000;
       sdpMediaAudioFormat->fmt = strdup("97");
-      sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
-			     "a=fmtp:97 octet-align=1");
-      sdpAudioRtpMap->encode_param = 1;
+      sdpMediaAudioFormat->fmt_param = strdup("octet-align=1");
+      sdpMediaAudioFormat->rtpmap_encode_param = 1;
     } else if (type == AMRWBAUDIOFRAME) {
       *is3gp = true;
-      sdpAudioRtpMap->encode_name = strdup("AMR-WB");
-      sdpAudioRtpMap->clock_rate = 16000;
+      sdpMediaAudioFormat->rtpmap_name = strdup("AMR-WB");
+      sdpMediaAudioFormat->rtpmap_clock_rate = 16000;
       sdpMediaAudioFormat->fmt = strdup("97");
-      sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
-			     "a=fmtp:97 octet-align=1");
-      sdpAudioRtpMap->encode_param = 1;
+      sdpMediaAudioFormat->fmt_param = strdup("octet-align=1");
+      sdpMediaAudioFormat->rtpmap_encode_param = 1;
     }
       
-    sdpMediaAudioFormat->rtpmap = sdpAudioRtpMap;
   }
 	    
   return sdpMediaAudio;

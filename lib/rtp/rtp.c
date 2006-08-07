@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.31 $ 
- * $Date: 2006/06/08 19:01:55 $
+ * $Revision: 1.32 $ 
+ * $Date: 2006/08/07 18:27:02 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -122,6 +122,11 @@ typedef struct {
   uint16_t        length;		/* packet length          */
 } rtcp_common;
 
+typedef struct rtcp_sdes_t {
+      uint32_t	ssrc;
+      rtcp_sdes_item 	item[1];	/* list of SDES */
+} rtcp_sdes_t;
+
 typedef struct {
   rtcp_common   common;	
   union {
@@ -133,10 +138,7 @@ typedef struct {
       uint32_t        ssrc;		/* source this RTCP packet is coming from */
       rtcp_rr       	rr[1];		/* variable-length list */
     } rr;
-    struct rtcp_sdes_t {
-      uint32_t	ssrc;
-      rtcp_sdes_item 	item[1];	/* list of SDES */
-    } sdes;
+    rtcp_sdes_t sdes;
     struct {
       uint32_t        ssrc[1];	/* list of sources */
       /* can't express the trailing text... */
@@ -232,7 +234,7 @@ struct rtp {
   source		*db[RTP_DB_SIZE];
   rtcp_rr_wrapper  rr[RTP_DB_SIZE][RTP_DB_SIZE]; 	/* Indexed by [hash(reporter)][hash(reportee)] */
   options		*opt;
-  uint8_t		*recv_userdata, *send_userdata;
+  void		*recv_userdata, *send_userdata;
   int		 invalid_rtp_count;
   int		 invalid_rtcp_count;
   int		 bye_count;
@@ -282,7 +284,7 @@ struct rtp {
   rtp_callback_f	 callback;
   send_packet_f rtcp_send_packet;
   send_packet_f rtp_send_packet;
-#ifndef _WIN32
+#ifdef HAVE_STRUCT_IOVEC
   send_packet_iov_f rtp_send_packet_iov;
 #endif
   uint32_t	 magic;				/* For debugging...  */
@@ -1070,7 +1072,7 @@ struct rtp *rtp_init(const char *addr,
 		     uint16_t rx_port, uint16_t tx_port, 
 		     int ttl, double rtcp_bw, 
                      rtp_callback_f callback,
-                     uint8_t *userdata)
+                     void *userdata)
 {
   rtp_stream_params_t rsp;
   rtp_default_params(&rsp);
@@ -1090,7 +1092,7 @@ struct rtp *rtp_init_xmitter (const char *addr,
 			      uint16_t rx_port, uint16_t tx_port,
 			      int ttl, double rtcp_bw, 
 			      rtp_callback_f callback, 
-			      uint8_t *userdata)
+			      void *userdata)
 {
   rtp_stream_params_t rsp;
   rtp_default_params(&rsp);
@@ -1112,7 +1114,7 @@ struct rtp *rtp_init_extern_net (const char *addr,
 				 int ttl, double rtcp_bw, 
 				 rtp_callback_f callback,
 				 send_packet_f rtcp_send_packet,
-				 uint8_t *userdata)
+				 void *userdata)
 {
   rtp_t rtp_ptr = rtp_init_if(addr, NULL, rx_port, tx_port, ttl, rtcp_bw, callback, userdata, 1);
   if (rtp_ptr == NULL) return NULL;
@@ -1147,7 +1149,7 @@ struct rtp *rtp_init_if(const char *addr, char *iface,
 			uint16_t rx_port, uint16_t tx_port, 
 			int ttl, double rtcp_bw, 
                         rtp_callback_f callback,
-                        uint8_t *userdata,
+                        void *userdata,
 			int dont_init_sockets)
 {
   rtp_stream_params_t rsp;
@@ -1228,7 +1230,9 @@ rtp_t rtp_init_stream (rtp_stream_params_t *rsp)
   session->my_ssrc            = (uint32_t) lrand48();
   session->rtcp_send_packet   = rsp->rtcp_send_packet;
   session->rtp_send_packet    = rsp->rtp_send_packet;
+#ifdef HAVE_STRUCT_IOVEC
   session->rtp_send_packet_iov= rsp->rtp_send_packet_iov;
+#endif
   if (rsp->rtp_callback == NULL) {
     session->callback = local_callback;
   } else {
@@ -1399,7 +1403,7 @@ int rtp_get_option(struct rtp *session, rtp_option optname, int *optval)
  *
  * Returns: pointer to userdata.
  */
-uint8_t *rtp_get_recv_userdata(struct rtp *session)
+void *rtp_get_recv_userdata(struct rtp *session)
 {
   check_database(session);
   return session->recv_userdata;
@@ -1806,7 +1810,7 @@ static void process_rtcp_rr(struct rtp *session, rtcp_t *packet, struct timeval 
 static void process_rtcp_sdes(struct rtp *session, rtcp_t *packet, struct timeval *event_ts)
 {
   int 			count = packet->common.count;
-  struct rtcp_sdes_t 	*sd   = &packet->r.sdes;
+  rtcp_sdes_t 	*sd   = &packet->r.sdes;
   rtcp_sdes_item 		*rsp; 
   rtcp_sdes_item		*rspn;
   rtcp_sdes_item 		*end  = (rtcp_sdes_item *) ((uint32_t *)packet + packet->common.length + 1);
@@ -1842,7 +1846,7 @@ static void process_rtcp_sdes(struct rtp *session, rtcp_t *packet, struct timeva
 	}
       }
     }
-    sd = (struct rtcp_sdes_t *) ((uint32_t *)sd + (((char *)rsp - (char *)sd) >> 2)+1);
+    sd = (rtcp_sdes_t *) ((uint32_t *)sd + (((char *)rsp - (char *)sd) >> 2)+1);
   }
   if (count >= 0) {
     rtp_message(LOG_INFO, "Invalid RTCP SDES packet, some items ignored.");
@@ -2477,15 +2481,16 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m,
   return data_len;
 }
 
-#ifndef _WIN32
 int rtp_send_data_iov (struct rtp *session, uint32_t rtp_ts, 
 		       int8_t pt, int m, unsigned int cc, uint32_t csrc[], 
 		       struct iovec *iov, uint32_t iov_count, 
 		       uint8_t *extn, uint16_t extn_len, uint16_t extn_type,
 		       uint16_t seq_num_add)
 {
-  uint32_t	 buffer_len, payload_len;
   uint32_t i;
+  uint32_t	 buffer_len;
+#ifdef HAVE_STRUCT_IOVEC
+  uint32_t      payload_len;
   int rc;
   uint8_t		*buffer;
   rtp_packet	*packet;
@@ -2494,6 +2499,7 @@ int rtp_send_data_iov (struct rtp *session, uint32_t rtp_ts,
 
   /* encryption - copy to contiguous local buffer, then send that */
   if ((session->rtp_encryption_enabled)) {
+#endif
     buffer_len = 0;
     for (i = 0; i < iov_count; i++) {
       buffer_len += iov[i].iov_len;
@@ -2513,6 +2519,7 @@ int rtp_send_data_iov (struct rtp *session, uint32_t rtp_ts,
     return rtp_send_data(session, rtp_ts, pt, m, cc, csrc, 
 			 session->m_output_buffer, buffer_len,
 			 extn, extn_len, extn_type);
+#ifdef HAVE_STRUCT_IOVEC
   }
 
   check_database(session);
@@ -2585,8 +2592,8 @@ int rtp_send_data_iov (struct rtp *session, uint32_t rtp_ts,
   check_database(session);
   if (rc != (int)buffer_len) return -1;
   return payload_len;
-}
 #endif
+}
 
 static int format_report_blocks(rtcp_rr *rrp, int remaining_length, struct rtp *session)
 {
@@ -3372,7 +3379,7 @@ int rtp_set_encryption_key(struct rtp* session, const char *passphrase)
   else
     {
       int l = slash - passphrase;
-      session->encryption_algorithm = xmalloc(l + 1);
+      session->encryption_algorithm = (char *)xmalloc(l + 1);
       strncpy(session->encryption_algorithm, passphrase, l);
       session->encryption_algorithm[l] = '\0';
       passphrase = slash + 1;
@@ -3661,7 +3668,7 @@ socket_udp *get_rtp_rtcp_socket (struct rtp *session)
   return session->rtcp_socket;
 }
 
-uint rtp_get_mtu_adjustment (struct rtp *session)
+unsigned int rtp_get_mtu_adjustment (struct rtp *session)
 {
   return MAX(session->rtp_encryption_lenadd, 
 	     session->rtcp_encryption_lenadd);

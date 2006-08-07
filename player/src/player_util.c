@@ -62,18 +62,22 @@ void player_error_message (const char *fmt, ...)
 {
   va_list ap;
 
-  va_start(ap, fmt);
-  library_message(LOG_ERR, "my_player", fmt, ap);
-  va_end(ap);
+  if (get_global_loglevel() <= LOG_ERR) {
+    va_start(ap, fmt);
+    library_message(LOG_ERR, "my_player", fmt, ap);
+    va_end(ap);
+  }
 }
 
 void player_debug_message (const char *fmt, ...)
 {
   va_list ap;
 
-  va_start(ap, fmt);
-  library_message(LOG_DEBUG, "my_player", fmt, ap);
-  va_end(ap);
+  if (get_global_loglevel() <= LOG_DEBUG) {
+    va_start(ap, fmt);
+    library_message(LOG_DEBUG, "my_player", fmt, ap);
+    va_end(ap);
+  }
 }
 
 

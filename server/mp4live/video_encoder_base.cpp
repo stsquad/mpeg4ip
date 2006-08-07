@@ -216,7 +216,6 @@ media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
   // do the work here for mpeg4 - we know pretty much everything
   media_desc_t *sdpMediaVideo;
   format_list_t *sdpMediaVideoFormat;
-  rtpmap_desc_t *sdpVideoRtpMap;
   char videoFmtpBuf[512];
   MediaType mtype;
   bool add_to_payload = true;
@@ -235,20 +234,17 @@ media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
 
   sdpMediaVideoFormat = MALLOC_STRUCTURE(format_list_t);
   memset(sdpMediaVideoFormat, 0, sizeof(*sdpMediaVideoFormat));
-  sdpMediaVideo->fmt = sdpMediaVideoFormat;
+  sdpMediaVideo->fmt_list = sdpMediaVideoFormat;
 
   if (mtype == MPEG4VIDEOFRAME) {
     *is3gp = true;
-    sdpVideoRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
-    memset(sdpVideoRtpMap, 0, sizeof(*sdpVideoRtpMap));
     sdpMediaVideoFormat->media = sdpMediaVideo;
-    sdpMediaVideoFormat->rtpmap = sdpVideoRtpMap;
     sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines, 
 			   "a=mpeg4-esid:20");
     sdpMediaVideoFormat->fmt = create_payload_number_string(payload_number);
 	
-    sdpVideoRtpMap->encode_name = strdup("MP4V-ES");
-    sdpVideoRtpMap->clock_rate = 90000;
+    sdpMediaVideoFormat->rtpmap_name = strdup("MP4V-ES");
+    sdpMediaVideoFormat->rtpmap_clock_rate = 90000;
 
 
     char* sConfig = MP4BinaryToBase16(*videoConfig,
@@ -265,34 +261,28 @@ media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
     sdpMediaVideoFormat->fmt = create_payload_number_string(31);
     add_to_payload = false;
 #if 0
-    sdpVideoRtpMap->encode_name = strdup("h261");
-    sdpVideoRtpMap->clock_rate = 90000;
+    sdpMediaVideoFormat->encode_name = strdup("h261");
+    sdpMediaVideoFormat->clock_rate = 90000;
 #endif
   } else if (mtype == MPEG2VIDEOFRAME) {
     sdpMediaVideoFormat->fmt = create_payload_number_string(32);
     add_to_payload = false;
   } else if (mtype == H263VIDEOFRAME) {
     *is3gp = true;
-    sdpVideoRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
-    memset(sdpVideoRtpMap, 0, sizeof(*sdpVideoRtpMap));
     sdpMediaVideoFormat->fmt = create_payload_number_string(payload_number);
     sdpMediaVideoFormat->media = sdpMediaVideo;
-    sdpMediaVideoFormat->rtpmap = sdpVideoRtpMap;
-    sdpVideoRtpMap->clock_rate = 90000;
-    sdpVideoRtpMap->encode_name = strdup("H263-2000");
+    sdpMediaVideoFormat->rtpmap_clock_rate = 90000;
+    sdpMediaVideoFormat->rtpmap_name = strdup("H263-2000");
     char cliprect[80];
     sprintf(cliprect, "a=cliprect:0,0,%d,%d",
  	    pConfig->GetIntegerValue(CFG_VIDEO_HEIGHT), 
 	    pConfig->GetIntegerValue(CFG_VIDEO_WIDTH));
     sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines, cliprect);
   } else if (mtype == H264VIDEOFRAME) {
-    sdpVideoRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
-    memset(sdpVideoRtpMap, 0, sizeof(*sdpVideoRtpMap));
     sdpMediaVideoFormat->fmt = create_payload_number_string(payload_number);
     sdpMediaVideoFormat->media = sdpMediaVideo;
-    sdpMediaVideoFormat->rtpmap = sdpVideoRtpMap;
-    sdpVideoRtpMap->clock_rate = 90000;
-    sdpVideoRtpMap->encode_name = strdup("H264");
+    sdpMediaVideoFormat->rtpmap_clock_rate = 90000;
+    sdpMediaVideoFormat->rtpmap_name = strdup("H264");
     sprintf(videoFmtpBuf, 
 	    "profile-level-id=%06x; sprop-parameter-sets=%s; packetization-mode=1",
 	    *videoProfile,

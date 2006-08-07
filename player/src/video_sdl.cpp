@@ -151,7 +151,7 @@ void CSDLVideo::set_image_size (unsigned int w, unsigned int h, double aspect)
 /*
  * Set the correct screen size.
  */
-void  CSDLVideo::set_screen_size(int fullscreen, int video_scale, 
+void  CSDLVideo::set_screen_size(bool fullscreen, int video_scale, 
 				 int pixel_width, int pixel_height,
 				 int max_width, int max_height)
 {
@@ -166,7 +166,6 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
   if (max_width == -1 && m_max_width > -1) max_width = m_max_width;
   if (max_height == -1 && m_max_height > -1) max_height = m_image_h;
 
-  if (fullscreen < 0) fullscreen = m_fullscreen;
   if (video_scale <= 0) video_scale = m_video_scale;
   int win_w = m_image_w * video_scale / 2;
   int win_h = m_image_h * video_scale / 2;
@@ -174,12 +173,15 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
   // It is only when we have positive values larger than zero for
   // pixel sizes that we resize
   if (pixel_width > 0 && pixel_height > 0) {
- 
+    // wmay - just use the passed in values.
+    win_w = pixel_width;
+    win_h = pixel_height;
+#if 0
     // Square pixels needs no resize.
     if (pixel_width != pixel_height) {
  
       // enable different handling of full screen versus non full screen
-      if (fullscreen == 0) {
+      if (fullscreen == false) {
 	if (pixel_width > pixel_height)
 	  win_w = win_h * pixel_width / pixel_height;
 	else 
@@ -193,6 +195,7 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
 	  win_h = win_w * pixel_height / pixel_width;
       }
     }
+#endif
   } else {
     // this case is when we set it from the aspect ratio defined.
     if (m_aspect_ratio != 0.0 && m_aspect_ratio != 1.0) {
@@ -209,7 +212,8 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
       }
     }
   }
-  if (fullscreen == 1) {
+
+  if (fullscreen) {
     //Suren, get the max resolution of window system and scale to that
     //--------
     if(m_max_width > 0 ) win_w = m_max_width;
@@ -225,7 +229,7 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
 #else
   int mask = SDL_HWSURFACE;
 #endif
-  if (fullscreen != 0) {
+  if (fullscreen) {
     mask |= SDL_FULLSCREEN;
 #ifdef _WIN32
     video_scale = 2;
@@ -275,8 +279,20 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
 #ifdef unix
       if (info.subsystem == SDL_SYSWM_X11) {
 	info.info.x11.lock_func();
+#if 0
 	XMoveWindow(info.info.x11.display, info.info.x11.wmwindow, 
 		    m_pos_x, m_pos_y);
+#else
+	XWindowChanges xchang;
+	memset(&xchang, 0, sizeof(xchang));
+	xchang.x = m_pos_x;
+	xchang.y = m_pos_y;
+	xchang.stack_mode = Above;
+	XConfigureWindow(info.info.x11.display,
+			 info.info.x11.wmwindow,
+			 CWStackMode | CWX | CWY,
+			 &xchang);
+#endif
 	info.info.x11.unlock_func();
       }
 #endif
@@ -343,7 +359,7 @@ void CSDLVideo::display_image (const uint8_t *y, const uint8_t *u,
   // data (probably a total of 6 - libsock -> rtp -> decoder -> our ring ->
   // sdl -> hardware)
 #ifdef OLD_SURFACE
-  if (m_fullscreen == 0 && m_video_scale == 4) {
+  if (m_fullscreen == false && m_video_scale == 4) {
     // when scaling to 200%, don't use SDL stretch blit
     // use a smoothing (averaging) blit instead
     // we only do this for maybe windows - otherwise, let SDL do it.

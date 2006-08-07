@@ -52,8 +52,8 @@ class CSDLVideoSync : public CVideoSync {
   void configure (int w, int h, double aspect_ratio); // from codec
 
   void set_screen_size(int scaletimes2); // 1 gets 50%, 2, normal, 4, 2 times
-  void set_fullscreen(int fullscreen);
-  int get_fullscreen (void) { return m_fullscreen; };
+  void set_fullscreen(bool fullscreen);
+  bool get_fullscreen (void) { return m_fullscreen; };
   void do_video_resize(int pixel_width = -1, int pixel_height = -1, int max_width = -1, int max_height = -1);
   void set_cursor (bool setit) {
     if (m_sdl_video != NULL) m_sdl_video->set_cursor(setit);
@@ -63,7 +63,7 @@ class CSDLVideoSync : public CVideoSync {
  private:
   CSDLVideo *m_sdl_video;
   int m_video_scale;
-  int m_fullscreen;
+  bool m_fullscreen;
   unsigned int m_width, m_height;
   double m_aspect_ratio;
 

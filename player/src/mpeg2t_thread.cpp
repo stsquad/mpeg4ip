@@ -227,7 +227,8 @@ static int mpeg2t_thread_start_cmd (mpeg2t_client_t *info)
       // configure out the specified interface
       if (getIpAddressFromInterface(config.get_config_string(CONFIG_MULTICAST_RX_IF),
 				    &if_addr) >= 0) {
-	player_debug_message("if address is %s", inet_ntoa(if_addr));
+	player_debug_message("if address is %s %s", inet_ntoa(if_addr),
+			     info->address);
 	info->udp = udp_init_if(info->address,
 				inet_ntoa(if_addr),
 				info->rx_port,

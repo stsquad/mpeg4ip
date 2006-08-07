@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(mpeg4ip, 1.5.3)
+AC_INIT(mpeg4ip, 1.5.5)
 AM_CONFIG_HEADER(mpeg4ip_config.h)
 dnl Prevent user from running just ./configure
 AC_CHECK_FILE(./bootstrapped, [did_bootstrap=yes], [did_bootstrap=no])
@@ -269,14 +269,25 @@ dnl Checks for library functions.
 AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getopt_long_only getrusage socketpair strsep inet_ntoa inet_pton inet_ntop inet_aton)
 
 
-AC_CHECK_TYPES([in_port_t, socklen_t], , , 
+AC_CHECK_TYPES([in_port_t, socklen_t, struct iovec, struct sockaddr_storage], , , 
 	[#include <sys/types.h>
 	 #include <sys/socket.h>
 	 #include <netinet/in.h>])
+AC_ARG_ENABLE(igmpv3, 
+[AC_HELP_STRING([--enable-igmpv3],[enable igmpv3])],
+[ case "${enableval}" in
+  yes) igmpv3=true ;;
+  no)  igmpv3=false ;;
+  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-igmpv3) ;;
+esac],
+[igmpv3=true])
+if test igmpv3 = true; then
+
 AC_CHECK_TYPES([struct ip_mreq_source],
 	       AC_DEFINE(HAVE_IGMP_V3, [1], [IGMPv3 definition]),
 ,
 	[#include <netinet/in.h>])
+fi
 
 AC_CHECK_MEMBERS(fpos_t.__pos,,, [#include <stdio.h>])
 
@@ -820,7 +831,7 @@ MY_CHECK_CC_OPT_SET([-Wno-deprecated], BILLS_CPPWARNINGS,[c++ compiler])
 MY_CHECK_CC_OPT_SET([-Wformat=2], BILLS_CPPWARNINGS,[c++ compiler])
 MY_CHECK_CC_OPT_SET([-Wpointer-arith], BILLS_CPPWARNINGS, [c++ compiler])
 MY_CHECK_CC_OPT_SET([-Wsign-compare], BILLS_CPPWARNINGS, [c++ compiler])
-MY_CHECK_CC_OPT_SET([-Wswitch-enum], BILLS_CWARNINGS, [c++ compiler])
+MY_CHECK_CC_OPT_SET([-fno-strict-aliasing], BILLS_CPPWARNINGS, [c++ compiler])
 
 AC_LANG_POP(C++)
 AC_SUBST(BILLS_CWARNINGS)
