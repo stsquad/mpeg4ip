@@ -48,6 +48,8 @@ libmp4live_la_SOURCES = \
 	audio_g711.h \
 	audio_lame.cpp \
 	audio_lame.h \
+	audio_l16.cpp \
+	audio_l16.h \
 	audio_alsa_source.cpp \
 	audio_alsa_source.h \
 	audio_oss_source.cpp \
@@ -133,6 +135,7 @@ mp4live_SOURCES = \
 INCLUDES=\
 	@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/lib/ffmpeg \
 	-I$(top_srcdir)/lib/mp4v2 \
 	-I$(top_srcdir)/lib/mp4av \
 	-I$(top_srcdir)/lib/msg_queue \
@@ -167,6 +170,7 @@ mp4live_LDADD = \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/lib/utils/libutils.la \
 	$(top_builddir)/lib/srtp/libsrtpif.la \
+	$(top_builddir)/lib/ffmpeg/libmpeg4ip_ffmpeg.la \
 	@SRTPLIB@ \
 	-lpthread \
 	@SDL_LIBS@ $(GUILIBS) @FFMPEG_LIB@ @LIBVORBIS_LIB@ $(XVID_LIB) \

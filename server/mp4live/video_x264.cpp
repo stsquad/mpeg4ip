@@ -32,7 +32,9 @@
 
 static config_index_t CFG_X264_FORCE_BASELINE;
 static config_index_t CFG_X264_USE_CABAC;
+#ifndef HAVE_X264_PARAM_T_RC_I_RC_METHOD
 static config_index_t CFG_X264_USE_CBR;
+#endif
 static config_index_t CFG_X264_BIT_RATE_TOLERANCE;
 static config_index_t CFG_X264_USE_VBV;
 static config_index_t CFG_X264_VBV_BITRATE_MULT;
@@ -44,7 +46,9 @@ static config_index_t CFG_X264_SAR_HEIGHT;
 static SConfigVariable X264EncoderVariables[] = {
   CONFIG_BOOL(CFG_X264_FORCE_BASELINE, "x264ForceBaseline", false),
   CONFIG_BOOL(CFG_X264_USE_CABAC, "x264UseCabac", true),
+#ifndef HAVE_X264_PARAM_T_RC_I_RC_METHOD
   CONFIG_BOOL(CFG_X264_USE_CBR, "x264UseCbr", true),
+#endif
   CONFIG_FLOAT(CFG_X264_BIT_RATE_TOLERANCE, "x264BitRateTolerance", 1.0),
   CONFIG_BOOL(CFG_X264_USE_VBV, "x264UseVbv", false),
   CONFIG_FLOAT(CFG_X264_VBV_BITRATE_MULT, "x264VbvBitRateMult", 1.0),
@@ -56,7 +60,9 @@ static SConfigVariable X264EncoderVariables[] = {
 
 GUI_BOOL(gui_baseline, CFG_X264_FORCE_BASELINE, "Force Baseline (overrides below)");
 GUI_BOOL(gui_cabac, CFG_X264_USE_CABAC, "Use Cabac");
+#ifndef HAVE_X264_PARAM_T_RC_I_RC_METHOD
 GUI_BOOL(gui_cbr, CFG_X264_USE_CBR, "Use CBR");
+#endif
 GUI_BOOL(gui_bframe, CFG_VIDEO_USE_B_FRAMES, "Use B Frames");
 GUI_INT_RANGE(gui_bframenum, CFG_VIDEO_NUM_OF_B_FRAMES, "Number of B frames", 1, 4);
 
@@ -75,7 +81,9 @@ GUI_INT_RANGE(gui_sar_h, CFG_X264_SAR_HEIGHT, "Source Aspect Ratio Height", 0, 6
 DECLARE_TABLE(x264_gui_options) = {
   TABLE_GUI(gui_baseline),
   TABLE_GUI(gui_cabac),
+#ifndef HAVE_X264_PARAM_T_RC_I_RC_METHOD
   TABLE_GUI(gui_cbr),
+#endif
   TABLE_GUI(gui_bframe),
   TABLE_GUI(gui_bframenum),
   TABLE_GUI(gui_brate),
@@ -168,7 +176,11 @@ bool CX264VideoEncoder::Init (void)
     m_param.i_bframe = 0;
   //debug_message("h264 b frames %d", m_param.i_bframe);
   m_param.rc.i_bitrate = Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE);
+#ifndef HAVE_X264_PARAM_T_RC_I_RC_METHOD
   m_param.rc.b_cbr = Profile()->GetBoolValue(CFG_X264_USE_CBR) ? 1 : 0;
+#else
+  m_param.rc.i_rc_method = X264_RC_ABR;
+#endif
   m_param.rc.f_rate_tolerance = Profile()->GetFloatValue(CFG_X264_BIT_RATE_TOLERANCE);
   if (Profile()->GetBoolValue(CFG_X264_USE_VBV)) {
     if (Profile()->GetBoolValue(CFG_X264_FORCE_BASELINE)) {

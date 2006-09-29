@@ -25,6 +25,7 @@
 #include "mp4av.h"
 
 #include "audio_g711.h"
+#include "audio_l16.h"
 #ifdef HAVE_LAME
 #include "audio_lame.h"
 #endif
@@ -55,6 +56,8 @@ void AudioProfileCheck (CAudioProfile *ap)
 #else
 #endif
   } else if (strcasecmp(encoderName, AUDIO_ENCODER_G711) == 0) {
+    return;
+  } else if (strcasecmp(encoderName, AUDIO_ENCODER_L16) == 0) {
     return;
   }
   error_message("Audio Profile %s: encoder %s does not exist - switching to G.711",
@@ -95,6 +98,8 @@ CAudioEncoder* AudioEncoderBaseCreate(CAudioProfile *ap,
 #endif
   } else if (strcasecmp(encoderName, AUDIO_ENCODER_G711) == 0) {
     return new CG711AudioEncoder(ap, next, srcChannels, srcSampleRate, mtu, realTime);
+  } else if (strcasecmp(encoderName, AUDIO_ENCODER_L16) == 0) {
+    return new CL16AudioEncoder(ap, next, srcChannels, srcSampleRate, mtu, realTime);
   } else {
     error_message("unknown audio encoder (%s) specified",encoderName);
   }
@@ -152,6 +157,13 @@ MediaType get_base_audio_mp4_fileinfo (CAudioProfile *pConfig,
 			     audioConfig,
 			     audioConfigLen,
 			     mp4_audio_type);
+  } else if (!strcasecmp(encoderName, AUDIO_ENCODER_L16)) {
+    return l16_mp4_fileinfo(pConfig, mpeg4,
+			     isma_compliant, 
+			     audioProfile, 
+			     audioConfig,
+			     audioConfigLen,
+			     mp4_audio_type);
   } else {
     error_message("unknown encoder specified");
   }
@@ -204,6 +216,12 @@ media_desc_t *create_base_audio_sdp (CAudioProfile *pConfig,
 
   } else if (!strcasecmp(encoderName, AUDIO_ENCODER_G711)) {
     return g711_create_audio_sdp(pConfig, mpeg4,
+				   isma_compliant, 
+				   audioProfile, 
+				   audioConfig,
+				   audioConfigLen);
+  } else if (!strcasecmp(encoderName, AUDIO_ENCODER_L16)) {
+    return l16_create_audio_sdp(pConfig, mpeg4,
 				   isma_compliant, 
 				   audioProfile, 
 				   audioConfig,
@@ -306,6 +324,18 @@ bool get_base_audio_rtp_info (CAudioProfile *pConfig,
 #endif
   } else if (!strcasecmp(encoderName, AUDIO_ENCODER_G711)) {
     return g711_get_audio_rtp_info(pConfig,
+				   audioFrameType,
+				   audioTimeScale,
+				   audioPayloadNumber,
+				   audioPayloadBytesPerPacket,
+				   audioPayloadBytesPerFrame,
+				   audioQueueMaxCount,
+				   audio_set_rtp_payload,
+				   audio_set_header,
+				   audio_set_jumbo,
+				   ud);
+  } else if (!strcasecmp(encoderName, AUDIO_ENCODER_L16)) {
+    return l16_get_audio_rtp_info(pConfig,
 				   audioFrameType,
 				   audioTimeScale,
 				   audioPayloadNumber,

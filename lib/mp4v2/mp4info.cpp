@@ -58,6 +58,19 @@ static char* PrintAudioInfo(
 		"MPEG-4 ER HVXC",
 		"MPEG-4 ER HILN",
 		"MPEG-4 ER Parametric",
+#ifdef ISO_WORKING_DOCS
+		"MPEG-4 SSC",
+		"MPEG-4 PS",
+		"MPEG-4 MPEG Surround",
+		NULL,
+		"MPEG-4 Layer-1",
+		"MPEG-4 Layer-2",
+		"MPEG-4 Layer-3",
+		"MPEG-4 DST",
+		"MPEG-4 Audio Lossless",
+		"MPEG-4 SLS",
+		"MPEG-4 SLS non-core", 
+#endif
 	};
 
 	static const u_int8_t mpegAudioTypes[] = {
@@ -125,11 +138,14 @@ static char* PrintAudioInfo(
 	    
 	    if (pAacConfig != NULL && aacConfigLength >= 2) {
 	      type = (pAacConfig[0] >> 3) & 0x1f;
-	      if (type == 0 || /* type == 5 || */ type == 10 || type == 11 ||
-		  type == 18 || type >= 28) {
+	      if (type == 0 || type > NUM_ELEMENTS_IN_ARRAY(mpeg4AudioNames)
+		  || mpeg4AudioNames[type - 1] == NULL) {
 		typeName = "MPEG-4 Unknown Profile";
 	      } else {
-	        typeName = mpeg4AudioNames[type - 1];
+		if (type == 2 && aacConfigLength >= 5 &&
+		    ((pAacConfig[4] >> 5) & 0x7) == 5) // extension audioObject is 5 (SBR AOT)
+		  type = 5;
+ 	        typeName = mpeg4AudioNames[type - 1];
 		foundType = true;
 	      }
 	      free(pAacConfig);

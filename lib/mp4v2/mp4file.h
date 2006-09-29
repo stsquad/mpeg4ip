@@ -547,26 +547,21 @@ public: /* equivalent to MP4 library API */
 	/* iTunes metadata handling */
  protected:
 	bool CreateMetadataAtom(const char* name);
+ public:
+	// these are public to remove a lot of unnecessary routines
 	bool DeleteMetadataAtom(const char* name, bool try_udta = false);
 	bool GetMetadataString(const char *atom, char **value, bool try_udta = false);
 	bool SetMetadataString(const char *atom, const char *value);
- public:
 	bool MetadataDelete(void);
+
+	bool SetMetadataUint8(const char *atom, u_int8_t compilation);
+	bool GetMetadataUint8(const char *atom, u_int8_t* compilation);
 	
 	/* set metadata */
-	bool SetMetadataName(const char* value);
-	bool SetMetadataWriter(const char* value);
-	bool SetMetadataAlbum(const char* value);
-	bool SetMetadataArtist(const char* value);
-	bool SetMetadataTool(const char* value);
-	bool SetMetadataComment(const char* value);
-	bool SetMetadataYear(const char* value);
 	bool SetMetadataTrack(u_int16_t track, u_int16_t totalTracks);
 	bool SetMetadataDisk(u_int16_t disk, u_int16_t totalDisks);
 	bool SetMetadataGenre(const char *value);
-	bool SetMetadataGrouping(const char *value);
 	bool SetMetadataTempo(u_int16_t tempo);
-	bool SetMetadataCompilation(u_int8_t compilation);
 	bool SetMetadataCoverArt(u_int8_t *coverArt, u_int32_t size);
 	bool SetMetadataFreeForm(char *name, 
 				 u_int8_t* pValue, 
@@ -577,19 +572,10 @@ public: /* equivalent to MP4 library API */
 				const char** ppName,
 				u_int8_t** ppValue, 
 				u_int32_t* pValueSize);
-	bool GetMetadataName(char** value);
-	bool GetMetadataWriter(char** value);
-	bool GetMetadataAlbum(char** value);
-	bool GetMetadataArtist(char** value);
-	bool GetMetadataTool(char** value);
-	bool GetMetadataComment(char** value);
-	bool GetMetadataYear(char** value);
 	bool GetMetadataTrack(u_int16_t* track, u_int16_t* totalTracks);
 	bool GetMetadataDisk(u_int16_t* disk, u_int16_t* totalDisks);
 	bool GetMetadataGenre(char **value);
-	bool GetMetadataGrouping(char **value);
 	bool GetMetadataTempo(u_int16_t* tempo);
-	bool GetMetadataCompilation(u_int8_t* compilation);
 	bool GetMetadataCoverArt(u_int8_t **coverArt, u_int32_t* size,
 				 uint32_t index = 0);
 	u_int32_t GetMetadataCoverArtCount(void);
@@ -598,20 +584,7 @@ public: /* equivalent to MP4 library API */
 				 u_int32_t* valueSize);
 
 	/* delete metadata */
-	bool DeleteMetadataName();
-	bool DeleteMetadataWriter();
-	bool DeleteMetadataAlbum();
-	bool DeleteMetadataArtist();
-	bool DeleteMetadataTool();
-	bool DeleteMetadataComment();
-	bool DeleteMetadataYear();
-	bool DeleteMetadataTrack();
-	bool DeleteMetadataDisk();
 	bool DeleteMetadataGenre();
-	bool DeleteMetadataGrouping();
-	bool DeleteMetadataTempo();
-	bool DeleteMetadataCompilation();
-	bool DeleteMetadataCoverArt();
 	bool DeleteMetadataFreeForm(char *name);
 
 	/* end of MP4 API */

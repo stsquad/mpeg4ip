@@ -1148,6 +1148,9 @@ bool MP4DeleteMetadataTempo(MP4FileHandle hFile);
 bool MP4SetMetadataCompilation(MP4FileHandle hFile, u_int8_t cpl);
 bool MP4GetMetadataCompilation(MP4FileHandle hFile, u_int8_t* cpl);
 bool MP4DeleteMetadataCompilation(MP4FileHandle hFile);
+bool MP4SetMetadataPartOfGaplessAlbum(MP4FileHandle hFile, uint8_t pgap);
+bool MP4GetMetadataPartOfGaplessAlbum(MP4FileHandle hFile, uint8_t *pgap);
+bool MP4DeleteMetadataPartOfGaplessAlbum(MP4FileHandle hFile);
 bool MP4SetMetadataCoverArt(MP4FileHandle hFile,
 			    u_int8_t *coverArt, u_int32_t size);
 bool MP4GetMetadataCoverArt(MP4FileHandle hFile,
@@ -1155,12 +1158,16 @@ bool MP4GetMetadataCoverArt(MP4FileHandle hFile,
 			    uint32_t index DEFAULT(0));
 u_int32_t MP4GetMetadataCoverArtCount(MP4FileHandle hFile);
 bool MP4DeleteMetadataCoverArt(MP4FileHandle hFile);
+bool MP4SetMetadataAlbumArtist(MP4FileHandle hFile, const char* value);
+bool MP4GetMetadataAlbumArtist(MP4FileHandle hFile,    char** value);
+bool MP4DeleteMetadataAlbumArtist(MP4FileHandle hFile); 
+
+
 bool MP4SetMetadataFreeForm(MP4FileHandle hFile, char *name,
 			    u_int8_t* pValue, u_int32_t valueSize);
 bool MP4GetMetadataFreeForm(MP4FileHandle hFile, char *name,
 			    u_int8_t** pValue, u_int32_t* valueSize);
 bool MP4DeleteMetadataFreeForm(MP4FileHandle hFile, char *name);
- 
 
 /* time conversion utilties */
 

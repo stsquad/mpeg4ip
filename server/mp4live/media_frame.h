@@ -39,6 +39,7 @@ typedef u_int16_t MediaType;
 #define AMRWBAUDIOFRAME         7
 #define ALAWAUDIOFRAME          8
 #define ULAWAUDIOFRAME          9
+#define NETPCMAUDIOFRAME        10
 
 #define YUVVIDEOFRAME		20
 #define RGBVIDEOFRAME		21

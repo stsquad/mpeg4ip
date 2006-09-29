@@ -41,10 +41,12 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
    * Try to keep it in alphabetical order - it should only be called
    * 1 time per atom, so it's not that urgent.
    */
+  if (ATOMID(type) == ATOMID("aART")) {
+      ExpectChildAtom("data", Required, OnlyOne);
   /*
    * b???
    */
-  if (ATOMID(type) == ATOMID("bitr")) {
+  } else if (ATOMID(type) == ATOMID("bitr")) {
     AddProperty( /* 0 */
 		new MP4Integer32Property("avgBitrate"));
     
@@ -192,7 +194,9 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
     ExpectChildAtom("cpil", Optional, OnlyOne); /* compilation */
     ExpectChildAtom("tmpo", Optional, OnlyOne); /* BPM */
     ExpectChildAtom("covr", Optional, OnlyOne); /* cover art */
+    ExpectChildAtom("aART", Optional, OnlyOne); /* album artist */
     ExpectChildAtom("----", Optional, Many); /* ---- free form */
+    ExpectChildAtom("pgap", Optional, OnlyOne); /* part of gapless album */
 
   }  else if (ATOMID(type) == ATOMID("imif")) {
     AddVersionAndFlags();
@@ -273,6 +277,8 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
   } else if (ATOMID(type) == ATOMID("pmax")) {
     AddProperty( // max packet size 
 		new MP4Integer32Property("bytes"));
+  } else if (ATOMID(type) == ATOMID("pgap")) {
+    ExpectChildAtom("data", Required, OnlyOne);
   /*
    * s???
    */

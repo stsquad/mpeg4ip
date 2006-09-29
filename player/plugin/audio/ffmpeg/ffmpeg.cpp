@@ -27,6 +27,7 @@
 #include "mp4av.h"
 #include "mp4av_h264.h"
 #include <mpeg2t/mpeg2t_defines.h>
+#include "ffmpeg_if.h"
 
 static SConfigVariable MyConfigVariables[] = {
   CONFIG_BOOL(CONFIG_USE_FFMPEG_AUDIO, "UseFFmpegAudio", false),
@@ -169,10 +170,13 @@ static codec_data_t *ffmpeg_create (const char *stream_type,
     ffmpeg->m_c->extradata = (void *)userdata;
     ffmpeg->m_c->extradata_size = ud_size;
   }
+  ffmpeg_interface_lock();
   if (avcodec_open(ffmpeg->m_c, ffmpeg->m_codec) < 0) {
+    ffmpeg_interface_unlock();
     ffmpeg_message(LOG_CRIT, "ffmpeg", "failed to open codec");
     return NULL;
   }
+  ffmpeg_interface_unlock();
   ffmpeg->m_outbuf = (uint8_t *)malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
 
   return ((codec_data_t *)ffmpeg);
@@ -185,7 +189,9 @@ static void ffmpeg_close (codec_data_t *ifptr)
 
   ffmpeg = (ffmpeg_codec_t *)ifptr;
   if (ffmpeg->m_c != NULL) {
+    ffmpeg_interface_lock();
     avcodec_close(ffmpeg->m_c);
+    ffmpeg_interface_unlock();
     free(ffmpeg->m_c);
   }
   CHECK_AND_FREE(ffmpeg->m_outbuf);

@@ -29,6 +29,7 @@
 #include "mp4util/mpeg4_sdp.h"
 #include "mp4util/h264_sdp.h"
 #include <mpeg2ps/mpeg2_ps.h>
+#include "ffmpeg_if.h"
 
 static SConfigVariable MyConfigVariables[] = {
   CONFIG_BOOL(CONFIG_USE_FFMPEG, "UseFFmpeg", false),
@@ -266,10 +267,13 @@ static codec_data_t *ffmpeg_create (const char *stream_type,
     break;
   }
   if (open_codec) {
+    ffmpeg_interface_lock();
     if (avcodec_open(ffmpeg->m_c, ffmpeg->m_codec) < 0) {
+      ffmpeg_interface_unlock();
       ffmpeg_message(LOG_CRIT, "ffmpeg", "failed to open codec");
       return NULL;
     }
+    ffmpeg_interface_unlock();
     ffmpeg_message(LOG_DEBUG, "ffmpeg", "pixel format is %d",
 		    ffmpeg->m_c->pix_fmt);
     ffmpeg->m_codec_opened = true;
@@ -301,7 +305,9 @@ static void ffmpeg_close (codec_data_t *ifptr)
 
   ffmpeg = (ffmpeg_codec_t *)ifptr;
   if (ffmpeg->m_c != NULL) {
+    ffmpeg_interface_lock();
     avcodec_close(ffmpeg->m_c);
+    ffmpeg_interface_unlock();
     free(ffmpeg->m_c);
   }
   CHECK_AND_FREE(ffmpeg->m_picture);
@@ -399,10 +405,13 @@ static int ffmpeg_decode (codec_data_t *ptr,
       break;
     }
     if (open_codec) {
+      ffmpeg_interface_lock();
       if (avcodec_open(ffmpeg->m_c, ffmpeg->m_codec) < 0) {
+	ffmpeg_interface_unlock();
 	ffmpeg_message(LOG_CRIT, "ffmpeg", "failed to open codec");
 	return buflen;
       }
+      ffmpeg_interface_unlock();
       ffmpeg->m_codec_opened = true;
       ffmpeg_message(LOG_ERR, "ffmpeg", "opened codec");
     } else {

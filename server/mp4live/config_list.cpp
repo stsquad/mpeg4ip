@@ -63,7 +63,8 @@ CConfigEntry *CConfigList::FindConfigInt (const char *name)
   CConfigEntry *p = m_config_list;
   if (name == NULL) return NULL;
   while (p != NULL) {
-    if (strcmp(name, p->GetName()) == 0 &&
+    const char *val = p->GetName();
+    if (val != NULL && strcmp(name, p->GetName()) == 0 &&
 	p->IsValid()) {
       return p;
     }

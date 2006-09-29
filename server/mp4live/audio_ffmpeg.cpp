@@ -23,6 +23,7 @@
 #ifdef HAVE_FFMPEG
 #include "audio_ffmpeg.h"
 #include <mp4av.h>
+#include "ffmpeg_if.h"
 
 #ifdef HAVE_AVRATIONAL
 #define MAY_HAVE_AMR_CODEC 1
@@ -509,10 +510,13 @@ bool CFfmpegAudioEncoder::Init (void)
   m_avctx->sample_rate = Profile()->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
   m_avctx->channels = Profile()->GetIntegerValue(CFG_AUDIO_CHANNELS);
 
+  ffmpeg_interface_lock();
   if (avcodec_open(m_avctx, m_codec) < 0) {
+    ffmpeg_interface_unlock();
     error_message("Couldn't open ffmpeg codec");
     return false;
   }
+  ffmpeg_interface_unlock();
 
 
   m_FrameBufferSize = 2 * m_FrameMaxSize;
@@ -629,7 +633,9 @@ bool CFfmpegAudioEncoder::GetEncodedFrame(
 
 void CFfmpegAudioEncoder::StopEncoder(void)
 {
+  ffmpeg_interface_lock();
   avcodec_close(m_avctx);
+  ffmpeg_interface_unlock();
   m_avctx = NULL;
   free(m_FrameBuffer);
   m_FrameBuffer = NULL;

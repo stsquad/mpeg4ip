@@ -186,6 +186,20 @@ static bool compare_meta(char *toname, MP4FileHandle to,
   CHECK_AND_FREE(tovalue);
   CHECK_AND_FREE(fromvalue);
 
+  MP4GetMetadataAlbumArtist(to, &tovalue);
+  MP4GetMetadataAlbumArtist(from, &fromvalue);
+  if (tovalue == NULL || fromvalue == NULL || strcmp(tovalue, fromvalue) != 0) {
+    if (tovalue != NULL || fromvalue != NULL) {
+      printf("%s comment \"%s\" \"%s\"\n", 
+	     fromname, fromvalue, tovalue);
+      CHECK_AND_FREE(tovalue);
+      CHECK_AND_FREE(fromvalue);
+      return false;
+    }
+  }
+  CHECK_AND_FREE(tovalue);
+  CHECK_AND_FREE(fromvalue);
+
   MP4GetMetadataTempo(to, &tonum);
   MP4GetMetadataTempo(from, &fromnum);
   if (tonum != fromnum) {
@@ -224,7 +238,8 @@ static bool compare_meta(char *toname, MP4FileHandle to,
 
 
 static void copy_meta(char *toname, MP4FileHandle to, 
-		      char *fromname, MP4FileHandle from)
+		      char *fromname, MP4FileHandle from, 
+		      bool force)
 {
   char *tovalue, *fromvalue;
   uint16_t tonum, tonum2, fromnum, fromnum2;
@@ -346,13 +361,15 @@ static void copy_meta(char *toname, MP4FileHandle to,
   uint32_t toart, fromart;
   toart = MP4GetMetadataCoverArtCount(to);
   fromart = MP4GetMetadataCoverArtCount(from);
-  if (toart != fromart) {
+  if (force  || toart != fromart) {
     uint8_t *art;
     uint32_t artsize;
     MP4GetMetadataCoverArt(from, &art, &artsize);
     if (toart != 0) MP4DeleteMetadataCoverArt(to);
-    if (fromart != 0) 
+    if (fromart != 0) {
+      printf("art read %u\n", artsize);
       MP4SetMetadataCoverArt(to, art, artsize);
+    }
   }
 
   MP4SetVerbosity(to, toverb);
@@ -382,6 +399,7 @@ int main(int argc, char** argv)
   MP4SampleId sampleId = MP4_INVALID_SAMPLE_ID;
 #endif
   u_int32_t verbosity = MP4_DETAILS_ERROR;
+  bool force_meta = false;
 
   /* begin processing command line */
   ProgName = argv[0];
@@ -391,6 +409,7 @@ int main(int argc, char** argv)
     static struct option long_options[] = {
       { "verbose", 2, 0, 'v' },
       { "version", 0, 0, 'V' },
+      { "force-meta", 0, 0, 'f'},
       { NULL, 0, 0, 0 }
     };
 
@@ -401,6 +420,9 @@ int main(int argc, char** argv)
       break;
 
     switch (c) {
+    case 'f':
+      force_meta = true;
+      break;
     case 'v':
       verbosity |= MP4_DETAILS_READ;
       if (optarg) {
@@ -504,11 +526,11 @@ int main(int argc, char** argv)
 	      sync_duration(toFileName, mp4File);
 	      toFile = MP4Read(toFileName, verbosity);
 	    }
-	    if (compare_meta(toFileName, toFile, Mp4FileName, mp4File) == false) {
+	    if (force_meta || compare_meta(toFileName, toFile, Mp4FileName, mp4File) == false) {
 	      printf("need meta fixup %s\n", Mp4FileName);
 	      MP4Close(toFile);
 	      toFile = MP4Modify(toFileName, verbosity);
-	      copy_meta(toFileName, toFile, Mp4FileName, mp4File);
+	      copy_meta(toFileName, toFile, Mp4FileName, mp4File, force_meta);
 	    }
 	    MP4Close(toFile);
 	  }

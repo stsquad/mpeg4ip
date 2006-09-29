@@ -601,10 +601,15 @@ void CAVMediaFlow::ValidateAndUpdateStreams (void)
   m_pConfig->SetBoolValue(CONFIG_VIDEO_ENABLE, have_video);
   // streams should all be loaded.
   if (max_chans > 0) {
-    m_pConfig->SetIntegerValue(CONFIG_AUDIO_CHANNELS,
-			       max_chans);
-    m_pConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE,
-			       max_sample_rate);
+    if (m_pConfig->GetBoolValue(CONFIG_AUDIO_TAKE_STREAM_VALUES)) {
+      m_pConfig->SetIntegerValue(CONFIG_AUDIO_CHANNELS,
+				 max_chans);
+    }
+    if (m_pConfig->GetBoolValue(CONFIG_AUDIO_TAKE_STREAM_VALUES) ||
+	max_sample_rate > m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE)) {
+      m_pConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE,
+				 max_sample_rate);
+    }
   }
   if (max_w != 0) {
     m_pConfig->SetIntegerValue(CONFIG_VIDEO_RAW_WIDTH,

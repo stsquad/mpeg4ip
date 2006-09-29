@@ -24,6 +24,7 @@
 #include "audio_lame.h"
 #include "audio_faac.h"
 #include "audio_g711.h"
+#include "audio_l16.h"
 #ifdef HAVE_FFMPEG
 #include "audio_ffmpeg.h"
 #endif
@@ -36,6 +37,7 @@ void InitAudioEncoders (void)
 {
   if (audio_encoder_table_size != 0) return;
 
+  AddAudioEncoderTable(&l16_audio_encoder_table);
   AddAudioEncoderTable(&g711_alaw_audio_encoder_table);
   AddAudioEncoderTable(&g711_ulaw_audio_encoder_table);
 #ifdef HAVE_LAME

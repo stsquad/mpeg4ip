@@ -36,8 +36,9 @@
 #define OPT_WRITER  'w'    /* _composer_ */
 #define OPT_YEAR    'y'
 #define OPT_REMOVE  'r'
+#define OPT_ALBUM_ARTIST 'R'
 
-#define OPT_STRING  "hvA:a:b:c:d:D:g:G:P:s:t:T:w:y:r:"
+#define OPT_STRING  "hvA:a:b:c:d:D:g:G:P:s:t:T:w:y:r:R:"
 
 static const char* help_text =
 "OPTION... FILE...\n"
@@ -59,6 +60,7 @@ static const char* help_text =
 "  -T, -tracks   NUM  Set the number of tracks\n"
 "  -w, -writer   STR  Set the composer information\n"
 "  -y, -year     NUM  Set the year\n"
+"  -R, -albumartist STR Set the album artist\n"
 "  -r, -remove   STR  Remove tags by code (e.g. \"-r cs\"\n"
 "                     removes the comment and song tags)\n"
 "\n";
@@ -85,6 +87,7 @@ main(int argc, char** argv)
     { "writer",  1, 0, OPT_WRITER  },
     { "year",    1, 0, OPT_YEAR    },
     { "remove",  1, 0, OPT_REMOVE  },
+    { "albumartist", 1, 0, OPT_ALBUM_ARTIST },
     { NULL,      0, 0, 0 }
   };
 
@@ -188,6 +191,8 @@ main(int argc, char** argv)
         case OPT_TEMPO:   MP4DeleteMetadataTempo(h); break;
         case OPT_TRACK:   MP4DeleteMetadataTrack(h); break;
         case OPT_TRACKS:  MP4DeleteMetadataTrack(h); break;
+	case OPT_PICTURE: MP4DeleteMetadataCoverArt(h); break;
+	case OPT_ALBUM_ARTIST: MP4DeleteMetadataAlbumArtist(h); break ;
         }
       }
     }
@@ -226,6 +231,7 @@ main(int argc, char** argv)
         case OPT_WRITER:  MP4SetMetadataWriter(h, tags[i]); break;
         case OPT_YEAR:    MP4SetMetadataYear(h, tags[i]); break;
         case OPT_TEMPO:   MP4SetMetadataTempo(h, nums[i]); break;
+	case OPT_ALBUM_ARTIST: MP4SetMetadataAlbumArtist(h, tags[i]); break;
 	case OPT_PICTURE: {
 	  FILE *artFile = fopen(tags[i], FOPEN_READ_BINARY);
 	  if (artFile != NULL) {

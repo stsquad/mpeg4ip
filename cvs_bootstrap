@@ -58,7 +58,7 @@ if test $target_system = "Linux"; then
 
     if test $have_faac = "yes"; then
 	# we have lame and faac - see if faac is built with mp4 support
-	faac --help >&faac_help
+	faac --help >faac_help 2>&1
 	sdf=`grep "MP4 support unavailable" faac_help`
 	rm -f faac_help
 	if test -z "$sdf"; then

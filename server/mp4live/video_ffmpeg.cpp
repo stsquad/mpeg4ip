@@ -23,6 +23,7 @@
 #ifdef HAVE_FFMPEG
 #include "video_ffmpeg.h"
 #include "mp4av.h"
+#include "ffmpeg_if.h"
 //#include "encoder-h263.h"
 //#include <dsputil.h>
 //#include <mpegvideo.h>
@@ -62,6 +63,7 @@ CFfmpegVideoEncoder::CFfmpegVideoEncoder(CVideoProfile *vp,
 	m_vopBufferLength = 0;
 	m_YUV = NULL;
 	m_push = NULL;
+	m_picture = NULL;
 #ifdef OUTPUT_RAW
 	m_outfile = NULL;
 #endif
@@ -180,10 +182,13 @@ bool CFfmpegVideoEncoder::Init (void)
     debug_message("key frame count is %d", m_key_frame_count);
   }
   m_count = 0;
+  ffmpeg_interface_lock();
   if (avcodec_open(m_avctx, m_codec) < 0) {
+    ffmpeg_interface_unlock();
     error_message("Couldn't open codec");
     return false;
   }
+  ffmpeg_interface_unlock();
   m_first_frame = true;
   return true;
 }
@@ -327,11 +332,15 @@ bool CFfmpegVideoEncoder::GetReconstructedImage(
 
 void CFfmpegVideoEncoder::StopEncoder (void)
 {
-  avcodec_close(m_avctx);
+  ffmpeg_interface_lock();
+  if (m_avctx != NULL) {
+    avcodec_close(m_avctx);
+    av_freep(&m_avctx);
+  }
+  ffmpeg_interface_unlock();
   CHECK_AND_FREE(m_vopBuffer);
   CHECK_AND_FREE(m_YUV);
   CHECK_AND_FREE(m_picture);
-  CHECK_AND_FREE(m_avctx);
 #ifdef OUTPUT_RAW
   if (m_outfile) {
     fclose(m_outfile);

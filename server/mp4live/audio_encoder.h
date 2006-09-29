@@ -266,7 +266,7 @@ void AddAudioEncoderTable(audio_encoder_table_t *new_table);
 
 extern audio_encoder_table_t **audio_encoder_table;
 extern uint32_t audio_encoder_table_size;
-extern const uint32_t allSampleRateTable[];
+extern const uint32_t allSampleRateTable[13];
 extern const uint32_t allSampleRateTableSize;
 
 #endif /* __AUDIO_ENCODER_H__ */

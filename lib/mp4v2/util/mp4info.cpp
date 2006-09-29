@@ -86,57 +86,73 @@ int main(int argc, char** argv)
 		if (mp4file != MP4_INVALID_FILE_HANDLE) {
 		  char *value;
 		  uint16_t numvalue, numvalue2;
+		  uint8_t bytevalue;
 		  if (MP4GetMetadataName(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, " Metadata Name: %s\n", value);
+		    fprintf(stdout, " Name: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataArtist(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, " Metadata Artist: %s\n", value);
+		    fprintf(stdout, " Artist: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataWriter(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, " Metadata Writer: %s\n", value);
+		    fprintf(stdout, " Writer: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataTool(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, " Metadata Tool: %s\n", value);
+		    fprintf(stdout, " Tool: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataYear(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, " Metadata Year: %s\n", value);
+		    fprintf(stdout, " Year: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataAlbum(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, " Metadata Album: %s\n", value);
+		    fprintf(stdout, " Album: %s\n", value);
 		    free(value);
 		  }
   		  if (MP4GetMetadataTrack(mp4file, &numvalue, &numvalue2)) {
-		    fprintf(stdout, " Metadata track: %u of %u\n", numvalue,
+		    fprintf(stdout, " Track: %u of %u\n", numvalue,
 			    numvalue2);
 		  }
 		  if (MP4GetMetadataDisk(mp4file, &numvalue, &numvalue2)) {
-		    fprintf(stdout, " Metadata Disk: %u of %u\n", numvalue,
+		    fprintf(stdout, " Disk: %u of %u\n", numvalue,
 			    numvalue2);
 		  }
 		  if (MP4GetMetadataGenre(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, " Metadata Genre: %s\n", value);
+		    fprintf(stdout, " Genre: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataGrouping(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, " Metadata Grouping: %s\n", value);
+		    fprintf(stdout, " Grouping: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataTempo(mp4file, &numvalue)) {
-		    fprintf(stdout, " Metadata Tempo: %u\n", numvalue);
+		    fprintf(stdout, " Tempo: %u\n", numvalue);
 		  }
 		  if (MP4GetMetadataComment(mp4file, &value) && 
 		      value != NULL) {
-		    fprintf(stdout, " Metadata Comment: %s\n", value);
+		    fprintf(stdout, " Comment: %s\n", value);
+		    free(value);
+		  }
+		  if (MP4GetMetadataCompilation(mp4file, &bytevalue)) {
+		      fprintf(stdout, " Part of Compilation: %s\n", 
+			      bytevalue ? "yes" : "no");
+		  }
+		  if (MP4GetMetadataPartOfGaplessAlbum(mp4file, &bytevalue)) {
+		      fprintf(stdout, " Part of Gapless Album: %s\n", 
+			      bytevalue ? "yes" : "no");
 		  }
 		  u_int32_t artcount = MP4GetMetadataCoverArtCount(mp4file);
 		  if (artcount > 0) {
-		    fprintf(stdout, " Metadata Cover Art pieces: %u\n", 
+		    fprintf(stdout, " Cover Art pieces: %u\n", 
 			    artcount);
+		  }
+		  if (MP4GetMetadataAlbumArtist(mp4file, &value) &&
+		      value != NULL) {
+		    fprintf(stdout, " Album Artist: %s\n", 
+			    value);
+		    free(value);
 		  }
 		  MP4Close(mp4file);
 		}
