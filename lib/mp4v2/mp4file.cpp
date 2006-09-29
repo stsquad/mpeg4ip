@@ -2480,7 +2480,15 @@ u_int8_t MP4File::GetTrackAudioMpeg4Type(MP4TrackId trackId)
 		return MP4_MPEG4_INVALID_AUDIO_TYPE;
 	}
 
-	u_int8_t mpeg4Type = (pEsConfig[0] >> 3);
+	u_int8_t mpeg4Type = ((pEsConfig[0] >> 3) & 0x1f);
+	// TTTT TXXX XXX  potentially 6 bits of extension.
+	if (mpeg4Type == 0x1f) {
+	  if (esConfigSize < 2) {
+	    return MP4_MPEG4_INVALID_AUDIO_TYPE;
+	  }
+	  mpeg4Type = 32 + 
+	    (((pEsConfig[0] & 0x7) << 3) | ((pEsConfig[1] >> 5) & 0x7));
+	}
 
 	free(pEsConfig);
 

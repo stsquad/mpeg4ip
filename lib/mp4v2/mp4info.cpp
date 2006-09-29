@@ -128,29 +128,14 @@ static char* PrintAudioInfo(
 	    foundType = true;
 	    break;
 	  case MP4_MPEG4_AUDIO_TYPE:  {
-	    u_int8_t* pAacConfig = NULL;
-	    u_int32_t aacConfigLength;
-	    
-	    MP4GetTrackESConfiguration(mp4File,
-				       trackId,
-				       &pAacConfig,
-				       &aacConfigLength);
-	    
-	    if (pAacConfig != NULL && aacConfigLength >= 2) {
-	      type = (pAacConfig[0] >> 3) & 0x1f;
-	      if (type == 0 || type > NUM_ELEMENTS_IN_ARRAY(mpeg4AudioNames)
-		  || mpeg4AudioNames[type - 1] == NULL) {
-		typeName = "MPEG-4 Unknown Profile";
-	      } else {
-		if (type == 2 && aacConfigLength >= 5 &&
-		    ((pAacConfig[4] >> 5) & 0x7) == 5) // extension audioObject is 5 (SBR AOT)
-		  type = 5;
- 	        typeName = mpeg4AudioNames[type - 1];
-		foundType = true;
-	      }
-	      free(pAacConfig);
+	
+	    type = MP4GetTrackAudioMpeg4Type(mp4File, trackId);
+	    if (type == MP4_MPEG4_INVALID_AUDIO_TYPE ||
+		type > NUM_ELEMENTS_IN_ARRAY(mpeg4AudioNames) || 
+		mpeg4AudioNames[type - 1] == NULL) {
+	      typeName = "MPEG-4 Unknown Profile";
 	    } else {
-	      typeName = "MPEG-4 (no GAConfig)";
+	      typeName = mpeg4AudioNames[type - 1];
 	      foundType = true;
 	    }
 	    break;

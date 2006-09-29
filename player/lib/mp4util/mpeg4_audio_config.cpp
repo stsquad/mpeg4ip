@@ -75,6 +75,13 @@ extern "C" void decode_mpeg4_audio_config (const uint8_t *buffer,
   if (bit.getbits(5, &ret) < 0)
     return;
 
+  // note: there is a 6 bit extension if we hit 0x1f for ret.
+  // add 32 + the six bits
+  //
+  if (ret == 0x1f) {
+    if (bit.getbits(6, &ret) < 0) return;
+    ret = 32 + ret;
+  }
   mptr->audio_object_type = ret;
 
   if (bit.getbits(4, &ret) < 0)
