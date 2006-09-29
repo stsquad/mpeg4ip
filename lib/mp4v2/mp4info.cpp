@@ -58,7 +58,6 @@ static char* PrintAudioInfo(
 		"MPEG-4 ER HVXC",
 		"MPEG-4 ER HILN",
 		"MPEG-4 ER Parametric",
-#ifdef ISO_WORKING_DOCS
 		"MPEG-4 SSC",
 		"MPEG-4 PS",
 		"MPEG-4 MPEG Surround",
@@ -70,7 +69,6 @@ static char* PrintAudioInfo(
 		"MPEG-4 Audio Lossless",
 		"MPEG-4 SLS",
 		"MPEG-4 SLS non-core", 
-#endif
 	};
 
 	static const u_int8_t mpegAudioTypes[] = {
