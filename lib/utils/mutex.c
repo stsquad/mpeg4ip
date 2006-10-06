@@ -54,3 +54,7 @@ int ThreadWait (thread_t thread)
   return ret;
 }
 
+void ThreadSleep (uint msec)
+{
+  SDL_Delay(msec);
+}

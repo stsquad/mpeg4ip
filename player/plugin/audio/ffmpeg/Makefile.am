@@ -1,7 +1,15 @@
 libdir = @PLAYER_PLUGIN_DIR@
 
+if HAVE_MAC_OSX
+AM_LDFLAGS = -Wl,-read_only_relocs -Wl,suppress 
+else
+AM_LDFLAGS = 
+endif
+
 lib_LTLIBRARIES = ffmpeg_audio_plugin.la
-ffmpeg_audio_plugin_la_LDFLAGS = -module 
+
+ffmpeg_audio_plugin_la_LDFLAGS = -module
+
 ffmpeg_audio_plugin_la_SOURCES = \
 	ffmpeg.cpp ffmpeg.h
 ffmpeg_audio_plugin_la_LIBADD = \

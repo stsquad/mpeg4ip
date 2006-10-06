@@ -1,5 +1,11 @@
 libdir = @PLAYER_PLUGIN_DIR@
 
+if HAVE_MAC_OSX
+AM_LDFLAGS = -Wl,-read_only_relocs -Wl,suppress 
+else
+AM_LDFLAGS = 
+endif
+
 lib_LTLIBRARIES = ffmpeg_video_plugin.la
 ffmpeg_video_plugin_la_LDFLAGS = -module 
 ffmpeg_video_plugin_la_SOURCES = \

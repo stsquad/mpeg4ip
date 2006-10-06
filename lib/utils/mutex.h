@@ -3,10 +3,6 @@
 #ifndef __GENERIC_MUTEX_H__
 #define __GENERIC_MUTEX_H__ 1
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct mutex_ *mutex_t;
 typedef struct thread_ *thread_t;
 
@@ -23,10 +19,8 @@ void MutexDestroy(mutex_t);
 
 thread_t ThreadCreate(thread_func_f, void *);
 int ThreadWait(thread_t);
-#ifdef __cplusplus
-}
-#endif
 
+void ThreadSleep(uint msec);
 #ifdef __cplusplus
 }
 #endif

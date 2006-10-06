@@ -34,7 +34,7 @@
  - ©day : Year (4 bytes, e.g. "2003") (string)
  - ©too : Tool(s) used to create the file (string)
  - ©cmt : Comment (string)
- - ©gen : Custom genre (string)
+- ©gen : Custom genre (string)
  - ©grp : Grouping (string)
  - trkn : Tracknumber (8 byte string)
            16 bit: empty
