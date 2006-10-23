@@ -59,10 +59,9 @@ static int c_decode_thread (void *data)
 
 static void c_rtp_packet_callback (void *data, 
 				   unsigned char interleaved, 
-				   struct rtp_packet *pak, 
-				   uint32_t len)
+				   struct rtp_packet *pak)
 {
-  ((CPlayerMedia *)data)->rtp_receive_packet(interleaved, pak, len);
+  ((CPlayerMedia *)data)->rtp_receive_packet(interleaved, pak);
 }
 
 static int c_init_rtp_tcp (void *data)

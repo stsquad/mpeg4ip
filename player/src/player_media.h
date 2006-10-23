@@ -142,7 +142,7 @@ class CPlayerMedia {
   void rtp_start(void);
   void rtp_end(void);
   void rtp_check_payload(void);
-  int rtp_receive_packet(unsigned char interleaved, struct rtp_packet *, uint32_t len);
+  int rtp_receive_packet(unsigned char interleaved, struct rtp_packet *);
   int rtcp_send_packet(uint8_t *buffer, uint32_t buflen);
   int get_rtp_media_number (void) { return m_rtp_media_number_in_session; };
   void synchronize_rtp_bytestreams(rtcp_sync_t *sync);

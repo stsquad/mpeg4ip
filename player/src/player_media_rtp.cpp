@@ -49,20 +49,17 @@ static int c_rtcp_send_packet (void *ud, uint8_t *buffer, uint32_t buflen)
 
 
 int CPlayerMedia::rtp_receive_packet (unsigned char interleaved, 
-				      struct rtp_packet *pak, 
-				      uint32_t len)
+				      struct rtp_packet *pak)
 {
   int ret;
   if ((interleaved & 1) == 0) {
-    ret = rtp_process_recv_data(m_rtp_session, 0, pak, len);
+    ret = rtp_process_recv_data(m_rtp_session, 0, pak);
     if (ret < 0) {
       xfree(pak);
     }
   } else {
-    uint8_t *pakbuf = (uint8_t *)pak;
-    pakbuf += sizeof(rtp_packet_data);
-	    
-    rtp_process_ctrl(m_rtp_session, pakbuf, len);
+
+    rtp_process_ctrl(m_rtp_session, pak->packet_start, pak->packet_length);
     xfree(pak);
     ret = 0;
   }

@@ -339,58 +339,6 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
     
     mp4FrameDuration = (u_int32_t)(((double)Mp4TimeScale) / VideoFrameRate);
 
-#if 0
-    ismacryp_session_id_t ismaCrypSId;
-    mp4v2_ismacrypParams *icPp =  (mp4v2_ismacrypParams *) malloc(sizeof(mp4v2_ismacrypParams));
-    memset(icPp, 0, sizeof(mp4v2_ismacrypParams));
-
-    // initialize ismacryp session if encrypting
-    if (doEncrypt) {
-
-        if (ismacrypInitSession(&ismaCrypSId,KeyTypeVideo) != 0) {
-            fprintf(stderr, "%s: could not initialize the ISMAcryp session\n",
-                    ProgName);
-            return MP4_INVALID_TRACK_ID;
-        }
-        if (ismacrypGetScheme(ismaCrypSId, &(icPp->scheme_type)) != ismacryp_rc_ok) {
-            fprintf(stderr, "%s: could not get ismacryp scheme type. sid %d\n",
-                    ProgName, ismaCrypSId);
-            ismacrypEndSession(ismaCrypSId);
-            return MP4_INVALID_TRACK_ID;
-        }
-        if (ismacrypGetSchemeVersion(ismaCrypSId, &(icPp->scheme_version)) != ismacryp_rc_ok) {
-            fprintf(stderr, "%s: could not get ismacryp scheme ver. sid %d\n",
-                    ProgName, ismaCrypSId);
-            ismacrypEndSession(ismaCrypSId);
-            return MP4_INVALID_TRACK_ID;
-        }
-        if (ismacrypGetKMSUri(ismaCrypSId, &(icPp->kms_uri)) != ismacryp_rc_ok) {
-            fprintf(stderr, "%s: could not get ismacryp kms uri. sid %d\n",
-                    ProgName, ismaCrypSId);
-            if (icPp->kms_uri != NULL) free(icPp->kms_uri);
-            ismacrypEndSession(ismaCrypSId);
-            return MP4_INVALID_TRACK_ID;
-        }
-        if ( ismacrypGetSelectiveEncryption(ismaCrypSId, &(icPp->selective_enc)) != ismacryp_rc_ok ) {
-            fprintf(stderr, "%s: could not get ismacryp selec enc. sid %d\n",
-                    ProgName, ismaCrypSId);
-            ismacrypEndSession(ismaCrypSId);
-            return MP4_INVALID_TRACK_ID;
-        }
-        if (ismacrypGetKeyIndicatorLength(ismaCrypSId, &(icPp->key_ind_len)) != ismacryp_rc_ok) {
-            fprintf(stderr, "%s: could not get ismacryp key ind len. sid %d\n",
-                    ProgName, ismaCrypSId);
-            ismacrypEndSession(ismaCrypSId);
-            return MP4_INVALID_TRACK_ID;
-        }
-        if (ismacrypGetIVLength(ismaCrypSId, &(icPp->iv_len)) != ismacryp_rc_ok) {
-            fprintf(stderr, "%s: could not get ismacryp iv len. sid %d\n",
-                    ProgName, ismaCrypSId);
-            ismacrypEndSession(ismaCrypSId);
-            return MP4_INVALID_TRACK_ID;
-        }
-    }
-#endif
     // create the new video track
     MP4TrackId trackId;
     trackId =

@@ -29,6 +29,7 @@
 #include "our_bytestream.h"
 #include "mp4_file.h"
 #include "player_util.h"
+
 //Uncomment these #defines to dump buffers to file.
 //#define OUTPUT_TO_FILE 1
 //#define ISMACRYP_DEBUG 1
@@ -58,6 +59,8 @@ class CMp4ByteStream : public COurInByteStream
 		      uint32_t *buflen, void **ud);
   void check_for_end_of_frame(void);
   double get_max_playtime(void);
+
+  const char *get_inuse_kms_uri(void);
 
   void play(uint64_t start);
 
@@ -216,6 +219,73 @@ class CMp4EncVideoByteStream : public CMp4VideoByteStream
 			void **ud);
   ismacryp_session_id_t m_ismaCryptSId; // eventually make it private
                                         // and add accessor function
+};  
+
+/*
+ * CMp4EncH264VideoByteStream is for encrypted H264 AVC video streams.  
+ * It is inherited from CMp4VideoByteStreamBase.
+ */
+class CMp4EncH264VideoByteStream : public CMp4VideoByteStream
+{
+ public:
+  CMp4EncH264VideoByteStream(CMp4File   *parent,
+			 MP4TrackId track,
+                         uint64_t   IVLength ) :
+    CMp4VideoByteStream(parent, track) {
+    m_translate_buffer = NULL;
+    m_translate_buffer_size = 0;
+    m_buflen_size = 0;
+    m_kms_uri = NULL;
+    ismacryp_rc_t rc = ismacrypInitSession(&m_ismaCryptSId,KeyTypeVideo);
+
+    if (rc != ismacryp_rc_ok ) {
+      player_error_message("can't initialize video ismacryp session rc: %u\n", rc);
+    }
+    else {
+       rc = ismacrypSetIVLength(m_ismaCryptSId, (uint8_t)IVLength);
+       if( rc != ismacryp_rc_ok ) {
+         player_error_message(
+          "can't set IV length for ismacryp decode session %d, rc: %u\n",
+          m_ismaCryptSId, rc);
+       }
+      ismacrypGetKMSUri(m_ismaCryptSId, &m_kms_uri);
+    }
+  };
+  ~CMp4EncH264VideoByteStream() {
+    ismacryp_rc_t rc = ismacrypEndSession(m_ismaCryptSId);
+    if (rc != ismacryp_rc_ok ) {
+       player_error_message(
+          "could not end video ismacryp session %d, rc: %u\n",
+          m_ismaCryptSId, rc);
+     }
+     if (m_kms_uri != NULL)
+	free(m_kms_uri);
+  }
+  bool start_next_frame(uint8_t **buffer,
+			uint32_t *buflen,
+			frame_timestamp_t *ts,
+			void **ud);
+
+  const char *get_inuse_kms_uri() { return((const char *)m_kms_uri); }
+
+  ismacryp_session_id_t m_ismaCryptSId; // eventually make it private
+                                        // and add accessor function
+
+ protected:
+  uint32_t read_nal_size(uint8_t *buffer) {
+    if (m_buflen_size == 1) {
+      return *buffer;
+    } else if (m_buflen_size == 2) {
+      return (buffer[0] << 8) | buffer[1];
+    } else if (m_buflen_size == 3) {
+      return (buffer[0] << 16) | (buffer[1] << 8) | buffer[2];
+    }
+    return (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
+  };
+  uint8_t *m_translate_buffer;
+  uint32_t m_translate_buffer_size;
+  uint32_t m_buflen_size;
+  char *m_kms_uri;
 };  
 
 /*

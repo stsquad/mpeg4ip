@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.32 $ 
- * $Date: 2006/08/07 18:27:02 $
+ * $Revision: 1.33 $ 
+ * $Date: 2006/10/23 22:26:39 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -1517,14 +1517,16 @@ static int validate_rtp(struct rtp *session, rtp_packet *packet, int len)
 
 int rtp_process_recv_data (struct rtp *session,
 			   uint32_t curr_rtp_ts,
-			   rtp_packet *packet,
-			   uint32_t buflen)
+			   rtp_packet *packet)
 {
-  uint8_t		*buffer = (uint8_t *) &packet->ph; //((uint8_t *) packet) + RTP_PACKET_HEADER_SIZE;
+  uint8_t		*buffer;
+  uint32_t              buflen;
   source		*s;
   int srtp_status;
 
-  packet->pd.rtp_pd_buflen = buflen;
+  buffer = packet->packet_start; 
+  buflen = packet->packet_length;
+  packet->pd.ph = (rtp_packet_header *)buffer;
 
   if (buflen > 0) {
 
@@ -1532,7 +1534,7 @@ int rtp_process_recv_data (struct rtp *session,
       srtp_status = (session->rtp_decrypt_func)(session->encrypt_userdata, 
 						buffer, &buflen);
       if (srtp_status == FALSE) return -1;
-      packet->pd.rtp_pd_buflen = buflen;
+      packet->packet_length = buflen;
     }
     /* Convert header fields to host byte order... */
     packet->rtp_next = packet->rtp_prev = NULL;
@@ -1615,7 +1617,11 @@ void rtp_recv_data(struct rtp *session, uint32_t curr_rtp_ts)
   uint32_t		 buflen;
 
   buflen = udp_recv(session->rtp_socket, buffer, RTP_MAX_PACKET_LEN);
-  if (rtp_process_recv_data(session, curr_rtp_ts, packet, buflen) < 0)
+
+  packet->packet_start = buffer;
+  packet->packet_length = buflen;
+
+  if (rtp_process_recv_data(session, curr_rtp_ts, packet) < 0)
     xfree(packet);
 }
 
@@ -2395,7 +2401,9 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m,
   /* Allocate memory for the packet... */
   buffer     = (uint8_t *) xmalloc(malloc_len + RTP_PACKET_HEADER_SIZE);
   packet     = (rtp_packet *) buffer;
-		
+  packet->packet_start = buffer + RTP_PACKET_HEADER_SIZE;
+  packet->pd.ph = (rtp_packet_header *)packet->packet_start;
+
   /* These are internal pointers into the buffer... */
   packet->rtp_csrc = (uint32_t *) (buffer + RTP_PACKET_HEADER_SIZE + 12);
   packet->rtp_extn = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
@@ -2453,7 +2461,7 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m,
       }
       retval = 
 	(session->rtp_encrypt_func)(session->encrypt_userdata, 
-				    (uint8_t *)&packet->ph, 
+				    (uint8_t *)packet->packet_start, 
 				    &buffer_len); 
       if (retval == FALSE) {
 	rtp_message(LOG_ERR, "encrypting failed");
@@ -2463,10 +2471,10 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m,
     }
   if (session->rtp_send_packet != NULL) {
     rc = (session->rtp_send_packet)(session->send_userdata, 
-				    buffer + RTP_PACKET_HEADER_SIZE, 
+				    packet->packet_start,
 				    buffer_len);
   } else 
-    rc = udp_send(session->rtp_socket, buffer + RTP_PACKET_HEADER_SIZE, buffer_len);
+    rc = udp_send(session->rtp_socket, packet->packet_start, buffer_len);
 
   xfree(buffer);
 
@@ -2532,6 +2540,9 @@ int rtp_send_data_iov (struct rtp *session, uint32_t rtp_ts,
   /* Allocate memory for the packet... */
   buffer     = (uint8_t *) xmalloc(buffer_len + RTP_PACKET_HEADER_SIZE);
   packet     = (rtp_packet *) buffer;
+
+  packet->packet_start = buffer + RTP_PACKET_HEADER_SIZE;
+  packet->pd.ph = (rtp_packet_header *)packet->packet_start;
 
   /* These are internal pointers into the buffer... */
   packet->rtp_csrc = (uint32_t *) (buffer + RTP_PACKET_HEADER_SIZE + 12);

@@ -211,11 +211,6 @@ inline void* MP4Realloc(void* p, u_int32_t newSize) {
 	return p;
 }
 
-inline void MP4Free(void* p) {
-  if (p == NULL) return;
-	free(p);
-}
-
 inline u_int32_t STRTOINT32(const char* s) {
 #ifdef WORDS_BIGENDIAN
   return (*(u_int32_t *)s);

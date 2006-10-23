@@ -33,7 +33,6 @@
 
 /* include system and project specific headers */
 #include "mpeg4ip.h"
-
 #include <math.h>	/* to define float HUGE_VAL and/or NAN */
 #ifndef NAN
 #define NAN HUGE_VAL
@@ -53,6 +52,26 @@ typedef u_int32_t	MP4SampleId;
 typedef u_int64_t	MP4Timestamp;
 typedef u_int64_t	MP4Duration;
 typedef u_int32_t	MP4EditId;
+
+typedef u_int64_t (*VIRTUALIO_GETFILELENGTH)(void *user); // return file length in bytes
+typedef int (*VIRTUALIO_SETPOSITION)(void *user, u_int64_t position); // return 0 on success
+typedef int (*VIRTUALIO_GETPOSITION)(void *user, u_int64_t *position); // fill position, return 0 on success
+typedef size_t (*VIRTUALIO_READ)(void *user, void *buffer, size_t size); // return number of bytes actually read
+typedef size_t (*VIRTUALIO_WRITE)(void *user, void *buffer, size_t size); // return number of bytes actually written
+typedef int (*VIRTUALIO_ENDOFFILE)(void *user); // return 1 if file hit EOF
+typedef int (*VIRTUALIO_CLOSE)(void *user); // return 0 on success
+
+typedef struct Virtual_IO
+{
+	VIRTUALIO_GETFILELENGTH	GetFileLength;
+	VIRTUALIO_SETPOSITION SetPosition;
+	VIRTUALIO_GETPOSITION GetPosition;
+	VIRTUALIO_READ Read;
+	VIRTUALIO_WRITE Write;
+	VIRTUALIO_ENDOFFILE EndOfFile;
+	VIRTUALIO_CLOSE Close;
+} Virtual_IO_t;
+
 
 /* Invalid values for API types */
 #define MP4_INVALID_FILE_HANDLE	((MP4FileHandle)NULL)
@@ -169,6 +188,11 @@ typedef u_int32_t	MP4EditId;
 #define MP4_MPEG4_WAVETABLE_AUDIO_TYPE		14
 #define MP4_MPEG4_MIDI_AUDIO_TYPE			15
 #define MP4_MPEG4_ALGORITHMIC_FX_AUDIO_TYPE	16
+#define MP4_MPEG4_ALS_AUDIO_TYPE    31
+#define MP4_MPEG4_LAYER1_AUDIO_TYPE 32
+#define MP4_MPEG4_LAYER2_AUDIO_TYPE 33
+#define MP4_MPEG4_LAYER3_AUDIO_TYPE 34
+#define MP4_MPEG4_SLS_AUDIO_TYPE    35
 
 /* MP4 Audio type utilities following common usage */
 #define MP4_IS_MP3_AUDIO_TYPE(type) \
@@ -313,6 +337,12 @@ MP4FileHandle MP4Read(
 	const char* fileName, 
 	u_int32_t verbosity DEFAULT(0));
 
+// benski>
+MP4FileHandle MP4ReadEx(const char* fileName,
+			void *user, 
+			Virtual_IO_t *virtual_IO,
+			u_int32_t verbosity DEFAULT(0));
+ 
 bool MP4Close(
 	MP4FileHandle hFile);
 
@@ -443,6 +473,9 @@ typedef struct mp4v2_ismacryp_session_params {
   char      *kms_uri;
 } mp4v2_ismacrypParams;
 
+// API to initialize ismacryp properties to sensible defaults
+// if input param is null then mallocs a params struct
+mp4v2_ismacrypParams *MP4DefaultISMACrypParams(mp4v2_ismacrypParams *ptr);
 
 MP4TrackId MP4AddEncAudioTrack(
 	MP4FileHandle hFile, 
@@ -450,6 +483,7 @@ MP4TrackId MP4AddEncAudioTrack(
 	MP4Duration sampleDuration,
         mp4v2_ismacrypParams *icPp,
 	u_int8_t audioType DEFAULT(MP4_MPEG4_AUDIO_TYPE));
+
 MP4TrackId MP4AddAmrAudioTrack(
 		MP4FileHandle hFile,
 		u_int32_t timeScale,
@@ -493,7 +527,8 @@ MP4TrackId MP4AddEncVideoTrack(
 	u_int16_t width, 
 	u_int16_t height,
         mp4v2_ismacrypParams *icPp,
-	u_int8_t videoType DEFAULT(MP4_MPEG4_VIDEO_TYPE));
+	u_int8_t videoType DEFAULT(MP4_MPEG4_VIDEO_TYPE),
+	const char *oFormat DEFAULT(NULL));
 
 MP4TrackId MP4AddH264VideoTrack(
 				MP4FileHandle hFile,
@@ -505,6 +540,17 @@ MP4TrackId MP4AddH264VideoTrack(
 				uint8_t profile_compat,
 				uint8_t AVCLevelIndication,
 				uint8_t sampleLenFieldSizeMinusOne);
+
+MP4TrackId MP4AddEncH264VideoTrack(
+				MP4FileHandle dstFile,
+				u_int32_t timeScale, 
+				MP4Duration sampleDuration, 
+				u_int16_t width, 
+				u_int16_t height, 
+				MP4FileHandle srcFile,
+				MP4TrackId srcTrackId,
+				mp4v2_ismacrypParams *icPp);
+
 bool MP4AddH264SequenceParameterSet(MP4FileHandle hFile,
 				    MP4TrackId trackId,
 				    const uint8_t *pSequence,
@@ -609,6 +655,12 @@ const char* MP4GetTrackType(
 
 const char *MP4GetTrackMediaDataName(MP4FileHandle hFile,
 				     MP4TrackId trackId);
+
+// MP4GetTrackMediaDataOriginalFormat is to be used to get the original
+// MediaDataName if a track has been encrypted.
+bool MP4GetTrackMediaDataOriginalFormat(MP4FileHandle hFile,
+	    MP4TrackId trackId, char *originalFormat, u_int32_t buflen);
+
 MP4Duration MP4GetTrackDuration(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
@@ -1222,7 +1274,7 @@ char* MP4BinaryToBase64(
 uint8_t *Base64ToBinary(const char *pData, 
 			uint32_t decodeSize, 
 			uint32_t *pDataSize);
-
+void MP4Free(void *p);
 #ifdef __cplusplus
 }
 #endif

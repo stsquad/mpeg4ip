@@ -161,16 +161,14 @@ int rtsp_thread_send_rtcp (rtsp_client_t *info,
 
 static void callback_for_rtp_packet (rtsp_client_t *info,
 				     unsigned char interleave,
-				     rtp_packet *rtp_ptr,
-				     unsigned short rtp_len)
+				     rtp_packet *rtp_ptr)
 {
   unsigned char  which = interleave;
   interleave /= 2;
   if (info->m_callback[interleave].rtp_callback_set) {
     (info->m_callback[interleave].rtp_callback)(info->m_callback[interleave].rtp_userdata,
 						which,
-						rtp_ptr,
-						rtp_len);
+						rtp_ptr);
   } else {
     xfree(rtp_ptr);
   }
@@ -214,10 +212,11 @@ static int get_rtp_packet (rtsp_client_t *info, rtp_state_t *state)
   state->rtp_len_gotten += ret;
 
   if (state->rtp_len_gotten == state->rtp_len) {
+    state->rtp_ptr->packet_start = ((uint8_t *)state->rtp_ptr) + RTP_PACKET_HEADER_SIZE;
+    state->rtp_ptr->packet_length = state->rtp_len;
     callback_for_rtp_packet(info,
 			    state->header[0],
-			    state->rtp_ptr,
-			    state->rtp_len);
+			    state->rtp_ptr);
     state->rtp_ptr = NULL;
     state->rtp_len = 0;
     state->rtp_len_gotten = 0;

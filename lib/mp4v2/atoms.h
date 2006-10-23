@@ -111,8 +111,8 @@ class MP4AvcCAtom : public MP4Atom {
  public:
   MP4AvcCAtom();
   void Generate();
+  void Clone(MP4AvcCAtom *dstAtom);
 };
-
 
 
 class MP4D263Atom : public MP4Atom {

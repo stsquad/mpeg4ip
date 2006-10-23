@@ -53,6 +53,9 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
     if (strcasecmp(compressor, "avc1") == 0) {
       return CODEC_ID_H264;
     }
+    if (strcasecmp(compressor, "264b") == 0) {
+      return CODEC_ID_H264;
+    }
     if (strcasecmp(compressor, "mp4v") == 0) {
       if (MP4_IS_MPEG1_VIDEO_TYPE(type) ||
 	  MP4_IS_MPEG2_VIDEO_TYPE(type))

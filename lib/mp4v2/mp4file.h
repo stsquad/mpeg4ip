@@ -38,6 +38,7 @@ class MP4StringProperty;
 class MP4BytesProperty;
 class MP4Descriptor;
 class MP4DescriptorProperty;
+struct Virtual_IO;
 
 class MP4File {
 public: /* equivalent to MP4 library API */
@@ -49,6 +50,7 @@ public: /* equivalent to MP4 library API */
 	#ifdef _WIN32
 	void Read(const wchar_t* fileName);
 	#endif
+	void ReadEx(const char *fileName, void *user, Virtual_IO *virtual_IO); //benski>
 	void Create(const char* fileName, u_int32_t flags, 
 		    int add_ftyp = 1, int add_iods = 1,
 		    char* majorBrand = NULL, 
@@ -215,7 +217,7 @@ public: /* equivalent to MP4 library API */
                 u_int8_t  key_ind_len,
                 u_int8_t  iv_len, 
                 bool      selective_enc,
-                char      *kms_uri,
+                const char  *kms_uri,
 		bool      use_ismacryp);
 
 	void SetAmrVendor(
@@ -255,14 +257,8 @@ public: /* equivalent to MP4 library API */
 		u_int16_t width, 
 		u_int16_t height, 
 		u_int8_t  videoType,
-                u_int32_t scheme_type,
-                u_int16_t scheme_version,
-                u_int8_t  key_ind_len,
-                u_int8_t  iv_len,
-                bool      selective_enc,
-                char      *kms_uri,
-		bool      use_ismacryp);
-
+		mp4v2_ismacrypParams *icPp,
+		const char *oFormat);
 
 	void SetH263Vendor(
 			MP4TrackId trackId,
@@ -286,6 +282,7 @@ public: /* equivalent to MP4 library API */
 			u_int8_t h263Profile,
 			u_int32_t avgBitrate,
 			u_int32_t maxBitrate);
+
 	MP4TrackId AddH264VideoTrack(
 				     u_int32_t timeScale,
 				     MP4Duration sampleDuration,
@@ -295,6 +292,15 @@ public: /* equivalent to MP4 library API */
 				     uint8_t profile_compat,
 				     uint8_t AVCLevelIndication,
 				     uint8_t sampleLenFieldSizeMinusOne);
+
+	MP4TrackId AddEncH264VideoTrack(
+				     u_int32_t timeScale,
+				     MP4Duration sampleDuration,
+				     u_int16_t width,
+				     u_int16_t height,
+					MP4Atom *srcAtom,
+					mp4v2_ismacrypParams *icPp);
+
 	bool AddH264SequenceParameterSet(MP4TrackId trackId,
 					 const uint8_t *pSequence,
 					 uint16_t sequenceLen);
@@ -308,6 +314,8 @@ public: /* equivalent to MP4 library API */
 	const char* GetTrackType(MP4TrackId trackId);
 
 	const char *GetTrackMediaDataName(MP4TrackId trackId);
+	bool GetTrackMediaDataOriginalFormat(MP4TrackId trackId,
+		char *originalFormat, u_int32_t buflen);
 	MP4Duration GetTrackDuration(MP4TrackId trackId);
 
 	u_int32_t GetTrackTimeScale(MP4TrackId trackId);
@@ -686,7 +694,8 @@ protected:
 	void BeginWrite();
 	void FinishWrite();
 	void CacheProperties();
-	void RewriteMdat(FILE* pReadFile, FILE* pWriteFile);
+	void RewriteMdat(void* pReadFile, void* pWriteFile,
+			 Virtual_IO *readIO, Virtual_IO *writeIO);
 	bool ShallHaveIods();
 
 	const char* TempFileName();
@@ -788,7 +797,8 @@ protected:
 	#ifdef _WIN32
 	wchar_t*    	m_fileName_w;
 	#endif
-	FILE*			m_pFile;
+	void*			m_pFile;
+	Virtual_IO             *m_virtual_IO;
 	u_int64_t		m_orgFileSize;
 	u_int64_t		m_fileSize;
 	MP4Atom*		m_pRootAtom;

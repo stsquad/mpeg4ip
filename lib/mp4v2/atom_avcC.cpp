@@ -104,3 +104,156 @@ void MP4AvcCAtom::Generate()
 #endif
 }
 
+// 
+// Clone - clone my properties to destination atom
+//
+// this method simplifies duplicating avcC atom properties from 
+// source to destination file using a single API rather than 
+// having to copy each property.  This API encapsulates the object 
+// so the application layer need not concern with each property 
+// thereby isolating any future changes to atom properties.
+//
+// ----------------------------------------
+// property   description
+// ----------------------------------------
+//  
+// 0 	configurationVersion
+// 1 	AVCProfileIndication
+// 2	profile_compatibility
+// 3	AVCLevelIndication
+// 4 	reserved
+// 5 	lengthSizeMinusOne 
+// 6 	reserved
+// 7 	number of SPS
+// 8	SPS entries
+// 9	number of PPS
+// 10	PPS entries
+//
+//
+void MP4AvcCAtom::Clone(MP4AvcCAtom *dstAtom)
+{
+
+	MP4Property *dstProperty;
+  	MP4TableProperty *pTable;
+	u_int16_t i16;
+	u_int64_t i32;
+	u_int64_t i64;
+	u_int8_t *tmp;
+
+	// source pointer Property I16
+	MP4Integer16Property *spPI16;
+	// source pointer Property Bytes
+	MP4BytesProperty *spPB;
+
+	// dest pointer Property I16
+	MP4Integer16Property *dpPI16;
+	// dest pointer Property Bytes
+	MP4BytesProperty *dpPB;
+
+
+	// start with defaults and reserved fields
+	dstAtom->Generate();
+
+	// 0, 4, 6 are now generated from defaults
+	// leaving 1, 2, 3, 5, 7, 8, 9, 10 to export
+	
+	dstProperty=dstAtom->GetProperty(1);
+	((MP4Integer8Property *)dstProperty)->SetValue(
+		((MP4Integer8Property *)m_pProperties[1])->GetValue());
+	
+	dstProperty=dstAtom->GetProperty(2);
+	((MP4Integer8Property *)dstProperty)->SetValue(
+		((MP4Integer8Property *)m_pProperties[2])->GetValue());
+	
+	dstProperty=dstAtom->GetProperty(3);
+	((MP4Integer8Property *)dstProperty)->SetValue(
+		((MP4Integer8Property *)m_pProperties[3])->GetValue());
+	
+	dstProperty=dstAtom->GetProperty(5);
+	((MP4BitfieldProperty *)dstProperty)->SetValue(
+		((MP4BitfieldProperty *)m_pProperties[5])->GetValue());
+
+	// 
+	// 7 and 8 are related SPS (one set of sequence parameters) 
+	//
+	// first the count bitfield 
+	//
+	dstProperty=dstAtom->GetProperty(7);
+	dstProperty->SetReadOnly(false);
+	((MP4BitfieldProperty *)dstProperty)->SetValue(
+		((MP4BitfieldProperty *)m_pProperties[7])->GetValue());
+	dstProperty->SetReadOnly(true);
+
+	// next export SPS Length and NAL bytes */
+
+	// first source pointers
+	pTable = (MP4TableProperty *) m_pProperties[8];
+	spPI16 = (MP4Integer16Property *)pTable->GetProperty(0);
+	spPB = (MP4BytesProperty *)pTable->GetProperty(1);
+
+	// now dest pointers
+	dstProperty=dstAtom->GetProperty(8);
+	pTable = (MP4TableProperty *) dstProperty;
+	dpPI16 = (MP4Integer16Property *)pTable->GetProperty(0);
+	dpPB = (MP4BytesProperty *)pTable->GetProperty(1);
+	
+	// sps length
+	i16 = spPI16->GetValue();
+	i64 = i16;
+	// FIXME - this leaves m_maxNumElements =2
+	// but src atom m_maxNumElements is 1 
+	dpPI16->InsertValue(i64, 0);
+
+	// export byte array
+	i32 = i16;
+	// copy bytes to local buffer 
+	tmp = (u_int8_t *)MP4Malloc(i32);
+	spPB->CopyValue(tmp, 0);	
+	// set element count
+	dpPB->SetCount(1);
+	// copy bytes 
+	dpPB->SetValue(tmp, i32, 0);
+	MP4Free((void *)tmp);
+
+	// 
+	// 9 and 10 are related PPS (one set of picture parameters) 
+	//
+	// first the integer8 count
+	//
+	dstProperty=dstAtom->GetProperty(9);
+	dstProperty->SetReadOnly(false);
+	((MP4Integer8Property *)dstProperty)->SetValue(
+		((MP4Integer8Property *)m_pProperties[9])->GetValue());
+	dstProperty->SetReadOnly(true);
+
+	// next export PPS Length and NAL bytes */
+
+	// first source pointers
+	pTable = (MP4TableProperty *) m_pProperties[10];
+	spPI16 = (MP4Integer16Property *)pTable->GetProperty(0);
+	spPB = (MP4BytesProperty *)pTable->GetProperty(1);
+
+	// now dest pointers
+	dstProperty=dstAtom->GetProperty(10);
+	pTable = (MP4TableProperty *) dstProperty;
+	dpPI16 = (MP4Integer16Property *)pTable->GetProperty(0);
+	dpPB = (MP4BytesProperty *)pTable->GetProperty(1);
+	
+	// pps length
+	i16 = spPI16->GetValue();
+	i64 = i16;
+	dpPI16->InsertValue(i64, 0);
+
+	// export byte array
+	i32 = i16;
+	// copy bytes to local buffer 
+	tmp = (u_int8_t *)MP4Malloc(i32);
+	spPB->CopyValue(tmp, 0);	
+	// set element count
+	dpPB->SetCount(1);
+	// copy bytes 
+	dpPB->SetValue(tmp, i32, 0);
+	MP4Free((void *)tmp);
+}
+
+

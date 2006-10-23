@@ -443,6 +443,119 @@ bool CMp4H264VideoByteStream::start_next_frame (uint8_t **buffer,
   return ret;
 }
 
+bool CMp4EncH264VideoByteStream::start_next_frame (uint8_t **buffer, 
+						uint32_t *buflen, 
+						frame_timestamp_t *ts,
+						void **ud)
+{
+  bool ret;
+  uint32_t len = 1, read_offset = 0;
+  uint32_t nal_len;
+  uint32_t write_offset = 0;
+
+  u_int8_t *temp_buffer = NULL;
+  u_int32_t temp_this_frame_size = 0;
+  ismacryp_rc_t ismacryprc;
+
+  ret = CMp4VideoByteStream::start_next_frame(buffer, 
+					      buflen, 
+					      ts, 
+					      ud);
+
+  //
+  // STEP 1 - isma decrypt. this returns ismacryp_rc_ok
+  // whether the correct key is loaded or not.
+  // nal is tested to determine if frame was decrypted OK 
+  //
+  ismacryprc = ismacrypDecryptSampleRemoveHeader(m_ismaCryptSId, 
+					*buflen,
+					*buffer,
+					&temp_this_frame_size,
+					&temp_buffer);
+
+  if (ismacryprc != ismacryp_rc_ok ) {
+    mp4f_message(LOG_ERR, "%s  2. decrypt error code:  %u" ,
+	       m_name, ismacryprc);
+    CHECK_AND_FREE(temp_buffer);
+    // can't copy anything to buffer in this case.
+    return ret; 
+  }
+
+  *buflen = temp_this_frame_size;
+  memset(*buffer, 0, *buflen * sizeof(u_int8_t));
+  memcpy(*buffer, temp_buffer, temp_this_frame_size);
+  CHECK_AND_FREE(temp_buffer);
+
+  // 
+  // 	STEP 2 - H264 
+  // 
+  //    check the nal_len against frame size to validate
+  //    the decryption and reject attempt to decrypt
+  //    using wrong key 
+  //
+  if (*buffer != NULL && *buflen != 0) {
+    if (m_buflen_size == 0) {
+      m_parent->lock_file_mutex();
+      MP4GetTrackH264LengthSize(m_parent->get_file(), m_track, &m_buflen_size);
+      m_parent->unlock_file_mutex();
+    }
+#ifdef DEBUG_H264_NALS
+    mp4f_message(LOG_DEBUG, "new frame - len %u", *buflen);
+#endif
+    do {
+      nal_len = read_nal_size(*buffer + read_offset);
+#ifdef DEBUG_H264_NALS
+      mp4f_message(LOG_DEBUG, "nal offset %u fsize %u size %u", 
+        read_offset, *buflen, nal_len);
+#endif
+      // test if nal is sensible.  this fails when 
+      // wrong key is used to decrypt.  this test
+      // avoids segfault below when bogus nal_len is used
+      // to realloc m_translate_buffer
+      if (nal_len != (*buflen - m_buflen_size))
+      {
+    	mp4f_message(LOG_ERR, "%s  3. buflen %u nal_len %u" ,
+	       m_name, *buflen, nal_len);
+        return (false);
+      }
+
+      len += nal_len + 3;
+      read_offset += nal_len + m_buflen_size;
+    } while (read_offset < *buflen);
+    if (len > m_translate_buffer_size) {
+      m_translate_buffer = (uint8_t *)realloc(m_translate_buffer, len);
+      m_translate_buffer_size = len;
+#ifdef DEBUG_H264_NALS
+      mp4f_message(LOG_DEBUG, "buflen alloced as %u", len);
+#endif
+    }
+    read_offset = 0;
+    do {
+      nal_len = read_nal_size(*buffer + read_offset);
+#ifdef DEBUG_H264_NALS
+      mp4f_message(LOG_DEBUG, "write offset %u, read offset %u len %u",
+		   write_offset, read_offset, nal_len);
+#endif
+      m_translate_buffer[write_offset] = 0;
+      m_translate_buffer[write_offset + 1] = 0;
+      if (write_offset == 0) {
+	// make sure that the first nal has a extra 0 (0 0 0 1 header)
+	m_translate_buffer[2] = 0;
+	write_offset = 1;
+      }
+      m_translate_buffer[write_offset + 2] = 1;
+      memcpy(m_translate_buffer + write_offset + 3, 
+	     *buffer + read_offset + m_buflen_size,
+	     nal_len);
+      write_offset += nal_len + 3;
+      read_offset += nal_len + m_buflen_size;
+    } while (read_offset < *buflen);
+    *buffer = m_translate_buffer;
+    *buflen = write_offset;
+  }
+  return ret;
+}
+
 bool CMp4TextByteStream::start_next_frame (uint8_t **buffer, 
 					   uint32_t *buflen,
 					   frame_timestamp_t *ptr,

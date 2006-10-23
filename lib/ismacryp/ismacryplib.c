@@ -18,9 +18,13 @@
  *              Will Clark              will_clark@cisco.com
  */
 
+// define this for debug output
+//#define ISMACRYP_ENC_DEBUG 1
+#define ISMACRYP_DEC_DEBUG 1
+
 #include "ismacryplib_priv.h"
 
-static ismacryp_session_id_t session_g = 10;
+static ismacryp_session_id_t session_g = ISMACRYP_MIN_SESSION_ID;
 static ismacryp_session_t *sessionList = NULL;
 
 char ismacryp_keytypeStr[3][25] = { "KeyTypeOther", "KeyTypeVideo", "KeyTypeAudio" };
@@ -92,6 +96,8 @@ static ismacryp_rc_t removeFromSessionList (ismacryp_session_id_t sid) {
      if ( temp1->next == NULL ) {
          sessionList = NULL;
          // end critical section
+         if (temp1->kms_uri)
+            free(temp1->kms_uri);
          free(temp1);
          return ismacryp_rc_ok;
      }
@@ -99,6 +105,8 @@ static ismacryp_rc_t removeFromSessionList (ismacryp_session_id_t sid) {
      sessionList = sessionList->next;
      sessionList->prev = NULL;
      // end critical section
+     if (temp1->kms_uri)
+        free(temp1->kms_uri);
      free(temp1);
      return ismacryp_rc_ok;
     
@@ -112,6 +120,8 @@ static ismacryp_rc_t removeFromSessionList (ismacryp_session_id_t sid) {
              temp2->next->prev = temp1;
           temp1->next = temp2->next;
           // end critical section
+          if (temp2->kms_uri)
+              free(temp2->kms_uri);
           free(temp2); 
           return ismacryp_rc_ok;
      }
@@ -120,7 +130,7 @@ static ismacryp_rc_t removeFromSessionList (ismacryp_session_id_t sid) {
   // end critical section
 
 
-  fprintf(stdout, "Error. Try to remove non -existant session: %d\n", sid);
+  fprintf(stdout, "Error. Try to remove non -existent session: %d\n", sid);
   // end critical section
   return ismacryp_rc_sessid_error;
 
@@ -149,7 +159,6 @@ static ismacryp_rc_t findInSessionList (ismacryp_session_id_t sid, ismacryp_sess
      }
   }
 
-  
   fprintf(stdout, "Error. Try to find unknown session in list. sid: %d\n", sid);
   *s = NULL;
   return ismacryp_rc_sessid_error;
@@ -203,9 +212,14 @@ static void printSessionList (void) {
 
 }
 
-static ismacryp_rc_t initSessionData (ismacryp_session_id_t session, 
+//
+// load key from file
+// allocate and init aes_icm cipher and key
+//
+static ismacryp_rc_t loadKeyFromFile (ismacryp_session_id_t session, 
                                ismacryp_session_t *sp,
-                               ismacryp_keytype_t keytype) 
+                               ismacryp_keytype_t keytype,
+                               const char *kmsfile)
 {
 
 #ifdef HAVE_SRTP
@@ -221,10 +235,6 @@ static ismacryp_rc_t initSessionData (ismacryp_session_id_t session,
   int len;
 #endif
 
-  sp->sessid = session;
-  sp->next = NULL;
-  sp->prev = NULL;
-
 #ifdef HAVE_SRTP
   // get the key material
   // NULL case, key and salt have been memset to 0, nothing breaks.
@@ -239,6 +249,16 @@ static ismacryp_rc_t initSessionData (ismacryp_session_id_t session,
   kms_data_file[pathlen+1] = kms_data_file[pathlen];
   kms_data_file[pathlen] = '/';
   strncpy(&kms_data_file[pathlen+1], KMS_DATA_FILE, filenamelen );
+
+  // explicit override default kms file
+  if (kmsfile)
+  {
+	// trim max length absent stdlib min()
+	len = strlen(kmsfile);
+	len = (len > KMS_DATA_FILE_FILENAME_MAX_LEN) ? KMS_DATA_FILE_FILENAME_MAX_LEN : len;
+  	strncpy(kms_data_file, kmsfile, len);
+	kms_data_file[len] = 0;
+  }
 
   switch( keytype) {
   case KeyTypeVideo:
@@ -284,15 +304,6 @@ static ismacryp_rc_t initSessionData (ismacryp_session_id_t session,
   fclose(fp);
 #endif
 
-   
-  sp->keycount      = 1;
-  sp->sample_count  = 0;
-  sp->BSO           = 0;
-  sp->IV_len        = ISMACRYP_DEFAULT_IV_LENGTH;
-  sp->deltaIV_len   = ISMACRYP_DEFAULT_DELTA_IV_LENGTH;
-  sp->key_type      = keytype;
-  sp->selective_enc = FALSE;
-
 #ifdef HAVE_SRTP
   // Allocate cipher.
   //fprintf(stdout," - allocate cipher for session %d\n", session);
@@ -315,6 +326,10 @@ static ismacryp_rc_t initSessionData (ismacryp_session_id_t session,
   return ismacryp_rc_ok;
 }
 
+
+//
+// dealloc aes_icm cipher
+//
 static ismacryp_rc_t unInitSessionData (ismacryp_session_t *sp) {
 #ifdef HAVE_SRTP
   err_status_t rc;
@@ -341,6 +356,8 @@ ismacryp_rc_t ismacrypInitSession (ismacryp_session_id_t *session,
 {
   ismacryp_session_t *sp = NULL;
   ismacryp_rc_t  rc;
+  int len;
+  char *temp;
 
   sp = malloc(sizeof(ismacryp_session_t));
   if ( sp == NULL ) {
@@ -358,7 +375,12 @@ ismacryp_rc_t ismacrypInitSession (ismacryp_session_id_t *session,
   fprintf(stdout, "\nInit Session: %d with keytype %c\n", *session, 
                                                          ismacryp_keytypeStr[keytype][7]);
 
-  rc =  initSessionData(*session, sp, keytype);
+  sp->sessid = *session;
+  sp->next = NULL;
+  sp->prev = NULL;
+
+  // use default kmsfile
+  rc =  loadKeyFromFile(*session, sp, keytype, 0);
   if( rc != ismacryp_rc_ok ) {
      fprintf(stdout, "\nInit Session: %d FAILED keytype %c\n", *session, 
                                                          ismacryp_keytypeStr[keytype][7]);
@@ -367,13 +389,31 @@ ismacryp_rc_t ismacrypInitSession (ismacryp_session_id_t *session,
      return rc;
   }
 
+  sp->keycount      = 1;
+  sp->sample_count  = 0;
+  sp->BSO           = 0;
+  sp->IV_len        = ISMACRYP_DEFAULT_IV_LENGTH;
+  sp->deltaIV_len   = ISMACRYP_DEFAULT_DELTA_IV_LENGTH;
+  sp->key_type      = keytype;
+  sp->selective_enc = FALSE;
+
+  // store default kms_uri
+  len = strlen(KMS_URI_STR) + 1; // add 1 for null char
+  temp = malloc(len); 
+  if ( temp == NULL ) {
+      fprintf(stdout, "save kms_uri: FAILED for session %d\n", *session);
+      *session = 0;
+      free (sp);
+      return ismacryp_rc_memory_error;
+  }
+  strncpy(temp, KMS_URI_STR, len);
+  sp->kms_uri = temp;
+
   addToSessionList(sp); 
   printSessionList();
 
   return ismacryp_rc_ok;
 }
-
-
 
 ismacryp_rc_t ismacrypEndSession (ismacryp_session_id_t session)
 {
@@ -416,22 +456,80 @@ ismacryp_rc_t ismacrypGetSchemeVersion (ismacryp_session_id_t session,
   return ismacryp_rc_ok;
 }
 
+//
+// unload current cipher if it exists, 
+// load new cipher from file referenced by kms_uri
+//
+// save kms_uri associated with this session
+//
 ismacryp_rc_t ismacrypSetKMSUri (ismacryp_session_id_t session,
                                  char *kms_uri )
 {
-  return ismacryp_rc_ok;
+  ismacryp_rc_t rc;
+  ismacryp_session_t *sp;
+  int len;
+  char *temp;
+
+  if (!session)
+     return ismacryp_rc_sessid_error;
+
+  // get sp by session ID
+  rc = findInSessionList (session, &sp); 
+  if (rc != ismacryp_rc_ok)
+	return rc;
+
+  // deallocate current cipher
+  rc = unInitSessionData(sp);
+
+  // load new cipher from file
+  rc = loadKeyFromFile (session, 
+                      sp,	
+                      sp->key_type,	
+                      kms_uri);
+  // store kms_uri
+  len = strlen(kms_uri) + 1; // add 1 for null char
+  temp = malloc(len); 
+  if ( temp == NULL ) {
+      fprintf(stdout, "save kms_uri: FAILED for session %d\n", session);
+      return ismacryp_rc_memory_error;
+  }
+  strncpy(temp, kms_uri, len);
+  sp->kms_uri = temp;
+
+  printSessionList();
+
+  return rc;
+
 }
 
+//
+//  retrieve kms_uri associated with this session
+// 
 ismacryp_rc_t ismacrypGetKMSUri (ismacryp_session_id_t session,
                                  char **kms_uri )
 {
-  int len = strlen(KMS_URI_STR) + 1; // add 1 for null char
-  char *temp = malloc(len); 
+
+ismacryp_session_t *sp;
+int len;
+char *temp;
+ismacryp_rc_t rc;
+
+  // get sp from session
+  if (!session)
+     return ismacryp_rc_sessid_error;
+
+  // get sp by session ID
+  rc = findInSessionList (session, &sp); 
+  if (rc != ismacryp_rc_ok)
+	return rc;
+
+  len = strlen(sp->kms_uri); 
+  temp = malloc(len); 
   if ( temp == NULL ) {
       fprintf(stdout, "get kms uri: FAILED for session %d\n", session);
       return ismacryp_rc_memory_error;
   }
-  strncpy(temp, KMS_URI_STR, len);
+  strncpy(temp, sp->kms_uri, len);
   *kms_uri = temp;
   return ismacryp_rc_ok;
 }
@@ -649,6 +747,7 @@ ismacryp_rc_t ismacrypEncryptSampleAddHeader (ismacryp_session_id_t session,
         header_length = ISMACRYP_DEFAULT_KEYINDICATOR_LENGTH +
                         sp->IV_len;
 
+#ifdef ISMACRYPT_ENC_DEBUG
         fprintf(stdout,"E s: %d, #%05d. l: %5d BSO: %6d IV l: %d ctr: %s left: %d\n", 
                        sp->sessid, sp->sample_count, length, sp->BSO, sp->IV_len,
 #ifdef HAVE_SRTP
@@ -659,6 +758,7 @@ ismacryp_rc_t ismacrypEncryptSampleAddHeader (ismacryp_session_id_t session,
                        0
 #endif
                        );
+#endif // ISMACRYPT_ENC_DEBUG
 
         *new_length = header_length + length;
         //fprintf(stdout,"     session: %d  length : %d  new length : %d\n", 
@@ -884,17 +984,19 @@ ismacryp_rc_t ismacrypDecryptSampleRandomAccess (
   ((aes_icm_ctx_t *)(sp->cp->state))->bytes_in_buffer = remainder;
 #endif
   
+#ifdef ISMACRYP_DEC_DEBUG 
   fprintf(stdout,"D s: %d      RA BSO: %7d  L: %5d  Ctr: %s  Left: %d\n",
                        sp->sessid, BSO, length,
 #ifdef HAVE_SRTP
-	  //v64_hex_string((v64_t *)&(((aes_icm_ctx_t *)(sp->cp->state))->counter.v64[1])),
-	  "invalid",
+	  v64_hex_string((v64_t *)&(((aes_icm_ctx_t *)(sp->cp->state))->counter.v64[1])),
+	  //"invalid",
 	    ((aes_icm_ctx_t *)(sp->cp->state))->bytes_in_buffer
 #else
                        "n/a",
                        0
 #endif
                        );
+#endif  // ISMACRYP_DEC_DEBUG
   
   // length will not be updated in calling function (obviously) awv.
 #ifdef HAVE_SRTP
@@ -903,5 +1005,3 @@ ismacryp_rc_t ismacrypDecryptSampleRandomAccess (
 
   return ismacryp_rc_ok;
 }
-
-

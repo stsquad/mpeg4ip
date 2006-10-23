@@ -61,6 +61,7 @@ extern "C" {
 #define ISMACRYP_DEFAULT_KEYINDICATOR_LENGTH   0
 #define ISMACRYP_DEFAULT_KEYINDICATOR_PER_AU   FALSE
 #define ISMACRYP_DEFAULT_KEY_LIFETIME_EXP      64
+#define ISMACRYP_MIN_SESSION_ID                10
  
 typedef struct ksc_struct{
  uint8_t  key[AES_KEY_LEN];
@@ -85,10 +86,16 @@ typedef struct sess_struct{
   uint8_t             selective_enc;
   uint32_t            sample_count;
   uint32_t            BSO;
+  char                *kms_uri;
   struct sess_struct *prev;
   struct sess_struct *next;
 
 } ismacryp_session_t;
+
+
+// 
+//	PROTOS
+//
 
 
 #ifdef __cplusplus

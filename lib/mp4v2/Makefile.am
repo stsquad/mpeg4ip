@@ -6,7 +6,7 @@ AM_CXXFLAGS = @BILLS_CPPWARNINGS@
 
 lib_LTLIBRARIES = libmp4v2.la 
 
-include_HEADERS = mp4.h
+include_HEADERS = mp4.h 
 
 libmp4v2_la_SOURCES = \
 	3gp.cpp \
@@ -85,7 +85,9 @@ libmp4v2_la_SOURCES = \
 	qosqualifiers.cpp \
 	qosqualifiers.h \
 	rtphint.cpp \
-	rtphint.h 
+	rtphint.h \
+	virtual_io.cpp \
+	virtual_io.h
 
 EXTRA_DIST = API_CHANGES \
 	INTERNALS \

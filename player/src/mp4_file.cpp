@@ -404,6 +404,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
   int ret_value = 0;
   uint8_t *foo;
   u_int32_t bufsize;
+  char original_fmt[8];
   
   uint32_t verb = MP4GetVerbosity(m_mp4file);
   MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
@@ -441,12 +442,25 @@ int CMp4File::create_media (CPlayerSession *psptr,
     trackId = MP4FindTrackId(m_mp4file, ix, MP4_VIDEO_TRACK_TYPE);
     const char *media_data_name;
     media_data_name = MP4GetTrackMediaDataName(m_mp4file, trackId);
-    // for now, treat mp4v and encv the same
+    mp4f_message(LOG_DEBUG, "MP4 - got video track 4cc %s", 
+	media_data_name);
     vq[video_offset].track_id = trackId;
     vq[video_offset].stream_type = STREAM_TYPE_MP4_FILE;
     vq[video_offset].compressor = media_data_name;
-    if (strcasecmp(media_data_name, "mp4v") == 0 ||
-	strcasecmp(media_data_name, "encv") == 0) {
+    vq[video_offset].original_fmt = media_data_name;
+
+    if (strcasecmp(media_data_name, "encv") == 0) {
+    	MP4GetTrackMediaDataOriginalFormat(m_mp4file, trackId, 
+		original_fmt, sizeof(original_fmt));
+    	mp4f_message(LOG_DEBUG, "MP4 - got video track original format 4cc %s", 
+		original_fmt);
+	// ok to do this since both vq and original_fmt are volatile in this scope
+    	vq[video_offset].compressor = original_fmt;
+	// in this case, the original_fmt is going to be encv, the
+	// compressor avc1 or mp4v
+    }
+
+    if (strcasecmp(vq[video_offset].compressor, "mp4v") == 0) { 
       uint8_t video_type = MP4GetTrackEsdsObjectTypeId(m_mp4file, trackId);
       uint8_t profileID = MP4GetVideoProfileLevel(m_mp4file, trackId);
       mp4f_message(LOG_DEBUG, "MP4 - got track %x profile ID %d", 
@@ -459,11 +473,15 @@ int CMp4File::create_media (CPlayerSession *psptr,
       vq[video_offset].fptr = NULL;
       vq[video_offset].config = foo;
       vq[video_offset].config_len = bufsize;
-    } else if (strcasecmp(media_data_name, "avc1") == 0) {
+    } 
+    // avc1 is unaltered h264, 264b is original format for ismacrypted avc1
+    else if (strcasecmp(vq[video_offset].compressor, "avc1") == 0) {
       uint8_t profile, level;
       uint8_t **seqheader, **pictheader;
       uint32_t *pictheadersize, *seqheadersize;
       uint32_t ix;
+
+
       MP4GetTrackH264ProfileLevel(m_mp4file, trackId, &profile, &level);
       MP4GetTrackH264SeqPictHeaders(m_mp4file, trackId, 
 				    &seqheader, &seqheadersize,
@@ -513,13 +531,14 @@ int CMp4File::create_media (CPlayerSession *psptr,
       vq[video_offset].fptr = NULL;
       vq[video_offset].config = foo;
       vq[video_offset].config_len = bufsize;
+
+
     } else {
       MP4GetTrackVideoMetadata(m_mp4file, trackId, &foo, &bufsize);
       vq[video_offset].config = foo;
       vq[video_offset].config_len = bufsize;
     }
 
-      
     plugin = check_for_video_codec(vq[video_offset].stream_type,
 				   vq[video_offset].compressor,
 				   NULL,
@@ -529,8 +548,9 @@ int CMp4File::create_media (CPlayerSession *psptr,
 				   vq[video_offset].config_len,
 				   &config);
     if (plugin == NULL) {
-      psptr->set_message("Can't find plugin for video %s type %d, profile %d",
+      psptr->set_message("Can't find plugin for video %s (%s) type %d, profile %d",
 			 vq[video_offset].compressor,
+			 vq[video_offset].original_fmt,
 			 vq[video_offset].type, 
 			 vq[video_offset].profile);
       m_illegal_video_codec++;

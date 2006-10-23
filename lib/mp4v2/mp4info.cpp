@@ -303,14 +303,25 @@ static char* PrintVideoInfo(
 	const char* typeName = "Unknown";
 
 	const char *media_data_name;
+	char originalFormat[8];
+	char  oformatbuffer[32];
+	originalFormat[0] = 0;
+	*oformatbuffer = 0;
 	uint8_t type = 0;
 	
 	media_data_name = MP4GetTrackMediaDataName(mp4File, trackId);
+	// encv 264b
+	if (strcasecmp(media_data_name, "encv") == 0) {
+			MP4GetTrackMediaDataOriginalFormat(mp4File, 
+				trackId, originalFormat, sizeof(originalFormat));
+	}
+  
 	char  typebuffer[80];
 	if (media_data_name == NULL) {
 	  typeName = "Unknown - no media data name";
 	  foundTypeName = true;
-	} else if (strcasecmp(media_data_name, "avc1") == 0) {
+	} else if ((strcasecmp(media_data_name, "avc1") == 0) ||
+	  	(strcasecmp(originalFormat, "264b") == 0)) {
 	  // avc
 	  uint8_t profile, level;
 	  char profileb[20], levelb[20];
@@ -348,7 +359,10 @@ static char* PrintVideoInfo(
 	      sprintf(levelb, "unknown level %x", level);
 	      break;
 	    }
-	    sprintf(typebuffer, "H264 %s@%s", profileb, levelb);
+	    if (strlen(originalFormat))
+	    	sprintf(oformatbuffer, "(%s) ", originalFormat);
+	    sprintf(typebuffer, "H264 %s%s@%s", 
+		oformatbuffer, profileb, levelb);
 	    typeName = typebuffer;
 	  } else {
 	    typeName = "H.264 - profile/level error";

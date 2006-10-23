@@ -25,6 +25,8 @@
 #define FALSE 0
 #endif
 
+#define ISMACRYP_SESSION_G_INIT	10
+
 #include "mpeg4ip.h"
 
 #ifdef __cplusplus

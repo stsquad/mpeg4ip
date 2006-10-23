@@ -162,6 +162,21 @@ public:
 		return m_pProperties[index];
 	}
 
+	u_int32_t GetCount() {
+		return m_pProperties.Size();
+	}
+
+#if 0
+	void SetProperty(u_int32_t index, MP4Property *property) {
+		u_int64_t t;
+		if (index > m_pProperties.Size())
+			return;
+
+		t = property->Get(index);
+		m_pProperties[index]->Set(t, index);
+	}
+#endif
+
 	MP4Atom* FindAtom(const char* name);
 
 	MP4Atom* FindChildAtom(const char* name);
@@ -234,6 +249,11 @@ protected:
 
 inline u_int32_t ATOMID(const char* type) {
 	return STRTOINT32(type);
+}
+
+// inverse ATOMID - 32 bit id to string
+inline void IDATOM(u_int32_t type, char *s) {
+	INT32TOSTR(type, s);
 }
 
 #endif /* __MP4_ATOM_INCLUDED__ */

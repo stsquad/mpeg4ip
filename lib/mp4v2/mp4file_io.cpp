@@ -28,16 +28,20 @@ u_int64_t MP4File::GetPosition(FILE* pFile)
 	if (m_memoryBuffer == NULL) {
 		if (pFile == NULL) {
 			ASSERT(m_pFile);
-			pFile = m_pFile;
+			u_int64_t fpos;
+			if (m_virtual_IO->GetPosition(m_pFile, &fpos) != 0) {
+				throw new MP4Error("getting position via Virtual I/O", "MP4GetPosition");
+			}
+			return fpos;
+		} else {
+			fpos_t fpos;
+			if (fgetpos(pFile, &fpos) < 0) { 
+				throw new MP4Error(errno, "MP4GetPosition");
+			}
+			uint64_t ret;
+			FPOS_TO_VAR(fpos, uint64_t, ret);
+			return ret;
 		}
-
-		fpos_t fpos;
-		if (fgetpos(pFile, &fpos) < 0) {
-			throw new MP4Error(errno, "MP4GetPosition");
-		}
-		uint64_t ret;
-		FPOS_TO_VAR(fpos, uint64_t, ret);
-		return ret;
 	} else {
 		return m_memoryBufferPosition;
 	}
@@ -48,13 +52,15 @@ void MP4File::SetPosition(u_int64_t pos, FILE* pFile)
 	if (m_memoryBuffer == NULL) {
 		if (pFile == NULL) {
 			ASSERT(m_pFile);
-			pFile = m_pFile;
-		}
-
-		fpos_t fpos;
-		VAR_TO_FPOS(fpos, pos);
-		if (fsetpos(pFile, &fpos) < 0) {
-			throw new MP4Error(errno, "MP4SetPosition");
+			if (m_virtual_IO->SetPosition(m_pFile, pos) != 0) {
+				throw new MP4Error("setting position via Virtual I/O", "MP4SetPosition");
+			}
+		}	else {
+			fpos_t fpos;
+			VAR_TO_FPOS(fpos, pos);
+			if (fsetpos(pFile, &fpos) < 0) { 
+				throw new MP4Error(errno, "MP4SetPosition");
+			}
 		}
 	} else {
 		if (pos >= m_memoryBufferSize) {
@@ -88,19 +94,21 @@ u_int32_t MP4File::ReadBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
 	ASSERT(pBytes);
 	WARNING(m_numReadBits > 0);
 
-	if (pFile == NULL) {
-		pFile = m_pFile;
-	}
-	ASSERT(pFile);
-
 	if (m_memoryBuffer == NULL) {
-		if (fread(pBytes, 1, numBytes, pFile) != numBytes) {
-			if (feof(pFile)) {
-				throw new MP4Error(
-					"not enough bytes, reached end-of-file",
-					"MP4ReadBytes");
-			} else {
-				throw new MP4Error(errno, "MP4ReadBytes");
+		if (pFile == NULL) {
+			ASSERT(m_pFile);
+			if (m_virtual_IO->Read(m_pFile, pBytes, numBytes) != numBytes) {
+				throw new MP4Error("not enough bytes, reached end-of-file",		"MP4ReadBytes");
+			}
+		}	else {
+			if (fread(pBytes, 1, numBytes, pFile) != numBytes) { 
+				if (feof(pFile)) { 
+					throw new MP4Error(
+						"not enough bytes, reached end-of-file",
+						"MP4ReadBytes");
+				} else {
+					throw new MP4Error(errno, "MP4ReadBytes");
+				}
 			}
 		}
 	} else {
@@ -168,12 +176,14 @@ void MP4File::WriteBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
 	if (m_memoryBuffer == NULL) {
 		if (pFile == NULL) {
 			ASSERT(m_pFile);
-			pFile = m_pFile;
-		}
-
-		u_int32_t rc = fwrite(pBytes, 1, numBytes, pFile);
-		if (rc != numBytes) {
-			throw new MP4Error(errno, "MP4WriteBytes");
+			if (m_virtual_IO->Write(m_pFile, pBytes, numBytes) != numBytes) {
+				throw new MP4Error("error writing bytes via virtual I/O", "MP4WriteBytes");
+			}
+		} else {
+			u_int32_t rc = fwrite(pBytes, 1, numBytes, pFile); 
+			if (rc != numBytes) {
+				throw new MP4Error(errno, "MP4WriteBytes");
+			}
 		}
 	} else {
 		if (m_memoryBufferPosition + numBytes > m_memoryBufferSize) {

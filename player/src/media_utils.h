@@ -29,6 +29,7 @@ typedef struct video_query_t {
   uint32_t track_id;
   const char *stream_type;
   const char *compressor;
+  const char *original_fmt;
   int type;
   int profile;
   format_list_t *fptr;

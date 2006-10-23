@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.20 $ 
- * $Date: 2006/08/07 18:27:03 $
+ * $Revision: 1.21 $ 
+ * $Date: 2006/10/23 22:26:39 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -62,21 +62,6 @@ struct rtp;
  * struct *'s. */
 typedef struct rtp *rtp_t;
 
-typedef struct rtp_packet_data {
-  struct rtp_packet *rtp_pd_next, *rtp_pd_prev;
-  uint32_t	*rtp_pd_csrc;
-  uint8_t	*rtp_pd_data;
-  uint32_t	 rtp_pd_data_len;
-  uint8_t	*rtp_pd_extn;
-  uint16_t	 rtp_pd_extn_len; /* Size of the extension in 32 bit words minus one */
-  uint16_t	 rtp_pd_extn_type;/* Extension type field in the RTP packet header   */
-  uint32_t       rtp_pd_buflen; /* received buffer len (w/rtp header) */
-  int            rtp_pd_have_timestamp;
-  uint64_t       rtp_pd_timestamp;
-  struct sockaddr_storage rtp_rx_addr;
-} rtp_packet_data;
-
-  
 typedef struct rtp_packet_header {
 #ifdef WORDS_BIGENDIAN
 	unsigned short   ph_v:2;	/* packet type                */
@@ -100,6 +85,27 @@ typedef struct rtp_packet_header {
 	/* be represented in the struct.                              */
 } rtp_packet_header;
 
+typedef struct rtp_packet_data {
+  struct rtp_packet *rtp_pd_next, *rtp_pd_prev;
+  uint32_t	*rtp_pd_csrc;
+  uint8_t	*rtp_pd_data;
+  uint32_t	 rtp_pd_data_len;
+  uint8_t	*rtp_pd_extn;
+  uint16_t	 rtp_pd_extn_len; /* Size of the extension in 32 bit words minus one */
+  uint16_t	 rtp_pd_extn_type;/* Extension type field in the RTP packet header   */
+  uint8_t       *pd_buf_start;
+  uint32_t       pd_buflen; /* received buffer len (w/rtp header) */
+  int            rtp_pd_have_timestamp;
+  uint64_t       rtp_pd_timestamp;
+  struct sockaddr_storage rtp_rx_addr;
+  socklen_t      rtp_rx_addr_len;
+  rtp_packet_header *ph;
+} rtp_packet_data;
+
+  
+
+#define packet_start    pd.pd_buf_start
+#define packet_length   pd.pd_buflen
 #define rtp_next      pd.rtp_pd_next
 #define rtp_prev      pd.rtp_pd_prev
 #define rtp_csrc      pd.rtp_pd_csrc
@@ -109,15 +115,15 @@ typedef struct rtp_packet_header {
 #define rtp_extn_len  pd.rtp_pd_extn_len
 #define rtp_extn_type pd.rtp_pd_extn_type
   
-#define rtp_pak_v    ph.ph_v
-#define rtp_pak_p    ph.ph_p
-#define rtp_pak_x    ph.ph_x
-#define rtp_pak_cc   ph.ph_cc
-#define rtp_pak_m    ph.ph_m
-#define rtp_pak_pt   ph.ph_pt
-#define rtp_pak_seq  ph.ph_seq
-#define rtp_pak_ts   ph.ph_ts
-#define rtp_pak_ssrc ph.ph_ssrc
+#define rtp_pak_v    pd.ph->ph_v
+#define rtp_pak_p    pd.ph->ph_p
+#define rtp_pak_x    pd.ph->ph_x
+#define rtp_pak_cc   pd.ph->ph_cc
+#define rtp_pak_m    pd.ph->ph_m
+#define rtp_pak_pt   pd.ph->ph_pt
+#define rtp_pak_seq  pd.ph->ph_seq
+#define rtp_pak_ts   pd.ph->ph_ts
+#define rtp_pak_ssrc pd.ph->ph_ssrc
 
 typedef struct rtp_packet {
   /* The following are pointers to the data in the packet as    */
@@ -128,7 +134,6 @@ typedef struct rtp_packet {
   /* having to free the csrc, data and extn blocks separately.  */
   rtp_packet_data pd;
   /* The following map directly onto the RTP packet header...   */
-  rtp_packet_header ph;
 } rtp_packet;
   
 typedef struct {
@@ -347,8 +352,7 @@ void		*rtp_get_recv_userdata(struct rtp *session);
   
 int rtp_process_recv_data(struct rtp *session,
 			  uint32_t curr_rtp_ts,
-			  rtp_packet *packet,
-			  uint32_t buflen);
+			  rtp_packet *packet);
 
 void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, uint32_t buflen);
 

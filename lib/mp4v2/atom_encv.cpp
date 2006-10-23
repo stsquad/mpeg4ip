@@ -48,6 +48,7 @@ MP4EncvAtom::MP4EncvAtom()
 
 	ExpectChildAtom("esds", Required, OnlyOne);
 	ExpectChildAtom("sinf", Required, OnlyOne);
+	ExpectChildAtom("avcC", Optional, OnlyOne);
 }	
 
 void MP4EncvAtom::Generate()
