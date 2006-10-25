@@ -123,7 +123,8 @@ void h264_hrd_parameters (h264_decode_t *dec, CBitstream *bs)
 
   dec->cpb_removal_delay_length_minus1 = temp = bs->GetBits(5);
   printf("     cpb_removal_delay_length_minus1: %u\n", temp);
-  printf("     dpb_output_delay_length_minus1: %u\n", bs->GetBits(5));
+  dec->dpb_output_delay_length_minus1 = temp = bs->GetBits(5);
+  printf("     dpb_output_delay_length_minus1: %u\n", temp);
   dec->time_offset_length = temp = bs->GetBits(5);  
   printf("     time_offset_length: %u\n", temp);
 }
@@ -530,7 +531,7 @@ static void h264_parse_sei (h264_decode_t *dec, CBitstream *bs)
 	  printf("    cpb_removal_delay: %u\n", 
 		 payload_bs.GetBits(dec->cpb_removal_delay_length_minus1 + 1));
 	  printf("    dpb_output_delay: %u\n", 
-		 payload_bs.GetBits(dec->cpb_removal_delay_length_minus1 + 1));
+		 payload_bs.GetBits(dec->dpb_output_delay_length_minus1 + 1));
 	}
 	if (dec->pic_struct_present_flag) {
 	  temp = payload_bs.GetBits(4);
@@ -894,7 +895,7 @@ bool compare_boundary (h264_decode_t *prev, h264_decode_t *on)
 }
 int main (int argc, char **argv)
 {
-#define MAX_BUFFER 65536
+#define MAX_BUFFER (65536 * 4)
   const char* usageString = 
     "[-version] <file-name>\n";
   const char *ProgName = argv[0];

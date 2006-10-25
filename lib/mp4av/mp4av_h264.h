@@ -88,6 +88,7 @@ typedef struct h264_decode_t {
   uint8_t CpbDpbDelaysPresentFlag;
   uint8_t pic_struct_present_flag;
   uint8_t cpb_removal_delay_length_minus1;
+  uint8_t dpb_output_delay_length_minus1;
   uint8_t time_offset_length;
   uint32_t cpb_cnt_minus1;
   uint8_t initial_cpb_removal_delay_length_minus1;
