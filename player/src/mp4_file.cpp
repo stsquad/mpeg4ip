@@ -122,6 +122,8 @@ int CMp4File::create_video(CPlayerSession *psptr,
   uint ix;
   CPlayerMedia *mptr;
   codec_plugin_t *plugin;
+  const char *file_kms_uri;
+  const char *inuse_kms_uri;
 
   for (ix = 0; ix < video_offset; ix++) {
     if (vq[ix].enabled != 0) {
@@ -161,20 +163,45 @@ int CMp4File::create_video(CPlayerSession *psptr,
 	return -1;
       }
 
-      CMp4VideoByteStream *vbyte;
+      CMp4VideoByteStream *vbyte = NULL;
       uint64_t IVLength;
      
-      /* check if ismacryp */
+      /* check if clear-text or ismacryp.
+       * in this context original format is encv 
+       * and compressor specifies which codec
+       */
       uint32_t verb = MP4GetVerbosity(m_mp4file);
       MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
-      if (strcasecmp(vq[ix].compressor, "avc1") == 0) {
+      if (strcasecmp(vq[ix].original_fmt, "avc1") == 0) {
 	vbyte = new CMp4H264VideoByteStream(this, vq[ix].track_id);
-      } else if (strcasecmp(vq[ix].compressor, "encv") == 0) {
+      } else if (strcasecmp(vq[ix].original_fmt, "encv") == 0) {
         MP4GetTrackIntegerProperty(m_mp4file,
 				   vq[ix].track_id, 
 				   "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.IV-length", 
 				   &IVLength);
+
+      	if (strcasecmp(vq[ix].compressor, "mp4v") == 0) {
 	vbyte = new CMp4EncVideoByteStream(this, vq[ix].track_id,IVLength);
+	}
+      	else if (((strcasecmp(vq[ix].compressor, "avc1") == 0) 
+      	|| (strcasecmp(vq[ix].compressor, "264b")) == 0)) {
+		vbyte = new CMp4EncH264VideoByteStream(this, vq[ix].track_id,IVLength);
+
+		// check if file kms uri matches in-use kms uri
+		// advisory only 
+		MP4GetTrackStringProperty(m_mp4file, vq[ix].track_id, 
+			"mdia.minf.stbl.stsd.encv.sinf.schi.iKMS.kms_URI", 
+			&file_kms_uri);
+		inuse_kms_uri = 
+			((CMp4EncH264VideoByteStream *)vbyte)->get_inuse_kms_uri();
+		if (file_kms_uri && inuse_kms_uri) {
+			if (strcmp(file_kms_uri, inuse_kms_uri)) {
+				mp4f_message(LOG_DEBUG, 
+				"KMS in file (%s) does not match KMS in use (%s)\n", 
+				file_kms_uri, inuse_kms_uri);
+      		}
+		}
+	}
       } else {
 	vbyte = new CMp4VideoByteStream(this, vq[ix].track_id);
       }
@@ -475,7 +502,8 @@ int CMp4File::create_media (CPlayerSession *psptr,
       vq[video_offset].config_len = bufsize;
     } 
     // avc1 is unaltered h264, 264b is original format for ismacrypted avc1
-    else if (strcasecmp(vq[video_offset].compressor, "avc1") == 0) {
+    else if ((strcasecmp(vq[video_offset].compressor, "avc1") == 0) || 
+    	(strcasecmp(vq[video_offset].compressor, "264b") == 0)) { 
       uint8_t profile, level;
       uint8_t **seqheader, **pictheader;
       uint32_t *pictheadersize, *seqheadersize;
