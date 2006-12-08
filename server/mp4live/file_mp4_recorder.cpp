@@ -985,11 +985,12 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 	delete m_prevAudioFrame;
       }
       m_prevAudioFrame = pFrame;
-
+      return;
       // ENCODED AUDIO
     } else if (pFrame->GetType() == m_audioFrameType) {
 
       ProcessEncodedAudioFrame(pFrame);
+      return;
       // RAW VIDEO
     } 
   }
@@ -1074,11 +1075,12 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 	delete m_prevVideoFrame;
       }
       m_prevVideoFrame = pFrame;
-
+      return;
       // ENCODED VIDEO
     } else if (pFrame->GetType() == m_videoFrameType) {
 
       ProcessEncodedVideoFrame(pFrame);
+      return;
     }
   }
   if (pFrame->GetType() == m_textFrameType && m_recordText) {

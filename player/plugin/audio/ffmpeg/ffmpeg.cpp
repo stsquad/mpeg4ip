@@ -167,7 +167,7 @@ static codec_data_t *ffmpeg_create (const char *stream_type,
     break;
   }
   if (userdata) {
-    ffmpeg->m_c->extradata = (void *)userdata;
+    ffmpeg->m_c->extradata = (typeof(ffmpeg->m_c->extradata))userdata;
     ffmpeg->m_c->extradata_size = ud_size;
   }
   ffmpeg_interface_lock();

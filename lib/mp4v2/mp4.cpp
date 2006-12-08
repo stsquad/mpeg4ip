@@ -1117,7 +1117,12 @@ extern "C" MP4TrackId MP4CloneTrack(
 		return dstTrackId;
 	}
 
+	const char *media_data_name = 
+	  MP4GetTrackMediaDataName(srcFile, srcTrackId);
+
 	if (MP4_IS_VIDEO_TRACK_TYPE(trackType)) {
+	  if (ATOMID(media_data_name) != ATOMID("mp4v")) return dstTrackId;
+
                 MP4SetVideoProfileLevel(dstFile, 
                                         MP4GetVideoProfileLevel(srcFile));
 		dstTrackId = MP4AddVideoTrack(
@@ -1129,6 +1134,7 @@ extern "C" MP4TrackId MP4CloneTrack(
 			MP4GetTrackEsdsObjectTypeId(srcFile, srcTrackId));
 
 	} else if (MP4_IS_AUDIO_TRACK_TYPE(trackType)) {
+	  if (ATOMID(media_data_name) != ATOMID("mp4a")) return dstTrackId;
                 MP4SetAudioProfileLevel(dstFile, 
                                         MP4GetAudioProfileLevel(srcFile));
 		dstTrackId = MP4AddAudioTrack(
