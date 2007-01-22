@@ -276,11 +276,14 @@ CFaacAudioEncoder::CFaacAudioEncoder(CAudioProfile *profile,
 
 bool CFaacAudioEncoder::Init(void)
 {
+  unsigned long spf, max;
   m_faacHandle = faacEncOpen(
                              Profile()->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE),
                              Profile()->GetIntegerValue(CFG_AUDIO_CHANNELS),
-                             (unsigned long*)&m_samplesPerFrame,
-                             (unsigned long*)&m_aacFrameMaxSize);
+			     &spf, &max);
+
+  m_samplesPerFrame = spf;
+  m_aacFrameMaxSize = max;
 
   if (m_faacHandle == NULL) {
     return false;

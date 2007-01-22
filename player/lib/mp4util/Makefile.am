@@ -1,4 +1,5 @@
-lib_LTLIBRARIES = libmp4util.la libh264util.la
+lib_LTLIBRARIES = libmp4util.la 
+noinst_LTLIBRARIES =  libh264util.la
 include_HEADERS = \
 	mpeg4_audio_config.h \
 	mpeg4_sdp.h \
@@ -10,6 +11,9 @@ libmp4util_la_SOURCES = \
 
 libh264util_la_SOURCES = \
 	h264_sdp.c
+
+libh264util_la_LIBADD = \
+	$(top_builddir)/lib/mp4v2/libmp4v2.la
 
 INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/lib/mp4v2
 

@@ -280,7 +280,7 @@ void MP4File::Modify(const char* fileName)
 	MP4Atom* pMdatAtom = InsertChildAtom(m_pRootAtom, "mdat", numAtoms - 1);
 
 	// start writing new mdat
-	pMdatAtom->BeginWrite();
+	pMdatAtom->BeginWrite(Use64Bits("mdat"));
 }
 
 void MP4File::Optimize(const char* orgFileName, const char* newFileName)
@@ -2731,24 +2731,6 @@ void MP4File::SetTrackESConfiguration(MP4TrackId trackId,
 	pInfoProperty->SetValue(pConfig, configSize);
 }
 
-void MP4File::GetTrackH264ProfileLevel (MP4TrackId trackId, 
-					uint8_t *pProfile, 
-					uint8_t *pLevel)
-{
-  *pProfile = 
-    GetTrackIntegerProperty(trackId, 
-			    "mdia.minf.stbl.stsd.*[0].avcC.AVCProfileIndication");
-  *pLevel = 
-    GetTrackIntegerProperty(trackId, 
-			    "mdia.minf.stbl.stsd.*[0].avcC.AVCLevelIndication");
-}
-void MP4File::GetTrackH264LengthSize (MP4TrackId trackId, 
-				      uint32_t *pLength)
-{
-  *pLength = 1 + 
-    GetTrackIntegerProperty(trackId, 
-			    "mdia.minf.stbl.stsd.*[0].avcC.lengthSizeMinusOne");
-}
 
 bool MP4File::GetTrackH264SeqPictHeaders (MP4TrackId trackId,
 					  uint8_t ***pppSeqHeader,

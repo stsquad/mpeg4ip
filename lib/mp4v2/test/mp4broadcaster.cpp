@@ -61,8 +61,8 @@ int main(int argc, char** argv)
 
 	char* mp4FileName = argv[1];
 	u_int32_t verbosity = 
-		MP4_DETAILS_ERROR | MP4_DETAILS_READ 
-		| MP4_DETAILS_SAMPLE | MP4_DETAILS_HINT;
+		MP4_DETAILS_ERROR ;// | MP4_DETAILS_READ 
+		//| MP4_DETAILS_SAMPLE | MP4_DETAILS_HINT;
 
 	// open the mp4 file
 	MP4FileHandle mp4File = MP4Read(mp4FileName, verbosity);

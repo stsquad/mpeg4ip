@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.21 $ 
- * $Date: 2006/10/23 22:26:39 $
+ * $Revision: 1.22 $ 
+ * $Date: 2007/01/22 17:31:08 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -283,23 +283,12 @@ rtp_t		rtp_init(const char *addr,
 			 rtp_callback_f callback,
 			 void *recv_userdata);
   // rtp_init_xmitter - for transmitters - send an RTCP with the first packet
-rtp_t		rtp_init_xmitter(const char *addr, 
-				 uint16_t rx_port, uint16_t tx_port, 
-				 int ttl, double rtcp_bw, 
-				 rtp_callback_f callback,
-				 void *recv_userdata);
 rtp_t		rtp_init_if(const char *addr, char *iface, 
 			    uint16_t rx_port, uint16_t tx_port, 
 			    int ttl, double rtcp_bw, 
 			    rtp_callback_f callback,
 			    void *recv_userdata,
 			    int dont_init_sockets);
-rtp_t		rtp_init_extern_net(const char *addr, 
-				    uint16_t rx_port, uint16_t tx_port, 
-				    int ttl, double rtcp_bw, 
-				    rtp_callback_f callback,
-				    send_packet_f rtcp_send_packet,
-				    void *recv_userdata);
 
 void		 rtp_send_bye(struct rtp *session);
 void		 rtp_done(struct rtp *session);
@@ -340,7 +329,6 @@ const char	*rtp_get_sdes(struct rtp *session, uint32_t ssrc, rtcp_sdes_type type
 const rtcp_sr	*rtp_get_sr(struct rtp *session, uint32_t ssrc);
 const rtcp_rr	*rtp_get_rr(struct rtp *session, uint32_t reporter, uint32_t reportee);
 
-int              rtp_set_encryption_key(struct rtp *session, const char *passphrase);
 int              rtp_set_my_ssrc(struct rtp *session, uint32_t ssrc);
 
 char 		*rtp_get_addr(struct rtp *session);
@@ -356,12 +344,6 @@ int rtp_process_recv_data(struct rtp *session,
 
 void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, uint32_t buflen);
 
-  // added by nori
-  int rtp_set_encryption(struct rtp *session, 
-		       rtp_encrypt_f rtp_efunc, rtp_decrypt_f rtp_dfunc , 
-		       rtp_encrypt_f rtcp_efunc, rtp_decrypt_f rtcp_dfunc,
-		       void *enc_userdata, unsigned int rtp_payload_add);
-  
   int rtp_set_encryption_params (struct rtp *session, rtp_encryption_params_t *params);
   
   int rtp_get_encryption_enabled(struct rtp *session);

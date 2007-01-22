@@ -3,22 +3,17 @@ noinst_LTLIBRARIES = libuclmmbase.la
 
 
 libuclmmbase_la_SOURCES= \
-	btree.c \
-	crypt_random.c \
 	debug.c \
 	drand48.c \
 	inet_ntop.c \
 	inet_pton.c \
-	md5.c \
 	memory.c \
 	net_udp.c \
 	ntp.c \
-	qfDES.c \
-	rijndael-alg-fst.c \
-	rijndael-api-fst.c \
 	rtp.c \
 	util.c \
 	version.h 
+#	btree.c \
 #	base64.c \
 #	asarray.c \
 #	hmac.c \
@@ -26,6 +21,11 @@ libuclmmbase_la_SOURCES= \
 #	mbus_addr.c \
 #	mbus_config.c \
 #	mbus_parser.c 
+#	crypt_random.c \
+#	md5.c \
+#	qfDES.c \
+#	rijndael-alg-fst.c \
+#	rijndael-api-fst.c 
 
 EXTRA_DIST = \
 	acconfig.h \
@@ -80,9 +80,14 @@ check_PROGRAMS = test_rtp_client test_rtp_server
 
 AM_CFLAGS = -DDEBUG -Wall -Werror
 test_rtp_client_SOURCES = test_rtp_client.c
-test_rtp_client_LDADD = libuclmmbase.la -lsrtp
+test_rtp_client_LDADD = libuclmmbase.la \
+	$(top_builddir)/lib/utils/libmutex.la \
+	@SRTPLIB@ @SDL_LIBS@
 test_rtp_server_SOURCES = test_rtp_server.c
-test_rtp_server_LDADD = libuclmmbase.la -lsrtp
+test_rtp_server_LDADD = libuclmmbase.la \
+	$(top_builddir)/lib/utils/libmutex.la \
+	@SRTPLIB@ @SDL_LIBS@
+
 #check_PROGRAMS = test
 #test_SOURCES = \
 #	test.c \

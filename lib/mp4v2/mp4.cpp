@@ -1098,136 +1098,196 @@ extern "C" MP4TrackId MP4AddHintTrack(
 	return MP4_INVALID_TRACK_ID;
 }
 
-extern "C" MP4TrackId MP4CloneTrack(
-	MP4FileHandle srcFile, 
-	MP4TrackId srcTrackId,
-	MP4FileHandle dstFile,
-	MP4TrackId dstHintTrackReferenceTrack)
+extern "C" MP4TrackId MP4CloneTrack (MP4FileHandle srcFile, 
+				     MP4TrackId srcTrackId,
+				     MP4FileHandle dstFile,
+				     MP4TrackId dstHintTrackReferenceTrack)
 {
-	MP4TrackId dstTrackId = MP4_INVALID_TRACK_ID;
+  MP4TrackId dstTrackId = MP4_INVALID_TRACK_ID;
 
-	if (dstFile == NULL) {
-		dstFile = srcFile;
-	}
+  if (dstFile == NULL) {
+    dstFile = srcFile;
+  }
 
-	const char* trackType = 
-		MP4GetTrackType(srcFile, srcTrackId);
+  const char* trackType = 
+    MP4GetTrackType(srcFile, srcTrackId);
 
-	if (!trackType) {
-		return dstTrackId;
-	}
+  if (!trackType) {
+    return dstTrackId;
+  }
 
-	const char *media_data_name = 
-	  MP4GetTrackMediaDataName(srcFile, srcTrackId);
+  const char *media_data_name = 
+    MP4GetTrackMediaDataName(srcFile, srcTrackId);
 
-	if (MP4_IS_VIDEO_TRACK_TYPE(trackType)) {
-	  if (ATOMID(media_data_name) != ATOMID("mp4v")) return dstTrackId;
-
-                MP4SetVideoProfileLevel(dstFile, 
-                                        MP4GetVideoProfileLevel(srcFile));
-		dstTrackId = MP4AddVideoTrack(
-			dstFile,
-			MP4GetTrackTimeScale(srcFile, srcTrackId),
-			MP4GetTrackFixedSampleDuration(srcFile, srcTrackId),
-			MP4GetTrackVideoWidth(srcFile, srcTrackId),
-			MP4GetTrackVideoHeight(srcFile, srcTrackId),
-			MP4GetTrackEsdsObjectTypeId(srcFile, srcTrackId));
-
-	} else if (MP4_IS_AUDIO_TRACK_TYPE(trackType)) {
-	  if (ATOMID(media_data_name) != ATOMID("mp4a")) return dstTrackId;
-                MP4SetAudioProfileLevel(dstFile, 
-                                        MP4GetAudioProfileLevel(srcFile));
-		dstTrackId = MP4AddAudioTrack(
-			dstFile,
-			MP4GetTrackTimeScale(srcFile, srcTrackId),
-			MP4GetTrackFixedSampleDuration(srcFile, srcTrackId),
-			MP4GetTrackEsdsObjectTypeId(srcFile, srcTrackId));
-
-	} else if (MP4_IS_OD_TRACK_TYPE(trackType)) {
-		dstTrackId = MP4AddODTrack(dstFile);
-
-	} else if (MP4_IS_SCENE_TRACK_TYPE(trackType)) {
-		dstTrackId = MP4AddSceneTrack(dstFile);
-
-	} else if (MP4_IS_HINT_TRACK_TYPE(trackType)) {
-	  if (dstHintTrackReferenceTrack == MP4_INVALID_TRACK_ID) {
-	    dstTrackId = MP4_INVALID_TRACK_ID;
-	  } else {
-		dstTrackId = MP4AddHintTrack(
-			dstFile,
-			dstHintTrackReferenceTrack);
-	  }
-
-	} else if (MP4_IS_SYSTEMS_TRACK_TYPE(trackType)) {
-		dstTrackId = MP4AddSystemsTrack(dstFile, trackType);
-
-	} else {
-		dstTrackId = MP4AddTrack(dstFile, trackType);
-	}
-
-	if (dstTrackId == MP4_INVALID_TRACK_ID) {
-		return dstTrackId;
-	}
-
-	MP4SetTrackTimeScale(
-		dstFile, 
-		dstTrackId,
-		MP4GetTrackTimeScale(srcFile, srcTrackId));
-
-	if (MP4_IS_AUDIO_TRACK_TYPE(trackType) 
-	    || MP4_IS_VIDEO_TRACK_TYPE(trackType)) {
-	// copy track ES configuration
-	u_int8_t* pConfig = NULL;
-	u_int32_t configSize = 0;
-
-	MP4GetTrackESConfiguration(
-		srcFile, 
-		srcTrackId,
-		&pConfig,
-		&configSize);
-
-	MP4SetTrackESConfiguration(
-		dstFile, 
-		dstTrackId,
-		pConfig,
-		configSize);
-
-		free(pConfig);
-	}
-
-	if (MP4_IS_HINT_TRACK_TYPE(trackType)) {
-		// probably not exactly what is wanted
-		// but caller can adjust later to fit their desires
-
-		char* payloadName = NULL;
-		char *encodingParms = NULL;
-		u_int8_t payloadNumber;
-		u_int16_t maxPayloadSize;
-
-		MP4GetHintTrackRtpPayload(
-			srcFile,
-			srcTrackId,
-			&payloadName,
-			&payloadNumber,
-			&maxPayloadSize,
-			&encodingParms);
-
-		MP4SetHintTrackRtpPayload(
-			dstFile,
-			dstTrackId,
-			payloadName,
-			&payloadNumber,
-			maxPayloadSize,
-			encodingParms);
-#if 0
-		MP4SetHintTrackSdp(
-			dstFile,
-			dstTrackId,
-			MP4GetHintTrackSdp(srcFile, srcTrackId));
-#endif
-	}
-
+  if (MP4_IS_VIDEO_TRACK_TYPE(trackType)) {
+    if (ATOMID(media_data_name) == ATOMID("mp4v")) {
+      MP4SetVideoProfileLevel(dstFile, 
+			      MP4GetVideoProfileLevel(srcFile));
+      dstTrackId = MP4AddVideoTrack(
+				    dstFile,
+				    MP4GetTrackTimeScale(srcFile, 
+							 srcTrackId),
+				    MP4GetTrackFixedSampleDuration(srcFile, 
+								   srcTrackId),
+				    MP4GetTrackVideoWidth(srcFile, 
+							  srcTrackId),
+				    MP4GetTrackVideoHeight(srcFile, 
+							   srcTrackId),
+				    MP4GetTrackEsdsObjectTypeId(srcFile, 
+								srcTrackId));
+    } else if (ATOMID(media_data_name) == ATOMID("avc1")) {
+      uint8_t AVCProfileIndication;
+      uint8_t profile_compat;
+      uint8_t AVCLevelIndication;
+      uint32_t sampleLenFieldSizeMinusOne;
+      uint64_t temp;
+      
+      if (MP4GetTrackH264ProfileLevel(srcFile, srcTrackId, 
+				      &AVCProfileIndication,
+				      &AVCLevelIndication) == false) {
 	return dstTrackId;
+      }
+      if (MP4GetTrackH264LengthSize(srcFile, srcTrackId, 
+				    &sampleLenFieldSizeMinusOne) == false) {
+	return dstTrackId;
+      }
+      sampleLenFieldSizeMinusOne--;
+      if (MP4GetTrackIntegerProperty(srcFile, srcTrackId, 
+				     "mdia.minf.stbl.stsd.*[0].avcC.profile_compatibility",
+				     &temp) == false) return dstTrackId;
+      profile_compat = temp & 0xff;
+      
+      dstTrackId = MP4AddH264VideoTrack(dstFile, 
+					MP4GetTrackTimeScale(srcFile, 
+							     srcTrackId),
+					MP4GetTrackFixedSampleDuration(srcFile, 
+								       srcTrackId),
+					MP4GetTrackVideoWidth(srcFile, 
+							      srcTrackId),
+					MP4GetTrackVideoHeight(srcFile, 
+							       srcTrackId),
+					AVCProfileIndication,
+					profile_compat,
+					AVCLevelIndication,
+					sampleLenFieldSizeMinusOne);
+        uint8_t **seqheader, **pictheader;
+	uint32_t *pictheadersize, *seqheadersize;
+	uint32_t ix;
+	MP4GetTrackH264SeqPictHeaders(srcFile, srcTrackId, 
+				      &seqheader, &seqheadersize,
+				      &pictheader, &pictheadersize);
+	for (ix = 0; seqheadersize[ix] != 0; ix++) {
+	  MP4AddH264SequenceParameterSet(dstFile, dstTrackId,
+					 seqheader[ix], seqheadersize[ix]);
+	  free(seqheader[ix]);
+	}
+	free(seqheader);
+	free(seqheadersize);
+	for (ix = 0; pictheadersize[ix] != 0; ix++) {
+	  MP4AddH264PictureParameterSet(dstFile, dstTrackId,
+					pictheader[ix], pictheadersize[ix]);
+	  free(pictheader[ix]);
+	}
+	free(pictheader);
+	free(pictheadersize);
+    } else
+      return dstTrackId;
+  } else if (MP4_IS_AUDIO_TRACK_TYPE(trackType)) {
+    if (ATOMID(media_data_name) != ATOMID("mp4a")) return dstTrackId;
+    MP4SetAudioProfileLevel(dstFile, 
+			    MP4GetAudioProfileLevel(srcFile));
+    dstTrackId = MP4AddAudioTrack(
+				  dstFile,
+				  MP4GetTrackTimeScale(srcFile, srcTrackId),
+				  MP4GetTrackFixedSampleDuration(srcFile, srcTrackId),
+				  MP4GetTrackEsdsObjectTypeId(srcFile, srcTrackId));
+
+  } else if (MP4_IS_OD_TRACK_TYPE(trackType)) {
+    dstTrackId = MP4AddODTrack(dstFile);
+
+  } else if (MP4_IS_SCENE_TRACK_TYPE(trackType)) {
+    dstTrackId = MP4AddSceneTrack(dstFile);
+
+  } else if (MP4_IS_HINT_TRACK_TYPE(trackType)) {
+    if (dstHintTrackReferenceTrack == MP4_INVALID_TRACK_ID) {
+      dstTrackId = MP4_INVALID_TRACK_ID;
+    } else {
+      dstTrackId = MP4AddHintTrack(
+				   dstFile,
+				   dstHintTrackReferenceTrack);
+    }
+
+  } else if (MP4_IS_SYSTEMS_TRACK_TYPE(trackType)) {
+    dstTrackId = MP4AddSystemsTrack(dstFile, trackType);
+
+  } else {
+    dstTrackId = MP4AddTrack(dstFile, trackType);
+  }
+
+  if (dstTrackId == MP4_INVALID_TRACK_ID) {
+    return dstTrackId;
+  }
+
+  MP4SetTrackTimeScale(
+		       dstFile, 
+		       dstTrackId,
+		       MP4GetTrackTimeScale(srcFile, srcTrackId));
+
+  if (MP4_IS_AUDIO_TRACK_TYPE(trackType) 
+      || MP4_IS_VIDEO_TRACK_TYPE(trackType)) {
+    // copy track ES configuration
+    u_int8_t* pConfig = NULL;
+    u_int32_t configSize = 0;
+	  
+    MP4GetTrackESConfiguration(
+			       srcFile, 
+			       srcTrackId,
+			       &pConfig,
+			       &configSize);
+    if (pConfig != NULL && configSize != 0) {
+      MP4SetTrackESConfiguration(
+				 dstFile, 
+				 dstTrackId,
+				 pConfig,
+				 configSize);
+	    
+      free(pConfig);
+    }
+  }
+
+  if (MP4_IS_HINT_TRACK_TYPE(trackType)) {
+    // probably not exactly what is wanted
+    // but caller can adjust later to fit their desires
+
+    char* payloadName = NULL;
+    char *encodingParms = NULL;
+    u_int8_t payloadNumber;
+    u_int16_t maxPayloadSize;
+
+    MP4GetHintTrackRtpPayload(
+			      srcFile,
+			      srcTrackId,
+			      &payloadName,
+			      &payloadNumber,
+			      &maxPayloadSize,
+			      &encodingParms);
+
+    MP4SetHintTrackRtpPayload(
+			      dstFile,
+			      dstTrackId,
+			      payloadName,
+			      &payloadNumber,
+			      maxPayloadSize,
+			      encodingParms);
+#if 0
+    MP4SetHintTrackSdp(
+		       dstFile,
+		       dstTrackId,
+		       MP4GetHintTrackSdp(srcFile, srcTrackId));
+#endif
+  }
+
+  return dstTrackId;
 }
 
 // Given a track, make an encrypted clone of it in the dest. file
@@ -1868,7 +1928,13 @@ extern "C" bool MP4GetTrackH264ProfileLevel (MP4FileHandle hFile,
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {
-      ((MP4File*)hFile)->GetTrackH264ProfileLevel(trackId, pProfile, pLevel);
+      *pProfile = 
+	((MP4File *)hFile)->GetTrackIntegerProperty(trackId, 
+						    "mdia.minf.stbl.stsd.*[0].avcC.AVCProfileIndication");
+      *pLevel = 
+	((MP4File *)hFile)->GetTrackIntegerProperty(trackId, 
+						    "mdia.minf.stbl.stsd.*[0].avcC.AVCLevelIndication");
+
       return true;
     }
     catch (MP4Error* e) {
@@ -1907,8 +1973,9 @@ extern "C" bool MP4GetTrackH264LengthSize (MP4FileHandle hFile,
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {
-      ((MP4File*)hFile)->GetTrackH264LengthSize(trackId, 
-						pLength);
+      *pLength = 1 + 
+	((MP4File*) hFile)->GetTrackIntegerProperty(trackId, 
+						   "mdia.minf.stbl.stsd.*[0].avcC.lengthSizeMinusOne");
       return true;
     }
     catch (MP4Error* e) {
@@ -4227,8 +4294,10 @@ extern "C" bool MP4DeleteMetadataAlbumArtist (MP4FileHandle hFile)
  return false;
 } 
 
-extern "C" bool MP4SetMetadataFreeForm(MP4FileHandle hFile, char *name,
-				       u_int8_t* pValue, u_int32_t valueSize)
+extern "C" bool MP4SetMetadataFreeForm(MP4FileHandle hFile, 
+				       const char *name,
+				       const u_int8_t* pValue, 
+				       u_int32_t valueSize)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {
@@ -4242,7 +4311,7 @@ extern "C" bool MP4SetMetadataFreeForm(MP4FileHandle hFile, char *name,
   return false;
 }
  
-extern "C" bool MP4GetMetadataFreeForm(MP4FileHandle hFile, char *name,
+extern "C" bool MP4GetMetadataFreeForm(MP4FileHandle hFile, const char *name,
 				       u_int8_t** pValue, u_int32_t* valueSize)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
@@ -4257,7 +4326,7 @@ extern "C" bool MP4GetMetadataFreeForm(MP4FileHandle hFile, char *name,
   return false;
 }
 
-extern "C" bool MP4DeleteMetadataFreeForm(MP4FileHandle hFile, char *name)
+extern "C" bool MP4DeleteMetadataFreeForm(MP4FileHandle hFile, const char *name)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {

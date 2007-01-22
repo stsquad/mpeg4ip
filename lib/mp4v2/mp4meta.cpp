@@ -658,7 +658,7 @@ u_int32_t MP4File::GetMetadataCoverArtCount (void)
    return pMetaAtom->GetNumberOfChildAtoms();
 }
 
-bool MP4File::SetMetadataFreeForm(char *name, u_int8_t* pValue, u_int32_t valueSize)
+bool MP4File::SetMetadataFreeForm(const char *name, const u_int8_t* pValue, u_int32_t valueSize)
 {
     MP4Atom *pMetaAtom = NULL;
     MP4BytesProperty *pMetadataProperty = NULL;
@@ -745,7 +745,7 @@ bool MP4File::SetMetadataFreeForm(char *name, u_int8_t* pValue, u_int32_t valueS
     pMetaAtom = m_pRootAtom->FindAtom(s);
     pMetaAtom->FindProperty("name.metadata", (MP4Property**)&pMetadataProperty);
     ASSERT(pMetadataProperty);
-    pMetadataProperty->SetValue((u_int8_t*)name, strlen(name));
+    pMetadataProperty->SetValue((const u_int8_t*)name, strlen(name));
 
     sprintf(s, "moov.udta.meta.ilst.----[%u].mean", i);
     pMetaAtom = m_pRootAtom->FindAtom(s);
@@ -756,7 +756,9 @@ bool MP4File::SetMetadataFreeForm(char *name, u_int8_t* pValue, u_int32_t valueS
     return true;
 }
 
-bool MP4File::GetMetadataFreeForm(char *name, u_int8_t** ppValue, u_int32_t *pValueSize)
+bool MP4File::GetMetadataFreeForm(const char *name, 
+				  u_int8_t** ppValue, 
+				  u_int32_t *pValueSize)
 {
     char s[256];
     int i = 0;
@@ -799,7 +801,7 @@ bool MP4File::GetMetadataFreeForm(char *name, u_int8_t** ppValue, u_int32_t *pVa
     }
 }
 
-bool MP4File::DeleteMetadataFreeForm(char *name)
+bool MP4File::DeleteMetadataFreeForm(const char *name)
 {
     char s[256];
     int i = 0;

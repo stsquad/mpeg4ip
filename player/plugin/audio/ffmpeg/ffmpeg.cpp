@@ -220,8 +220,14 @@ static int ffmpeg_decode (codec_data_t *ptr,
   uint32_t freq_ts = pts->audio_freq_timestamp;
 
   do {
+#ifndef HAVE_DECL_AVCODEC_DECODE_AUDIO2
     used = avcodec_decode_audio(ffmpeg->m_c, (short *)ffmpeg->m_outbuf,
 				&outsize, buffer, left);
+#else
+    outsize = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+    used = avcodec_decode_audio2(ffmpeg->m_c, (int16_t *)ffmpeg->m_outbuf,
+				 &outsize, buffer, left);
+#endif
     if (used < 0) {
       ffmpeg_message(LOG_DEBUG, "ffmpeg", "failed to decode at "U64, 
 		     ts);

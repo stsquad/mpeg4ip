@@ -12,12 +12,14 @@ ffmpeg_video_plugin_la_SOURCES = \
 	ffmpeg.cpp ffmpeg.h
 ffmpeg_video_plugin_la_LIBADD = \
 	-lm \
+	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/player/lib/mp4util/libmp4util.la \
 	$(top_builddir)/lib/utils/libmutex.la \
-	$(top_builddir)/player/lib/mp4util/libh264util.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
+	$(top_builddir)/player/lib/mp4util/libh264util.la \
 	$(top_builddir)/lib/ffmpeg/libmpeg4ip_ffmpeg.la \
+	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	@FFMPEG_LIB@
 
 INCLUDES = \

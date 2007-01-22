@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/utsname.h>
-#define HAVE_SRTP 1
+//#define HAVE_SRTP 1
 #ifdef HAVE_SRTP
 #include "srtp/srtp.h"
 #endif
@@ -55,7 +55,7 @@ static void c_rtp_callback(struct rtp *session, rtp_event *e)
 #endif
      
     // Save the last rtp_timestamp from the packet for use below
-    rtp_timestamp = pak->ph.ph_ts;
+    rtp_timestamp = pak->rtp_pak_ts;
     if (number_of_bytes != rtp_timestamp) {
       printf("error - bytes %u ts %u\n", number_of_bytes, rtp_timestamp);
       lseek(fd, rtp_timestamp, SEEK_SET);
@@ -279,7 +279,7 @@ static int our_srtcp_decrypt (void *foo,
 
 static int our_encrypt(void *foo, unsigned char *buffer, unsigned int *len)
 {
-  struct rtp *session;
+  //  struct rtp *session;
   unsigned int ix;
   unsigned int retdata;
   
@@ -290,7 +290,7 @@ static int our_encrypt(void *foo, unsigned char *buffer, unsigned int *len)
 
 static int our_decrypt(void *foo, unsigned char *buffer, unsigned int *len)
 {
-  struct rtp *session;
+  //  struct rtp *session;
   unsigned int ix;
   unsigned int retdata;
 
@@ -300,7 +300,7 @@ static int our_decrypt(void *foo, unsigned char *buffer, unsigned int *len)
 }
 static int our_rtcp_encrypt(void *foo, unsigned char *buffer, unsigned int *len)
 {
-  struct rtp *session;
+  //  struct rtp *session;
   unsigned int ix;
   unsigned int retdata;
   
@@ -311,7 +311,7 @@ static int our_rtcp_encrypt(void *foo, unsigned char *buffer, unsigned int *len)
 
 static int our_rtcp_decrypt(void *foo, unsigned char *buffer, unsigned int *len)
 {
-  struct rtp *session;
+  //  struct rtp *session;
   unsigned int ix;
   unsigned int retdata;
 
@@ -500,10 +500,16 @@ int main (int argc, char *argv[])
   printf("DONE WITH SRTP_CREATE\n");
   srtp_data = srtp_ctx;
 #endif
+  rtp_encryption_params_t params;
+  params.rtp_encrypt = ENCRYPT_FUNCTION;
+  params.rtcp_encrypt = RTCP_ENCRYPT_FUNCTION;
+  params.rtp_decrypt = DECRYPT_FUNCTION;
+  params.rtcp_decrypt = RTCP_DECRYPT_FUNCTION;
+  params.userdata = srtp_data;
+  params.rtp_auth_alloc_extra = params.rtcp_auth_alloc_extra = 0;
 
-  rtp_set_encryption(session, ENCRYPT_FUNCTION, DECRYPT_FUNCTION, 
-		     RTCP_ENCRYPT_FUNCTION, RTCP_DECRYPT_FUNCTION,
-		     srtp_data, extra_len);
+  rtp_set_encryption_params(session, &params);
+
   ////////////// end will
 
   recv_judge = 1;

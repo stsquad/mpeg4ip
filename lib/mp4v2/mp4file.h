@@ -338,16 +338,11 @@ public: /* equivalent to MP4 library API */
 
 	void GetTrackVideoMetadata(MP4TrackId trackId, 
 		u_int8_t** ppConfig, u_int32_t* pConfigSize);
-	void GetTrackH264ProfileLevel(MP4TrackId trackId,
-				      uint8_t *pProfile,
-				      uint8_t *pLevel);
 	bool GetTrackH264SeqPictHeaders(MP4TrackId trackId, 
 					uint8_t ***pSeqHeader,
 					uint32_t **pSeqHeaderSize,
 					uint8_t ***pPictHeader,
 					uint32_t **pPictHeaderSize);
-	void GetTrackH264LengthSize(MP4TrackId, 
-				    uint32_t *pLength);
 	const char* GetHintTrackSdp(MP4TrackId hintTrackId);
 	void SetHintTrackSdp(MP4TrackId hintTrackId, const char* sdpString);
 	void AppendHintTrackSdp(MP4TrackId hintTrackId, const char* sdpString);
@@ -571,8 +566,8 @@ public: /* equivalent to MP4 library API */
 	bool SetMetadataGenre(const char *value);
 	bool SetMetadataTempo(u_int16_t tempo);
 	bool SetMetadataCoverArt(u_int8_t *coverArt, u_int32_t size);
-	bool SetMetadataFreeForm(char *name, 
-				 u_int8_t* pValue, 
+	bool SetMetadataFreeForm(const char *name, 
+				 const u_int8_t* pValue, 
 				 u_int32_t valueSize);
  
 	/* get metadata */
@@ -587,13 +582,13 @@ public: /* equivalent to MP4 library API */
 	bool GetMetadataCoverArt(u_int8_t **coverArt, u_int32_t* size,
 				 uint32_t index = 0);
 	u_int32_t GetMetadataCoverArtCount(void);
-	bool GetMetadataFreeForm(char *name, 
+	bool GetMetadataFreeForm(const char *name, 
 				 u_int8_t** pValue, 
 				 u_int32_t* valueSize);
 
 	/* delete metadata */
 	bool DeleteMetadataGenre();
-	bool DeleteMetadataFreeForm(char *name);
+	bool DeleteMetadataFreeForm(const char *name);
 
 	/* end of MP4 API */
 

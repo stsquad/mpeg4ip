@@ -243,11 +243,17 @@ int CPlayerMedia::decode_thread (void)
 	if (ts_diff > TO_D64(1000) ||
 	    ts_diff < TO_D64(-1000)) {
 	  // out of range timestamp - we'll want to not skip here
+	  uint64_t current_time = m_parent->get_playing_time();
+	  ts_diff = ourtime.msec_timestamp - current_time;
+	  if (ts_diff > TO_D64(0) && ts_diff < TO_D64(5000)) {
+	    // fall through
+	  } else {
 	  found_out_of_range_ts = true;
 	  media_message(LOG_INFO, "found out of range ts "U64" last "U64" "D64,
 			ourtime.msec_timestamp, 
 			lasttime.msec_timestamp,
 			ts_diff);
+	  }
 	} else {
 	  uint64_t current_time = m_parent->get_playing_time();
 	  if (found_out_of_range_ts) {

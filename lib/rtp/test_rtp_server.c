@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
-#define HAVE_SRTP 1
 #ifdef HAVE_SRTP
 #include "srtp/srtp.h"
 #endif
@@ -119,7 +118,6 @@ static int our_encrypt(void *foo, unsigned char *buffer, unsigned int *len)
 
 static int our_decrypt(void *foo, unsigned char *buffer, unsigned int *len)
 {
-  struct rtp *session;
   unsigned int ix;
   unsigned int retdata;
 
@@ -145,7 +143,6 @@ static int our_rtcp_encrypt(void *foo, unsigned char *buffer, unsigned int *len)
 
 static int our_rtcp_decrypt(void *foo, unsigned char *buffer, unsigned int *len)
 {
-  struct rtp *session;
   unsigned int ix;
   unsigned int retdata;
 
@@ -167,7 +164,10 @@ int main (int argc, char *argv[])
   int c;                        
   struct hostent *h;
   struct utsname myname;
-  //  void *srtp_data;
+#ifdef HAVE_SRTP
+#else
+  void *srtp_data;
+#endif
   unsigned int extra_len;
   int do_auth = 1, do_encrypt = 1;
   ssize_t readit;
@@ -249,9 +249,16 @@ int main (int argc, char *argv[])
     perror(filename);
     exit(1);
   }
-
-  if ( (session = rtp_init_xmitter(ip_addr, rx_port, tx_port, TTL, RTCP_BW, 
-				   c_rtp_callback, NULL) ) == NULL){
+  rtp_stream_params_t rsp;
+  rtp_default_params(&rsp);
+  rsp.rtp_addr = ip_addr;
+  rsp.rtp_rx_port = rx_port;
+  rsp.rtp_tx_port = tx_port;
+  rsp.rtp_ttl = TTL;
+  rsp.rtcp_bandwidth = RTCP_BW;
+  rsp.rtp_callback = c_rtp_callback;
+  rsp.transmit_initial_rtcp = 1;
+  if ( (session = rtp_init_stream(&rsp) ) == NULL){
     exit(-1);
   }
   rtp_set_my_ssrc(session,OUR_SSRC);
@@ -325,9 +332,15 @@ int main (int argc, char *argv[])
   extra_len = 0;
   srtp_data = NULL;
 #endif
-  rtp_set_encryption(session, ENCRYPT_FUNCTION, DECRYPT_FUNCTION, 
-		     RTCP_ENCRYPT_FUNCTION, RTCP_DECRYPT_FUNCTION, 
-		     srtp_ctx, extra_len);
+  rtp_encryption_params_t params;
+  params.rtp_encrypt = ENCRYPT_FUNCTION;
+  params.rtcp_encrypt = RTCP_ENCRYPT_FUNCTION;
+  params.rtp_decrypt = DECRYPT_FUNCTION;
+  params.rtcp_decrypt = RTCP_DECRYPT_FUNCTION;
+  params.userdata = srtp_data;
+  params.rtp_auth_alloc_extra = params.rtcp_auth_alloc_extra = 0;
+
+  rtp_set_encryption_params(session, &params);
 
   if (do_rtcp) {
     rtcp_file = fopen("server.rtcp", FOPEN_WRITE_BINARY);

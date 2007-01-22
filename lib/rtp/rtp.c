@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.33 $ 
- * $Date: 2006/10/23 22:26:39 $
+ * $Revision: 1.34 $ 
+ * $Date: 2007/01/22 17:31:08 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -51,12 +51,12 @@
 #include "memory.h"
 #include "debug.h"
 #include "net_udp.h"
-#include "crypt_random.h"
-#include "rijndael-api-fst.h"
-#include "drand48.h"
+//#include "crypt_random.h"
+//#include "rijndael-api-fst.h"
+//#include "drand48.h"
 #include "gettimeofday.h"
-#include "qfDES.h"
-#include "md5.h"
+//#include "qfDES.h"
+//#include "md5.h"
 #include "ntp.h"
 #include "mutex.h"
 
@@ -75,6 +75,7 @@ extern int chk_header_okay(const chk_header *ch);
  */
 #define MAX_ENCRYPTION_PAD 16
 
+#if 0
 static int rijndael_initialize(struct rtp *session, u_char *hash, int hash_len);
 
 static int rijndael_decrypt(void *ifptr, uint8_t *data,
@@ -87,6 +88,7 @@ static int des_decrypt(void *ifptr, uint8_t *data,
 		       unsigned int *size);
 static int des_encrypt(void *ifptr, uint8_t *data,
 		       unsigned int *size);
+#endif
 
 #define MAX_DROPOUT    3000
 #define MAX_MISORDER   100
@@ -269,18 +271,7 @@ struct rtp {
   unsigned int rtp_encryption_lenadd;
   unsigned int rtcp_encryption_pad_length;
   unsigned int rtcp_encryption_lenadd;
-  unsigned int rtcp_encryption_add_prefix;
-  void *encrypt_userdata; // added by nori
-  union {
-    struct {
-      keyInstance keyInstEncrypt;
-      keyInstance keyInstDecrypt;
-      cipherInstance cipherInst;
-    } rijndael;
-    struct {
-      unsigned char            *encryption_key;
-    } des;
-  } crypto_state;
+  void *encrypt_userdata;
   rtp_callback_f	 callback;
   send_packet_f rtcp_send_packet;
   send_packet_f rtp_send_packet;
@@ -1088,6 +1079,8 @@ struct rtp *rtp_init(const char *addr,
   return rtp_init_stream(&rsp);
 }
 
+#if 0
+// not used any more - use rtp_init_stream with transmit_initial_rtcp = 1
 struct rtp *rtp_init_xmitter (const char *addr, 
 			      uint16_t rx_port, uint16_t tx_port,
 			      int ttl, double rtcp_bw, 
@@ -1108,20 +1101,7 @@ struct rtp *rtp_init_xmitter (const char *addr,
 
   return rtp_init_stream(&rsp);
 }
-
-struct rtp *rtp_init_extern_net (const char *addr, 
-				 uint16_t rx_port, uint16_t tx_port, 
-				 int ttl, double rtcp_bw, 
-				 rtp_callback_f callback,
-				 send_packet_f rtcp_send_packet,
-				 void *userdata)
-{
-  rtp_t rtp_ptr = rtp_init_if(addr, NULL, rx_port, tx_port, ttl, rtcp_bw, callback, userdata, 1);
-  if (rtp_ptr == NULL) return NULL;
-
-  rtp_ptr->rtcp_send_packet = rtcp_send_packet;
-  return (rtp_ptr);
-}
+#endif
 /**
  * rtp_init_if:
  * @addr: IP destination of this session (unicast or multicast),
@@ -2043,10 +2023,6 @@ void rtp_process_ctrl (struct rtp *session, uint8_t *buffer, uint32_t buflen)
 	/* Decrypt the packet... */
 	int ret = (session->rtcp_decrypt_func)(session->encrypt_userdata, buffer, &buflen);
 	if (ret == FALSE) return;
-	if (session->rtcp_encryption_add_prefix) {
-	  buffer += 4;	/* Skip the random prefix... */
-	  buflen -= 4;
-	}
       }
     rtp_process_rtcp(session, buffer, buflen);
   }
@@ -2876,13 +2852,6 @@ static void send_rtcp(struct rtp *session,
   unsigned int length, new_length;
 
   check_database(session);
-  /* If encryption is enabled, add a 32 bit random prefix to the packet */
-  if (session->rtcp_encryption_enabled && session->rtcp_encryption_add_prefix)
-    {
-      *((uint32_t *) ptr) = lbl_random();
-      ptr += 4;
-      start = ptr;
-    }
 
   /* The first RTCP packet in the compound packet MUST always be a report packet...  */
   if (session->we_sent) {
@@ -3120,11 +3089,6 @@ static void rtp_send_bye_now(struct rtp *session)
   unsigned int length, new_length; //nori
   check_database(session);
   /* If encryption is enabled, add a 32 bit random prefix to the packet */
-  if (session->rtcp_encryption_enabled && session->rtcp_encryption_add_prefix) {
-    *((uint32_t *) ptr) = lbl_random();
-    ptr += 4;
-  }
-
   ptr    = format_rtcp_rr(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), session);    
   common = (rtcp_common *) ptr;
 		
@@ -3322,257 +3286,7 @@ void rtp_done(struct rtp *session)
   xfree(session);
 }
 
-/**
- * rtp_set_encryption_key:
- * @session: The RTP session.
- * @passphrase: The user-provided "pass phrase" to map to an encryption key.
- *
- * Converts the user supplied key into a form suitable for use with RTP
- * and install it as the active key. Passing in NULL as the passphrase
- * disables encryption. The passphrase is converted into a DES key as
- * specified in RFC1890, that is:
- * 
- *   - convert to canonical form
- * 
- *   - derive an MD5 hash of the canonical form
- * 
- *   - take the first 56 bits of the MD5 hash
- * 
- *   - add parity bits to form a 64 bit key
- * 
- * Note that versions of rat prior to 4.1.2 do not convert the passphrase
- * to canonical form before taking the MD5 hash, and so will
- * not be compatible for keys which are non-invarient under this step.
- *
- * Determine from the user's encryption key which encryption
- * mechanism we're using. Per the RTP RFC, if the key is of the form
- *
- *	string/key
- *
- * then "string" is the name of the encryption algorithm,  and
- * "key" is the key to be used. If no / is present, then the
- * algorithm is assumed to be (the appropriate variant of) DES.
- *
- * Returns: TRUE on success, FALSE on failure.
- */
-int rtp_set_encryption_key(struct rtp* session, const char *passphrase)
-{
-  char	*canonical_passphrase;
-  u_char	 hash[16];
-  MD5_CTX	 context;
-  char *slash;
-
-  check_database(session);
-  if (session->encryption_algorithm != NULL) {
-    xfree(session->encryption_algorithm);
-    session->encryption_algorithm = NULL;
-  }
-
-  if (passphrase == NULL) {
-    /* A NULL passphrase means disable encryption... */
-    session->rtp_encryption_enabled = 0;
-    check_database(session);
-    return TRUE;
-  }
-
-  rtp_message(LOG_DEBUG, "Enabling RTP/RTCP encryption");
-  session->rtp_encryption_enabled = 1;
-
-  /*
-   * Determine which algorithm we're using.
-   */
-	 
-  slash = strchr(passphrase, '/');
-  if (slash == 0)
-    {
-      session->encryption_algorithm = xstrdup("DES");
-    }
-  else
-    {
-      int l = slash - passphrase;
-      session->encryption_algorithm = (char *)xmalloc(l + 1);
-      strncpy(session->encryption_algorithm, passphrase, l);
-      session->encryption_algorithm[l] = '\0';
-      passphrase = slash + 1;
-    }
-	 
-  rtp_message(LOG_INFO, "Initializing encryption, algorithm is '%s'",
-	      session->encryption_algorithm);
-	 
-  /* Step 1: convert to canonical form, comprising the following steps:  */
-  /*   a) convert the input string to the ISO 10646 character set, using */
-  /*      the UTF-8 encoding as specified in Annex P to ISO/IEC          */
-  /*      10646-1:1993 (ASCII characters require no mapping, but ISO     */
-  /*      8859-1 characters do);                                         */
-  /*   b) remove leading and trailing white space characters;            */
-  /*   c) replace one or more contiguous white space characters by a     */
-  /*      single space (ASCII or UTF-8 0x20);                            */
-  /*   d) convert all letters to lower case and replace sequences of     */
-  /*      characters and non-spacing accents with a single character,    */
-  /*      where possible.                                                */
-  canonical_passphrase = (char *) xstrdup(passphrase);	/* FIXME */
-
-  /* Step 2: derive an MD5 hash */
-  MD5Init(&context);
-  MD5Update(&context, (u_char *) canonical_passphrase, strlen(canonical_passphrase));
-  MD5Final((u_char *) hash, &context);
-
-  /* Initialize the encryption algorithm we've received */
-
-  if (strcmp(session->encryption_algorithm, "DES") == 0)
-    {
-      return des_initialize(session, hash, sizeof(hash));
-    }
-  else if (strcmp(session->encryption_algorithm, "Rijndael") == 0)
-    {
-      return rijndael_initialize(session, hash, sizeof(hash));
-    }
-  else
-    {
-      rtp_message(LOG_ERR, "Encryption algorithm \"%s\" not found",
-		  session->encryption_algorithm);
-      return FALSE;
-    }
-}
-
-static int des_initialize(struct rtp *session, u_char *hash, int hashlen)
-{
-  unsigned char *key;
-  int	 i, j, k;
-		
-  UNUSED(hashlen);
-
-  rtp_set_encryption(session,des_encrypt, des_decrypt, des_encrypt, des_decrypt, session->encrypt_userdata, 0);
-  session->rtp_encryption_pad_length = 8;
-  session->rtcp_encryption_pad_length = 8;
-  //nori
-  //	session->encrypt_func = des_encrypt;
-  //session->decrypt_func = des_decrypt;
-
-  if (session->crypto_state.des.encryption_key != NULL) {
-    xfree(session->crypto_state.des.encryption_key);
-  }
-
-  key = session->crypto_state.des.encryption_key = (unsigned char *) xmalloc(8);
-
-  /* Step 3: take first 56 bits of the MD5 hash */
-  key[0] = hash[0];
-  key[1] = hash[0] << 7 | hash[1] >> 1;
-  key[2] = hash[1] << 6 | hash[2] >> 2;
-  key[3] = hash[2] << 5 | hash[3] >> 3;
-  key[4] = hash[3] << 4 | hash[4] >> 4;
-  key[5] = hash[4] << 3 | hash[5] >> 5;
-  key[6] = hash[5] << 2 | hash[6] >> 6;
-  key[7] = hash[6] << 1;
-
-  /* Step 4: add parity bits */
-  for (i = 0; i < 8; ++i) {
-    k = key[i] & 0xfe;
-    j = k;
-    j ^= j >> 4;
-    j ^= j >> 2;
-    j ^= j >> 1;
-    j = (j & 1) ^ 1;
-    key[i] = k | j;
-  }
-
-  check_database(session);
-  return TRUE;
-}
-
-//static
-int des_encrypt(void *ifptr, uint8_t *data,
-		unsigned int *size)
-{
-  struct rtp *session = (struct rtp *)ifptr;
-
-  uint8_t 	 initVec[8] = {0,0,0,0,0,0,0,0};
-  qfDES_CBC_e(session->crypto_state.des.encryption_key,
-	      data, *size, initVec);
-  return TRUE;
-}
-
-//static 
-int des_decrypt(void *ifptr, uint8_t *data,
-		unsigned int *size)
-{
-  struct rtp *session = (struct rtp *)ifptr;
-  uint8_t 	 initVec[8] = {0,0,0,0,0,0,0,0};
-  qfDES_CBC_d(session->crypto_state.des.encryption_key,
-	      data, *size, initVec);
-  return TRUE;
-}
-
-static int rijndael_initialize(struct rtp *session, u_char *hash, int hash_len)
-{
-  int rc;
-	
-  rtp_set_encryption(session,rijndael_encrypt, rijndael_decrypt,rijndael_encrypt, rijndael_decrypt, session->encrypt_userdata, 0);
-  session->rtp_encryption_pad_length = 16;
-  session->rtcp_encryption_pad_length = 16;
-  //nori
-  //	session->encrypt_func = rijndael_encrypt;
-  //session->decrypt_func = rijndael_decrypt;
-
-  rc = makeKey(&session->crypto_state.rijndael.keyInstEncrypt,
-	       DIR_ENCRYPT, hash_len * 8, (char *) hash);
-  if (rc < 0)
-    {
-      debug_msg("makeKey failed: %d\n", rc);
-      return FALSE;
-    }
-
-  rc = makeKey(&session->crypto_state.rijndael.keyInstDecrypt,
-	       DIR_DECRYPT, hash_len * 8, (char *) hash);
-  if (rc < 0)
-    {
-      debug_msg("makeKey failed: %d\n", rc);
-      return FALSE;
-    }
-
-  rc = cipherInit(&session->crypto_state.rijndael.cipherInst,
-		  MODE_ECB, NULL);
-  if (rc < 0)
-    {
-      debug_msg("cipherInst failed: %d\n", rc);
-      return FALSE;
-    }
-  return TRUE;
-}
-
-static int rijndael_encrypt(void *ifptr, uint8_t *data,
-			    unsigned int *size)
-{
-  struct rtp *session = (struct rtp *)ifptr;
-  int rc;
-
-
-  /*
-   * Try doing this in place. If it doesn't work that way,
-   * we'll have to allocate a buffer and copy back.
-   */
-  rc = blockEncrypt(&session->crypto_state.rijndael.cipherInst,
-		    &session->crypto_state.rijndael.keyInstEncrypt,
-		    data, (*size) * 8, data);
-  return rc;
-}
-
-static int rijndael_decrypt(void *ifptr, uint8_t *data,
-			    unsigned int *size)
-{
-  struct rtp *session = (struct rtp *)ifptr;
-  int rc;
-
-  /*
-   * Try doing this in place. If it doesn't work that way,
-   * we'll have to allocate a buffer and copy back.
-   */
-  rc = blockDecrypt(&session->crypto_state.rijndael.cipherInst,
-		    &session->crypto_state.rijndael.keyInstDecrypt,
-		    data, (*size) * 8, data);
-  return rc;
-}
-
+ 
 /**
  * rtp_get_addr:
  * @session: The RTP Session.
@@ -3625,26 +3339,6 @@ int rtp_get_ttl(struct rtp *session)
   return session->ttl;
 }
 
-int rtp_set_encryption (struct rtp *session, 
-			rtp_encrypt_f rtp_efunc, rtp_decrypt_f rtp_dfunc, 
-			rtp_encrypt_f rtcp_efunc, rtp_decrypt_f rtcp_dfunc, 
-			void *userdata, unsigned int alloc_extra)
-{
-
-  rtp_message(LOG_DEBUG, "Enabling SRTP encryption");
-  session->rtp_encryption_enabled = rtp_efunc != NULL;
-  session->rtp_encrypt_func = rtp_efunc;
-  session->rtp_decrypt_func = rtp_dfunc;
-  session->rtcp_encryption_enabled = rtcp_efunc != NULL;
-  session->rtcp_encrypt_func = rtcp_efunc;
-  session->rtcp_decrypt_func = rtcp_dfunc;
-  session->encrypt_userdata = userdata;
-  session->rtp_encryption_pad_length = 0;
-  session->rtcp_encryption_pad_length = 0;
-  session->rtp_encryption_lenadd = alloc_extra;
-  session->rtcp_encryption_lenadd = alloc_extra;
-  return 0;
-}
 
 int rtp_set_encryption_params (struct rtp *session, rtp_encryption_params_t *params) 
 {

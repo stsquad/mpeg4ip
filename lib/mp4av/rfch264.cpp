@@ -23,6 +23,7 @@
 #include <mp4av_h264.h>
 
 //#define DEBUG_H264_HINT 1
+//#define ADD_PICT_SEQ_TO_STREAM 1
 
 extern "C" MP4TrackId MP4AV_H264_HintTrackCreate (MP4FileHandle mp4File,
 						  MP4TrackId mediaTrackId,
@@ -147,6 +148,7 @@ static uint8_t h264_get_sample_nal_type (uint8_t *pSampleBuffer,
   return 0;
 }
 extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
+					  MP4TrackId mediaTrackId,
 					  MP4TrackId hintTrackId,
 					  MP4SampleId sampleId,
 					  uint8_t *pSampleBuffer,
@@ -171,6 +173,47 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
 #endif
   MP4AddRtpVideoHint(mp4File, hintTrackId, isBFrame, renderingOffset);
 
+#ifdef ADD_PICT_SEQ_TO_STREAM
+  if (nal_type == H264_NAL_TYPE_IDR_SLICE) {
+    u_int8_t **pSeq, **pPict ;
+    u_int32_t *pSeqSize, *pPictSize;
+    MP4GetTrackH264SeqPictHeaders(mp4File,
+				  mediaTrackId,
+				  &pSeq,
+				  &pSeqSize,
+				  &pPict,
+				  &pPictSize);
+    uint ix;
+    for (ix = 0; pSeqSize[ix] != 0; ix++) {
+      MP4AddRtpPacket(mp4File, hintTrackId, false);
+      uint8_t *seq = pSeq[ix];
+      uint len = pSeqSize[ix];
+      do {
+	uint wb = len > 14 ? 14 : len;
+	MP4AddRtpImmediateData(mp4File, hintTrackId, seq, wb);
+	seq += wb;
+	len -= wb;
+      } while (len > 0);
+      free(pSeq[ix]);
+    }
+    for (ix = 0; pPictSize[ix] != 0; ix++) {
+      MP4AddRtpPacket(mp4File, hintTrackId, false);
+      uint8_t *seq = pPict[ix];
+      uint len = pPictSize[ix];
+      do {
+	uint wb = len > 14 ? 14 : len;
+	MP4AddRtpImmediateData(mp4File, hintTrackId, seq, wb);
+	seq += wb;
+	len -= wb;
+      } while (len > 0);
+      free(pPict[ix]);
+    }
+    free(pSeq);
+    free(pPict);
+    free(pSeqSize);
+    free(pPictSize);
+  }
+#endif
   if (sampleSize - sizeLength < maxPayloadSize) {
     uint32_t first_nal = h264_get_nal_size(pSampleBuffer, sizeLength);
     if (first_nal + sizeLength == sampleSize) {
@@ -381,6 +424,7 @@ extern "C" bool MP4AV_H264Hinter(
     }
 
     MP4AV_H264_HintAddSample(mp4File,
+			     mediaTrackId,
 			     hintTrackId,
 			     sampleId,
 			     pSampleBuffer,

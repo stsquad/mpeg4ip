@@ -693,17 +693,20 @@ void CAVMediaFlow::Start (bool startvideo,
       if (ve_ptr != NULL) {
 	ve_ptr->AddRtpDestination(s,
 				  m_pConfig->GetBoolValue(CONFIG_RTP_DISABLE_TS_OFFSET),
-				  m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL));
+				  m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL),
+				  s->GetIntegerValue(STREAM_VIDEO_SRC_PORT));
       }
       if (ae_ptr != NULL) {
 	ae_ptr->AddRtpDestination(s,
 				  m_pConfig->GetBoolValue(CONFIG_RTP_DISABLE_TS_OFFSET),
-				  m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL));
+				  m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL),
+				  s->GetIntegerValue(STREAM_AUDIO_SRC_PORT));
       }
       if (te_ptr != NULL) {
 	te_ptr->AddRtpDestination(s,
 				  m_pConfig->GetBoolValue(CONFIG_RTP_DISABLE_TS_OFFSET),
-				  m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL));
+				  m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL),
+				  s->GetIntegerValue(STREAM_TEXT_SRC_PORT));
       }
       createStreamSdp(m_pConfig, s);
     }

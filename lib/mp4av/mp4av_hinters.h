@@ -144,6 +144,7 @@ bool MP4AV_RfcCryptoVideoHinter(
 					MP4TrackId mediaTrackId,
 					uint16_t maxPayload DEFAULT_PARM(0));
   void MP4AV_H264_HintAddSample(MP4FileHandle mp4File,
+				MP4TrackId mediaTrackId,
 				MP4TrackId hintTrackId,
 				MP4SampleId sampleId,
 				uint8_t *pSampleBuffer,

@@ -1111,6 +1111,10 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
       case MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE:
 	rc = L16Hinter(mp4File, mediaTrackId, maxPayloadSize);
 	break;
+      case MP4_ULAW_AUDIO_TYPE:
+      case MP4_ALAW_AUDIO_TYPE:
+	rc = G711Hinter(mp4File, mediaTrackId, maxPayloadSize);
+	break;
       default:
 	fprintf(stderr, 
 		"%s: can't hint non-MPEG4/non-MP3 audio type\n", ProgName);

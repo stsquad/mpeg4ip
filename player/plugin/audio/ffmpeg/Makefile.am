@@ -15,6 +15,7 @@ ffmpeg_audio_plugin_la_SOURCES = \
 ffmpeg_audio_plugin_la_LIBADD = \
 	-lm \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
+	$(top_builddir)/lib/utils/libmutex.la \
 	$(top_builddir)/lib/ffmpeg/libmpeg4ip_ffmpeg.la \
 	@FFMPEG_LIB@
 
