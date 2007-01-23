@@ -407,7 +407,6 @@ bool CALSAAudioCapabilities::ProbeDevice()
     m_samplingRates[i] = 0;
   }
 
-  snd_pcm_drop(pcm_handle);
   snd_pcm_close(pcm_handle);
   return true;
 }

@@ -27,6 +27,10 @@
 #define _WIN32_WINNT 0x0400
 #define _WINSOCKAPI_
 #define _INTEGRAL_MAX_BITS 64
+#define _CRT_SECURE_NO_DEPRECATE
+#ifndef _WIN32
+#define _WIN32
+#endif
 #include <windows.h>
 #include <winsock2.h>
 #include <stdio.h>
@@ -43,10 +47,10 @@ typedef unsigned __int64 u_int64_t;
 typedef unsigned __int32 u_int32_t;
 typedef unsigned __int16 u_int16_t;
 typedef unsigned __int8 u_int8_t;
-typedef __int64 int64_t;
-typedef __int32 int32_t;
-typedef __int16 int16_t;
-typedef __int8  int8_t;
+typedef signed __int64 int64_t;
+typedef signed __int32 int32_t;
+typedef signed __int16 int16_t;
+typedef signed __int8  int8_t;
 typedef unsigned short in_port_t;
 typedef int socklen_t;
 typedef int ssize_t;
@@ -128,10 +132,12 @@ char *strcasestr(const char *haystack, const char *needle);
 
 #define SIZEOF_BOOL 1
 
+#ifndef _SS_PAD1SIZE
 struct sockaddr_storage {
 	unsigned short ss_family;
 	uint32_t ss_align;
 	char __ss_padding[128 - 2 * sizeof(uint32_t)];
 };
-
+#endif
+#pragma warning(disable : 4244)
 #endif

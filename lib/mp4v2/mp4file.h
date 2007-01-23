@@ -824,7 +824,7 @@ protected:
 #ifndef _WIN32
 	char m_tempFileName[64];
 #else
-	char m_tempFileName[MAX_PATH + 3];
+	WCHAR m_tempFileName[MAX_PATH + 3];
 #endif
 	char m_trakName[1024];
 	char *m_editName;

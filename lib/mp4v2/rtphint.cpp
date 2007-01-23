@@ -314,7 +314,7 @@ void MP4RtpHintTrack::GetPayload(
 	char **ppEncodingParams)
 {
   const char* pRtpMap;
-  char* pSlash;
+  const char* pSlash;
   u_int32_t length;
 	InitPayload();
 

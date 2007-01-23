@@ -35,61 +35,90 @@ static config_index_t CFG_X264_USE_CABAC;
 #ifndef HAVE_X264_PARAM_T_RC_I_RC_METHOD
 static config_index_t CFG_X264_USE_CBR;
 #endif
-static config_index_t CFG_X264_BIT_RATE_TOLERANCE;
+static config_index_t CFG_X264_USE_PSNR;
+static config_index_t CFG_X264_USE_SSIM;
+static config_index_t CFG_X264_USE_8x8_DCT;
+static config_index_t CFG_X264_LEVEL;
+static config_index_t CFG_X264_PARTITIONS;
+static config_index_t CFG_X264_ME;
+static config_index_t CFG_X264_ME_RANGE;
+static config_index_t CFG_X264_SUBME;
 static config_index_t CFG_X264_USE_VBV;
-static config_index_t CFG_X264_VBV_BITRATE_MULT;
-static config_index_t CFG_X264_VBV_BUFFER_SIZE_MULT;
+static config_index_t CFG_X264_VBV_MAXRATE;
+static config_index_t CFG_X264_VBV_BUFSIZE;
+static config_index_t CFG_X264_BIT_RATE_TOLERANCE;
 static config_index_t CFG_X264_THREADS;
 static config_index_t CFG_X264_SAR_WIDTH;
 static config_index_t CFG_X264_SAR_HEIGHT;
 
 static SConfigVariable X264EncoderVariables[] = {
-  CONFIG_BOOL(CFG_X264_FORCE_BASELINE, "x264ForceBaseline", false),
-  CONFIG_BOOL(CFG_X264_USE_CABAC, "x264UseCabac", true),
+  CONFIG_BOOL_HELP(CFG_X264_FORCE_BASELINE, "x264ForceBaseline", false, "Turns off CABC and b-frames. Turns on VBV."),
+  CONFIG_BOOL_HELP(CFG_X264_USE_CABAC, "x264UseCabac", true, "Turn on CABAC (Context-based Adaptive Binary Arithmetic Coding) (--no-cabac)"),
 #ifndef HAVE_X264_PARAM_T_RC_I_RC_METHOD
   CONFIG_BOOL(CFG_X264_USE_CBR, "x264UseCbr", true),
 #endif
-  CONFIG_FLOAT(CFG_X264_BIT_RATE_TOLERANCE, "x264BitRateTolerance", 1.0),
+  CONFIG_BOOL_HELP(CFG_X264_USE_PSNR, "x264UsePsnr", true, "Enable Peak Signal-to-Noise Ratio computation (--no-psnr)"),
+  CONFIG_BOOL_HELP(CFG_X264_USE_SSIM, "x264UseSsim", true, "Enable Structural Similarity Index computation (--no-ssim)"),
+  CONFIG_BOOL_HELP(CFG_X264_USE_8x8_DCT, "x264Use8x8dct", false, "Adaptive spatial transform size (--8x8dct)"),
+  CONFIG_STRING_HELP(CFG_X264_LEVEL, "x264Level", NULL, "Specify level (as defined by Annex A) (--level)"),
+  CONFIG_STRING_HELP(CFG_X264_PARTITIONS, "x264Partitions", NULL, "Partitions to consider [\"p8x8,b8x8,i8x8,i4x4\"] (--partitions)\n     - p8x8, p4x4, b8x8, i8x8, i4x4\n     - none, all\n     (p4x4 requires p8x8. i8x8 requires --8x8dct.)"),
+  CONFIG_STRING_HELP(CFG_X264_ME, "x264Me", NULL, "Integer pixel motion estimation method [\"hex\"] (--me)\n     - dia: diamond search, radius 1 (fast)\n     - hex: hexagonal search, radius 2\n     - umh: uneven multi-hexagon search\n     - esa: exhaustive search (slow)"),
+  CONFIG_INT_HELP(CFG_X264_ME_RANGE, "x264MeRange", 16, "Maximum motion vector search range [16] (--merange)"),
+  CONFIG_INT_HELP(CFG_X264_SUBME, "x264Subme", 5, "Subpixel motion estimation and partition decision quality: 1=fast, 7=best. [5] (--subme)"),
   CONFIG_BOOL(CFG_X264_USE_VBV, "x264UseVbv", false),
-  CONFIG_FLOAT(CFG_X264_VBV_BITRATE_MULT, "x264VbvBitRateMult", 1.0),
-  CONFIG_FLOAT(CFG_X264_VBV_BUFFER_SIZE_MULT, "x264VbvBufferSizeMult", 10.0),
-  CONFIG_INT(CFG_X264_THREADS, "x264Threads", 1),
-  CONFIG_INT(CFG_X264_SAR_WIDTH, "x264SarWidth", 0),
-  CONFIG_INT(CFG_X264_SAR_HEIGHT, "x264SarHeight", 0),
+  CONFIG_INT_HELP(CFG_X264_VBV_MAXRATE, "x264VbvMaxrate", 0, "Max local bitrate (kbit/s) [0] (--vbv-maxrate)"),
+  CONFIG_INT_HELP(CFG_X264_VBV_BUFSIZE, "x264VbvBufsize", 0, "Enable CBR and set size of the VBV buffer (kbit) [0] (--vbv-bufsize)"),
+  CONFIG_FLOAT_HELP(CFG_X264_BIT_RATE_TOLERANCE, "x264BitRateTolerance", 1.0, "Allowed variance of average bitrate [1.0] (--ratetol)"),
+  CONFIG_INT_HELP(CFG_X264_THREADS, "x264Threads", 0, "Parallel encoding (0=auto) (--threads)"),
+  CONFIG_INT_HELP(CFG_X264_SAR_WIDTH, "x264SarWidth", 0, "Specify Sample Aspect Ratio Width (--sar width:height)"),
+  CONFIG_INT_HELP(CFG_X264_SAR_HEIGHT, "x264SarHeight", 0, "Specify Sample Aspect Ratio Height (--sar width:height)"),
 };
 
-GUI_BOOL(gui_baseline, CFG_X264_FORCE_BASELINE, "Force Baseline (overrides below)");
-GUI_BOOL(gui_cabac, CFG_X264_USE_CABAC, "Use Cabac");
+GUI_BOOL(gui_baseline, CFG_X264_FORCE_BASELINE, "Force Baseline");
+GUI_BOOL(gui_cabac, CFG_X264_USE_CABAC, "Enable CABAC");
 #ifndef HAVE_X264_PARAM_T_RC_I_RC_METHOD
 GUI_BOOL(gui_cbr, CFG_X264_USE_CBR, "Use CBR");
 #endif
+GUI_BOOL(gui_psnr, CFG_X264_USE_PSNR, "Enable PSNR");
+GUI_BOOL(gui_ssim, CFG_X264_USE_SSIM, "Enable SSIM");
+GUI_BOOL(gui_8x8dct, CFG_X264_USE_8x8_DCT, "Enable 8x8dct");
+GUI_STRING(gui_level, CFG_X264_LEVEL, "Level");
+GUI_STRING(gui_x264_partitions, CFG_X264_PARTITIONS, "Partitions");
+GUI_STRING(gui_x264_me, CFG_X264_ME, "ME");
+GUI_INT(gui_x264_me_range, CFG_X264_ME_RANGE, "ME Range");
+GUI_INT(gui_x264_subme, CFG_X264_SUBME, "Subme");
+
 GUI_BOOL(gui_bframe, CFG_VIDEO_USE_B_FRAMES, "Use B Frames");
 GUI_INT_RANGE(gui_bframenum, CFG_VIDEO_NUM_OF_B_FRAMES, "Number of B frames", 1, 4);
 
-GUI_FLOAT_RANGE(gui_brate, CFG_X264_BIT_RATE_TOLERANCE, "Bit Rate Tolerance", 
-		.01, 100.0);
-
 GUI_BOOL(gui_vbv, CFG_X264_USE_VBV, "Use VBV Settings");
-GUI_FLOAT_RANGE(gui_vbvm, CFG_X264_VBV_BITRATE_MULT, 
-		"VBV Bit Rate Multiplier", 1.0, 2.0);
-GUI_FLOAT_RANGE(gui_vbv2, CFG_X264_VBV_BUFFER_SIZE_MULT,
-		"VBV Buffer Size Multiplier", 0.0001, 100.0);
-GUI_INT_RANGE(gui_threads, CFG_X264_THREADS, "Number of Threads", 1, 8);
+GUI_INT(gui_vbv_maxrate, CFG_X264_VBV_MAXRATE, "VBV Maxrate");
+GUI_INT(gui_vbv_bufsize, CFG_X264_VBV_BUFSIZE, "VBV Buffer Size");
+GUI_FLOAT_RANGE(gui_brate, CFG_X264_BIT_RATE_TOLERANCE, "Bit Rate Tolerance", .01, 100.0);
+GUI_INT_RANGE(gui_threads, CFG_X264_THREADS, "Number of Threads", 0, 8);
 GUI_INT_RANGE(gui_sar_w, CFG_X264_SAR_WIDTH, "Source Aspect Ratio Width", 0, 65536);
 GUI_INT_RANGE(gui_sar_h, CFG_X264_SAR_HEIGHT, "Source Aspect Ratio Height", 0, 65536);
 
 DECLARE_TABLE(x264_gui_options) = {
   TABLE_GUI(gui_baseline),
-  TABLE_GUI(gui_cabac),
 #ifndef HAVE_X264_PARAM_T_RC_I_RC_METHOD
   TABLE_GUI(gui_cbr),
 #endif
+  TABLE_GUI(gui_level),
+  TABLE_GUI(gui_x264_partitions),
+  TABLE_GUI(gui_x264_me),
+  TABLE_GUI(gui_x264_me_range),
+  TABLE_GUI(gui_x264_subme),
   TABLE_GUI(gui_bframe),
   TABLE_GUI(gui_bframenum),
-  TABLE_GUI(gui_brate),
+  TABLE_GUI(gui_cabac),
+  TABLE_GUI(gui_psnr),
+  TABLE_GUI(gui_ssim),
+  TABLE_GUI(gui_8x8dct),
   TABLE_GUI(gui_vbv),
-  TABLE_GUI(gui_vbvm),
-  TABLE_GUI(gui_vbv2),
+  TABLE_GUI(gui_vbv_maxrate),
+  TABLE_GUI(gui_vbv_bufsize),
+  TABLE_GUI(gui_brate),
   TABLE_GUI(gui_threads),
   TABLE_GUI(gui_sar_w),
   TABLE_GUI(gui_sar_h),
@@ -100,6 +129,17 @@ void AddX264ConfigVariables (CVideoProfile *pConfig)
 {
   pConfig->AddConfigVariables(X264EncoderVariables,
 			      NUM_ELEMENTS_IN_ARRAY(X264EncoderVariables));
+}
+
+static int x264_parse_enum( const char *arg, const char * const *names, int *dst ) {
+    int i;
+    for( i = 0; names[i]; i++ )
+        if( !strcmp( arg, names[i] ) )
+        {
+            *dst = i;
+            return 0;
+        }
+    return -1;
 }
 
 static void x264_log (void *p_unused, int ilevel, const char *fmt, va_list arg)
@@ -150,8 +190,11 @@ bool CX264VideoEncoder::Init (void)
 #endif
 
   if (Profile()->GetBoolValue(CFG_X264_FORCE_BASELINE)) {
-    Profile()->SetBoolValue(CFG_X264_USE_CABAC, false);
     Profile()->SetBoolValue(CFG_VIDEO_USE_B_FRAMES, false);
+    Profile()->SetBoolValue(CFG_X264_USE_CABAC, false);
+    Profile()->SetBoolValue(CFG_X264_USE_PSNR, false);
+    Profile()->SetBoolValue(CFG_X264_USE_SSIM, false);
+    Profile()->SetBoolValue(CFG_X264_USE_8x8_DCT, false);
     Profile()->SetBoolValue(CFG_X264_USE_VBV, true);
     if (Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE) > 768) {
       Profile()->SetIntegerValue(CFG_VIDEO_BIT_RATE, 768);
@@ -172,8 +215,9 @@ bool CX264VideoEncoder::Init (void)
 	  Profile()->GetFloatValue(CFG_VIDEO_KEY_FRAME_INTERVAL));
   if (Profile()->GetBoolValue(CFG_VIDEO_USE_B_FRAMES)) {
     m_param.i_bframe = Profile()->GetIntegerValue(CFG_VIDEO_NUM_OF_B_FRAMES);
-  } else 
+  } else {
     m_param.i_bframe = 0;
+  }
   //debug_message("h264 b frames %d", m_param.i_bframe);
   m_param.rc.i_bitrate = Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE);
 #ifndef HAVE_X264_PARAM_T_RC_I_RC_METHOD
@@ -182,28 +226,97 @@ bool CX264VideoEncoder::Init (void)
   m_param.rc.i_rc_method = X264_RC_ABR;
 #endif
   m_param.rc.f_rate_tolerance = Profile()->GetFloatValue(CFG_X264_BIT_RATE_TOLERANCE);
+
+  const char *level = Profile()->GetStringValue(CFG_X264_LEVEL);
+  if(level != NULL) {
+  	if( strstr( level, "1b" ) ) {
+      m_param.i_level_idc = 1;
+  	} else {
+      if( atof(level) < 6 )
+        m_param.i_level_idc = (int)(10*atof(level)+.5);
+      else
+        m_param.i_level_idc = atoi(level);
+  	}
+  }
+  
+  const char *partitions = Profile()->GetStringValue(CFG_X264_PARTITIONS);
+  if(partitions != NULL) {
+    m_param.analyse.inter = 0;
+    if( strstr( partitions, "none" ) )  m_param.analyse.inter =  0;
+    if( strstr( partitions, "all" ) )   m_param.analyse.inter = ~0;
+
+    if( strstr( partitions, "i4x4" ) )  m_param.analyse.inter |= X264_ANALYSE_I4x4;
+    if( strstr( partitions, "i8x8" ) )  m_param.analyse.inter |= X264_ANALYSE_I8x8;
+    if( strstr( partitions, "p8x8" ) )  m_param.analyse.inter |= X264_ANALYSE_PSUB16x16;
+    if( strstr( partitions, "p4x4" ) )  m_param.analyse.inter |= X264_ANALYSE_PSUB8x8;
+    if( strstr( partitions, "b8x8" ) )  m_param.analyse.inter |= X264_ANALYSE_BSUB16x16;
+  }
+
+  const char *me = Profile()->GetStringValue(CFG_X264_ME);
+  if(me != NULL) {
+    x264_parse_enum( me, x264_motion_est_names, &m_param.analyse.i_me_method );
+  }
+
+  m_param.analyse.i_me_range = Profile()->GetIntegerValue(CFG_X264_ME_RANGE);
+  m_param.analyse.i_subpel_refine = Profile()->GetIntegerValue(CFG_X264_SUBME);
+  
   if (Profile()->GetBoolValue(CFG_X264_USE_VBV)) {
     if (Profile()->GetBoolValue(CFG_X264_FORCE_BASELINE)) {
-      m_param.rc.i_vbv_max_bitrate = 768;
-      m_param.rc.i_vbv_buffer_size = 2000;
-      m_param.i_level_idc = 13;
-    } else {
-      m_param.rc.i_vbv_max_bitrate = (int)
-	((float)m_param.rc.i_bitrate * 
-	 Profile()->GetFloatValue(CFG_X264_VBV_BITRATE_MULT));
-      float calc;
-      calc = m_param.rc.i_bitrate;
-      calc *= Profile()->GetFloatValue(CFG_X264_VBV_BUFFER_SIZE_MULT);
-      calc /= Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE);
-      m_param.rc.i_vbv_buffer_size = (int)calc;
+      switch(m_param.i_level_idc) {
+      	case 10:
+          if (Profile()->GetIntegerValue(CFG_X264_VBV_MAXRATE) > 64) {
+            Profile()->SetIntegerValue(CFG_X264_VBV_MAXRATE, 64);
+          }
+          if (Profile()->GetIntegerValue(CFG_X264_VBV_BUFSIZE) > 175) {
+            Profile()->SetIntegerValue(CFG_X264_VBV_BUFSIZE, 175);
+          }
+          break;
+        case 1:
+          // Acctually level 1b
+          if (Profile()->GetIntegerValue(CFG_X264_VBV_MAXRATE) > 128) {
+            Profile()->SetIntegerValue(CFG_X264_VBV_MAXRATE, 128);
+          }
+          if (Profile()->GetIntegerValue(CFG_X264_VBV_BUFSIZE) > 350) {
+            Profile()->SetIntegerValue(CFG_X264_VBV_BUFSIZE, 350);
+          }
+          m_param.i_level_idc = 11;
+          break;
+      	case 11:
+          if (Profile()->GetIntegerValue(CFG_X264_VBV_MAXRATE) > 192) {
+            Profile()->SetIntegerValue(CFG_X264_VBV_MAXRATE, 192);
+          }
+          if (Profile()->GetIntegerValue(CFG_X264_VBV_BUFSIZE) > 500) {
+            Profile()->SetIntegerValue(CFG_X264_VBV_BUFSIZE, 500);
+          }
+          break;
+        case 12:
+          if (Profile()->GetIntegerValue(CFG_X264_VBV_MAXRATE) > 384) {
+            Profile()->SetIntegerValue(CFG_X264_VBV_MAXRATE, 384);
+          }
+          if (Profile()->GetIntegerValue(CFG_X264_VBV_BUFSIZE) > 1000) {
+            Profile()->SetIntegerValue(CFG_X264_VBV_BUFSIZE, 1000);
+          }
+          break;
+      	case 13:
+          if (Profile()->GetIntegerValue(CFG_X264_VBV_MAXRATE) > 768) {
+            Profile()->SetIntegerValue(CFG_X264_VBV_MAXRATE, 768);
+          }
+          if (Profile()->GetIntegerValue(CFG_X264_VBV_BUFSIZE) > 2000) {
+            Profile()->SetIntegerValue(CFG_X264_VBV_BUFSIZE, 2000);
+          }
+          break;
+      }
     }
+    m_param.rc.i_vbv_max_bitrate = Profile()->GetIntegerValue(CFG_X264_VBV_MAXRATE);
+    m_param.rc.i_vbv_buffer_size = Profile()->GetIntegerValue(CFG_X264_VBV_BUFSIZE);
   }
   //m_param.rc.b_stat_write = 0;
   //m_param.analyse.inter = 0;
-  m_param.analyse.b_psnr = 0;
+  m_param.analyse.b_psnr = Profile()->GetBoolValue(CFG_X264_USE_PSNR) ? 1 : 0;
+  m_param.analyse.b_ssim = Profile()->GetBoolValue(CFG_X264_USE_SSIM) ? 1 : 0;
+  m_param.analyse.b_transform_8x8 = Profile()->GetBoolValue(CFG_X264_USE_8x8_DCT) ? 1 : 0;
   m_param.b_cabac = Profile()->GetBoolValue(CFG_X264_USE_CABAC) ? 1 : 0;
   m_param.pf_log = x264_log;
-
   m_param.i_threads = Profile()->GetIntegerValue(CFG_X264_THREADS);
   m_pts_add = m_param.i_bframe ? (m_param.b_bframe_pyramid ? 2 : 1) : 0;
   m_pts_add *= m_frame_time;
