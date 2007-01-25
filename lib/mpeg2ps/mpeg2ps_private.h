@@ -74,7 +74,7 @@ typedef struct mpeg2ps_stream_t
   uint8_t m_stream_id;    // program stream id
   uint8_t m_substream_id; // substream, for program stream id == 0xbd
 
-  mpeg2ps_ts_t next_pes_ts, frame_ts;
+  mpeg2ps_ts_t next_pes_ts, frame_ts, next_next_pes_ts;
   uint frames_since_last_ts;
   uint64_t last_ts;
 

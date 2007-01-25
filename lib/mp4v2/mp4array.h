@@ -89,9 +89,11 @@ protected:
 			if (!ValidIndex(index)) { \
 				throw new MP4Error(ERANGE, "MP4Array::Delete"); \
 			} \
-			memmove(&m_elements[index], &m_elements[index + 1], \
-				(m_numElements - index) * sizeof(type)); \
 			m_numElements--; \
+			if (index < m_numElements) { \
+			  memmove(&m_elements[index], &m_elements[index + 1], \
+			   	  (m_numElements - index) * sizeof(type)); \
+			} \
 		} \
 		void Resize(MP4ArrayIndex newSize) { \
 			m_numElements = newSize; \

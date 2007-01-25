@@ -253,7 +253,8 @@ extern "C" u_int16_t MP4AV_Mp3GetFrameSize(MP4AV_Mp3Header hdr)
 
 	/* compute frame size */
 	frameSize = (144 * 1000 * Mp3BitRates[bitRateIndex1][bitRateIndex2-1]) 
-		/ (Mp3SampleRates[version][sampleRateIndex] << ~(version & 1));
+		/ (Mp3SampleRates[version][sampleRateIndex] << 
+		   ((version & 1) ? 0 : 1));
 
 	if (isPadded) {
 		if (layer == 3) {

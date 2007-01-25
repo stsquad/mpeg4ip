@@ -405,6 +405,7 @@ static bool search_for_next_pes_header (mpeg2ps_stream_t *sptr,
   uint8_t stream_id;
   uint8_t local;
   off_t loc;
+  mpeg2ps_ts_t *ps_ts;
   while (1) {
     // this will read until we find the next pes.  We don't know if the
     // stream matches - this will read over pack headers
@@ -418,14 +419,23 @@ static bool search_for_next_pes_header (mpeg2ps_stream_t *sptr,
     }
     loc = file_location(sptr->m_fd) - 6; 
     // advance past header, reading pts
+    // if our existing next_ps has pts stuff, we use the next_next
+    // this happens when a frame is small, and at the very end of 
+    // a pes, with a frame starting at the next pes.
+    ps_ts = (sptr->next_pes_ts.have_pts || sptr->next_pes_ts.have_dts) ?
+      &sptr->next_next_pes_ts : &sptr->next_pes_ts;
+
     if (read_pes_header_data(sptr->m_fd, 
 			     *pes_len, 
 			     pes_len, 
 			     have_ts, 
-			     &sptr->next_pes_ts) == FALSE) {
+			     ps_ts) == FALSE) {
       return FALSE;
     }
-
+#if 0
+    printf("loc: "X64" have ts %u "U64" %d\n",
+	   loc, *have_ts, sptr->next_pes_ts.dts, *pes_len);
+#endif
     // If we're looking at a private stream, make sure that the sub-stream
     // matches.
     if (sptr->m_stream_id == 0xbd) {
@@ -452,8 +462,8 @@ static bool search_for_next_pes_header (mpeg2ps_stream_t *sptr,
       }
       // we need more here...
     }
-    if (have_ts) {
-      mpeg2ps_record_pts(sptr, loc, &sptr->next_pes_ts);
+    if (*have_ts) {
+      mpeg2ps_record_pts(sptr, loc, ps_ts);
     }
     if (found_loc != NULL) *found_loc = loc;
     return true;
@@ -480,6 +490,18 @@ static bool mpeg2ps_stream_read_next_pes_buffer (mpeg2ps_stream_t *sptr)
   return TRUE;
 }
 
+
+static void copy_next_pes_ts_to_frame_ts (mpeg2ps_stream_t *sptr)
+{
+  sptr->frame_ts = sptr->next_pes_ts;
+#if 1
+  sptr->next_pes_ts = sptr->next_next_pes_ts;
+  sptr->next_next_pes_ts.have_pts = 
+    sptr->next_next_pes_ts.have_dts = false;
+#else
+  sptr->next_pes_ts.have_pts = sptr->next_pes_ts.have_dts = false;
+#endif
+}
 
 /***************************************************************************
  * Frame reading routine.  For each stream, the fd's should be different.
@@ -514,6 +536,9 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
    * pes, so we'd want to use the timestamp we read.
    */
   sptr->frame_ts = sptr->next_pes_ts; 
+#if 0
+  printf("frame read %u "U64"\n", sptr->frame_ts.have_dts, sptr->frame_ts.dts);
+#endif
   if (sptr->pes_buffer_size <= sptr->pes_buffer_on + 4) {
     if (sptr->pes_buffer_size != sptr->pes_buffer_on)
       started_new_pes = true;
@@ -542,9 +567,8 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
   } else {
     // we found the new start, but we pulled in a new pes header before
     // starting.  So, we want to use the header that we read.
-    sptr->frame_ts = sptr->next_pes_ts; // set timestamp after searching
-    // clear timestamp indication
-    sptr->next_pes_ts.have_pts = sptr->next_pes_ts.have_dts = FALSE;
+    copy_next_pes_ts_to_frame_ts(sptr);
+    //printf("  %u "U64"\n", sptr->frame_ts.have_dts, sptr->frame_ts.dts);
   }
 #if 0
   printf("header %x at %d\n", scode, sptr->pes_buffer_on);
@@ -642,9 +666,7 @@ mpeg2ps_stream_find_h264_video_frame (mpeg2ps_stream_t *sptr)
   } else {
     // we found the new start, but we pulled in a new pes header before
     // starting.  So, we want to use the header that we read.
-    sptr->frame_ts = sptr->next_pes_ts; // set timestamp after searching
-    // clear timestamp indication
-    sptr->next_pes_ts.have_pts = sptr->next_pes_ts.have_dts = FALSE;
+    copy_next_pes_ts_to_frame_ts(sptr);
   }
 #if 0
   printf("header %x at %d\n", scode, sptr->pes_buffer_on);
@@ -740,8 +762,7 @@ static bool mpeg2ps_stream_find_lpcm_frame (mpeg2ps_stream_t *sptr)
     sptr->freq = lpcm_freq_tab[(sptr->audio_private_stream_info[LPCM_INFO] >> 4) & 7];
   }
 
-  sptr->frame_ts = sptr->next_pes_ts;
-  sptr->next_pes_ts.have_dts = sptr->next_pes_ts.have_pts = false;
+  copy_next_pes_ts_to_frame_ts(sptr);
   if (sptr->lpcm_read_offset) {
     // we need to read bytes - 4 bytes.  This should only occur when 
     // we seek.  Otherwise, we've already reall read the bytes when
@@ -828,8 +849,7 @@ static bool mpeg2ps_stream_find_ac3_frame (mpeg2ps_stream_t *sptr)
   if (diff == 0 && started_new_pes) {
     // we might have a new PTS - but it's not here
   } else {
-    sptr->frame_ts = sptr->next_pes_ts;
-    sptr->next_pes_ts.have_dts = sptr->next_pes_ts.have_pts = false;
+    copy_next_pes_ts_to_frame_ts(sptr);
   }
   while (sptr->pes_buffer_size - sptr->pes_buffer_on < sptr->frame_len) {
 #if 0
@@ -889,8 +909,7 @@ static bool mpeg2ps_stream_find_mp3_frame (mpeg2ps_stream_t *sptr)
   if (diff == 0 && started_new_pes) {
 
   } else {
-    sptr->frame_ts = sptr->next_pes_ts;
-    sptr->next_pes_ts.have_dts = sptr->next_pes_ts.have_pts = false;
+    copy_next_pes_ts_to_frame_ts(sptr);
   }
   while (sptr->pes_buffer_size - sptr->pes_buffer_on < sptr->frame_len) {
 #if 0
