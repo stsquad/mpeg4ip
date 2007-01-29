@@ -22,6 +22,7 @@
 #include "mp4live.h"
 #include "audio_encoder.h"
 #include "audio_lame.h"
+#include "audio_twolame.h"
 #include "audio_faac.h"
 #include "audio_g711.h"
 #include "audio_l16.h"
@@ -42,6 +43,9 @@ void InitAudioEncoders (void)
   AddAudioEncoderTable(&g711_ulaw_audio_encoder_table);
 #ifdef HAVE_LAME
   AddAudioEncoderTable(&lame_audio_encoder_table);
+#endif
+#ifdef HAVE_TWOLAME
+  AddAudioEncoderTable(&twolame_audio_encoder_table);
 #endif
 #ifdef HAVE_FAAC
   AddAudioEncoderTable(&faac_audio_encoder_table);

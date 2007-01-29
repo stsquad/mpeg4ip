@@ -332,6 +332,9 @@ static void create_es (mpeg2t_t *ptr,
   case 2:
     es->is_video = 1;
     break;
+  case 0x10:
+    es->is_video = 3; // mpeg4
+    break;
   case 0x1b:
     es->is_video = 2;
     break;
@@ -634,7 +637,7 @@ void mpeg2t_finished_es_work (mpeg2t_es_t *es_pid,
 {
   mpeg2t_frame_t *p;
 #if 1
-  mpeg2t_message(LOG_ERR, "pid %x pts %d "U64" listing %d", 
+  mpeg2t_message(LOG_WARNING, "pid %x pts %d "U64" listing %d", 
 		 es_pid->pid.pid, es_pid->work->have_ps_ts, 
 		 es_pid->work->ps_ts, es_pid->save_frames);
 #endif
@@ -879,6 +882,9 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   case 4:
     // mpeg1/mpeg2 audio (mp3 codec)
     ret = process_mpeg2t_mpeg_audio(es_pid, esptr, buflen);
+    break;
+  case 0x10:
+    ret = process_mpeg2t_mpeg4_video(es_pid, esptr, buflen);
     break;
   case 129:
     ret = process_mpeg2t_ac3_audio(es_pid, esptr, buflen);
@@ -1163,6 +1169,9 @@ int mpeg2t_write_stream_info (mpeg2t_es_t *es_pid,
   case 4:
     // mpeg1/mpeg2 audio (mp3 codec)
     ret = mpeg2t_mpeg_audio_info(es_pid, buffer, buflen);
+    break;
+  case 0x10:
+    ret = mpeg2t_mpeg4_video_info(es_pid, buffer, buflen);
     break;
   case 129:
     ret = mpeg2t_ac3_audio_info(es_pid, buffer, buflen);

@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(mpeg4ip, 1.5.14)
+AC_INIT(mpeg4ip, 1.5.15)
 AM_CONFIG_HEADER(mpeg4ip_config.h)
 dnl Prevent user from running just ./configure
 AC_CHECK_FILE(./bootstrapped, [did_bootstrap=yes], [did_bootstrap=no])
@@ -524,6 +524,7 @@ AM_CONDITIONAL(HAVE_FFMPEG, [test x$have_ffmpeg = xtrue])
 LAME_LIB=
 FAAC_LIB=
 X264_LIB=
+TWOLAME_LIB=
 
 if test x$have_mp4live = xtrue; then
 
@@ -552,6 +553,31 @@ if test x$have_lame = xtrue; then
    LAME_LIB=-lmp3lame
 else
    LAME_LIB=
+fi
+
+AC_ARG_ENABLE(twolame,
+[AC_HELP_STRING([--disable-twolame],[disable use of installed twolame library])],
+[ case "${enableval}" in
+  no)  disable_it=yes ;;
+  yes) disable_it=no ;;
+  *) AC_MSG_ERROR([bad valud ${enableval} for --disable-twolame]) ;;
+esac],
+  [disable_it=no])
+
+if test x$disable_it = xyes; then
+  have_twolame=false
+  AC_MSG_NOTICE([disabling twolame library])
+else
+  saved_LIBS="$LIBS"
+  LIBS="$LIBS -lm -lz"
+  AC_CHECK_LIB(twolame, twolame_init, [have_twolame=true], [have_twolame=false])
+  LIBS=$saved_LIBS
+fi
+if test x$have_twolame = xtrue; then
+   AC_DEFINE(HAVE_TWOLAME, 1, [enable twolame for mp4live])
+   TWOLAME_LIB=-ltwolame
+else
+   TWOLAME_LIB=
 fi
 
 AC_ARG_ENABLE(faac,
@@ -612,6 +638,7 @@ fi
 AC_SUBST(LAME_LIB)
 AC_SUBST(FAAC_LIB)
 AC_SUBST(X264_LIB)
+AC_SUBST(TWOLAME_LIB)
 AM_CONDITIONAL(HAVE_X264, [test x$have_x264 = xtrue])
 	   
 AC_ARG_ENABLE(ipv6,

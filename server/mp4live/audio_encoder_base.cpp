@@ -29,6 +29,9 @@
 #ifdef HAVE_LAME
 #include "audio_lame.h"
 #endif
+#ifdef HAVE_TWOLAME
+#include "audio_twolame.h"
+#endif
 #include "audio_faac.h"
 #ifdef HAVE_FFMPEG
 #include "audio_ffmpeg.h"
@@ -52,6 +55,11 @@ void AudioProfileCheck (CAudioProfile *ap)
 #endif
   } else if (strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG) == 0) {
 #ifdef HAVE_FFMPEG
+    return;
+#else
+#endif
+  } else if (!strcasecmp(encoderName, AUDIO_ENCODER_TWOLAME)) {
+#ifdef HAVE_TWOLAME
     return;
 #else
 #endif
@@ -89,6 +97,12 @@ CAudioEncoder* AudioEncoderBaseCreate(CAudioProfile *ap,
     return new CLameAudioEncoder(ap, next, srcChannels, srcSampleRate, mtu, realTime);
 #else
     error_message("lame encoder not available in this build");
+#endif
+  } else if (!strcasecmp(encoderName, AUDIO_ENCODER_TWOLAME)) {
+#ifdef HAVE_TWOLAME
+    return new CTwoLameAudioEncoder(ap, next, srcChannels, srcSampleRate, mtu, realTime);
+#else
+    error_message("twolame encoder not available in this build");
 #endif
   } else if (strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG) == 0) {
 #ifdef HAVE_FFMPEG
@@ -135,6 +149,18 @@ MediaType get_base_audio_mp4_fileinfo (CAudioProfile *pConfig,
 			     audioConfig,
 			     audioConfigLen,
 			     mp4_audio_type);
+#else
+    return UNDEFINEDFRAME;
+#endif
+
+  } else if (!strcasecmp(encoderName, AUDIO_ENCODER_TWOLAME)) {
+#ifdef HAVE_TWOLAME
+    return twolame_mp4_fileinfo(pConfig, mpeg4,
+				isma_compliant, 
+				audioProfile, 
+				audioConfig,
+				audioConfigLen,
+				mp4_audio_type);
 #else
     return UNDEFINEDFRAME;
 #endif
@@ -198,6 +224,16 @@ media_desc_t *create_base_audio_sdp (CAudioProfile *pConfig,
 				 audioProfile, 
 				 audioConfig,
 				 audioConfigLen);
+#else
+    return NULL;
+#endif
+  } else if (!strcasecmp(encoderName, AUDIO_ENCODER_TWOLAME)) {
+#ifdef HAVE_TWOLAME
+    return twolame_create_audio_sdp(pConfig, mpeg4,
+				    isma_compliant, 
+				    audioProfile, 
+				    audioConfig,
+				    audioConfigLen);
 #else
     return NULL;
 #endif
@@ -303,6 +339,21 @@ bool get_base_audio_rtp_info (CAudioProfile *pConfig,
 				   audio_set_header,
 				   audio_set_jumbo,
 				   ud);
+#else
+    return false;
+#endif
+  } else if (!strcasecmp(encoderName, AUDIO_ENCODER_TWOLAME)) {
+#ifdef HAVE_TWOLAME
+    return twolame_get_audio_rtp_info(pConfig,
+				      audioFrameType,
+				      audioTimeScale,
+				      audioPayloadNumber,
+				      audioPayloadBytesPerPacket,
+				      audioPayloadBytesPerFrame,
+				      audioQueueMaxCount,
+				      audio_set_header,
+				      audio_set_jumbo,
+				      ud);
 #else
     return false;
 #endif

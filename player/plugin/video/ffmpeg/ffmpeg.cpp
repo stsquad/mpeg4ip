@@ -90,6 +90,9 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
     if (type == MPEG2T_ST_H264_VIDEO) {
       return CODEC_ID_H264;
     }
+    if (type == MPEG2T_ST_MPEG4_VIDEO) {
+      return CODEC_ID_MPEG4;
+    }
     return CODEC_ID_NONE;
   }
 

@@ -23,9 +23,7 @@ libuclmmbase_la_SOURCES= \
 #	mbus_parser.c 
 #	crypt_random.c \
 #	md5.c \
-#	qfDES.c \
-#	rijndael-alg-fst.c \
-#	rijndael-api-fst.c 
+#	qfDES.c 
 
 EXTRA_DIST = \
 	acconfig.h \
@@ -60,8 +58,6 @@ EXTRA_DIST = \
 	net_udp.h \
 	ntp.h \
 	qfDES.h \
-	rijndael-alg-fst.h \
-	rijndael-api-fst.h \
 	rtp.h \
 	sockstorage.h \
 	util.h \

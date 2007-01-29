@@ -422,3 +422,175 @@ int process_mpeg2t_h264_video (mpeg2t_es_t *es_pid,
   return framesfinished;
 
 }
+
+int mpeg2t_mpeg4_video_info (mpeg2t_es_t *es_pid, char *buffer, size_t len)
+{
+  int offset;
+  if (es_pid->info_loaded == 0) return -1;
+  offset = snprintf(buffer, len, "Mpeg-4 Video, %d x %d",
+		    es_pid->w, es_pid->h);
+  return 0;
+}
+
+int process_mpeg2t_mpeg4_video (mpeg2t_es_t *es_pid, 
+				const uint8_t *esptr, 
+				uint32_t buflen)
+{
+
+  bool have_header = false;
+  uint8_t header_value = 0;
+  int framesfinished = 0;
+#if 0
+  mpeg2t_message(LOG_DEBUG, "enter mpeg4 process");
+  if (es_pid->peshdr_loaded != 0 && ((es_pid->stream_id & 0xf0) != 0xe0)) {
+    mpeg2t_message(LOG_ERR, "Video stream PID %x with bad stream_id %x", 
+		   es_pid->pid.pid,
+		   es_pid->stream_id);
+    return 0;
+  }
+#endif
+  // note - one thing that we're not handling correctly is the
+  // extra 0 byte before the access header.  That's okay for now, but
+  // may run into problems later.
+  while (buflen > 0) {
+    es_pid->header <<= 8;
+    es_pid->header |= *esptr;
+    have_header = false;
+    if ((es_pid->header & 0xffffff00) == 0x00000100) {
+      have_header = true;
+      header_value = es_pid->header;
+      mpeg2t_message(LOG_DEBUG, "header %x %x %d", es_pid->header, 
+		     header_value,
+		     es_pid->work_state);
+    }
+
+    switch (es_pid->work_state) {
+    case 0:
+      if (have_header == false) break;
+      /*
+       * Work state 0 - looking for any header
+       */
+      // have a header.
+      if (es_pid->work_max_size < 4096) es_pid->work_max_size = 4096;
+
+      // always do this in state 0 to get the psts at the start
+      mpeg2t_malloc_es_work(es_pid, es_pid->work_max_size);
+      if (es_pid->work == NULL) return framesfinished;
+      
+      // Store header
+      es_pid->work->flags = 0;
+      es_pid->work->frame[0] = 0;
+      es_pid->work->frame[1] = 0;
+      es_pid->work->frame[2] = 1;
+      es_pid->work_loaded = 3;
+      es_pid->work_state = 1; // looking for VOP
+#if 1
+      mpeg2t_message(LOG_DEBUG, "video - state 0 header %x state %d", es_pid->header, 
+		     es_pid->work_state);
+#endif
+      // fall into:
+    case 1:
+    case 2:
+      /*
+       * Work state 1 - looking for VOP
+       */
+      if (es_pid->work_loaded >= es_pid->work_max_size - 5) {
+	uint8_t *frameptr;
+	es_pid->work_max_size += 1024;
+	frameptr = 
+	  (uint8_t *)realloc(es_pid->work,
+			     sizeof(mpeg2t_frame_t) + 
+			     es_pid->work_max_size);
+
+	if (frameptr == NULL) {
+	  es_pid->work = NULL;
+	  es_pid->work_state = 0;
+	  es_pid->header = 0;
+	  buflen--;
+	  esptr++;
+	  break;
+	} else {
+	  es_pid->work = (mpeg2t_frame_t *)frameptr;
+	  frameptr += sizeof(mpeg2t_frame_t);
+	  es_pid->work->frame = frameptr;
+	}
+      }
+	
+      es_pid->work->frame[es_pid->work_loaded] = *esptr;
+      es_pid->work_loaded++;
+
+      if (have_header) {
+	if (es_pid->work_state == 2) {
+	  // we're finished with this frame
+	  es_pid->work->frame_type = 1;
+	  //printf("hi %d\n", es_pid->work->frame_type);
+
+	  mpeg2t_message(LOG_DEBUG, "finished work %d", es_pid->work_loaded);
+	  // -4 might have to be -5 in the case of zero byte
+	  mpeg2t_finished_es_work(es_pid, es_pid->work_loaded - 4);
+
+	  es_pid->have_seq_header = 0;
+	  mpeg2t_malloc_es_work(es_pid, es_pid->work_max_size);
+	  if (es_pid->work != NULL) {
+	    // Put the header we just found at the start of the frame,
+	    // then set the work state accordingly.
+	    es_pid->work->frame[0] = 0;
+	    es_pid->work->frame[1] = 0;
+	    es_pid->work->frame[2] = 1;
+	    es_pid->work->frame[3] = *esptr;
+	    es_pid->work_loaded = 4;
+	    es_pid->work->flags = 0;
+	    es_pid->work_state = 1;
+	  } else {
+	    es_pid->work_state = 0;
+	    es_pid->header = 0;
+	    return framesfinished;
+	  }
+	} 
+	// now, figure out what state to do based on header
+	if (header_value == MP4AV_MPEG4_VOP_START){ 
+	  // now, we're reading until the next header
+	  es_pid->work_state = 2;
+	  if (es_pid->info_loaded == 0) {
+	    // read the VOL
+	    if ((es_pid->work->flags & HAVE_SEQ_HEADER) == HAVE_SEQ_HEADER) {
+	      u_int8_t TimeBits;
+	      u_int16_t TimeTicks;
+	      u_int16_t FrameDuration;
+	      u_int16_t FrameWidth;
+	      u_int16_t FrameHeight;
+	      
+	      if (MP4AV_Mpeg4ParseVol(es_pid->work->frame + es_pid->work->seq_header_offset,
+				      es_pid->work_loaded - es_pid->work->seq_header_offset,
+				      &TimeBits, 
+				      &TimeTicks, 
+				      &FrameDuration, 
+				      &FrameWidth,
+				      &FrameHeight, 
+				      NULL, 
+				      NULL, 
+				      NULL)) { 
+		es_pid->info_loaded = 1;
+		es_pid->h = FrameHeight;
+		es_pid->w = FrameWidth;
+	      }
+	    }
+	  } 
+	} else {
+	  // we only really care about VOL headers
+	  if (header_value >= MP4AV_MPEG4_VOL_START &&
+		header_value < MP4AV_MPEG4_VOL_START + 0xf) {
+	      // have VOL
+	      es_pid->work->seq_header_offset = es_pid->work_loaded - 4;
+	      es_pid->work->flags |= HAVE_SEQ_HEADER;
+	    }
+	}
+      }
+      break;
+    }
+    esptr++;
+    buflen--;
+  }
+  return framesfinished;
+
+}

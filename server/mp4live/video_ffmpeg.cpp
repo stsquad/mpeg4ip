@@ -89,6 +89,8 @@ bool CFfmpegVideoEncoder::Init (void)
     m_media_frame = MPEG4VIDEOFRAME;
 #ifdef OUTPUT_RAW
     m_outfile = fopen("raw.m4v", FOPEN_WRITE_BINARY);
+    fwrite(Profile()->m_videoMpeg4Config, 
+	   Profile()->m_videoMpeg4ConfigLength, 1, m_outfile);
 #endif
   } else if (strcasecmp(Profile()->GetStringValue(CFG_VIDEO_ENCODING),
 			VIDEO_ENCODING_H263) == 0) {
@@ -123,9 +125,8 @@ bool CFfmpegVideoEncoder::Init (void)
   m_avctx->frame_rate_base = 1;
 #else
   m_avctx->time_base = (AVRational){1, (int)(Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE) + .5)};
-  m_avctx->strict_std_compliance = -1;
   m_avctx->pix_fmt = PIX_FMT_YUV420P;
-  m_avctx->profile = Profile()->m_videoMpeg4ProfileId;
+  m_avctx->me_method = ME_EPZS;
 #endif
   if (Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_WIDTH) > 0 &&
       Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_HEIGHT) > 0) {
@@ -150,13 +151,20 @@ bool CFfmpegVideoEncoder::Init (void)
 #endif
   m_usingBFrames = false;
   m_BFrameCount = 0;
+
   if (m_media_frame == MPEG2VIDEOFRAME) {
     m_avctx->gop_size = 15;
     m_avctx->b_frame_strategy = 0;
     m_avctx->max_b_frames = 2;
     m_usingBFrames = true;
     m_BFrameCount = 2;
+#ifdef HAVE_AVCODECCONTEXT_TIME_BASE
+    m_avctx->strict_std_compliance = 0;
+#endif
   } else {
+#ifdef HAVE_AVCODECCONTEXT_TIME_BASE
+    m_avctx->strict_std_compliance = -1;
+#endif
     if (m_media_frame == H263VIDEOFRAME) {
       m_avctx->bit_rate = 
 	Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE) * 800;

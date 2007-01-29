@@ -39,6 +39,8 @@ endif
 
 
 libmp4live_la_SOURCES = \
+	audio_alsa_source.cpp \
+	audio_alsa_source.h \
 	audio_encoder_base.cpp \
 	audio_encoder_class.cpp \
 	audio_encoder.h \
@@ -50,10 +52,10 @@ libmp4live_la_SOURCES = \
 	audio_lame.h \
 	audio_l16.cpp \
 	audio_l16.h \
-	audio_alsa_source.cpp \
-	audio_alsa_source.h \
 	audio_oss_source.cpp \
 	audio_oss_source.h \
+	audio_twolame.cpp \
+	audio_twolame.h \
 	config_list.cpp \
 	config_list.h \
 	encoder_gui_options.h \
@@ -157,6 +159,7 @@ mp4live_LDADD = \
 	@GTK_LIBS@ @GLIB_LIBS@ \
 	@FAAC_LIB@ \
 	@LAME_LIB@ \
+	@TWOLAME_LIB@ \
 	./h261/libmp4live_h261.la \
 	$(GUIADD) \
 	libmp4live.la \

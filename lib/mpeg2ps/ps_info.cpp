@@ -123,7 +123,7 @@ int main(int argc, char** argv)
       printf("   No streams\n");
     } else {
       for (ix = 0; ix < mpeg2ps_get_audio_stream_count(ps); ix++) {
-	printf("   stream %d: %s %u channels %u sample rate %u bitrate\n",
+	printf("   stream %d: %s, %u channels %u sample rate %u bitrate\n",
 	       ix,
 	       mpeg2ps_get_audio_stream_name(ps, ix),
 	       mpeg2ps_get_audio_stream_channels(ps, ix),

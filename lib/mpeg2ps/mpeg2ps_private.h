@@ -100,7 +100,8 @@ typedef struct mpeg2ps_stream_t
   uint32_t channels;
   uint32_t bitrate;
   uint32_t samples_per_frame;
-  uint32_t layer;
+  uint8_t layer;
+  uint8_t version;
   // video stuff
   uint32_t h, w;
   double frame_rate;

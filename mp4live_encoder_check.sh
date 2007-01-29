@@ -19,6 +19,7 @@ have_ffmpeg=no
 have_xvid=no
 have_x264=no
 have_lame=no
+have_twolame=no
 have_faac=no
 have_one=no
 if grep HAVE_FFMPEG mpeg4ip_config.h | grep define > /dev/null; then
@@ -50,6 +51,12 @@ if grep HAVE_FAAC mpeg4ip_config.h | grep define > /dev/null; then
    have_one=yes
 else
    echo "*** faac encoder is not installed"
+fi
+if grep HAVE_TWOLAME mpeg4ip_config.h | grep define > /dev/null; then
+   echo "    twolame encoder is installed"
+   have_one=yes
+else
+   echo "*** twolame encoder is not installed"
 fi
 
 if test have_one = "no"; then

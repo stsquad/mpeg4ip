@@ -26,6 +26,7 @@
 #define AUDIO_ENCODER_LAME		"lame"
 #define AUDIO_ENCODER_G711              "g711"
 #define AUDIO_ENCODER_L16               "l16"
+#define AUDIO_ENCODER_TWOLAME           "twolame"
 
 #define AUDIO_ENCODING_NONE		"None"
 #define AUDIO_ENCODING_PCM16	"PCM16"

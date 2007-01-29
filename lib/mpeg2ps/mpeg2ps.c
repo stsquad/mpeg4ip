@@ -1063,6 +1063,7 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
     sptr->samples_per_frame = MP4AV_Mp3GetHdrSamplingWindow(hdr);
     sptr->bitrate = MP4AV_Mp3GetBitRate(hdr) * 1000; // give bps, not kbps
     sptr->layer = MP4AV_Mp3GetHdrLayer(hdr);
+    sptr->version = MP4AV_Mp3GetHdrVersion(hdr);
   } else if (sptr->m_stream_id == 0xbd) {
     if (sptr->m_substream_id >= 0xa0) {
       // PCM - ???
@@ -1653,10 +1654,29 @@ const char *mpeg2ps_get_audio_stream_name (mpeg2ps_t *ps,
     return "none";
   }
   if (ps->audio_streams[streamno]->m_stream_id >= 0xc0) {
-    switch (ps->audio_streams[streamno]->layer) {
-    case 0: return "MP1";
-    case 1: return "MP2";
-    case 2: return "MP3";
+    switch (ps->audio_streams[streamno]->version) {
+    case 3:
+      switch (ps->audio_streams[streamno]->layer) {
+      case 3: return "MP1 layer 1";
+      case 2: return "MP1 layer 2";
+      case 1: return "MP1 layer 3";
+      }
+      break;
+    case 2:
+      switch (ps->audio_streams[streamno]->layer) {
+      case 3: return "MP2 layer 1";
+      case 2: return "MP2 layer 2";
+      case 1: return "MP2 layer 3";
+      }
+      break;
+    case 0:
+      switch (ps->audio_streams[streamno]->layer) {
+      case 3: return "MP2.5 layer 1";
+      case 2: return "MP2.5 layer 2";
+      case 1: return "MP2.5 layer 3";
+      }
+      break;
+      break;
     }
     return "unknown mpeg layer";
   }
