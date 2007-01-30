@@ -823,9 +823,18 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
 	if (ret >= 0) {
 	  if (ftype == 1) isIFrame = true;
 	  if (ftype != 3) {
+#if 1
 	    rend_offset = m_prevVideoFrame->GetPtsTimestamp() - 
 	      m_prevVideoFrame->GetTimestamp();
 	    rend_offset = GetTimescaleFromTicks(rend_offset, m_movieTimeScale);
+#else
+	    rend_offset = 
+	      GetTimescaleFromTicks(m_prevVideoFrame->GetPtsTimestamp(),
+				    m_movieTimeScale);
+	    rend_offset -= 
+	      GetTimescaleFromTicks(m_prevVideoFrame->GetTimestamp(),
+				    m_movieTimeScale);
+#endif
 	  }
 	}
       }

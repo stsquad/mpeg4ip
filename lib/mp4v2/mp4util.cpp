@@ -291,6 +291,8 @@ u_int64_t MP4ConvertTime(u_int64_t t,
 		throw new MP4Error("division by zero", "MP4ConvertTime");
 	}
 
+	if (oldTimeScale == newTimeScale) return t;
+
 	// check if we can safely use integer operations
 	if (ilog2(t) + ilog2(newTimeScale) <= 64) {
 		return (t * newTimeScale) / oldTimeScale;

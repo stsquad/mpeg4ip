@@ -1506,9 +1506,11 @@ MP4TrackId MP4File::AddEncAudioTrack(u_int32_t timeScale,
     SetTrackStringProperty(trackId,
 			   "mdia.minf.stbl.stsd.enca.sinf.schi.iKMS.kms_URI", 
 			   kms_uri);
+    #if 0
     if (kms_uri != NULL) {
       free((void *)kms_uri);
     }  
+    #endif
 
     SetTrackIntegerProperty(trackId,
 			    "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.selective-encryption", 
@@ -1732,12 +1734,11 @@ MP4TrackId MP4File::AddEncVideoTrack(u_int32_t timeScale,
 			    "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.IV-length", 
 			    icPp->iv_len);
 
-  // FIXME why is this assumed to be malloc'd ??? 
-  // have calling function do memory management instead 
+  #if 0
   if (icPp->kms_uri != NULL) {
     free(icPp->kms_uri);
   }  
-
+  #endif
 
   SetTrackIntegerProperty(trackId, 
 			  "mdia.minf.stbl.stsd.encv.esds.ESID", 

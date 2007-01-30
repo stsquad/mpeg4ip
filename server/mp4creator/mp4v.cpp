@@ -351,7 +351,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
         if (ismacrypGetKMSUri(ismaCrypSId, &(icPp->kms_uri)) != ismacryp_rc_ok) {
             fprintf(stderr, "%s: could not get ismacryp kms uri. sid %d\n",
                     ProgName, ismaCrypSId);
-            if (icPp->kms_uri != NULL) free(icPp->kms_uri);
+            CHECK_AND_FREE(icPp->kms_uri);
             ismacrypEndSession(ismaCrypSId);
             return MP4_INVALID_TRACK_ID;
         }

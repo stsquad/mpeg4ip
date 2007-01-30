@@ -28,7 +28,14 @@
 #else
 #include <avcodec.h>
 #endif
-
+typedef struct pts_queue_t {
+  pts_queue_t *next;
+  uint8_t *frameBuffer;
+  uint32_t frameBufferLen;
+  bool needs_pts;
+  Timestamp encodeTime;
+} pts_queue_t;
+  
 class CFfmpegVideoEncoder : public CVideoEncoder {
  public:
 	CFfmpegVideoEncoder(CVideoProfile *vp, 
@@ -70,11 +77,11 @@ class CFfmpegVideoEncoder : public CVideoEncoder {
 	u_int32_t			m_vopBufferLength;
 	u_int8_t*  m_YUV;
 	CTimestampPush *m_push;
-	Duration m_frame_time;
+
 	int m_count, m_key_frame_count;
 	bool m_usingBFrames;
 	uint m_BFrameCount;
-	bool m_first_frame;
+	pts_queue_t *m_pts_queue, *m_pts_queue_end;
 };
 
 void AddFfmpegConfigVariables(CVideoProfile *pConfig);

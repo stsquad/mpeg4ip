@@ -26,6 +26,7 @@
 #endif
 
 #define ISMACRYP_SESSION_G_INIT	10
+//#define ISMACRYP_DEBUG_TRACE	1
 
 #include "mpeg4ip.h"
 
@@ -282,7 +283,7 @@ NOTE: KMS URI is not supported in this implementation.
 ismacryp_rc_t ismacrypSetKMSUri(ismacryp_session_id_t session,
                                  char *kms_uri );
 ismacryp_rc_t ismacrypGetKMSUri(ismacryp_session_id_t session,
-                                 char **kms_uri );
+                                 const char **kms_uri );
 
 
 /*
@@ -465,6 +466,45 @@ ismacryp_rc_t ismacrypGetKey(ismacryp_session_id_t session,
                               uint8_t **key,
                               uint8_t **salt,
                               uint8_t *lifetime_exp);
+
+/*
+--------------------------------------------------------------------------------
+
+This API has the same signature as ismacrypGetKey, but instead
+of making copies of key and salt in malloc buffers, this API
+instead updates key and salt pointers to the live key and salt
+buffers.  When using this API, the application must NOT attempt
+to free the key and salt pointers!
+--------------------------------------------------------------------------------*/
+
+ismacryp_rc_t ismacrypGetKey2(ismacryp_session_id_t session,
+                              uint8_t key_num,
+                              uint8_t *key_len,
+                              uint8_t *salt_len,
+                              uint8_t **key,
+                              uint8_t **salt,
+                              uint8_t *lifetime_exp);
+
+/*
+--------------------------------------------------------------------------------
+
+These APIs deallocate and allocate cipher resources for the specified 
+session ID.  Used internally and externally, they can be used by application 
+to alter cipher on-the-fly.  typical calling sequence is as follows:
+1.  retrieve current keying material pointers and attributes
+    first established by ismacrypInitSession:
+	ismacrypGetKey2() 
+2. application updates key and salt using pointers returned
+   in step 1.
+3. unload current cipher 
+	unInitSessionData(...)
+4. load new cipher and init crypto context
+	initSessionData(...)
+--------------------------------------------------------------------------------*/
+
+ismacryp_rc_t unInitSessionData(ismacryp_session_id_t session);
+ismacryp_rc_t initSessionData(ismacryp_session_id_t session);
+
 
 
 /*

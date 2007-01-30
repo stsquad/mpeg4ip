@@ -13,7 +13,16 @@ INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/lib/mp4av
 AM_CFLAGS = -D_REENTRANT @BILLS_CWARNINGS@
 AM_CXXFLAGS = -D_REENTRANT @BILLS_CPPWARNINGS@
 
+bin_PROGRAMS = mpeg2t_dump
+
 check_PROGRAMS = mpeg2t_test mpeg2t_extract
+
+mpeg2t_dump_SOURCES = mpeg2t_dump.cpp
+mpeg2t_dump_LDADD = libmpeg2_transport.la \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
+	$(top_builddir)/lib/mp4av/libmp4av.la \
+	$(top_builddir)/lib/mp4v2/libmp4v2.la \
+	@SDL_LIBS@ 
 
 mpeg2t_test_SOURCES = test.cpp
 mpeg2t_test_LDADD = libmpeg2_transport.la \

@@ -259,7 +259,7 @@ class CMp4EncH264VideoByteStream : public CMp4VideoByteStream
           m_ismaCryptSId, rc);
      }
      if (m_kms_uri != NULL)
-	free(m_kms_uri);
+	free((void *)m_kms_uri);
   }
   bool start_next_frame(uint8_t **buffer,
 			uint32_t *buflen,
@@ -285,7 +285,7 @@ class CMp4EncH264VideoByteStream : public CMp4VideoByteStream
   uint8_t *m_translate_buffer;
   uint32_t m_translate_buffer_size;
   uint32_t m_buflen_size;
-  char *m_kms_uri;
+  const char *m_kms_uri;
 };  
 
 /*

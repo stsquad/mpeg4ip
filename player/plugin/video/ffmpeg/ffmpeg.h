@@ -23,6 +23,7 @@
  */
 #ifndef __MPEG4IP_FFMPEG_H__
 #define __MPEG4IP_FFMPEG_H__ 1
+#define always_inline inline
 #include "codec_plugin.h"
 #ifdef HAVE_FFMPEG_INSTALLED
 #include <ffmpeg/avcodec.h>

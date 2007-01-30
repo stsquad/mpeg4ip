@@ -67,6 +67,7 @@ CFfmpegVideoEncoder::CFfmpegVideoEncoder(CVideoProfile *vp,
 #ifdef OUTPUT_RAW
 	m_outfile = NULL;
 #endif
+	m_pts_queue = NULL;
 }
 
 bool CFfmpegVideoEncoder::Init (void)
@@ -81,7 +82,6 @@ bool CFfmpegVideoEncoder::Init (void)
   double rate;
   rate = TimestampTicks / Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE);
 
-  m_frame_time = (Duration)rate;
   if (strcasecmp(Profile()->GetStringValue(CFG_VIDEO_ENCODING),
 		 VIDEO_ENCODING_MPEG4) == 0) {
     m_push = new CTimestampPush(1);
@@ -197,7 +197,6 @@ bool CFfmpegVideoEncoder::Init (void)
     return false;
   }
   ffmpeg_interface_unlock();
-  m_first_frame = true;
   return true;
 }
 
@@ -211,50 +210,50 @@ bool CFfmpegVideoEncoder::EncodeImage(
 	Timestamp srcFrameTimestamp)
 {
   m_push->Push(srcFrameTimestamp);
-	if (m_vopBuffer == NULL) {
-		m_vopBuffer = (u_int8_t*)malloc(Profile()->m_videoMaxVopSize);
-		if (m_vopBuffer == NULL) {
-			return false;
-		}
-	}
-	if (m_media_frame == H263VIDEOFRAME) {
-	  m_count++;
-	  if (m_count >= m_key_frame_count) {
-	    wantKeyFrame = true;
-	    m_count = 0;
-	  }
-	}
-	if (wantKeyFrame) m_picture->pict_type = FF_I_TYPE; //m_picture->key_frame = 1;
-	else //m_picture->key_frame = 0;
-	  m_picture->pict_type = 0;
+  if (m_vopBuffer == NULL) {
+    m_vopBuffer = (u_int8_t*)malloc(Profile()->m_videoMaxVopSize);
+    if (m_vopBuffer == NULL) {
+      return false;
+    }
+  }
+  if (m_media_frame == H263VIDEOFRAME) {
+    m_count++;
+    if (m_count >= m_key_frame_count) {
+      wantKeyFrame = true;
+      m_count = 0;
+    }
+  }
+  if (wantKeyFrame) m_picture->pict_type = FF_I_TYPE; //m_picture->key_frame = 1;
+  else //m_picture->key_frame = 0;
+    m_picture->pict_type = 0;
 
-	m_picture->data[0] = (uint8_t *)pY;
-	m_picture->data[1] = (uint8_t *)pU;
-	m_picture->data[2] = (uint8_t *)pV;
-	m_picture->linesize[0] = yStride;
-	m_picture->linesize[1] = uvStride;
-	m_picture->linesize[2] = uvStride;
-	m_picture->pts = srcFrameTimestamp;
+  m_picture->data[0] = (uint8_t *)pY;
+  m_picture->data[1] = (uint8_t *)pU;
+  m_picture->data[2] = (uint8_t *)pV;
+  m_picture->linesize[0] = yStride;
+  m_picture->linesize[1] = uvStride;
+  m_picture->linesize[2] = uvStride;
+  m_picture->pts = srcFrameTimestamp;
 #if 0
-	if (m_picture->key_frame == 1) {
-	  debug_message("key frame "U64, srcFrameTimestamp);
-	}
+  if (m_picture->key_frame == 1) {
+    debug_message("key frame "U64, srcFrameTimestamp);
+  }
 #endif
 
 	
-	m_vopBufferLength = avcodec_encode_video(m_avctx, 
-						 m_vopBuffer, 
-						 Profile()->m_videoMaxVopSize, 
-						 m_picture);
-	//debug_message(U64" ffmpeg len %d", srcFrameTimestamp, m_vopBufferLength);
+  m_vopBufferLength = avcodec_encode_video(m_avctx, 
+					   m_vopBuffer, 
+					   Profile()->m_videoMaxVopSize, 
+					   m_picture);
+  //debug_message(U64" ffmpeg len %d", srcFrameTimestamp, m_vopBufferLength);
 #ifdef OUTPUT_RAW
-	if (m_vopBufferLength) {
-	  fwrite(m_vopBuffer, m_vopBufferLength, 1, m_outfile);
-	}
+  if (m_vopBufferLength) {
+    fwrite(m_vopBuffer, m_vopBufferLength, 1, m_outfile);
+  }
 #endif
-	//	m_avctx.frame_number++;
+  //	m_avctx.frame_number++;
 
-	return true;
+  return true;
 }
 
 
@@ -263,57 +262,79 @@ bool CFfmpegVideoEncoder::GetEncodedImage(
 	Timestamp *dts, Timestamp *pts)
 {
   bool ret = true;
-  *ppBuffer = m_vopBuffer;
-  *pBufferLength = m_vopBufferLength;
 
-  if (m_vopBufferLength != 0) {
-    *pts = *dts = m_push->Pop();
-#if 1
-    if (m_media_frame == MPEG2VIDEOFRAME ||
-	(m_usingBFrames && m_media_frame == MPEG4VIDEOFRAME)) {
-      *pts = m_avctx->coded_frame->pts;
-    }
-#else
-      
-    if (m_media_frame == MPEG2VIDEOFRAME) {
-      // special processing for mpeg2 - the pts is not when we
-      // dts
-      int ret, ftype;
-      ret = MP4AV_Mpeg3FindPictHdr(m_vopBuffer, m_vopBufferLength, &ftype);
-      if (ret >= 0 && ftype != 3) {
-	*pts = *dts + (2 * m_frame_time);
-      } else {
-	*pts = *dts - m_frame_time;
-      }
-      //error_message("dts %llu pts %llu", *dts, *pts);
-    } else if (m_usingBFrames && m_media_frame == MPEG4VIDEOFRAME) {
-      uint8_t *vop = MP4AV_Mpeg4FindVop(m_vopBuffer, m_vopBufferLength);
-      if (MP4AV_Mpeg4GetVopType(vop, m_vopBufferLength - (vop - m_vopBuffer))
-	  != VOP_TYPE_B) {
-	if (m_first_frame) {
-	  // first time - IPBB
-	  *pts = *dts + m_frame_time;
-	  m_first_frame = false;
-	} else
-	  *pts = *dts + (m_BFrameCount * m_frame_time);
-      } 
-    } 
-    debug_message("dts"U64" pts "U64" from ffmpeg "U64,
-		  *dts,
-		  *pts,
-		  m_avctx->coded_frame->pts);
-#endif
-  } else {
+  if (m_vopBufferLength == 0) {
     // return without clearing m_vopBuffer
+    // this should only happen at beginning
     *dts = *pts = 0;
     *ppBuffer = NULL;
     *pBufferLength = 0;
     return false;
   }
-  m_vopBuffer = NULL;
-  m_vopBufferLength = 0;
-  
-  return ret;
+
+  if (m_media_frame == MPEG2VIDEOFRAME ||
+      (m_usingBFrames && m_media_frame == MPEG4VIDEOFRAME)) {
+    // we need to handle b frames
+    // create a pts queue element for this frame
+    pts_queue_t *pq = MALLOC_STRUCTURE(pts_queue_t);
+    pq->next = NULL;
+    pq->frameBuffer = m_vopBuffer;
+    pq->frameBufferLen = m_vopBufferLength;
+    pq->needs_pts = m_avctx->coded_frame->pict_type != 3;
+    pq->encodeTime = m_push->Pop();
+    
+    ret = false;
+    if (m_pts_queue == NULL) {
+      // nothing on queue - put it on
+      m_pts_queue = m_pts_queue_end = pq;
+    } else {
+      // we have something on the queue
+      // if the first element on the queue does not need pts
+      // or if the new encoded frame has the pts, we're going
+      // to pull the element off the fifo
+      if (m_pts_queue->needs_pts == false ||
+	  pq->needs_pts) {
+	// remove element from head
+	*dts = m_pts_queue->encodeTime;
+	if (m_pts_queue->needs_pts) {
+	  *pts = pq->encodeTime;
+	  //debug_message("dts "U64" pts "U64, *dts, *pts);
+	} else {
+	  *pts = *dts;
+	  //debug_message("dts "U64, *dts);
+	}
+	*ppBuffer = m_pts_queue->frameBuffer;
+	*pBufferLength = m_pts_queue->frameBufferLen;
+	ret = true;
+      } 
+      m_pts_queue_end->next = pq;
+      m_pts_queue_end = pq;
+    }
+    // If we have a good return value, pop the head off the pts queue
+    if (ret) {
+      pq = m_pts_queue;
+      m_pts_queue = m_pts_queue->next;
+      free(pq);
+    } else {
+      // otherwise, return nothing.
+      *ppBuffer = NULL;
+      *pBufferLength = 0;
+      *pts = *dts = 0;
+      ret = false;
+    }
+    // either way, return the vop
+    m_vopBuffer = NULL;
+    m_vopBufferLength = 0;
+    return ret;
+  } else {
+    // pts == dts == encoding time.  Return.
+    *ppBuffer = m_vopBuffer;
+    *pBufferLength = m_vopBufferLength;
+    *pts = *dts = m_push->Pop();
+    m_vopBuffer = NULL;
+    m_vopBufferLength = 0;
+  }
+  return true;
 }
 media_free_f CFfmpegVideoEncoder::GetMediaFreeFunction(void)
 {
@@ -358,7 +379,13 @@ void CFfmpegVideoEncoder::StopEncoder (void)
     delete m_push;
     m_push = NULL;
   }
-	  
+  while (m_pts_queue != NULL) {
+    pts_queue_t *pts;
+    pts = m_pts_queue->next;
+    CHECK_AND_FREE(m_pts_queue->frameBuffer);
+    free(m_pts_queue);
+    m_pts_queue = pts;
+  }
 }
 
 bool CFfmpegVideoEncoder::GetEsConfig (uint8_t **ppEsConfig, 

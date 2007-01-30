@@ -470,7 +470,7 @@ typedef struct mp4v2_ismacryp_session_params {
   u_int8_t  key_ind_len;
   u_int8_t  iv_len;
   u_int8_t  selective_enc;
-  char      *kms_uri;
+  const char   *kms_uri;
 } mp4v2_ismacrypParams;
 
 // API to initialize ismacryp properties to sensible defaults

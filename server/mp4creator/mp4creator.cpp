@@ -750,7 +750,7 @@ int main(int argc, char** argv)
         if (ismacrypGetKMSUri(ismaCrypSId, &(icPp->kms_uri)) != ismacryp_rc_ok) {
 	  fprintf(stderr, 
             "%s: could not get ismacryp kms uri. sid %d\n", ProgName, ismaCrypSId);
-          if (icPp->kms_uri != NULL) free(icPp->kms_uri);
+          CHECK_AND_FREE(icPp->kms_uri);
 	  ismacrypEndSession(ismaCrypSId);
 	  exit(EXIT_ISMACRYP_END);
         }

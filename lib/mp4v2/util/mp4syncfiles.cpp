@@ -52,8 +52,16 @@ static void sync_duration (char *toFileName,
   uint32_t numTracks;
 
   fromfile = MP4Modify(toFileName);
+  if (fromfile == MP4_INVALID_FILE_HANDLE) {
+    printf("Can't open %s\n", toFileName);
+    return;
+  }
   
   tofile = MP4Create(newname);
+  if (tofile == MP4_INVALID_FILE_HANDLE) {
+    printf("Can't create %s\n", newname);
+    return;
+  }
   numTracks = MP4GetNumberOfTracks(fromfile);
   for (uint32_t ix = 0; ix < numTracks; ix++) {
     MP4TrackId trackId = MP4FindTrackId(fromfile, ix);
@@ -138,6 +146,17 @@ static bool compare_meta(char *toname, MP4FileHandle to,
   MP4GetMetadataAlbum(from, &fromvalue);
   if (tovalue == NULL || fromvalue == NULL || strcmp(tovalue, fromvalue) != 0) {
     printf("%s album \"%s\" \"%s\"\n", 
+	   fromname, fromvalue, tovalue);
+    CHECK_AND_FREE(tovalue);
+    CHECK_AND_FREE(fromvalue);
+    return false;
+  }
+  CHECK_AND_FREE(tovalue);
+  CHECK_AND_FREE(fromvalue);
+  MP4GetMetadataAlbumArtist(to, &tovalue);
+  MP4GetMetadataAlbumArtist(from, &fromvalue);
+  if (tovalue == NULL || fromvalue == NULL || strcmp(tovalue, fromvalue) != 0) {
+    printf("%s album artist \"%s\" \"%s\"\n", 
 	   fromname, fromvalue, tovalue);
     CHECK_AND_FREE(tovalue);
     CHECK_AND_FREE(fromvalue);
@@ -269,6 +288,16 @@ static void copy_meta(char *toname, MP4FileHandle to,
       MP4DeleteMetadataArtist(to);
     if (fromvalue != NULL)
       MP4SetMetadataArtist(to, fromvalue);
+  }
+  CHECK_AND_FREE(tovalue);
+  CHECK_AND_FREE(fromvalue);
+  MP4GetMetadataAlbumArtist(to, &tovalue);
+  MP4GetMetadataAlbumArtist(from, &fromvalue);
+  if (tovalue == NULL || fromvalue == NULL || strcmp(tovalue, fromvalue) != 0) {
+    if (tovalue != NULL) 
+      MP4DeleteMetadataAlbumArtist(to);
+    if (fromvalue != NULL)
+      MP4SetMetadataAlbumArtist(to, fromvalue);
   }
 
   CHECK_AND_FREE(tovalue);
@@ -530,6 +559,9 @@ int main(int argc, char** argv)
 	      printf("need meta fixup %s\n", Mp4FileName);
 	      MP4Close(toFile);
 	      toFile = MP4Modify(toFileName, verbosity);
+	      if (toFile == MP4_INVALID_FILE_HANDLE) {
+		printf("can't open %s for modify\n", toFileName);
+	      }
 	      copy_meta(toFileName, toFile, Mp4FileName, mp4File, force_meta);
 	    }
 	    MP4Close(toFile);
