@@ -164,6 +164,7 @@ static ismacryp_rc_t findInSessionList (ismacryp_session_id_t sid, ismacryp_sess
   return ismacryp_rc_sessid_error;
 }
 
+#ifdef HAVE_SRTP
 static void printSessionList (void) {
   ismacryp_session_t *temp;
   int i = 0;
@@ -211,7 +212,7 @@ static void printSessionList (void) {
   }
 
 }
-
+#endif
 //
 // load key from file
 // allocate and init aes_icm cipher and key
@@ -300,9 +301,9 @@ static ismacryp_rc_t loadKeyFromFile (ismacryp_session_t *sp,
 
   fclose(fp);
 
+#endif
   return ismacryp_rc_ok;
 
-#endif
 
 }
 

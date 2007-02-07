@@ -83,7 +83,8 @@ static void ParseMpeg2 (uint8_t *bptr, uint32_t blen, bool dump_off)
 
   offset = MP4AV_Mpeg3FindPictHdr(bptr, blen, &frame_type);
   if (offset >= 0) {
-    printf(" %c", frame_type == 1 ? 'I' : (frame_type == 2 ? 'P' : 'B'));
+    printf(" %c temp ref %u", frame_type == 1 ? 'I' : (frame_type == 2 ? 'P' : 'B'),
+	   MP4AV_Mpeg3PictHdrTempRef(bptr + offset));
   } else {
     printf("offset %d", offset);
   }
@@ -187,7 +188,9 @@ static void DumpTrack (MP4FileHandle mp4file, MP4TrackId tid,
       rendmsectime = sampleRenderingOffset;
       rendmsectime *= TO_U64(1000);
       rendmsectime /= timescale;
-      printf(" "U64"("U64","U64") ", sampleRenderingOffset, rendmsectime,
+      printf(" "U64","U64"("U64","U64") ", sampleRenderingOffset, 
+	     sampleTime + sampleRenderingOffset,
+	     rendmsectime,
 	     msectime + rendmsectime);
     }
     if (strcasecmp(media_data_name, "mp4v") == 0) {

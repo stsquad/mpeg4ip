@@ -705,11 +705,6 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   uint32_t ix;
 #endif
 
-  if (es_pid->save_frames == 0 &&
-      es_pid->report_psts == 0 &&
-      es_pid->info_loaded > 0) {
-    return 0;
-  }
 
   ac = mpeg2t_adaptation_control(buffer);
   // Note to self - if ac is 0x3, we may have to check
@@ -724,11 +719,18 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   pakcc = mpeg2t_continuity_counter(buffer);
   if (nextcc != pakcc) {
     // Note - this message will occur for the first packet
-    mpeg2t_message(LOG_ERR, "cc error in PID %x should be %d is %d", 
-	   ifptr->pid, nextcc, pakcc);
+    mpeg2t_message(LOG_ERR, "cc error in PID %x should be %d is %d %x", 
+	   ifptr->pid, nextcc, pakcc, buffer[3]);
     clean_es_data(es_pid);
   }
   ifptr->lastcc = pakcc;
+
+  if (es_pid->save_frames == 0 &&
+      es_pid->report_psts == 0 &&
+      es_pid->info_loaded > 0) {
+    mpeg2t_message(LOG_INFO, "PID %x not processing", ifptr->pid);
+    return 0;
+  }
 
   buflen = 188;
   // process pas pointer
@@ -946,7 +948,7 @@ mpeg2t_pid_t *mpeg2t_process_buffer (mpeg2t_t *ptr,
   }
   while (used < buflen) {
     offset = mpeg2t_find_sync_byte(buffer, remaining);
-    mpeg2t_message(LOG_DEBUG, "offset %d", offset);
+    //mpeg2t_message(LOG_DEBUG, "offset %d", offset);
     if (offset >= remaining) {
       mpeg2t_message(LOG_ERR, "sync not found in buffer");
       *buflen_used = buflen;
@@ -964,9 +966,10 @@ mpeg2t_pid_t *mpeg2t_process_buffer (mpeg2t_t *ptr,
     // we have a complete buffer
     rpid = mpeg2t_pid(buffer);
 #if 1
-    mpeg2t_message(LOG_DEBUG, "Buffer- PID %x start %d cc %d",
+    mpeg2t_message(LOG_DEBUG, "Buffer- PID %x start %d cc %d %x",
 		   rpid, mpeg2t_payload_unit_start_indicator(buffer),
-		   mpeg2t_continuity_counter(buffer));
+		   mpeg2t_continuity_counter(buffer),
+		   buffer[3]);
 #endif
     if (rpid == 0x1fff) {
       // just skip

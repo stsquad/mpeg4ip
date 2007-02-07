@@ -573,6 +573,7 @@ int process_mpeg2t_mpeg4_video (mpeg2t_es_t *es_pid,
 		es_pid->info_loaded = 1;
 		es_pid->h = FrameHeight;
 		es_pid->w = FrameWidth;
+		mpeg2t_message(LOG_DEBUG, "parsed mpeg4 vol");
 	      }
 	    }
 	  } 
@@ -583,6 +584,7 @@ int process_mpeg2t_mpeg4_video (mpeg2t_es_t *es_pid,
 	      // have VOL
 	      es_pid->work->seq_header_offset = es_pid->work_loaded - 4;
 	      es_pid->work->flags |= HAVE_SEQ_HEADER;
+	      mpeg2t_message(LOG_DEBUG, "have mpeg4 vol");
 	    }
 	}
       }

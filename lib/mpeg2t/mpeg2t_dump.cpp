@@ -22,6 +22,7 @@ int main (int argc, char **argv)
   const char *ProgName = argv[0];
   const char *usage = "";
   uint16_t pid = 0;
+  bool diff = false;
 
   //  int lastcc, ccset;
   while (true) {
@@ -32,10 +33,11 @@ int main (int argc, char **argv)
       { "version", 0, 0, 'v'},
       { "verbose", 0, 0, 'V'},
       { "pid", 1, 0, 'p' },
+      { "diff", 0, 0, 'd' },
       { NULL, 0, 0, 0 }
     };
 
-    c = getopt_long_only(argc, argv, "?vVp:",
+    c = getopt_long_only(argc, argv, "?vVp:d",
 			 long_options, &option_index);
 
     if (c == -1)
@@ -52,6 +54,9 @@ int main (int argc, char **argv)
       printf("%s - %s version %s", 
 	      ProgName, MPEG4IP_PACKAGE, MPEG4IP_VERSION);
       exit(1);
+    case 'd':
+      diff = true;
+      break;
     case 'p': {
       int readval;
       if (sscanf(optarg, "%i", &readval) != 1) {
@@ -85,6 +90,7 @@ int main (int argc, char **argv)
 
   buflen = 0;
   readfromfile = 0;
+  uint64_t last_pts = 0;
 
   //lastcc = 0;
   while (!feof(ifile)) {
@@ -121,15 +127,26 @@ int main (int argc, char **argv)
 		   es_pid->stream_type,
 		   p->frame_len);
 
+	    uint64_t comp;
 	    if (p->have_dts && p->have_ps_ts) {
 	      printf(" dts "U64" pts "U64, p->dts, p->ps_ts);
+	      comp = p->dts;
 	    } else {
+	      comp = p->ps_ts;
 	      if (p->have_ps_ts) {
 		printf(" pts "U64, p->ps_ts);
 	      }
 	      if (p->have_dts) {
 		printf(" dts "U64, p->dts);
 	      }
+	    }
+	    if (diff) {
+	      if (last_pts != 0) {
+		printf("\tdiff "U64, comp - last_pts);
+	      } else {
+		printf("\tno diff");
+	      }
+	      last_pts = comp;
 	    }
 	    printf("\n");
 	  }

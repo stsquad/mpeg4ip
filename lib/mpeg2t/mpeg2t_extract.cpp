@@ -38,6 +38,7 @@ int main (int argc, char **argv)
   const char *ProgName = argv[0];
   const char *usage = "";
   uint16_t pid = 0;
+  const char *filename;
 
   //  int lastcc, ccset;
   while (true) {
@@ -87,8 +88,7 @@ int main (int argc, char **argv)
     exit(-1);
   }
    
-  argc -= optind;
-  argv += optind;
+  filename = argv[optind];
 
   buffer = (uint8_t *)malloc(BUFFER_SIZE);
 
@@ -98,16 +98,16 @@ int main (int argc, char **argv)
     mpeg2t_set_loglevel(LOG_ERR);
   mpeg2t = create_mpeg2_transport();
   mpeg2t->save_frames_at_start = 1;
-  ifile = fopen(*argv, FOPEN_READ_BINARY);
+  ifile = fopen(filename, FOPEN_READ_BINARY);
   if (ifile == NULL) {
-    fprintf(stderr, "Couldn't open file %s\n", *argv);
+    fprintf(stderr, "Couldn't open file %s\n", filename);
     exit(1);
   }
 
   buflen = 0;
   readfromfile = 0;
   char outfilename[MAXPATHLEN], spid[20];
-  strip_filename(*argv, outfilename);
+  strip_filename(filename, outfilename);
   sprintf(spid, ".%u", pid);
   strcat(outfilename, spid);
     FILE *ofile;
