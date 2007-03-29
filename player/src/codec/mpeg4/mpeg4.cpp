@@ -131,7 +131,7 @@ static int parse_vovod (iso_decode_t *iso,
     uint8_t *write;
     write = buffer;
     // Convert the config= from ascii to binary
-    for (uint32_t ix = 0; ix < len; ix++) {
+    for (uint32_t ix = 0; ix < len; ix += 2) {
       *write = 0;
       *write = (tohex(*config)) << 4;
       config++;

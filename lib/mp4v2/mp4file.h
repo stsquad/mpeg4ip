@@ -309,6 +309,9 @@ public: /* equivalent to MP4 library API */
 					uint16_t pictureLen);
 	MP4TrackId AddHintTrack(MP4TrackId refTrackId);
 
+	MP4TrackId AddTextTrack(MP4TrackId refTrackId);
+	MP4TrackId AddChapterTextTrack(MP4TrackId refTrackId);
+
 	MP4SampleId GetTrackNumberOfSamples(MP4TrackId trackId);
 
 	const char* GetTrackType(MP4TrackId trackId);

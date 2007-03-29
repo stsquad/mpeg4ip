@@ -195,6 +195,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\atom_gmin.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\atom_hdlr.cpp"
 				>
 			</File>
@@ -288,6 +292,10 @@
 			</File>
 			<File
 				RelativePath=".\atom_stz2.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\atom_text.cpp"
 				>
 			</File>
 			<File

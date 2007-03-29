@@ -59,6 +59,8 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 	m_durationPerChunk = 0;
 	m_isAmr = AMR_UNINITIALIZED;
 	m_curMode = 0;
+	
+	m_cachedSttsSid = MP4_INVALID_SAMPLE_ID;
 
 	bool success = true;
 
@@ -968,10 +970,20 @@ void MP4Track::GetSampleTimes(MP4SampleId sampleId,
 	MP4Timestamp* pStartTime, MP4Duration* pDuration)
 {
 	u_int32_t numStts = m_pSttsCountProperty->GetValue();
-	MP4SampleId sid = 1;
-	MP4Duration elapsed = 0;
+	MP4SampleId sid;
+	MP4Duration elapsed;
+	
+	
+	if (m_cachedSttsSid != MP4_INVALID_SAMPLE_ID && sampleId >= m_cachedSttsSid) {
+		sid	  = m_cachedSttsSid;
+		elapsed	  = m_cachedSttsElapsed;
+	} else {
+		m_cachedSttsIndex = 0;
+		sid	  = 1;
+		elapsed	  = 0;
+	}
 
-	for (u_int32_t sttsIndex = 0; sttsIndex < numStts; sttsIndex++) {
+	for (u_int32_t sttsIndex = m_cachedSttsIndex; sttsIndex < numStts; sttsIndex++) {
 		u_int32_t sampleCount = 
 			m_pSttsSampleCountProperty->GetValue(sttsIndex);
 		u_int32_t sampleDelta = 
@@ -986,6 +998,11 @@ void MP4Track::GetSampleTimes(MP4SampleId sampleId,
 			if (pDuration) {
 				*pDuration = sampleDelta;
 			}
+
+			m_cachedSttsIndex = sttsIndex;
+			m_cachedSttsSid = sid;
+			m_cachedSttsElapsed = elapsed;
+
 			return;
 		}
 		sid += sampleCount;
@@ -1257,16 +1274,22 @@ bool MP4Track::IsSyncSample(MP4SampleId sampleId)
 	}
 
 	u_int32_t numStss = m_pStssCountProperty->GetValue();
+	u_int32_t stssLIndex = 0;
+	u_int32_t stssRIndex = numStss - 1;
 	
-	for (u_int32_t stssIndex = 0; stssIndex < numStss; stssIndex++) {
+	while (stssRIndex >= stssLIndex){
+		u_int32_t stssIndex = (stssRIndex + stssLIndex) >> 1;
 		MP4SampleId syncSampleId = 
 			m_pStssSampleProperty->GetValue(stssIndex);
 
 		if (sampleId == syncSampleId) {
 			return true;
 		} 
-		if (sampleId < syncSampleId) {
-			break;
+
+		if (sampleId > syncSampleId) {
+			stssLIndex = stssIndex + 1;
+		} else {
+			stssRIndex = stssIndex - 1;
 		}
 	}
 

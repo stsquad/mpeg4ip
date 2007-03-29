@@ -19,11 +19,6 @@
  *		Bill May wmay@cisco.com
  */
 
-// N.B. mp4extract just extracts tracks/samples from an mp4 file
-// For many track types this is insufficient to reconsruct a valid
-// elementary stream (ES). Use "mp4creator -extract=<trackId>" if
-// you need the ES reconstructed. 
-
 #include "mp4.h"
 #include "mpeg4ip_getopt.h"
 
@@ -420,7 +415,7 @@ char* ProgName;
 int main(int argc, char** argv)
 {
   const char* usageString = 
-    "[-l] [-t <track-id>] [-s <sample-id>] [-v [<level>]] <file-name>\n";
+    "[-v [<level>]] [-force-meta] <file containing protected file names>\n";
   char* difflist;
   char Mp4FileName[PATH_MAX], toFileName[PATH_MAX];
 #if 0

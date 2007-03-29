@@ -1098,6 +1098,37 @@ extern "C" MP4TrackId MP4AddHintTrack(
 	return MP4_INVALID_TRACK_ID;
 }
 
+extern "C" MP4TrackId MP4AddTextTrack(
+	MP4FileHandle hFile, MP4TrackId refTrackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->AddTextTrack(refTrackId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return MP4_INVALID_TRACK_ID;
+}
+
+extern "C" MP4TrackId MP4AddChapterTextTrack(
+	MP4FileHandle hFile, MP4TrackId refTrackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->AddChapterTextTrack(refTrackId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return MP4_INVALID_TRACK_ID;
+}
+
+
 extern "C" MP4TrackId MP4CloneTrack (MP4FileHandle srcFile, 
 				     MP4TrackId srcTrackId,
 				     MP4FileHandle dstFile,

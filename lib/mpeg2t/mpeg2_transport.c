@@ -728,7 +728,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   if (es_pid->save_frames == 0 &&
       es_pid->report_psts == 0 &&
       es_pid->info_loaded > 0) {
-    mpeg2t_message(LOG_INFO, "PID %x not processing", ifptr->pid);
+    //    mpeg2t_message(LOG_INFO, "PID %x not processing", ifptr->pid);
     return 0;
   }
 

@@ -90,6 +90,11 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4SoundAtom(type);
       }
       break;
+    case 'c':
+      if (ATOMID(type) == ATOMID("chap")) {
+	pAtom = new MP4TrefTypeAtom(type);
+	  }
+	  break;
     case 'd':
       if (ATOMID(type) == ATOMID("d263")) {
 	pAtom = new MP4D263Atom();
@@ -117,6 +122,11 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4FreeAtom();
       } else if (ATOMID(type) == ATOMID("ftyp")) {
 	pAtom = new MP4FtypAtom();
+      }
+      break;
+    case 'g':
+      if (ATOMID(type) == ATOMID("gmin")) {
+	pAtom = new MP4GminAtom();
       }
       break;
     case 'h':
@@ -213,7 +223,9 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
       }
       break;
     case 't':
-      if (ATOMID(type) == ATOMID("tkhd")) {
+      if (ATOMID(type) == ATOMID("text")) {
+	pAtom = new MP4TextAtom();
+      } else if (ATOMID(type) == ATOMID("tkhd")) {
 	pAtom = new MP4TkhdAtom();
       } else if (ATOMID(type) == ATOMID("tfhd")) {
 	pAtom = new MP4TfhdAtom();

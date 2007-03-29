@@ -238,6 +238,7 @@ int CPlayerMedia::decode_thread (void)
       if (get_sync_type() == VIDEO_SYNC &&
 	  (m_parent->get_session_state() == SESSION_PLAYING) &&
 	  have_frame_ts) {
+	//media_message(LOG_DEBUG, "video decode "U64, ourtime.msec_timestamp);
 	int64_t ts_diff = ourtime.msec_timestamp - lasttime.msec_timestamp;
 
 	if (ts_diff > TO_D64(1000) ||

@@ -265,8 +265,8 @@ void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock,
   uint64_t wclock_calc;
   bool set = true;
   bool had_recvd_rtcp;
-  if (m_rtcp_received == 1 &&
-      m_stream_ondemand == 0) {
+  if (m_rtcp_received == 1 /*&&
+			     m_stream_ondemand == 0*/) {
     rtp_ts_diff = rtp_ts;
     rtp_ts_diff -= m_rtcp_rtp_ts;
     wclock_diff = (int64_t)rtp_ts_diff;
@@ -274,6 +274,7 @@ void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock,
     wclock_diff /= (int64_t)m_timescale;
     wclock_calc = m_rtcp_ts;
     wclock_calc += wclock_diff;
+    set = false;
     if (wclock_calc != wclock) {
 #ifdef DEBUG_RTP_WCLOCK
       rtp_message(LOG_DEBUG, 
@@ -285,6 +286,7 @@ void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock,
       int64_t diff = wclock_calc - wclock;
       if (abs(diff) > 2 && abs(diff) < 100) {
 	set = false;
+	//	rtp_message(LOG_DEBUG, "not changing");
 	// we'll allow a msec drift here or there to allow for rounding - 
 	// we want this to change every so often
       }
@@ -789,7 +791,7 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
 #endif
   }
 #ifdef DEBUG_RTP_TS
-    rtp_message(LOG_DEBUG,"%s time "U64, m_name, timetick);
+  rtp_message(LOG_DEBUG,"%s time "U64" %u", m_name, timetick, rtp_ts);
 #endif
   // record time
   m_last_rtp_ts = rtp_ts;

@@ -50,7 +50,7 @@ void mpeg2ps_message (int loglevel, const char *fmt, ...)
 	  char msg[1024];
 
       _vsnprintf(msg, 1024, fmt, ap);
-      OutputDebugString(msg);
+      OutputDebugStringA(msg);
       OutputDebugString("\n");
 #else
       struct timeval thistime;

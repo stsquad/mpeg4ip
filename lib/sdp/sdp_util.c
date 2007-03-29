@@ -265,6 +265,19 @@ format_list_t *sdp_find_format_in_line (format_list_t *head, const char *lptr)
   return (NULL);
 }
 
+format_list_t *sdp_find_rtpmap_name (format_list_t *head, 
+				     const char *name)
+{
+  while (head != NULL) {
+    if (head->rtpmap_name != NULL &&
+	(strcasecmp(name, head->rtpmap_name) == 0)) {
+      return (head);
+    } else 
+      head = head->next;
+  }
+  return (NULL);
+}
+
 void sdp_smpte_to_str (double value, uint16_t fps, char *buffer)
 {
   double divval;

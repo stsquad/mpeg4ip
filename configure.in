@@ -1,5 +1,6 @@
+
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(mpeg4ip, 1.5.19)
+AC_INIT(mpeg4ip, 1.5.20)
 AM_CONFIG_HEADER(mpeg4ip_config.h)
 dnl Prevent user from running just ./configure
 AC_CHECK_FILE(./bootstrapped, [did_bootstrap=yes], [did_bootstrap=no])
@@ -82,7 +83,7 @@ AC_CHECK_SIZEOF(bool)
 AC_LANG_POP(C++)
 
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
-AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h sys/time.h)
+AC_CHECK_HEADERS(sys/time.h)
 
 AC_CHECK_FILE(/dev/urandom, AC_DEFINE([HAVE_DEV_URANDOM], [1], [have /dev/urandom]))
 dnl AC_LANG_PUSH(C++)
@@ -166,7 +167,7 @@ dnl check for Sun, BSD/OS libraries
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(gnugetopt, getopt_long)
 AC_SEARCH_LIBS(inet_addr, nsl)
-AC_SEARCH_LIBS(inet_aton, reslov)
+AC_SEARCH_LIBS(inet_aton, resolv)
 AC_SEARCH_LIBS(dlopen, dl libc)
 
 dnl check for this for mp3lame
@@ -266,7 +267,7 @@ LIBS=$saved_LIBS
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getopt_long_only getrusage socketpair strsep inet_ntoa inet_pton inet_ntop inet_aton)
+AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getopt_long_only socketpair strsep inet_ntoa inet_pton inet_ntop inet_aton)
 
 
 AC_CHECK_TYPES([in_port_t, socklen_t, struct iovec, struct sockaddr_storage], , , 
@@ -698,17 +699,6 @@ AC_ARG_ENABLE(ppc,
               , 
 	      enable_ppc=yes)
 
-test_use_ppc=false
-if test x$enable_ppc = xyes; then
-   case $target in
-   *powerpc*) 
-	AC_DEFINE(ARCH_PPC, 1, [Power PC Architecture])
-	test_use_ppc=true
-	;;
-   esac
-fi
-AM_CONDITIONAL(USE_PPC, test x$test_use_ppc = xtrue)
-
 dnl read out glib and gtk paths and flags.  Will need to dummy this
 dnl out for a glibless system
 AC_ARG_ENABLE(gtk-glib,
@@ -792,13 +782,10 @@ if test x$enable_mmx = xyes; then
 		esac
 		AC_SUBST(NASMFLAGS)
 		test_use_mmx=true
-		arch_x86=:
-		AC_DEFINE(ARCH_X86, 1, [have intel processor])
 		;;
 	esac
     fi
 fi
-AM_CONDITIONAL(USE_MMX, test x$test_use_mmx = xtrue)
 
 AC_PATH_X
 AC_PATH_XTRA

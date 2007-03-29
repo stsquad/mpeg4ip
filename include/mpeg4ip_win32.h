@@ -27,9 +27,11 @@
 #define _WIN32_WINNT 0x0400
 #define _WINSOCKAPI_
 #define _INTEGRAL_MAX_BITS 64
-#define _CRT_SECURE_NO_DEPRECATE
+#ifndef __GNUC__
+#define _CRT_SECURE_NO_DEPRECATE 1
 #ifndef _WIN32
 #define _WIN32
+#endif
 #endif
 #include <windows.h>
 #include <winsock2.h>
@@ -38,7 +40,14 @@
 #include <stdlib.h>
 #include <time.h>
 #include <limits.h>
-
+#ifdef __GNUC__
+#include <stdint.h>
+#include <ctype.h>
+typedef uint64_t u_int64_t;
+typedef uint32_t u_int32_t;
+typedef uint16_t u_int16_t;
+typedef uint8_t u_int8_t;
+#else
 typedef unsigned __int64 uint64_t;
 typedef unsigned __int32 uint32_t;
 typedef unsigned __int16 uint16_t;
@@ -59,11 +68,13 @@ typedef unsigned int uint;
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
 #define localtime_r(a,b) localtime(a)
+#endif
 
 #include <io.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#define read _read
 #define write _write
 #define lseek _lseek
 #define close _close
@@ -72,6 +83,8 @@ typedef unsigned int uint;
 #define vsnprintf _vsnprintf
 #define stat _stati64
 #define fstat _fstati64
+#define fileno _fileno
+#define strdup _strdup
 #define F_OK 0
 #define OPEN_RDWR (_O_RDWR | _O_BINARY)
 #define OPEN_CREAT (_O_CREAT | _O_BINARY)
@@ -89,15 +102,25 @@ int gettimeofday(struct timeval *t, void *);
 }
 #endif
 
+#ifndef PATH_MAX
 #define PATH_MAX MAX_PATH
+#endif
 #define MAX_UINT64 -1
+#ifdef __GNUC__
+#define D64F "lld"
+#define U64F  "llu"
+#define X64F "llx"
+
+#define TO_D64(a) (a##LL)
+#define TO_U64(a) (a##LLU)
+#else
 #define D64F "I64d"
 #define U64F  "I64u"
 #define X64F "I64x"
 
 #define TO_D64(a) (a##I64)
 #define TO_U64(a) (a##UI64)
-
+#endif
 #define LOG_EMERG 0
 #define LOG_ALERT 1
 #define LOG_CRIT 2
@@ -107,7 +130,7 @@ int gettimeofday(struct timeval *t, void *);
 #define LOG_INFO 6
 #define LOG_DEBUG 7
 
-#if     !__STDC__ && _INTEGRAL_MAX_BITS >= 64
+#if     defined (__GNUC__) || (!__STDC__ && _INTEGRAL_MAX_BITS >= 64)
 #define VAR_TO_FPOS(fpos, var) (fpos) = (var)
 #define FPOS_TO_VAR(fpos, typed, var) (var) = (typed)(fpos)
 #else
@@ -132,6 +155,7 @@ char *strcasestr(const char *haystack, const char *needle);
 
 #define SIZEOF_BOOL 1
 
+#ifndef __GNUC__
 #ifndef _SS_PAD1SIZE
 struct sockaddr_storage {
 	unsigned short ss_family;
@@ -140,4 +164,5 @@ struct sockaddr_storage {
 };
 #endif
 #pragma warning(disable : 4244)
+#endif
 #endif

@@ -70,9 +70,8 @@ extern "C" int MP4AV_Mpeg3ParseSeqHdr (const uint8_t *pbuffer,
 #if 1
   uint32_t scode, ix;
   int found = -1;
-  *have_mpeg2 = 0;
-  if (mpeg2_profile != NULL) 
-    *mpeg2_profile = 0;
+  if (have_mpeg2 != NULL) *have_mpeg2 = 0;
+  if (mpeg2_profile != NULL) *mpeg2_profile = 0;
   buflen -= 6;
   bitrate_int = 0;
   for (ix = 0; ix < buflen; ix++, pbuffer++) {
@@ -81,12 +80,16 @@ extern "C" int MP4AV_Mpeg3ParseSeqHdr (const uint8_t *pbuffer,
 
     if (scode == MPEG3_SEQUENCE_START_CODE) {
       pbuffer += sizeof(uint32_t);
-      *width = (pbuffer[0]);
-      *width <<= 4;
-      *width |= ((pbuffer[1] >> 4) &0xf);
-      *height = (pbuffer[1] & 0xf);
-      *height <<= 8;
-      *height |= pbuffer[2];
+      if (width != NULL) {
+	*width = (pbuffer[0]);
+	*width <<= 4;
+	*width |= ((pbuffer[1] >> 4) &0xf);
+      }
+      if (height != NULL) {
+	*height = (pbuffer[1] & 0xf);
+	*height <<= 8;
+	*height |= pbuffer[2];
+      }
       aspect_code = (pbuffer[3] >> 4) & 0xf;
       if (aspect_ratio != NULL) {
 	switch (aspect_code) {
@@ -99,13 +102,17 @@ extern "C" int MP4AV_Mpeg3ParseSeqHdr (const uint8_t *pbuffer,
 	  
 	
       framerate_code = pbuffer[3] & 0xf;
-      *frame_rate = mpeg3_frame_rate_table[framerate_code];
+      if (frame_rate != NULL) {
+	*frame_rate = mpeg3_frame_rate_table[framerate_code];
+      }
       // 18 bits
       bitrate_int = (pbuffer[4] << 10) | 
 	(pbuffer[5] << 2) | 
 	((pbuffer[6] >> 6) & 0x3);
-      *bitrate = bitrate_int;
-      *bitrate *= 400.0;
+      if (bitrate != NULL) {
+	*bitrate = bitrate_int;
+	*bitrate *= 400.0;
+      }
       ix += sizeof(uint32_t) + 7;
       pbuffer += 7;
       found = 0;
@@ -115,19 +122,24 @@ extern "C" int MP4AV_Mpeg3ParseSeqHdr (const uint8_t *pbuffer,
 	ix += sizeof(uint32_t);
 	switch ((pbuffer[0] >> 4) & 0xf) {
 	case SEQ_ID:
-	  *have_mpeg2 = 1;
+	  if (have_mpeg2 != NULL) *have_mpeg2 = 1;
 	  if (mpeg2_profile != NULL) 
 	    *mpeg2_profile = ((pbuffer[0] & 0xf) << 4) | 
 	      ((pbuffer[1] >> 4) & 0xf);
-	  *height = ((pbuffer[1] & 0x1) << 13) | 
-	    ((pbuffer[2] & 0x80) << 5) |
-	    (*height & 0x0fff);
-	  *width = (((pbuffer[2] >> 5) & 0x3) << 12) | (*width & 0x0fff);
+	  if (height != NULL) {
+	    *height = ((pbuffer[1] & 0x1) << 13) | 
+	      ((pbuffer[2] & 0x80) << 5) |
+	      (*height & 0x0fff);
+	  }
+	  if (width != NULL) 
+	    *width = (((pbuffer[2] >> 5) & 0x3) << 12) | (*width & 0x0fff);
 	  bitrate_ext = (pbuffer[2] & 0x1f) << 7;
 	  bitrate_ext |= (pbuffer[3] >> 1) & 0x7f;
 	  bitrate_int |= (bitrate_ext << 18);
-	  *bitrate = bitrate_int;
-	  *bitrate *= 400.0;
+	  if (bitrate != NULL) {
+	    *bitrate = bitrate_int;
+	    *bitrate *= 400.0;
+	  }
 	  break;
 	default:
 	  break;

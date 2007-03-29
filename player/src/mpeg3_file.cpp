@@ -46,9 +46,7 @@ static int create_mpeg3_video (video_query_t *vq,
   CPlayerMedia *mptr;
   codec_plugin_t *plugin;
   int ret;
-#ifdef ARCH_X86
-  //  mpeg3_set_mmx(vfile, 1);
-#endif
+
   plugin = check_for_video_codec(STREAM_TYPE_MPEG_FILE,
 				 "mp2v",
 				 NULL,

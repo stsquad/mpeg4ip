@@ -139,7 +139,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="&quot;$(SolutionDir)\SDL\lib\SDL.lib&quot; &quot;$(SolutionDir)\SDL\lib\SDLmain.lib&quot;"
 				LinkIncremental="1"
-				IgnoreDefaultLibraryNames="msvcrt.lib"
+				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"

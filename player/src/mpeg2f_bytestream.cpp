@@ -292,8 +292,12 @@ int CMpeg2fVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
   uint64_t outts;
   if (fptr->have_dts)
     outts = fptr->dts;
-  else
+  else if (fptr->have_ps_ts) 
     outts = fptr->ps_ts;
+  else 
+    outts = m_prev_ts + 3003; // just a guess for now
+
+  m_prev_ts = outts;
   outts *= TO_U64(1000);
   outts /= TO_U64(90000); // get msec from 90000 timescale
   ts->msec_timestamp = outts;

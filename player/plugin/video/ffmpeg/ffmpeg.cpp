@@ -338,31 +338,28 @@ static int ffmpeg_frame_is_sync (codec_data_t *ifptr,
 {
   int ret;
   int ftype;
-  uint32_t offset;
   ffmpeg_codec_t *ffmpeg = (ffmpeg_codec_t *)ifptr;
   switch (ffmpeg->m_codecId) {
   case CODEC_ID_H264:
     // look for idr nal
+    // disable to just start right up
+#if 1
+    uint32_t offset;
     do {
       uint8_t nal_type = h264_nal_unit_type(buffer);
+      ffmpeg_message(LOG_DEBUG, "ffmpeg", "nal type %u", nal_type);
       if (nal_type == H264_NAL_TYPE_SEQ_PARAM) return 1;
-      //ffmpeg_message(LOG_DEBUG, "ffmpeg", "nal type %u", nal_type);
       if (h264_nal_unit_type_is_slice(nal_type)) {
 	if (nal_type == H264_NAL_TYPE_IDR_SLICE) return 1;
-#if 0
-	uint8_t slice_type;
-	if (h264_find_slice_type(buffer, buflen, &slice_type) >= 0) {
-	  return H264_TYPE_IS_I(slice_type) ? 1 : 0;
-	}
 	return 0;
-#else
-	return 0;
-#endif
       }
       offset = h264_find_next_start_code(buffer, buflen);
       buffer += offset;
       buflen -= offset;
     } while (offset != 0);
+#else
+    return 1;
+#endif
     break;
   case CODEC_ID_MPEG2VIDEO:
     // this would be for mpeg2
@@ -634,7 +631,7 @@ static int ffmpeg_codec_check (lib_message_func_t message,
   if (c == NULL) {
     return -1;
   }
-  return pConfig->GetBoolValue(CONFIG_USE_FFMPEG) ? 10 : 2;
+  return pConfig->GetBoolValue(CONFIG_USE_FFMPEG) ? 20 : 2;
 }
 
 VIDEO_CODEC_PLUGIN("ffmpeg", 

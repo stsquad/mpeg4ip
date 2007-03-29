@@ -119,6 +119,7 @@ typedef struct Virtual_IO
 #define MP4_VIDEO_TRACK_TYPE	"vide"
 #define MP4_HINT_TRACK_TYPE		"hint"
 #define MP4_CNTL_TRACK_TYPE     "cntl"
+#define MP4_TEXT_TRACK_TYPE		"text"
 /*
  * This second set of track types should be created 
  * via MP4AddSystemsTrack(type)
@@ -587,6 +588,14 @@ MP4TrackId MP4AddH263VideoTrack(
 		u_int32_t maxBitrate);
 
 MP4TrackId MP4AddHintTrack(
+	MP4FileHandle hFile, 
+	MP4TrackId refTrackId);
+
+MP4TrackId MP4AddTextTrack(
+	MP4FileHandle hFile, 
+	MP4TrackId refTrackId);
+
+MP4TrackId MP4AddChapterTextTrack(
 	MP4FileHandle hFile, 
 	MP4TrackId refTrackId);
 

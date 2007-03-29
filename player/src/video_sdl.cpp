@@ -174,8 +174,7 @@ void  CSDLVideo::set_screen_size(bool fullscreen, int video_scale,
   // pixel sizes that we resize
   if (pixel_width > 0 && pixel_height > 0) {
     // wmay - just use the passed in values.
-    win_w = pixel_width;
-    win_h = pixel_height;
+    win_w = (win_h * pixel_width) / pixel_height;
 #if 0
     // Square pixels needs no resize.
     if (pixel_width != pixel_height) {

@@ -142,7 +142,7 @@ int main (int argc, char **argv)
 
 	while ((p = mpeg2t_get_es_list_head(es_pid)) != NULL) {
 	  if (pidptr->pid == pid) {
-	    printf("Pid %x %d frame len %5d psts %d "U64" dts %d "U64, 
+	    printf("Pid %x %d frame len %5d psts %d "U64" dts %d "U64"\n", 
 		   pidptr->pid,
 		   es_pid->stream_type,
 		   p->frame_len,

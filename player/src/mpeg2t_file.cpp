@@ -277,7 +277,11 @@ int CMpeg2tFile::create (CPlayerSession *psptr)
   bool is_seekable = true;
   uint64_t last_psts, ts;
   last_psts = earliest_psts;
-
+  uint64_t check_end;
+  if (end < m_buffer_size_max * 2) {
+    check_end = end / 2;
+  } else
+    check_end = end - (m_buffer_size_max * 2);
   // Now - skip to the next perc chunk, and try to find the next psts
   // we'll record this info.
   do {
@@ -345,7 +349,7 @@ int CMpeg2tFile::create (CPlayerSession *psptr)
     } while (done == false && count < perc / 2);
     cur += perc;
 
-  } while (cur < end - (m_buffer_size_max * 2));
+  } while (cur < check_end);
 
   //mpeg2f_message(LOG_DEBUG, "starting end search");
   // Now, we'll go to close to the end of the file, and look for a 

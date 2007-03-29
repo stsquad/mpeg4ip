@@ -238,6 +238,11 @@ protected:
 	MP4Integer32Property* m_pSttsSampleCountProperty;
 	MP4Integer32Property* m_pSttsSampleDeltaProperty;
 
+	// for improve sequental timestamp index access
+	u_int32_t	m_cachedSttsIndex;
+	MP4SampleId	m_cachedSttsSid;
+	MP4Timestamp	m_cachedSttsElapsed;
+
 	MP4Integer32Property* m_pCttsCountProperty;
 	MP4Integer32Property* m_pCttsSampleCountProperty;
 	MP4Integer32Property* m_pCttsSampleOffsetProperty;

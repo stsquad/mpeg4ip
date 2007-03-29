@@ -1059,7 +1059,8 @@ void MP4File::AddTrackToIod(MP4TrackId trackId)
 	MP4DescriptorProperty* pDescriptorProperty = NULL;
 	m_pRootAtom->FindProperty("moov.iods.esIds",
 		(MP4Property**)&pDescriptorProperty);
-
+#if 0
+	// we may not have iods
 	if (shallHaveIods) {
 		ASSERT(pDescriptorProperty);
 	} else {
@@ -1067,6 +1068,11 @@ void MP4File::AddTrackToIod(MP4TrackId trackId)
 			return;
 		}
 	}
+#else
+	if (pDescriptorProperty == NULL) {
+	  return;
+	}
+#endif
 
 	for (u_int32_t i = 0; i < pDescriptorProperty->GetCount(); i++) {
 	  /* static */char name[32];
@@ -1075,9 +1081,10 @@ void MP4File::AddTrackToIod(MP4TrackId trackId)
 		MP4Integer32Property* pIdProperty = NULL;
 		pDescriptorProperty->FindProperty(name, 
 			(MP4Property**)&pIdProperty);
-		ASSERT(pIdProperty);
+		// wmay ASSERT(pIdProperty);
 
-		if (pIdProperty->GetValue() == trackId) {
+		if (pIdProperty != NULL && 
+		    pIdProperty->GetValue() == trackId) {
 			pDescriptorProperty->DeleteDescriptor(i);
 			break;
 		}
@@ -2085,6 +2092,73 @@ MP4TrackId MP4File::AddHintTrack(MP4TrackId refTrackId)
 	AddDescendantAtoms(MakeTrackName(trackId, NULL), "udta.hnti.sdp ");
 
 	AddDescendantAtoms(MakeTrackName(trackId, NULL), "udta.hinf");
+
+	return trackId;
+}
+
+MP4TrackId MP4File::AddTextTrack(MP4TrackId refTrackId)
+{
+	// validate reference track id
+	FindTrackIndex(refTrackId);
+
+	MP4TrackId trackId = 
+		AddTrack(MP4_TEXT_TRACK_TYPE, GetTrackTimeScale(refTrackId));
+
+	InsertChildAtom(MakeTrackName(trackId, "mdia.minf"), "gmhd", 0);
+
+	AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "text");
+
+	// stsd is a unique beast in that it has a count of the number 
+	// of child atoms that needs to be incremented after we add the text atom
+	MP4Integer32Property* pStsdCountProperty;
+	FindIntegerProperty(
+		MakeTrackName(trackId, "mdia.minf.stbl.stsd.entryCount"),
+		(MP4Property**)&pStsdCountProperty);
+	pStsdCountProperty->IncrementValue();
+
+	return trackId;
+}
+
+MP4TrackId MP4File::AddChapterTextTrack(MP4TrackId refTrackId)
+{
+	// validate reference track id
+	FindTrackIndex(refTrackId);
+
+	MP4TrackId trackId = 
+		AddTrack(MP4_TEXT_TRACK_TYPE, GetTrackTimeScale(refTrackId));
+
+	InsertChildAtom(MakeTrackName(trackId, "mdia.minf"), "gmhd", 0);
+
+	AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "text");
+
+	// stsd is a unique beast in that it has a count of the number 
+	// of child atoms that needs to be incremented after we add the text atom
+	MP4Integer32Property* pStsdCountProperty;
+	FindIntegerProperty(
+		MakeTrackName(trackId, "mdia.minf.stbl.stsd.entryCount"),
+		(MP4Property**)&pStsdCountProperty);
+	pStsdCountProperty->IncrementValue();
+
+	// add a "text" atom to the generic media header
+	// this is different to the stsd "text" atom added above
+	// truth be told, it's not clear what this second "text" atom does,
+	// but all iTunes Store movies (with chapter markers) have it,
+	// as do all movies with chapter tracks made by hand in QuickTime Pro
+	AddChildAtom(MakeTrackName(trackId, "mdia.minf.gmhd"), "text");
+
+	// disable the chapter text track
+	// it won't display anyway, as it has zero display size,
+	// but nonetheless it's good to disable it
+	// the track still operates as a chapter track when disabled
+    MP4Atom *pTkhdAtom = FindAtom(MakeTrackName(trackId, "tkhd"));
+	if (pTkhdAtom) {
+	   	pTkhdAtom->SetFlags(0xE);
+	}
+
+	// add a "chapter" track reference to our reference track,
+	// pointing to this new chapter track
+	AddDescendantAtoms(MakeTrackName(refTrackId, NULL), "tref.chap");
+	AddTrackReference(MakeTrackName(refTrackId, "tref.chap"), trackId);
 
 	return trackId;
 }

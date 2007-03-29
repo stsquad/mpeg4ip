@@ -105,7 +105,9 @@ typedef struct
 #ifndef WAVE_FORMAT_UNKNOWN
 /* Most of these are defined by Microsoft - don't redefine them */
 #define WAVE_FORMAT_UNKNOWN             (0x0000)
+#ifndef WAVE_FORMAT_PCM
 #define WAVE_FORMAT_PCM                 (0x0001)
+#endif
 #define WAVE_FORMAT_ADPCM               (0x0002)
 #define WAVE_FORMAT_IBM_CVSD            (0x0005)
 #define WAVE_FORMAT_ALAW                (0x0006)

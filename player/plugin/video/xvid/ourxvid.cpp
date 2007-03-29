@@ -160,7 +160,7 @@ static int parse_vovod (xvid_codec_t *xvid,
     uint8_t *write;
     write = buffer;
     // Convert the config= from ascii to binary
-    for (uint32_t ix = 0; ix < len; ix++) {
+    for (uint32_t ix = 0; ix < len; ix += 2) {
       *write = 0;
       *write = (tohex(*config)) << 4;
       config++;

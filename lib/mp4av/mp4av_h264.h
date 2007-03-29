@@ -39,6 +39,15 @@
 #define H264_TYPE_IS_I(t) ((t) == H264_TYPE_I || (t) == H264_TYPE2_I)
 #define H264_TYPE_IS_SP(t) ((t) == H264_TYPE_SP || (t) == H264_TYPE2_SP)
 #define H264_TYPE_IS_SI(t) ((t) == H264_TYPE_SI || (t) == H264_TYPE2_SI)
+
+#define HAVE_SLICE_I 0x1
+#define HAVE_SLICE_P 0x2
+#define HAVE_SLICE_B 0x4
+#define HAVE_SLICE_SI 0x8
+#define HAVE_SLICE_SP 0x10
+#define HAVE_ALL_SLICES 0x1f
+#define HAVE_ALL_BUT_B_SLICES 0x1b
+
 typedef struct h264_decode_t {
   uint8_t profile;
   uint8_t level;

@@ -146,6 +146,10 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
   /*
    * g???
    */
+  } else if (ATOMID(type) == ATOMID("gmhd")) { 
+    ExpectChildAtom("gmin", Required, OnlyOne);
+    ExpectChildAtom("tmcd", Optional, OnlyOne);
+    ExpectChildAtom("text", Optional, OnlyOne);
   } else if (ATOMID(type) == ATOMID("gnre")) { // Apple iTunes 
     ExpectChildAtom("data", Optional, OnlyOne);
 
@@ -235,6 +239,7 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
     ExpectChildAtom("smhd", Optional, OnlyOne);
     ExpectChildAtom("hmhd", Optional, OnlyOne);
     ExpectChildAtom("nmhd", Optional, OnlyOne);
+    ExpectChildAtom("gmhd", Optional, OnlyOne);
     ExpectChildAtom("dinf", Required, OnlyOne);
     ExpectChildAtom("stbl", Required, OnlyOne);
 
@@ -385,6 +390,7 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
     ExpectChildAtom("udta", Optional, Many);
 
   } else if (ATOMID(type) == ATOMID("tref")) {
+    ExpectChildAtom("chap", Optional, OnlyOne);
     ExpectChildAtom("dpnd", Optional, OnlyOne);
     ExpectChildAtom("hint", Optional, OnlyOne);
     ExpectChildAtom("ipir", Optional, OnlyOne);

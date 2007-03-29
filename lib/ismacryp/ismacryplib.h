@@ -19,6 +19,7 @@
 
 #ifndef ISMACRYPLIB_H
 #define ISMACRYPLIB_H
+#include "mpeg4ip.h"
 
 #ifndef TRUE
 #define TRUE 1
@@ -28,7 +29,7 @@
 #define ISMACRYP_SESSION_G_INIT	10
 //#define ISMACRYP_DEBUG_TRACE	1
 
-#include "mpeg4ip.h"
+
 
 #ifdef __cplusplus
 extern "C" {

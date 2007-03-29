@@ -53,7 +53,7 @@ AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
 AC_CHECK_HEADERS(sys/time.h)
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getopt_long_only getrusage socketpair strsep inet_ntoa)
+AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getopt_long_only socketpair strsep inet_ntoa)
 
 
 dnl @author  Guido Draheim <guidod@gmx.de>
