@@ -688,10 +688,10 @@ const char* MP4File::TempFileName()
 		throw new MP4Error("can't create temporary file", "TempFileName");
 	}
 #else
-	GetTempFileName((LPCWSTR)".", // dir. for temp. files 
-					(LPCWSTR)"mp4",                // temp. filename prefix 
-					0,                    // create unique name 
-					m_tempFileName);        // buffer for name 
+	GetTempFileNameA(".", // dir. for temp. files 
+			"mp4",                // temp. filename prefix 
+			0,                    // create unique name 
+			m_tempFileName);        // buffer for name 
 #endif
 
 	return (char *)m_tempFileName;

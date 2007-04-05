@@ -74,6 +74,7 @@ typedef unsigned int uint;
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef __GNUC__
 #define read _read
 #define write _write
 #define lseek _lseek
@@ -85,6 +86,7 @@ typedef unsigned int uint;
 #define fstat _fstati64
 #define fileno _fileno
 #define strdup _strdup
+#endif
 #define F_OK 0
 #define OPEN_RDWR (_O_RDWR | _O_BINARY)
 #define OPEN_CREAT (_O_CREAT | _O_BINARY)

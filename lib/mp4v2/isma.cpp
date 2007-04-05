@@ -93,7 +93,8 @@ void MP4File::MakeIsmaCompliant(bool addIsmaComplianceSdp)
 
 	m_useIsma = true;
 
-	u_int64_t fileMsDuration =
+	u_int64_t fileMsDuration = 0;
+	fileMsDuration = 
 		ConvertFromMovieDuration(GetDuration(), MP4_MSECS_TIME_SCALE);
 
 	// delete any existing OD track

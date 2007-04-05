@@ -593,12 +593,16 @@ For windows GUI player, see the player README.
 <b>Mac OSX</b>
 <P>
 We only support 10.3.2 (Panther) and later.  You should have the
-tools installed (you do not need Xcode installed, unless you only
-want the tools, and don't want to install SDL).
+tools installed.
 <p>
 You should install SDL-1.2.7 (or greater) from source, not from the
 binaries.  We require the sdl-config script, which is not installed 
 with the binaries.
+<p>
+We will build the version native to your platform.  To build
+universal binarys, use the <code>--enable-universal-binary</code> and
+the <code>--disable-depedency-tracking</code> flags in either your
+bootstrap or cvs_bootstrap command line.
 <p>
 You may get an error that libtoolize is
 not installed correctly.  Mac OSX comes with libtool installed as

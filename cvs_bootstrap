@@ -95,8 +95,15 @@ do
    fi
 done
 
+if test $target_system != "CYGWIN_NT-5.1"; then
+ERRCMD=--enable-warns-as-err
+else
+ERRCMD=
+fi
+
 pwd=`pwd`
 if test $target_system != "Darwin"; then
+if test $target_system != "CYGWIN_NT-5.1"; then
 for	dir \
 in	$pwd/lib/SDLAudio 
 do	cd $dir
@@ -105,6 +112,7 @@ do	cd $dir
   automake --add-missing --foreign || exit 5
   autoconf || exit 6
 done
+fi
 fi
 
 #cd $pwd/lib/rtp
@@ -156,7 +164,7 @@ autoheader || exit 1
 automake --add-missing --foreign || exit 1
 autoconf || exit 1
 echo "Do not remove this file or you might have to re-bootstrap" > bootstrapped
-[ ! -x configure ] || ./configure --enable-warns-as-err $allargs ACLOCAL_AMFLAGS="$ACLOCAL_FLAGS" || exit 1
+[ ! -x configure ] || ./configure $ERRCMD $allargs ACLOCAL_AMFLAGS="$ACLOCAL_FLAGS" || exit 1
 set +x
 
 if test $target_system = "Linux"; then
