@@ -96,8 +96,9 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
     if (chans == 1) payload = 11;
     else if (chans == 2) payload = 10;
   }
-  MP4SetHintTrackRtpPayload(mp4file, hintTrackId, "L16", &payload, 0,
-			    chans == 1 ? NULL : buffer);
+  if (MP4SetHintTrackRtpPayload(mp4file, hintTrackId, "L16", &payload, 0,
+				chans == 1 ? NULL : buffer) == false)
+    return false;
 
   sampleId = 1;
   sampleSize = MP4GetSampleSize(mp4file, trackid, sampleId);
@@ -111,14 +112,17 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
 #ifdef DEBUG_L16
       printf("Adding hint/packet\n");
 #endif
-      MP4AddRtpHint(mp4file, hintTrackId);
-      MP4AddRtpPacket(mp4file, hintTrackId, false); // marker bit 0
+      if (MP4AddRtpHint(mp4file, hintTrackId) == false ||
+	  MP4AddRtpPacket(mp4file, hintTrackId, false) == false) // marker bit 0
+	return false;
     }
     uint16_t bytes_left_this_packet;
     bytes_left_this_packet = maxPayloadSize - bytes_this_hint;
     if (sampleSize >= bytes_left_this_packet) {
-      MP4AddRtpSampleData(mp4file, hintTrackId, 
-			  sampleId, sampleOffset, bytes_left_this_packet);
+      if (MP4AddRtpSampleData(mp4file, hintTrackId, 
+			      sampleId, sampleOffset, 
+			      bytes_left_this_packet) == false) return false;
+   
       bytes_this_hint += bytes_left_this_packet;
       sampleSize -= bytes_left_this_packet;
       sampleOffset += bytes_left_this_packet;
@@ -126,8 +130,9 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
       printf("Added sample with %d bytes\n", bytes_left_this_packet);
 #endif
     } else {
-      MP4AddRtpSampleData(mp4file, hintTrackId, 
-			  sampleId, sampleOffset, sampleSize);
+      if (MP4AddRtpSampleData(mp4file, hintTrackId, 
+			      sampleId, sampleOffset, sampleSize) == false)
+	return false;
       bytes_this_hint += sampleSize;
 #ifdef DEBUG_L16
       printf("Added sample with %d bytes\n", sampleSize);
@@ -138,7 +143,9 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
     if (bytes_this_hint >= maxPayloadSize) {
       // Write the hint
       // duration is 1/2 of the bytes written
-      MP4WriteRtpHint(mp4file, hintTrackId, bytes_this_hint / (2 * chans));
+      if (MP4WriteRtpHint(mp4file, hintTrackId, 
+			  bytes_this_hint / (2 * chans)) == false) 
+	return false;
 #ifdef DEBUG_L16
       printf("Finished packet - bytes %d\n", bytes_this_hint);
 #endif
@@ -150,7 +157,9 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
       if (sampleId > numSamples) {
 	// finish it and exit
 	if (bytes_this_hint != 0) {
-	  MP4WriteRtpHint(mp4file, hintTrackId, bytes_this_hint / 2);
+	  if (MP4WriteRtpHint(mp4file, hintTrackId, 
+			      bytes_this_hint / 2) == false) 
+	    return false;
 	  return true;
 	}
       }

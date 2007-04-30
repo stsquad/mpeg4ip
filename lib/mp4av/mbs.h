@@ -28,8 +28,11 @@ public:
 		m_pBuf = NULL;
 		m_bitPos = 0;
 		m_numBits = 0;
+		m_alloced = false;
 	}
-
+	~CMemoryBitstream(void) {
+	  if (m_alloced) free(m_pBuf);
+	}
 	void AllocBytes(u_int32_t numBytes);
 
 	void SetBytes(u_int8_t* pBytes, u_int32_t numBytes);
@@ -75,6 +78,7 @@ protected:
 	u_int8_t*	m_pBuf;
 	u_int32_t	m_bitPos;
 	u_int32_t	m_numBits;
+	bool m_alloced;
 };
 
 #endif /* __MBS_INCLUDED__ */ 

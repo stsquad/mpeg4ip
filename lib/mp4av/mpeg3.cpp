@@ -322,7 +322,11 @@ extern "C" bool Mpeg12Hinter (MP4FileHandle mp4file,
   }
 
   uint8_t payload = 32;
-  MP4SetHintTrackRtpPayload(mp4file, hintTrackId, "MPV", &payload, 0);
+  if (MP4SetHintTrackRtpPayload(mp4file, hintTrackId, 
+				"MPV", &payload, 0) == false) {
+    MP4DeleteTrack(mp4file, hintTrackId);
+    return false;
+  }
 
 
   buffer = (uint8_t *)malloc(maxSampleSize);
@@ -396,7 +400,9 @@ extern "C" bool Mpeg12Hinter (MP4FileHandle mp4file,
       }
     }
 
-    MP4AddRtpVideoHint(mp4file, hintTrackId, type == 3, renderingOffset);
+    if (MP4AddRtpVideoHint(mp4file, hintTrackId, 
+			   type == 3, renderingOffset) == false)
+      return false;
     // Find the next slice.  Then we can add the header if the next
     // slice will be in the start.  This lets us set the S bit in 
     // rfc2250[2].  Then we need to loop to find the next slice that's
@@ -474,19 +480,25 @@ extern "C" bool Mpeg12Hinter (MP4FileHandle mp4file,
 #endif
 
       // okay - we can now write out this packet.
-      MP4AddRtpPacket(mp4file, hintTrackId, isLastPacket);
+      if (MP4AddRtpPacket(mp4file, hintTrackId, isLastPacket) == false ||
       // add the 4 byte header
-      MP4AddRtpImmediateData(mp4file, hintTrackId, rfc2250, sizeof(rfc2250));
+	  MP4AddRtpImmediateData(mp4file, hintTrackId, 
+				 rfc2250, sizeof(rfc2250)) == false ||
 
       // add the immediate data
-      MP4AddRtpSampleData(mp4file, hintTrackId, sid, offset, len_to_write);
+	  MP4AddRtpSampleData(mp4file, hintTrackId, sid, 
+			      offset, len_to_write) == false) {
+	MP4DeleteTrack(mp4file, hintTrackId);
+	return false;
+      }
       offset += len_to_write;
       sampleSize -= len_to_write;
       prev_slice = 0;
       next_slice -= len_to_write;
       pbuffer += len_to_write;
     }
-    MP4WriteRtpHint(mp4file, hintTrackId, duration, type == 1);
+    if (MP4WriteRtpHint(mp4file, hintTrackId, duration, type == 1) == false)
+      return false;
   }
 
   free(buffer);

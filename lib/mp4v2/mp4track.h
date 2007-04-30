@@ -93,7 +93,7 @@ public:
 	u_int32_t	GetMaxBitrate();	// in bps
 
 	MP4Duration GetFixedSampleDuration();
-	bool		SetFixedSampleDuration(MP4Duration duration);
+	void		SetFixedSampleDuration(MP4Duration duration);
 
 	void		GetSampleTimes(MP4SampleId sampleId,
 					MP4Timestamp* pStartTime, MP4Duration* pDuration);

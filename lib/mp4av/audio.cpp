@@ -75,11 +75,12 @@ extern "C" u_int8_t MP4AV_AudioGetChannels(
 		u_int8_t* pAacConfig = NULL;
 		u_int32_t aacConfigLength;
 
-		MP4GetTrackESConfiguration(
-			mp4File, 
-			audioTrackId,
-			&pAacConfig,
-			&aacConfigLength);
+		if (MP4GetTrackESConfiguration(
+					       mp4File, 
+					       audioTrackId,
+					       &pAacConfig,
+					       &aacConfigLength) == false)
+		  return 0;
 
 		if (pAacConfig == NULL || aacConfigLength < 2) {
 			return 0;
@@ -135,11 +136,12 @@ extern "C" u_int32_t MP4AV_AudioGetSamplingRate(
 		u_int8_t* pAacConfig = NULL;
 		u_int32_t aacConfigLength;
 
-		MP4GetTrackESConfiguration(
-			mp4File, 
-			audioTrackId,
-			&pAacConfig,
-			&aacConfigLength);
+		if (MP4GetTrackESConfiguration(
+					       mp4File, 
+					       audioTrackId,
+					       &pAacConfig,
+					       &aacConfigLength) == false)
+		  return 0;
 
 		if (pAacConfig == NULL || aacConfigLength < 2) {
 			return 0;
@@ -181,11 +183,12 @@ extern "C" u_int16_t MP4AV_AudioGetSamplingWindow(
 		u_int8_t* pAacConfig = NULL;
 		u_int32_t aacConfigLength;
 
-		MP4GetTrackESConfiguration(
-			mp4File, 
-			audioTrackId,
-			&pAacConfig,
-			&aacConfigLength);
+		if (MP4GetTrackESConfiguration(
+					       mp4File, 
+					       audioTrackId,
+					       &pAacConfig,
+					       &aacConfigLength) == false)
+		  return 0;
 
 		if (pAacConfig == NULL || aacConfigLength < 2) {
 			return 0;

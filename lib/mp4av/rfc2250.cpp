@@ -27,140 +27,147 @@
 #include <mp4av_common.h>
 
 extern "C" bool MP4AV_Rfc2250Hinter(
-	MP4FileHandle mp4File, 
-	MP4TrackId mediaTrackId, 
-	bool interleave,
-	u_int16_t maxPayloadSize)
+				    MP4FileHandle mp4File, 
+				    MP4TrackId mediaTrackId, 
+				    bool interleave,
+				    u_int16_t maxPayloadSize)
 {
-	// RFC 2250 doesn't support interleaving
-	if (interleave) {
-		return false;
-	}
+  // RFC 2250 doesn't support interleaving
+  if (interleave) {
+    return false;
+  }
 
-	u_int32_t numSamples =
-		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
+  u_int32_t numSamples =
+    MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
 
-	if (numSamples == 0) {
-		return false;
-	}
+  if (numSamples == 0) {
+    return false;
+  }
 
-	u_int8_t audioType =
-		MP4GetTrackEsdsObjectTypeId(mp4File, mediaTrackId);
+  u_int8_t audioType =
+    MP4GetTrackEsdsObjectTypeId(mp4File, mediaTrackId);
 
-	if (!MP4_IS_MP3_AUDIO_TYPE(audioType)) {
-		return false;
-	}
+  if (!MP4_IS_MP3_AUDIO_TYPE(audioType)) {
+    return false;
+  }
 
-	MP4Duration sampleDuration = 
-		MP4AV_GetAudioSampleDuration(mp4File, mediaTrackId);
+  MP4Duration sampleDuration = 
+    MP4AV_GetAudioSampleDuration(mp4File, mediaTrackId);
 
-	if (sampleDuration == MP4_INVALID_DURATION) {
-		return false;
-	}
+  if (sampleDuration == MP4_INVALID_DURATION) {
+    return false;
+  }
 
-	MP4TrackId hintTrackId =
-		MP4AddHintTrack(mp4File, mediaTrackId);
+  MP4TrackId hintTrackId =
+    MP4AddHintTrack(mp4File, mediaTrackId);
 
-	if (hintTrackId == MP4_INVALID_TRACK_ID) {
-		return false;
-	}
+  if (hintTrackId == MP4_INVALID_TRACK_ID) {
+    return false;
+  }
 
-	u_int8_t payloadNumber = MP4_SET_DYNAMIC_PAYLOAD; 
-	// use dynamic payload number
+  u_int8_t payloadNumber = MP4_SET_DYNAMIC_PAYLOAD; 
+  // use dynamic payload number
 
-	if (MP4GetTrackTimeScale(mp4File, mediaTrackId) == 90000) {
-	  payloadNumber = 14;
-	}
+  if (MP4GetTrackTimeScale(mp4File, mediaTrackId) == 90000) {
+    payloadNumber = 14;
+  }
 	
-	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
-		"MPA", &payloadNumber, 0);
+  if (MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
+				"MPA", &payloadNumber, 0) == false) 
+    return false;
 
-	u_int16_t bytesThisHint = 0;
-	u_int16_t samplesThisHint = 0;
+  u_int16_t bytesThisHint = 0;
+  u_int16_t samplesThisHint = 0;
 
-	MP4AddRtpHint(mp4File, hintTrackId);
-	MP4AddRtpPacket(mp4File, hintTrackId, true);
+  if (MP4AddRtpHint(mp4File, hintTrackId) == false ||
+      MP4AddRtpPacket(mp4File, hintTrackId, true) == false) 
+    return false;
 
-	for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
-		u_int32_t sampleSize = 
-			MP4GetSampleSize(mp4File, mediaTrackId, sampleId);
+  for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
+    u_int32_t sampleSize = 
+      MP4GetSampleSize(mp4File, mediaTrackId, sampleId);
 
-		if (samplesThisHint > 0) {
-			if (bytesThisHint + sampleSize <= maxPayloadSize) {
-				// add the mp3 frame to current hint
-				MP4AddRtpSampleData(mp4File, hintTrackId,
-					sampleId, 0, sampleSize);
+    if (samplesThisHint > 0) {
+      if (bytesThisHint + sampleSize <= maxPayloadSize) {
+	// add the mp3 frame to current hint
+	if (MP4AddRtpSampleData(mp4File, hintTrackId,
+				sampleId, 0, sampleSize) == false)
+	  return false;
 
-				samplesThisHint++;
-				bytesThisHint += sampleSize;
-				continue;
-			} else {
-				// write out current hint
-				MP4WriteRtpHint(mp4File, hintTrackId, 
-					samplesThisHint * sampleDuration);
+	samplesThisHint++;
+	bytesThisHint += sampleSize;
+	continue;
+      } else {
+	// write out current hint
+	if (MP4WriteRtpHint(mp4File, hintTrackId, 
+			    samplesThisHint * sampleDuration) == false ||
+	    MP4AddRtpHint(mp4File, hintTrackId) == false ||
+	    MP4AddRtpPacket(mp4File, hintTrackId, true) == false) 
+	  return false;
 
-				// start a new hint 
-				samplesThisHint = 0;
-				bytesThisHint = 0;
+	// start a new hint 
+	samplesThisHint = 0;
+	bytesThisHint = 0;
 
-				MP4AddRtpHint(mp4File, hintTrackId);
-				MP4AddRtpPacket(mp4File, hintTrackId, true);
 
-				// fall thru
-			}
-		}
+	// fall thru
+      }
+    }
 
-		if (sampleSize + 4 <= maxPayloadSize) {
-			// add rfc 2250 payload header
-			static u_int32_t zero32 = 0;
+    if (sampleSize + 4 <= maxPayloadSize) {
+      // add rfc 2250 payload header
+      static u_int32_t zero32 = 0;
 
-			MP4AddRtpImmediateData(mp4File, hintTrackId,
-				(u_int8_t*)&zero32, sizeof(zero32));
+      if (MP4AddRtpImmediateData(mp4File, hintTrackId,
+				 (u_int8_t*)&zero32, 
+				 sizeof(zero32)) == false ||
+	  // add the mp3 frame to current hint
+	  MP4AddRtpSampleData(mp4File, hintTrackId,
+			      sampleId, 0, sampleSize) == false) return false;
 
-			// add the mp3 frame to current hint
-			MP4AddRtpSampleData(mp4File, hintTrackId,
-				sampleId, 0, sampleSize);
+      bytesThisHint += (4 + sampleSize);
+    } else {
+      // jumbo frame, need to fragment it
+      u_int16_t sampleOffset = 0;
 
-			bytesThisHint += (4 + sampleSize);
-		} else {
-			// jumbo frame, need to fragment it
-			u_int16_t sampleOffset = 0;
+      while (sampleOffset < sampleSize) {
+	u_int16_t fragLength = 
+	  MIN(sampleSize - sampleOffset, maxPayloadSize) - 4;
 
-			while (sampleOffset < sampleSize) {
-				u_int16_t fragLength = 
-					MIN(sampleSize - sampleOffset, maxPayloadSize) - 4;
+	u_int8_t payloadHeader[4];
+	payloadHeader[0] = payloadHeader[1] = 0;
+	payloadHeader[2] = (sampleOffset >> 8);
+	payloadHeader[3] = sampleOffset & 0xFF;
 
-				u_int8_t payloadHeader[4];
-				payloadHeader[0] = payloadHeader[1] = 0;
-				payloadHeader[2] = (sampleOffset >> 8);
-				payloadHeader[3] = sampleOffset & 0xFF;
+	if (MP4AddRtpImmediateData(mp4File, hintTrackId,
+				   (u_int8_t*)&payloadHeader, 
+				   sizeof(payloadHeader)) == false ||
+	    MP4AddRtpSampleData(mp4File, hintTrackId,
+				sampleId, sampleOffset, 
+				fragLength) == false) return false;
 
-				MP4AddRtpImmediateData(mp4File, hintTrackId,
-					(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
+	sampleOffset += fragLength;
 
-				MP4AddRtpSampleData(mp4File, hintTrackId,
-					sampleId, sampleOffset, fragLength);
-
-				sampleOffset += fragLength;
-
-				// if we're not at the last fragment
-				if (sampleOffset < sampleSize) {
-					MP4AddRtpPacket(mp4File, hintTrackId, false);
-				}
-			}
-
-			// lie to ourselves so as to force next frame to output 
-			// our hint as is, and start a new hint for itself
-			bytesThisHint = maxPayloadSize;
-		}
-
-		samplesThisHint = 1;
+	// if we're not at the last fragment
+	if (sampleOffset < sampleSize) {
+	  if (MP4AddRtpPacket(mp4File, hintTrackId, false) == false) 
+	    return false;
 	}
+      }
 
-	// write out current (final) hint
-	MP4WriteRtpHint(mp4File, hintTrackId, 
-		samplesThisHint * sampleDuration);
+      // lie to ourselves so as to force next frame to output 
+      // our hint as is, and start a new hint for itself
+      bytesThisHint = maxPayloadSize;
+    }
 
-	return true;
+    samplesThisHint = 1;
+  }
+
+  // write out current (final) hint
+  if (MP4WriteRtpHint(mp4File, hintTrackId, 
+		      samplesThisHint * sampleDuration) == false)
+    return false;
+
+  return true;
 }
 

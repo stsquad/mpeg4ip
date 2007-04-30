@@ -87,12 +87,14 @@ format_list_t *sdp_add_format_to_list (media_desc_t *mptr, const char *val)
   } else {
     p = mptr->fmt_list;
     if (strcmp(p->fmt, new->fmt) == 0) {
+      CHECK_AND_FREE(new->fmt);
       free(new);
       return (p);
     }
     while (p->next != NULL) {
       p = p->next;
       if (strcmp(p->fmt, new->fmt) == 0) {
+	CHECK_AND_FREE(new->fmt);
 	free(new);
 	return (p);
       }
@@ -278,7 +280,8 @@ format_list_t *sdp_find_rtpmap_name (format_list_t *head,
   return (NULL);
 }
 
-void sdp_smpte_to_str (double value, uint16_t fps, char *buffer)
+void sdp_smpte_to_str (double value, uint16_t fps, char *buffer, 
+		       uint buflen)
 {
   double divval;
   unsigned int temp;
@@ -291,14 +294,16 @@ void sdp_smpte_to_str (double value, uint16_t fps, char *buffer)
     temp++;
     value -= divval;
   }
-  ix = sprintf(buffer, "%02d:", temp);
+  ix = snprintf(buffer, buflen, "%02d:", temp);
+  if (ix > buflen) return;
   temp = 0;
   divval = 60.0 * fps;
   while (value >= divval) {
     temp++;
     value -= divval;
   }
-  ix += sprintf(buffer + ix, "%02d:", temp);
+  ix += snprintf(buffer + ix, buflen - ix, "%02d:", temp);
+  if (ix > buflen) return;
 
   temp = 0;
   divval = fps;
@@ -306,8 +311,9 @@ void sdp_smpte_to_str (double value, uint16_t fps, char *buffer)
     temp++;
     value -= divval;
   }
-  ix += sprintf(buffer + ix, "%02d", temp);
-  if (value > 0.0) sprintf(buffer + ix, ":%02g", value);
+  ix += snprintf(buffer + ix, buflen - ix, "%02d", temp);
+  if (ix > buflen) return;
+  if (value > 0.0) snprintf(buffer + ix, buflen - ix, ":%02g", value);
 }
 
 static int sdp_debug_level = LOG_ALERT;

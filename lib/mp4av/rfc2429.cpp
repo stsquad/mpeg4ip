@@ -34,10 +34,6 @@ extern "C" bool MP4AV_Rfc2429Hinter (MP4FileHandle file,
     return false;
   }
   maxSampleSize = MP4GetTrackMaxSampleSize(file, mediaTrackId);
-  u_int8_t* pSampleBuffer = (u_int8_t*)malloc(maxSampleSize);
-  if (pSampleBuffer == NULL) {
-    return false;
-  }
 
   hid = MP4AddHintTrack(file, mediaTrackId);
   if (hid == MP4_INVALID_TRACK_ID) {
@@ -45,14 +41,18 @@ extern "C" bool MP4AV_Rfc2429Hinter (MP4FileHandle file,
   }
 
   uint8_t payloadNumber = MP4_SET_DYNAMIC_PAYLOAD;
-  MP4SetHintTrackRtpPayload(file,
-                            hid,
-                            "H263-2000",
-                            &payloadNumber,
-                            0,
-                            NULL,
-                            true,
-                            false);
+  if (MP4SetHintTrackRtpPayload(file,
+				hid,
+				"H263-2000",
+				&payloadNumber,
+				0,
+				NULL,
+				true,
+				false) == false) {
+    MP4DeleteTrack(file, hid);
+    return false;
+  }
+						  
 
   // strictly speaking, this is not required for H.263 - it's a quicktime
   // thing.
@@ -60,17 +60,30 @@ extern "C" bool MP4AV_Rfc2429Hinter (MP4FileHandle file,
   u_int16_t videoHeight = MP4GetTrackVideoHeight(file, mediaTrackId);
   
   char sdpString[80];
-  sprintf(sdpString, "a=cliprect:0,0,%d,%d\015\012", videoHeight, videoWidth);
+  snprintf(sdpString, sizeof(sdpString),
+	   "a=cliprect:0,0,%d,%d\015\012", videoHeight, videoWidth);
   
-  MP4AppendHintTrackSdp(file, 
- 			hid,
- 			sdpString);
+  if (MP4AppendHintTrackSdp(file, 
+			    hid,
+			    sdpString) == false) {
+    MP4DeleteTrack(file, hid);
+    return false;
+  }
+
+  u_int8_t* pSampleBuffer = (u_int8_t*)malloc(maxSampleSize);
+  if (pSampleBuffer == NULL) {
+    return false;
+  }
 
   for (uint32_t sid = 1; sid <= numSamples; sid++) {
 
     duration = MP4GetSampleDuration(file, mediaTrackId, sid);
 
-    MP4AddRtpVideoHint(file, hid, false, 0);
+    if (MP4AddRtpVideoHint(file, hid, false, 0) == false) {
+      free(pSampleBuffer);
+      MP4DeleteTrack(file, hid);
+      return false;
+    }
 
     u_int32_t sampleSize = maxSampleSize;
     MP4Timestamp startTime;
@@ -84,8 +97,8 @@ extern "C" bool MP4AV_Rfc2429Hinter (MP4FileHandle file,
                             &renderingOffset, &isSyncSample);
 
     if (!rc) {
-      MP4DeleteTrack(file, hid);
       free(pSampleBuffer);
+      MP4DeleteTrack(file, hid);
       return false;
     }
 
@@ -104,17 +117,20 @@ extern "C" bool MP4AV_Rfc2429Hinter (MP4FileHandle file,
       } else {
         len = maxPayloadSize - 2;
       }
-      MP4AddRtpPacket(file, hid, last_pak);
-
-      MP4AddRtpImmediateData(file, hid,
-                            (u_int8_t*)&payload_head, sizeof(payload_head));
+      if (MP4AddRtpPacket(file, hid, last_pak) == false ||
+	  MP4AddRtpImmediateData(file, hid,
+				 (u_int8_t*)&payload_head, 
+				 sizeof(payload_head)) == false ||
+	  MP4AddRtpSampleData(file, hid, sid,
+			      offset, len) == false) {
+	free(pSampleBuffer);
+	return false;
+      }
       payload_head = 0;
-      MP4AddRtpSampleData(file, hid, sid,
-                          offset, len);
       offset += len;
       remaining -= len;
     }
-    MP4WriteRtpHint(file, hid, duration, true);
+    if (MP4WriteRtpHint(file, hid, duration, true) == false) break;
   }
 
   free(pSampleBuffer);

@@ -224,7 +224,7 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 	}
 
 	// edit list
-	InitEditListProperties();
+	(void)InitEditListProperties();
 
 	// was everything found?
 	if (!success) {
@@ -423,6 +423,7 @@ void MP4Track::WriteSample(
 	// append sample bytes to chunk buffer
 	m_pChunkBuffer = (u_int8_t*)MP4Realloc(m_pChunkBuffer, 
 		m_chunkBufferSize + numBytes);
+	if (m_pChunkBuffer == NULL) return;
 	memcpy(&m_pChunkBuffer[m_chunkBufferSize], pBytes, numBytes);
 	m_chunkBufferSize += numBytes;
 	m_chunkSamples++;
@@ -808,11 +809,11 @@ FILE* MP4Track::GetSampleFile(MP4SampleId sampleId)
 	ASSERT(pStsdEntryAtom);
 
 	MP4Integer16Property* pDrefIndexProperty = NULL;
-	pStsdEntryAtom->FindProperty(
-		"*.dataReferenceIndex",
-		(MP4Property**)&pDrefIndexProperty);
+	if (!pStsdEntryAtom->FindProperty(
+					 "*.dataReferenceIndex",
+					 (MP4Property**)&pDrefIndexProperty) ||
 	
-	if (pDrefIndexProperty == NULL) {
+	    pDrefIndexProperty == NULL) {
 		throw new MP4Error("invalid stsd entry", "GetSampleFile");
 	}
 
@@ -833,9 +834,9 @@ FILE* MP4Track::GetSampleFile(MP4SampleId sampleId)
 		pFile = NULL;	// self-contained
 	} else {
 		MP4StringProperty* pLocationProperty = NULL;
-		pUrlAtom->FindProperty(
-			"*.location", 
-			(MP4Property**)&pLocationProperty);
+		ASSERT(pUrlAtom->FindProperty(
+					      "*.location", 
+					      (MP4Property**)&pLocationProperty));
 		ASSERT(pLocationProperty);
 
 		const char* url = pLocationProperty->GetValue();
@@ -954,16 +955,16 @@ MP4Duration MP4Track::GetFixedSampleDuration()
 	return m_pSttsSampleDeltaProperty->GetValue(0);
 }
 
-bool MP4Track::SetFixedSampleDuration(MP4Duration duration)
+void MP4Track::SetFixedSampleDuration(MP4Duration duration)
 {
 	u_int32_t numStts = m_pSttsCountProperty->GetValue();
 
 	// setting this is only allowed before samples have been written
 	if (numStts != 0) {
-		return false;
+		return;
 	}
 	m_fixedSampleDuration = duration;
-	return true;
+	return;
 }
 
 void MP4Track::GetSampleTimes(MP4SampleId sampleId,
@@ -1129,17 +1130,17 @@ void MP4Track::UpdateRenderingOffsets(MP4SampleId sampleId,
 		MP4Atom* pCttsAtom = AddAtom("trak.mdia.minf.stbl", "ctts");
 
 		// and get handles on the properties
-		pCttsAtom->FindProperty(
+		ASSERT(pCttsAtom->FindProperty(
 			"ctts.entryCount",
-			(MP4Property**)&m_pCttsCountProperty);
+			(MP4Property**)&m_pCttsCountProperty));
 
-		pCttsAtom->FindProperty(
+		ASSERT(pCttsAtom->FindProperty(
 			"ctts.entries.sampleCount",
-			(MP4Property**)&m_pCttsSampleCountProperty);
+			(MP4Property**)&m_pCttsSampleCountProperty));
 
-		pCttsAtom->FindProperty(
+		ASSERT(pCttsAtom->FindProperty(
 			"ctts.entries.sampleOffset",
-			(MP4Property**)&m_pCttsSampleOffsetProperty);
+			(MP4Property**)&m_pCttsSampleOffsetProperty));
 
 		// if this is not the first sample
 		if (sampleId > 1) {
@@ -1322,34 +1323,34 @@ MP4SampleId MP4Track::GetNextSyncSample(MP4SampleId sampleId)
 
 void MP4Track::UpdateSyncSamples(MP4SampleId sampleId, bool isSyncSample)
 {
-	if (isSyncSample) {
-		// if stss atom exists, add entry
-		if (m_pStssCountProperty) {
-			m_pStssSampleProperty->AddValue(sampleId);
-			m_pStssCountProperty->IncrementValue();
-		} // else nothing to do (yet)
+  if (isSyncSample) {
+    // if stss atom exists, add entry
+    if (m_pStssCountProperty) {
+      m_pStssSampleProperty->AddValue(sampleId);
+      m_pStssCountProperty->IncrementValue();
+    } // else nothing to do (yet)
 
-	} else { // !isSyncSample
-		// if stss atom doesn't exist, create one
-		if (m_pStssCountProperty == NULL) {
+  } else { // !isSyncSample
+    // if stss atom doesn't exist, create one
+    if (m_pStssCountProperty == NULL) {
 
-			MP4Atom* pStssAtom = AddAtom("trak.mdia.minf.stbl", "stss");
+      MP4Atom* pStssAtom = AddAtom("trak.mdia.minf.stbl", "stss");
 
-			pStssAtom->FindProperty(
-				"stss.entryCount",
-				(MP4Property**)&m_pStssCountProperty);
+      ASSERT(pStssAtom->FindProperty(
+			      "stss.entryCount",
+			      (MP4Property**)&m_pStssCountProperty));
+		  
+      ASSERT(pStssAtom->FindProperty(
+			      "stss.entries.sampleNumber",
+			      (MP4Property**)&m_pStssSampleProperty));
 
-			pStssAtom->FindProperty(
-				"stss.entries.sampleNumber",
-				(MP4Property**)&m_pStssSampleProperty);
-
-			// set values for all samples that came before this one
-			for (MP4SampleId sid = 1; sid < sampleId; sid++) {
-				m_pStssSampleProperty->AddValue(sid);
-				m_pStssCountProperty->IncrementValue();
-			}
-		} // else nothing to do
-	}
+      // set values for all samples that came before this one
+      for (MP4SampleId sid = 1; sid < sampleId; sid++) {
+	m_pStssSampleProperty->AddValue(sid);
+	m_pStssCountProperty->IncrementValue();
+      }
+    } // else nothing to do
+  }
 }
 
 MP4Atom* MP4Track::AddAtom(char* parentName, char* childName)
@@ -1530,51 +1531,48 @@ void MP4Track::RewriteChunk(MP4ChunkId chunkId,
 
 bool MP4Track::InitEditListProperties()
 {
-	m_pElstCountProperty = NULL;
-	m_pElstMediaTimeProperty = NULL;
-	m_pElstDurationProperty = NULL;
-	m_pElstRateProperty = NULL;
-	m_pElstReservedProperty = NULL;
+  m_pElstCountProperty = NULL;
+  m_pElstMediaTimeProperty = NULL;
+  m_pElstDurationProperty = NULL;
+  m_pElstRateProperty = NULL;
+  m_pElstReservedProperty = NULL;
 
-	MP4Atom* pElstAtom =
-		m_pTrakAtom->FindAtom("trak.edts.elst");
+  MP4Atom* pElstAtom =
+    m_pTrakAtom->FindAtom("trak.edts.elst");
 
-	if (!pElstAtom) {
-		return false;
-	}
+  if (!pElstAtom) {
+    return false;
+  }
 
-	pElstAtom->FindProperty(
-		"elst.entryCount",
-		(MP4Property**)&m_pElstCountProperty);
+  (void)pElstAtom->FindProperty(
+				"elst.entryCount",
+				(MP4Property**)&m_pElstCountProperty);
+  (void)pElstAtom->FindProperty(
+				"elst.entries.mediaTime",
+				(MP4Property**)&m_pElstMediaTimeProperty);
+  (void)pElstAtom->FindProperty(
+				"elst.entries.segmentDuration",
+				(MP4Property**)&m_pElstDurationProperty);
+  (void)pElstAtom->FindProperty(
+				"elst.entries.mediaRate",
+				(MP4Property**)&m_pElstRateProperty);
 
-	pElstAtom->FindProperty(
-		"elst.entries.mediaTime",
-		(MP4Property**)&m_pElstMediaTimeProperty);
+  (void)pElstAtom->FindProperty(
+				"elst.entries.reserved",
+				(MP4Property**)&m_pElstReservedProperty);
 
-	pElstAtom->FindProperty(
-		"elst.entries.segmentDuration",
-		(MP4Property**)&m_pElstDurationProperty);
-
-	pElstAtom->FindProperty(
-		"elst.entries.mediaRate",
-		(MP4Property**)&m_pElstRateProperty);
-
-	pElstAtom->FindProperty(
-		"elst.entries.reserved",
-		(MP4Property**)&m_pElstReservedProperty);
-
-	return m_pElstCountProperty
-		&& m_pElstMediaTimeProperty
-		&& m_pElstDurationProperty
-		&& m_pElstRateProperty
-		&& m_pElstReservedProperty;
+  return m_pElstCountProperty
+    && m_pElstMediaTimeProperty
+    && m_pElstDurationProperty
+    && m_pElstRateProperty
+    && m_pElstReservedProperty;
 }
 
 MP4EditId MP4Track::AddEdit(MP4EditId editId)
 {
 	if (!m_pElstCountProperty) {
-		m_pFile->AddDescendantAtoms(m_pTrakAtom, "edts.elst");
-		InitEditListProperties();
+	  (void)m_pFile->AddDescendantAtoms(m_pTrakAtom, "edts.elst");
+	  if (InitEditListProperties() == false) return MP4_INVALID_EDIT_ID;
 	}
 
 	if (editId == MP4_INVALID_EDIT_ID) {

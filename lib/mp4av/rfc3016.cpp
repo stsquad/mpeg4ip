@@ -39,15 +39,21 @@ extern "C" MP4TrackId MP4AV_Rfc3016_HintTrackCreate (MP4FileHandle mp4File,
 
 	u_int8_t payloadNumber = MP4_SET_DYNAMIC_PAYLOAD;
 
-	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
-		"MP4V-ES", &payloadNumber, 0);
+	if (MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
+				      "MP4V-ES", &payloadNumber, 0) == false) {
+	  MP4DeleteTrack(mp4File, hintTrackId);
+	  return MP4_INVALID_TRACK_ID;
+	}
 
 	/* get the mpeg4 video configuration */
 	u_int8_t* pConfig;
 	u_int32_t configSize;
 	u_int8_t systemsProfileLevel = 0xFE;
 
-	MP4GetTrackESConfiguration(mp4File, mediaTrackId, &pConfig, &configSize);
+	if (MP4GetTrackESConfiguration(mp4File, mediaTrackId, &pConfig, &configSize) == false) {
+	  MP4DeleteTrack(mp4File, hintTrackId);
+	  return MP4_INVALID_TRACK_ID;
+	}
 
 	if (pConfig) {
 		// attempt to get a valid profile-level
@@ -68,32 +74,40 @@ extern "C" MP4TrackId MP4AV_Rfc3016_HintTrackCreate (MP4FileHandle mp4File,
 
 		/* convert it into ASCII form */
 		char* sConfig = MP4BinaryToBase16(pConfig, configSize);
+		free(pConfig);
 		if (sConfig == NULL) {
-			MP4DeleteTrack(mp4File, hintTrackId);
-			free(pConfig);
+		  MP4DeleteTrack(mp4File, hintTrackId);
 			return MP4_INVALID_TRACK_ID;
 		}
 
 		/* create the appropriate SDP attribute */
 		char* sdpBuf = (char*)malloc(strlen(sConfig) + 128);
 
-		sprintf(sdpBuf,
+		if (sdpBuf == NULL) {
+		  free(sConfig);
+		  MP4DeleteTrack(mp4File, hintTrackId);
+		  return MP4_INVALID_TRACK_ID;
+		}
+		snprintf(sdpBuf,
+			 strlen(sConfig) + 128,
 			"a=fmtp:%u profile-level-id=%u; config=%s;\015\012",
 				payloadNumber,
 				systemsProfileLevel,
 				sConfig); 
+		free(sConfig);
 
 		/* add this to the track's sdp */
-		MP4AppendHintTrackSdp(mp4File, hintTrackId, sdpBuf);
+		if (MP4AppendHintTrackSdp(mp4File, hintTrackId, sdpBuf) == false) {
+		  MP4DeleteTrack(mp4File, hintTrackId);
+		  hintTrackId = MP4_INVALID_TRACK_ID;
+		}
 
-		free(sConfig);
 		free(sdpBuf);
-		free(pConfig);
 	}
 	return hintTrackId;
 }
 						
-extern "C" void MP4AV_Rfc3016_HintAddSample (
+extern "C" bool MP4AV_Rfc3016_HintAddSample (
 					     MP4FileHandle mp4File,
 					     MP4TrackId hintTrackId,
 					     MP4SampleId sampleId,
@@ -107,10 +121,11 @@ extern "C" void MP4AV_Rfc3016_HintAddSample (
   bool isBFrame = 
     (MP4AV_Mpeg4GetVopType(pSampleBuffer, sampleSize) == VOP_TYPE_B);
 
-  MP4AddRtpVideoHint(mp4File, hintTrackId, isBFrame, renderingOffset);
+  if (MP4AddRtpVideoHint(mp4File, hintTrackId, isBFrame, renderingOffset) == false)
+    return false;
 
   if (sampleId == 1) {
-    MP4AddRtpESConfigurationPacket(mp4File, hintTrackId);
+    if (MP4AddRtpESConfigurationPacket(mp4File, hintTrackId) == false) return false;
   }
 
   u_int32_t offset = 0;
@@ -130,16 +145,16 @@ extern "C" void MP4AV_Rfc3016_HintAddSample (
       length = maxPayloadSize;
     }
 
-    MP4AddRtpPacket(mp4File, hintTrackId, isLastPacket);
-			
-    MP4AddRtpSampleData(mp4File, hintTrackId, sampleId, 
-			offset, length);
+    if (MP4AddRtpPacket(mp4File, hintTrackId, isLastPacket) == false ||
+	
+	MP4AddRtpSampleData(mp4File, hintTrackId, sampleId, 
+			    offset, length) == false) return false;
 
     offset += length;
     remaining -= length;
   }
 
-  MP4WriteRtpHint(mp4File, hintTrackId, duration, isSyncSample);
+  return MP4WriteRtpHint(mp4File, hintTrackId, duration, isSyncSample);
 }
 
 extern "C" bool MP4AV_Rfc3016Hinter(
@@ -163,7 +178,7 @@ extern "C" bool MP4AV_Rfc3016Hinter(
 
  	u_int8_t* pSampleBuffer = (u_int8_t*)malloc(maxSampleSize);
 	if (pSampleBuffer == NULL) {
-		MP4DeleteTrack(mp4File, hintTrackId);
+	  MP4DeleteTrack(mp4File, hintTrackId);
 		return false;
 	}
 
@@ -180,21 +195,20 @@ extern "C" bool MP4AV_Rfc3016Hinter(
 			&startTime, &duration, 
 			&renderingOffset, &isSyncSample);
 
-		if (!rc) {
-			MP4DeleteTrack(mp4File, hintTrackId);
-			CHECK_AND_FREE(pSampleBuffer);
-			return false;
+		if (rc == false ||
+		    MP4AV_Rfc3016_HintAddSample(mp4File,
+						hintTrackId,
+						sampleId,
+						pSampleBuffer,
+						sampleSize,
+						duration,
+						renderingOffset,
+						isSyncSample,
+						maxPayloadSize) == false) {
+		  MP4DeleteTrack(mp4File, hintTrackId);
+		  CHECK_AND_FREE(pSampleBuffer);
+		  return false;
 		}
-
-		MP4AV_Rfc3016_HintAddSample(mp4File,
-					    hintTrackId,
-					    sampleId,
-					    pSampleBuffer,
-					    sampleSize,
-					    duration,
-					    renderingOffset,
-					    isSyncSample,
-					    maxPayloadSize);
 	}
 	CHECK_AND_FREE(pSampleBuffer);
 
@@ -223,8 +237,11 @@ extern "C" bool MP4AV_Rfc3016LatmHinter (MP4FileHandle mp4File,
   u_int8_t* pAudioSpecificConfig;
   u_int32_t AudioSpecificConfigSize;
   
-  MP4GetTrackESConfiguration(mp4File, mediaTrackId, 
-			     &pAudioSpecificConfig, &AudioSpecificConfigSize);
+  if (MP4GetTrackESConfiguration(mp4File, mediaTrackId, 
+				 &pAudioSpecificConfig, 
+				 &AudioSpecificConfigSize) == false) 
+    return false;
+
   if (pAudioSpecificConfig == NULL || 
       AudioSpecificConfigSize == 0) return false;
 
@@ -239,12 +256,16 @@ extern "C" bool MP4AV_Rfc3016LatmHinter (MP4FileHandle mp4File,
 			     pAudioSpecificConfig, AudioSpecificConfigSize);
   free(pAudioSpecificConfig);
 
-  if (pConfig == NULL || configSize == 0) return false;
+  if (pConfig == NULL || configSize == 0) {
+    CHECK_AND_FREE(pConfig);
+    return false;
+  }
 
   MP4TrackId hintTrackId =
     MP4AddHintTrack(mp4File, mediaTrackId);
 
   if (hintTrackId == MP4_INVALID_TRACK_ID) {
+    free(pConfig);
     return false;
   }
   u_int8_t payloadNumber = MP4_SET_DYNAMIC_PAYLOAD;
@@ -253,16 +274,16 @@ extern "C" bool MP4AV_Rfc3016LatmHinter (MP4FileHandle mp4File,
   if (channels != 1) {
     snprintf(buffer, sizeof(buffer), "%u", channels);
   }
-  MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
-			    "MP4A-LATM", &payloadNumber, 0,
-			    channels != 1 ? buffer : NULL);
-
+  
 		/* convert it into ASCII form */
   char* sConfig = MP4BinaryToBase16(pConfig, configSize);
-  if (sConfig == NULL) {
+  free(pConfig);
+  if (sConfig == NULL ||
+      MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
+				"MP4A-LATM", &payloadNumber, 0,
+				channels != 1 ? buffer : NULL) == false) {
     MP4DeleteTrack(mp4File, hintTrackId);
-    free(pConfig);
-    return MP4_INVALID_TRACK_ID;
+    return false;
   }
 
   uint32_t profile_level;
@@ -285,18 +306,27 @@ extern "C" bool MP4AV_Rfc3016LatmHinter (MP4FileHandle mp4File,
   /* create the appropriate SDP attribute */
   char* sdpBuf = (char*)malloc(strlen(sConfig) + 128);
 
-  sprintf(sdpBuf,
+  if (sdpBuf == NULL) {
+    free(sConfig);
+    MP4DeleteTrack(mp4File, hintTrackId);
+    return false;
+  }
+  snprintf(sdpBuf,
+	  strlen(sConfig) + 128,
 	  "a=fmtp:%u profile-level-id=%u; cpresent=0; config=%s;\015\012",
 	  payloadNumber,
 	  profile_level,
 	  sConfig); 
 
   /* add this to the track's sdp */
-  MP4AppendHintTrackSdp(mp4File, hintTrackId, sdpBuf);
+  bool val = MP4AppendHintTrackSdp(mp4File, hintTrackId, sdpBuf);
 
   free(sConfig);
   free(sdpBuf);
-  free(pConfig);
+  if (val == false) {
+    MP4DeleteTrack(mp4File, hintTrackId);
+    return false;
+  }
 
   for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
     uint8_t buffer[32];
@@ -315,11 +345,16 @@ extern "C" bool MP4AV_Rfc3016LatmHinter (MP4FileHandle mp4File,
       }
       offset++;
     }
-    MP4AddRtpHint(mp4File, hintTrackId);
-    MP4AddRtpPacket(mp4File, hintTrackId, true);
-    MP4AddRtpImmediateData(mp4File, hintTrackId, buffer, offset);
-    MP4AddRtpSampleData(mp4File, hintTrackId, sampleId, 0, sampleSize);
-    MP4WriteRtpHint(mp4File, hintTrackId, sampleDuration);
+    if (MP4AddRtpHint(mp4File, hintTrackId) == false ||
+	MP4AddRtpPacket(mp4File, hintTrackId, true) == false ||
+	MP4AddRtpImmediateData(mp4File, hintTrackId, 
+			       buffer, offset) == false ||
+	MP4AddRtpSampleData(mp4File, hintTrackId, 
+			    sampleId, 0, sampleSize) == false ||
+	MP4WriteRtpHint(mp4File, hintTrackId, sampleDuration) == false) {
+      MP4DeleteTrack(mp4File, hintTrackId);
+      return false;
+    }
   }
   return true;
 

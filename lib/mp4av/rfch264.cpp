@@ -29,20 +29,6 @@ extern "C" MP4TrackId MP4AV_H264_HintTrackCreate (MP4FileHandle mp4File,
 						  MP4TrackId mediaTrackId,
 						  uint16_t maxPayload)
 {
-  MP4TrackId hintTrackId =
-    MP4AddHintTrack(mp4File, mediaTrackId);
-
-  if (hintTrackId == MP4_INVALID_TRACK_ID) {
-    return MP4_INVALID_TRACK_ID;
-  }
-
-  u_int8_t payloadNumber = MP4_SET_DYNAMIC_PAYLOAD;
-
-  // don't include mpeg4-esid
-  MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
-			    "H264", &payloadNumber, maxPayload,
-			    NULL, true, false);
-
   /* get the mpeg4 video configuration */
   u_int8_t **pSeq, **pPict ;
   u_int32_t *pSeqSize, *pPictSize;
@@ -58,61 +44,101 @@ extern "C" MP4TrackId MP4AV_H264_HintTrackCreate (MP4FileHandle mp4File,
 				&pPict,
 				&pPictSize);
 				      
-  if (pSeqSize && pSeqSize[0] != 0) {
-    // we have valid sequence and picture headers
-    uint8_t *p = pSeq[0];
-    if (*p == 0 && p[1] == 0 && 
-	(p[2] == 1 || (p[2] == 0 && p[3] == 0))) {
-      if (p[2] == 0) p += 4;
-      else p += 3;
-    }
-    profile_level = p[0] << 16 |
-      p[1] << 8 |
-      p[2];
-    while (pSeqSize[ix] != 0) {
-      base64 = MP4BinaryToBase64(pSeq[ix], pSeqSize[ix]);
-      if (sprop == NULL) {
-	sprop = strdup(base64);
-      } else {
-	sprop = (char *)realloc(sprop, strlen(sprop) + strlen(base64) + 1 + 1);
-	strcat(sprop, ",");
-	strcat(sprop, base64);
-      }
-      free(base64);
-      free(pSeq[ix]);
-      ix++;
-    }
-    free(pSeq);
-    free(pSeqSize);
-
-    ix = 0;
-    while (pPictSize[ix] != 0) {
-      base64 = MP4BinaryToBase64(pPict[ix], pPictSize[ix]);
-      sprop = (char *)realloc(sprop, strlen(sprop) + strlen(base64) + 1 + 1);
-      strcat(sprop, ",");
-      strcat(sprop, base64);
-      free(base64);
-      free(pPict[ix]);
-      ix++;
-    }
-    free(pPict);
-    free(pPictSize);
-
-    /* create the appropriate SDP attribute */
-    char* sdpBuf = (char*)malloc(strlen(sprop) + 128);
-	  
-    sprintf(sdpBuf,
-	    "a=fmtp:%u profile-level-id=%06x; sprop-parameter-sets=%s; packetization-mode=1\015\012",
-	    payloadNumber,
-	    profile_level,
-	    sprop); 
-	  
-    /* add this to the track's sdp */
-    MP4AppendHintTrackSdp(mp4File, hintTrackId, sdpBuf);
-	  
-    free(sprop);
-    free(sdpBuf);
+  if (pSeqSize == NULL || pSeqSize == NULL ||
+      pPict == NULL || pPictSize == NULL) {
+    return MP4_INVALID_TRACK_ID;
   }
+  // we have valid sequence and picture headers
+  uint8_t *p = pSeq[0];
+  if (*p == 0 && p[1] == 0 && 
+      (p[2] == 1 || (p[2] == 0 && p[3] == 0))) {
+    if (p[2] == 0) p += 4;
+    else p += 3;
+  }
+  profile_level = p[0] << 16 |
+    p[1] << 8 |
+    p[2];
+  while (pSeqSize[ix] != 0) {
+    base64 = MP4BinaryToBase64(pSeq[ix], pSeqSize[ix]);
+    if (sprop == NULL) {
+      sprop = strdup(base64);
+    } else {
+      uint len = strlen(base64) + 1 + 1;
+      if (sprop != NULL) len += strlen(sprop);
+      sprop = (char *)realloc(sprop, len);
+      
+      if (sprop == NULL) return MP4_INVALID_TRACK_ID;
+      strncat(sprop, ",", len - strlen(sprop));
+      strncat(sprop, base64, len - strlen(sprop));
+    }
+    free(base64);
+    free(pSeq[ix]);
+    ix++;
+  }
+  free(pSeq);
+  free(pSeqSize);
+  
+  ix = 0;
+  while (pPictSize[ix] != 0) {
+    base64 = MP4BinaryToBase64(pPict[ix], pPictSize[ix]);
+    uint len = strlen(base64) + 1 + 1;
+    if (sprop != NULL) len += strlen(sprop);
+    sprop = (char *)realloc(sprop, len);
+
+    if (sprop == NULL) return MP4_INVALID_TRACK_ID;
+    strncat(sprop, ",", len - strlen(sprop));
+    strncat(sprop, base64, len - strlen(sprop));
+
+    free(base64);
+    free(pPict[ix]);
+    ix++;
+  }
+  free(pPict);
+  free(pPictSize);
+
+  if (sprop == NULL) return MP4_INVALID_TRACK_ID;
+
+  MP4TrackId hintTrackId =
+    MP4AddHintTrack(mp4File, mediaTrackId);
+  
+  if (hintTrackId == MP4_INVALID_TRACK_ID) {
+    return MP4_INVALID_TRACK_ID;
+  }
+  
+  u_int8_t payloadNumber = MP4_SET_DYNAMIC_PAYLOAD;
+  
+  // don't include mpeg4-esid
+  if (MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
+				"H264", &payloadNumber, maxPayload,
+				NULL, true, false) == false) {
+    MP4DeleteTrack(mp4File, hintTrackId);
+    return MP4_INVALID_TRACK_ID;
+  }
+  
+  
+  /* create the appropriate SDP attribute */
+  char* sdpBuf = (char*)malloc(strlen(sprop) + 128);
+  if (sdpBuf == NULL) {
+    MP4DeleteTrack(mp4File, hintTrackId);
+    return MP4_INVALID_TRACK_ID;
+  }
+  snprintf(sdpBuf,
+	     strlen(sprop) + 128,
+	   "a=fmtp:%u profile-level-id=%06x; sprop-parameter-sets=%s; packetization-mode=1\015\012",
+	   payloadNumber,
+	   profile_level,
+	   sprop); 
+  
+  CHECK_AND_FREE(sprop);
+  /* add this to the track's sdp */
+  if (MP4AppendHintTrackSdp(mp4File, hintTrackId, sdpBuf) == false) {
+    MP4DeleteTrack(mp4File, hintTrackId);
+    hintTrackId = MP4_INVALID_TRACK_ID;
+  }
+  
+  free(sprop);
+  free(sdpBuf);
+
   return hintTrackId;
 }
 
@@ -147,7 +173,7 @@ static uint8_t h264_get_sample_nal_type (uint8_t *pSampleBuffer,
   }
   return 0;
 }
-extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
+extern "C" bool MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
 					  MP4TrackId mediaTrackId,
 					  MP4TrackId hintTrackId,
 					  MP4SampleId sampleId,
@@ -171,7 +197,9 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
 #ifdef DEBUG_H264_HINT
   printf("hint for sample %d %u\n", sampleId, remaining);
 #endif
-  MP4AddRtpVideoHint(mp4File, hintTrackId, isBFrame, renderingOffset);
+  if (MP4AddRtpVideoHint(mp4File, hintTrackId, 
+			 isBFrame, renderingOffset) == false)
+    return false;
 
 #ifdef ADD_PICT_SEQ_TO_STREAM
   if (nal_type == H264_NAL_TYPE_IDR_SLICE) {
@@ -185,19 +213,19 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
 				  &pPictSize);
     uint ix;
     for (ix = 0; pSeqSize[ix] != 0; ix++) {
-      MP4AddRtpPacket(mp4File, hintTrackId, false);
+      if (MP4AddRtpPacket(mp4File, hintTrackId, false) == false) return false;
       uint8_t *seq = pSeq[ix];
       uint len = pSeqSize[ix];
       do {
 	uint wb = len > 14 ? 14 : len;
-	MP4AddRtpImmediateData(mp4File, hintTrackId, seq, wb);
+	if (MP4AddRtpImmediateData(mp4File, hintTrackId, seq, wb) == false) return false;
 	seq += wb;
 	len -= wb;
       } while (len > 0);
       free(pSeq[ix]);
     }
     for (ix = 0; pPictSize[ix] != 0; ix++) {
-      MP4AddRtpPacket(mp4File, hintTrackId, false);
+      if (MP4AddRtpPacket(mp4File, hintTrackId, false) == false) return false;
       uint8_t *seq = pPict[ix];
       uint len = pPictSize[ix];
       do {
@@ -219,12 +247,13 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
     if (first_nal + sizeLength == sampleSize) {
       // we have a single nal, less than the maxPayloadSize, 
       // so, we have Single Nal unit mode
-      MP4AddRtpPacket(mp4File, hintTrackId, true);
-      MP4AddRtpSampleData(mp4File, hintTrackId, sampleId,
-			  sizeLength, sampleSize - sizeLength);
-      MP4WriteRtpHint(mp4File, hintTrackId, duration, 
-		      nal_type == H264_NAL_TYPE_IDR_SLICE);
-      return;
+      if (MP4AddRtpPacket(mp4File, hintTrackId, true) == false ||
+	  MP4AddRtpSampleData(mp4File, hintTrackId, sampleId,
+			      sizeLength, sampleSize - sizeLength) == false ||
+	  MP4WriteRtpHint(mp4File, hintTrackId, duration, 
+			  nal_type == H264_NAL_TYPE_IDR_SLICE) == false)
+	return false;
+      return true;
     }
   }
 
@@ -270,13 +299,13 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
 #endif
 	remaining -= write_size;
 
-	MP4AddRtpPacket(mp4File, hintTrackId, remaining == 0);
-	MP4AddRtpImmediateData(mp4File, hintTrackId, 
-			       fu_header, 2);
+	if (MP4AddRtpPacket(mp4File, hintTrackId, remaining == 0) == false ||
+	    MP4AddRtpImmediateData(mp4File, hintTrackId, 
+				   fu_header, 2) == false) return false;
 	fu_header[1] = 0;
 
-	MP4AddRtpSampleData(mp4File, hintTrackId, sampleId, 
-			    offset, write_size);
+	if (MP4AddRtpSampleData(mp4File, hintTrackId, sampleId, 
+				offset, write_size) == false) return false;
 	offset += write_size;
 	nal_size -= write_size;
       }
@@ -302,9 +331,10 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
 #ifdef DEBUG_H264_HINT
 	printf("have single NAL packet \n");
 #endif
-	MP4AddRtpPacket(mp4File, hintTrackId, next_size_offset >= remaining);
-	MP4AddRtpSampleData(mp4File, hintTrackId, sampleId, 
-			    offset, nal_size);
+	if (MP4AddRtpPacket(mp4File, hintTrackId, 
+			    next_size_offset >= remaining) == false ||
+	    MP4AddRtpSampleData(mp4File, hintTrackId, sampleId, 
+				offset, nal_size) == false) return false;
 	offset += nal_size;
 	remaining -= nal_size;
       } else {
@@ -338,15 +368,15 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
 	  // stap is last frame
 	  last = true;
 	} else last = false;
-	MP4AddRtpPacket(mp4File, hintTrackId, last);
 	uint8_t data[3];
 	data[0] = max_nri | 24;
 	data[1] = nal_size >> 8;
 	data[2] = nal_size & 0xff;
-	MP4AddRtpImmediateData(mp4File, hintTrackId, 
-			       data, 3);
-	MP4AddRtpSampleData(mp4File, hintTrackId, sampleId, 
-			    offset, nal_size);
+	if (MP4AddRtpPacket(mp4File, hintTrackId, last) == false ||
+	    MP4AddRtpImmediateData(mp4File, hintTrackId, 
+				   data, 3) == false ||
+	    MP4AddRtpSampleData(mp4File, hintTrackId, sampleId, 
+				offset, nal_size) == false) return false;
 	offset += nal_size;
 	remaining -= nal_size;
 	bytes_in_stap = 1 + 2 + nal_size;
@@ -357,8 +387,11 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
 	  remaining -= sizeLength;
 	  data[0] = nal_size >> 8;
 	  data[1] = nal_size & 0xff;
-	  MP4AddRtpImmediateData(mp4File, hintTrackId, data, 2);
-	  MP4AddRtpSampleData(mp4File, hintTrackId, sampleId, offset, nal_size);
+	  if (MP4AddRtpImmediateData(mp4File, hintTrackId, data, 2) == false ||
+	      MP4AddRtpSampleData(mp4File, hintTrackId, 
+				  sampleId, offset, nal_size) == false) 
+	    return false;
+
 	  offset += nal_size;
 	  remaining -= nal_size;
 	  bytes_in_stap += nal_size + 2;
@@ -370,8 +403,8 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
     } // end check size
   }
 
-  MP4WriteRtpHint(mp4File, hintTrackId, duration, 
-		  nal_type == H264_NAL_TYPE_IDR_SLICE);
+  return MP4WriteRtpHint(mp4File, hintTrackId, duration, 
+			 nal_type == H264_NAL_TYPE_IDR_SLICE);
 }
 
 extern "C" bool MP4AV_H264Hinter(
@@ -423,17 +456,21 @@ extern "C" bool MP4AV_H264Hinter(
       return false;
     }
 
-    MP4AV_H264_HintAddSample(mp4File,
-			     mediaTrackId,
-			     hintTrackId,
-			     sampleId,
-			     pSampleBuffer,
-			     sampleSize,
-			     sizeLength,
-			     duration,
-			     renderingOffset,
-			     isSyncSample,
-			     maxPayloadSize);
+    if (MP4AV_H264_HintAddSample(mp4File,
+				 mediaTrackId,
+				 hintTrackId,
+				 sampleId,
+				 pSampleBuffer,
+				 sampleSize,
+				 sizeLength,
+				 duration,
+				 renderingOffset,
+				 isSyncSample,
+				 maxPayloadSize) == false) {
+      MP4DeleteTrack(mp4File, hintTrackId);
+      CHECK_AND_FREE(pSampleBuffer);
+      return false;
+    }
   }
   CHECK_AND_FREE(pSampleBuffer);
 

@@ -11,8 +11,8 @@ extern "C" bool MP4AV_AmrGetNextFrame (const uint8_t *buf,
 				       bool have_amr_nb)
 {
 
-    static const short blockSize[16]   = { 12, 13, 15, 17, 19, 20, 26, 31,  5, -1, -1, -1, -1, -1, -1, 0}; // mode 15 is NODATA
-    static const short blockSizeWB[16] = { 17, 23, 32, 36, 40, 46, 50, 58, 60, 5, 5, -1, -1, -1, 0, 0 };
+    static const short blockSize[]   = { 12, 13, 15, 17, 19, 20, 26, 31,  5, -1, -1, -1, -1, -1, -1, 0}; // mode 15 is NODATA
+    static const short blockSizeWB[] = { 17, 23, 32, 36, 40, 46, 50, 58, 60, 5, 5, -1, -1, -1, 0, 0 };
     const short* pBlockSize;
     u_int8_t decMode;
 

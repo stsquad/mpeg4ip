@@ -60,11 +60,11 @@ extern "C" bool MP4AV_Mpeg4ParseVosh(
 				     u_int8_t* pProfileLevel)
 {
 	CMemoryBitstream vosh;
-
+	uint32_t read;
 	vosh.SetBytes(pVoshBuf, voshSize);
 
 	try {
-		vosh.GetBits(32);				// start code
+	  read = vosh.GetBits(32);				// start code
 		*pProfileLevel = vosh.GetBits(8);
 	}
 	catch (int e) {
@@ -520,11 +520,13 @@ extern "C" int MP4AV_Mpeg4GetVopType(u_int8_t* pVopBuf, u_int32_t vopSize)
 	if (pVopBuf[0] == 0 && pVopBuf[1] == 0 
 	  && (pVopBuf[2] & 0xFC) == 0x08 && (pVopBuf[3] & 0x03) == 0x02) {
 		// H.263, (MPEG-4 short header mode)
-		Mpeg4ParseShortHeaderVop(pVopBuf, vopSize, &vopType);
+	  if (Mpeg4ParseShortHeaderVop(pVopBuf, vopSize, &vopType) == false)
+	    return 0;
 		
 	} else {
 		// MPEG-4 (normal mode)
-		MP4AV_Mpeg4ParseVop(pVopBuf, vopSize, &vopType, 0, 0, NULL);
+	  if (MP4AV_Mpeg4ParseVop(pVopBuf, vopSize, &vopType, 0, 0, NULL)
+	      == false) return 0;
 	}
 
 	return vopType;

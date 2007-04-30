@@ -29,7 +29,7 @@
 #else
 #define ASSERT(expr) \
 	if (!(expr)) { \
-		fflush(stdout); \
+		(void)fflush(stdout); \
 		assert((expr)); \
 	}
 #endif

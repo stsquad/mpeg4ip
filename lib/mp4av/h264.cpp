@@ -49,6 +49,7 @@ uint32_t h264_ue (CBitstream *bs)
   int bits_left;
   uint8_t coded;
   bool done = false;
+  uint32_t temp;
   bits = 0;
   // we want to read 8 bits at a time - if we don't have 8 bits, 
   // read what's left, and shift.  The exp_golomb_bits calc remains the
@@ -61,7 +62,7 @@ uint32_t h264_ue (CBitstream *bs)
     } else {
       read = bs->PeekBits(8);
       if (read == 0) {
-	bs->GetBits(8);
+	(void)bs->GetBits(8);
 	bits += 8;
       } else {
 	done = true;
@@ -69,7 +70,7 @@ uint32_t h264_ue (CBitstream *bs)
     }
   }
   coded = exp_golomb_bits[read];
-  bs->GetBits(coded);
+  temp = bs->GetBits(coded);
   bits += coded;
 
   //  printf("ue - bits %d\n", bits);
@@ -214,6 +215,7 @@ int h264_read_seq_info (const uint8_t *buffer,
   uint32_t header;
   uint8_t tmp[2048]; /* Should be enough for all SPS (we have at worst 13 bytes and 496 se/ue in frext) */
   int tmp_len;
+  uint32_t dummy;
 
   if (buffer[2] == 1) header = 4;
   else header = 5;
@@ -224,9 +226,9 @@ int h264_read_seq_info (const uint8_t *buffer,
   //bs.set_verbose(true);
   try {
     dec->profile = bs.GetBits(8);
-    bs.GetBits(1 + 1 + 1 + 1 + 4);
+    dummy = bs.GetBits(1 + 1 + 1 + 1 + 4);
     dec->level = bs.GetBits(8);
-    h264_ue(&bs); // seq_parameter_set_id
+    (void)h264_ue(&bs); // seq_parameter_set_id
     if (dec->profile == 100 || dec->profile == 110 ||
 	dec->profile == 122 || dec->profile == 144) {
       dec->chroma_format_idc = h264_ue(&bs);
@@ -258,8 +260,8 @@ int h264_read_seq_info (const uint8_t *buffer,
         dec->offset_for_ref_frame[MIN(ix,255)] = h264_se(&bs); // offset for ref fram -
       }
     }
-    h264_ue(&bs); // num_ref_frames
-    bs.GetBits(1); // gaps_in_frame_num_value_allowed_flag
+    dummy = h264_ue(&bs); // num_ref_frames
+    dummy = bs.GetBits(1); // gaps_in_frame_num_value_allowed_flag
     uint32_t PicWidthInMbs = h264_ue(&bs) + 1;
     dec->pic_width = PicWidthInMbs * 16;
     uint32_t PicHeightInMapUnits = h264_ue(&bs) + 1;
@@ -297,6 +299,7 @@ extern "C" int h264_find_slice_type (const uint8_t *buffer,
 				     bool noheader)
 {
   uint32_t header;
+  uint32_t dummy;
   if (noheader) header = 1;
   else {
     if (buffer[2] == 1) header = 4;
@@ -305,7 +308,7 @@ extern "C" int h264_find_slice_type (const uint8_t *buffer,
   CBitstream bs;
   bs.init(buffer + header, (buflen - header) * 8);
   try {
-    h264_ue(&bs); // first_mb_in_slice
+    dummy = h264_ue(&bs); // first_mb_in_slice
     *slice_type = h264_ue(&bs); // slice type
   } catch (...) {
     return -1;
@@ -320,6 +323,7 @@ int h264_read_slice_info (const uint8_t *buffer,
   uint32_t header;
   uint8_t tmp[512]; /* Enough for the begining of the slice header */
   int tmp_len;
+  uint32_t temp;
 
   if (buffer[2] == 1) header = 4;
   else header = 5;
@@ -332,9 +336,9 @@ int h264_read_slice_info (const uint8_t *buffer,
     dec->bottom_field_flag = 0;
     dec->delta_pic_order_cnt[0] = 0;
     dec->delta_pic_order_cnt[1] = 0;
-    h264_ue(&bs); // first_mb_in_slice
+    temp = h264_ue(&bs); // first_mb_in_slice
     dec->slice_type = h264_ue(&bs); // slice type
-    h264_ue(&bs); // pic_parameter_set
+    temp = h264_ue(&bs); // pic_parameter_set
     dec->frame_num = bs.GetBits(dec->log2_max_frame_num_minus4 + 4);
     if (!dec->frame_mbs_only_flag) {
       dec->field_pic_flag = bs.GetBits(1);
@@ -674,41 +678,47 @@ extern "C" bool h264_access_unit_is_sync (const uint8_t *pNal, uint32_t len)
 extern "C" char *h264_get_profile_level_string (const uint8_t profile, 
 						const uint8_t level)
 {
+  const char *pro;
   char profileb[20], levelb[20];
   if (profile == 66) {
-    strcpy(profileb, "Baseline");
+    pro = "Baseline";
   } else if (profile == 77) {
-    strcpy(profileb, "Main");
+    pro = "Main";
   } else if (profile == 88) {
-    strcpy(profileb, "Extended");
+    pro =  "Extended";
   } else if (profile == 100) {
-    strcpy(profileb, "High");
+    pro = "High";
   } else if (profile == 110) {
-    strcpy(profileb, "High 10");
+    pro =  "High 10";
   } else if (profile == 122) {
-    strcpy(profileb, "High 4:2:2");
+    pro = "High 4:2:2";
   } else if (profile == 144) {
-    strcpy(profileb, "High 4:4:4");
+    pro = "High 4:4:4";
   } else {
-    sprintf(profileb, "Unknown Profile %x", profile);
+    snprintf(profileb, sizeof(profileb), "Unknown Profile %x", profile);
+    pro = profileb;
   } 
   switch (level) {
   case 10: case 20: case 30: case 40: case 50:
-    sprintf(levelb, "%u", level / 10);
+    snprintf(levelb, sizeof(levelb), "%u", level / 10);
     break;
   case 11: case 12: case 13:
   case 21: case 22:
   case 31: case 32:
   case 41: case 42:
   case 51:
-    sprintf(levelb, "%u.%u", level / 10, level % 10);
+    snprintf(levelb, sizeof(levelb), "%u.%u", level / 10, level % 10);
     break;
   default:
-    sprintf(levelb, "unknown level %x", level);
+    snprintf(levelb, sizeof(levelb), "unknown level %x", level);
     break;
   }
+  uint len =
+    1 + strlen("H.264 @") + strlen(pro) + strlen(levelb);
   char *typebuffer = 
-    (char *)malloc(1 + strlen("H.264 @") + strlen(profileb) + strlen(levelb));
-  sprintf(typebuffer, "H.264 %s@%s", profileb, levelb);
+    (char *)malloc(len);
+  if (typebuffer == NULL) return NULL;
+
+  snprintf(typebuffer, len,  "H.264 %s@%s", pro, levelb);
   return typebuffer;
 }

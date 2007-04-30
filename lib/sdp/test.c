@@ -24,7 +24,6 @@
 #include "mpeg4ip.h"
 #include <time.h>
 #include "sdp.h"
-#include "mpeg4ip_utils.h"
 
 int main (int argc, char **argv)
 {
@@ -41,8 +40,6 @@ int main (int argc, char **argv)
     printf("No arguments specified\n");
     exit(1);
   }
-  sdp_set_loglevel(LOG_DEBUG);
-  sdp_set_error_func(library_message);
   sdpd = set_sdp_decode_from_filename(*argv);
   if (sdpd == NULL) {
     printf("Didn't find file %s\n", *argv);

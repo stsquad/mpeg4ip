@@ -44,31 +44,38 @@ extern "C" bool HrefHinter (MP4FileHandle mp4file,
 
   payload = MP4_SET_DYNAMIC_PAYLOAD;
 
-  MP4SetHintTrackRtpPayload(mp4file, 
-			    hintTrackId, 
-			    "X-HREF", 
-			    &payload, 
-			    0,
-			    NULL,
-			    true, 
-			    false);
+  if (MP4SetHintTrackRtpPayload(mp4file, 
+				hintTrackId, 
+				"X-HREF", 
+				&payload, 
+				0,
+				NULL,
+				true, 
+				false) == false) return false;
 
   for (sampleId = 1; sampleId <= numSamples; sampleId++) {
     sampleSize = MP4GetSampleSize(mp4file, trackid, sampleId);
-    MP4AddRtpHint(mp4file, hintTrackId);
-    MP4AddRtpPacket(mp4file, hintTrackId, true);
+    if (MP4AddRtpHint(mp4file, hintTrackId) == false ||
+	MP4AddRtpPacket(mp4file, hintTrackId, true) == false) 
+      return false;
     uint8_t payloadHeader[4];
     payloadHeader[0] = 0;
     payloadHeader[1] = 0;
     payloadHeader[2] = sampleSize >> 8;
     payloadHeader[3] = sampleSize & 0xff;
 
-    MP4AddRtpImmediateData(mp4file, hintTrackId, payloadHeader, sizeof(payloadHeader));
-
-    MP4AddRtpSampleData(mp4file, hintTrackId, sampleId, 0, sampleSize);
-    MP4WriteRtpHint(mp4file, 
-		    hintTrackId, 
-		    MP4GetSampleDuration(mp4file, trackid, sampleId));
+    if (MP4AddRtpImmediateData(mp4file, 
+			       hintTrackId, 
+			       payloadHeader, 
+			       sizeof(payloadHeader)) == false ||
+	MP4AddRtpSampleData(mp4file, hintTrackId, 
+			    sampleId, 0, sampleSize) == false ||
+	MP4WriteRtpHint(mp4file, 
+			hintTrackId, 
+			MP4GetSampleDuration(mp4file, 
+					     trackid, 
+					     sampleId) == false))
+      return false;
   }
 
   return true; // will never reach here

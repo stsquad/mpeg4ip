@@ -173,12 +173,14 @@ static void range_dump (range_desc_t *rptr, const char *start)
     }
   } else {
     printf("smtpe - start ");
-    sdp_smpte_to_str(rptr->range_start, rptr->range_smpte_fps, buffer);
+    sdp_smpte_to_str(rptr->range_start, rptr->range_smpte_fps, buffer, 
+		     sizeof(buffer));
     printf("%s, end ", buffer);
     if (rptr->range_end_infinite) {
       printf("infinite\n");
     } else {
-      sdp_smpte_to_str(rptr->range_end, rptr->range_smpte_fps, buffer);
+      sdp_smpte_to_str(rptr->range_end, rptr->range_smpte_fps, buffer,
+		       sizeof(buffer));
       printf("%s\n", buffer);
     }
   }

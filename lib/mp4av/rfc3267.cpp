@@ -38,6 +38,15 @@ extern "C" int16_t MP4AV_AmrFrameSize (uint8_t mode, bool isAmrWb)
   return blockSize[decMode];
 }
 
+static bool do_work(MP4FileHandle mp4File, 
+		    MP4TrackId mediaTrackId, 
+		    MP4TrackId hintTrackId,
+		    uint16_t maxPayloadSize,
+		    bool isAmrWb,
+		    uint8_t *buffer,
+		    uint32_t numSamples,
+		    uint32_t maxSampleSize);
+
 extern "C" bool MP4AV_Rfc3267Hinter (MP4FileHandle mp4File,
 				     MP4TrackId mediaTrackId,
 				     uint16_t maxPayloadSize)
@@ -57,46 +66,71 @@ extern "C" bool MP4AV_Rfc3267Hinter (MP4FileHandle mp4File,
     return false;
   }
 
+  uint32_t maxSampleSize = MP4GetTrackMaxSampleSize(mp4File, mediaTrackId);
+
+  uint8_t *buffer = (uint8_t *)malloc(maxSampleSize);
+  if (buffer == NULL) return false;
 
   MP4TrackId hintTrackId = 
     MP4AddHintTrack(mp4File, mediaTrackId);
 
   if (hintTrackId == MP4_INVALID_TRACK_ID) {
+    free(buffer);
     return false;
   }
+  if (do_work(mp4File, mediaTrackId, hintTrackId,
+	      maxPayloadSize, isAmrWb, buffer, 
+	      numSamples, maxSampleSize) == false) {
+    free(buffer);
+    MP4DeleteTrack(mp4File, hintTrackId);
+    return false;
+  }
+  free(buffer);
+  return true;
 
+}
+
+static bool do_work (MP4FileHandle mp4File, 
+		     MP4TrackId mediaTrackId, 
+		     MP4TrackId hintTrackId,
+		     uint16_t maxPayloadSize,
+		     bool isAmrWb,
+		     uint8_t *buffer,
+		     uint32_t numSamples,
+		     uint32_t maxSampleSize)
+{
   uint8_t payloadNumber = MP4_SET_DYNAMIC_PAYLOAD;
 
-  MP4SetHintTrackRtpPayload(mp4File, 
-			    hintTrackId, 
-			    isAmrWb ? "AMR-WB" : "AMR",
-			    &payloadNumber,
-			    0,
-			    "1",
-			    true,
-			    false);
+  if (MP4SetHintTrackRtpPayload(mp4File, 
+				hintTrackId, 
+				isAmrWb ? "AMR-WB" : "AMR",
+				&payloadNumber,
+				0,
+				"1",
+				true,
+				false) == false) return false;
 
   char sdpBuf[80];
-  sprintf(sdpBuf, "a=fmtp:%u octet-align=1;\015\012",
+  snprintf(sdpBuf, sizeof(sdpBuf), "a=fmtp:%u octet-align=1;\015\012",
 	  payloadNumber);
 
-  MP4AppendHintTrackSdp(mp4File, hintTrackId, sdpBuf);
+  if (MP4AppendHintTrackSdp(mp4File, hintTrackId, sdpBuf) == false)
+    return false;
   
   struct {
     MP4SampleId sid;
     uint32_t offset;
     uint32_t len;
   } PakBuffer[12];
+  memset(PakBuffer, 0, sizeof(PakBuffer));
 
   uint8_t toc[13];
   toc[0] = 0xf0; // (MP4GetAmrModeSet(mp4File, mediaTrackId) << 4);
 
   MP4SampleId sid = 0;
-  uint32_t maxSampleSize = MP4GetTrackMaxSampleSize(mp4File, mediaTrackId);
   uint32_t sampleSize = 0;
   uint32_t offset_on = 0;
   uint32_t toc_on = 0;
-  uint8_t *buffer = (uint8_t *)malloc(maxSampleSize);
   MP4Timestamp startTime;
   MP4Duration duration;
   MP4Duration renderingOffset;
@@ -114,10 +148,11 @@ extern "C" bool MP4AV_Rfc3267Hinter (MP4FileHandle mp4File,
 #ifdef DEBUG_RFC3267
       printf("reading sample %u\n", sid);
 #endif
-      MP4ReadSample(mp4File, mediaTrackId, sid,
-		    &buffer, &sampleSize, 
-		    &startTime, &duration, 
-		    &renderingOffset, &isSyncSample);
+      if (MP4ReadSample(mp4File, mediaTrackId, sid,
+			&buffer, &sampleSize, 
+			&startTime, &duration, 
+			&renderingOffset, &isSyncSample) == false)
+	return false;
       offset_on = 0;
     }
     uint16_t frameSize = MP4AV_AmrFrameSize(buffer[0], isAmrWb);
@@ -125,13 +160,13 @@ extern "C" bool MP4AV_Rfc3267Hinter (MP4FileHandle mp4File,
     if (bytes_in_pak + frameSize > maxPayloadSize || 
 	toc_on >= 12) {
       // write it
-      MP4AddRtpHint(mp4File, hintTrackId);
-      MP4AddRtpPacket(mp4File, hintTrackId);
+      if (MP4AddRtpHint(mp4File, hintTrackId) == false ||
+	  MP4AddRtpPacket(mp4File, hintTrackId) == false) return false;
 #ifdef DEBUG_RFC3267
       printf("pak - writing immediat %u\n", toc_on + 1);
 #endif
-      MP4AddRtpImmediateData(mp4File, hintTrackId,
-			     toc, toc_on + 1);
+      if (MP4AddRtpImmediateData(mp4File, hintTrackId,
+				 toc, toc_on + 1) == false) return false;
       for (uint32_t ix = 0; ix < toc_on; ix++) {
 #ifdef DEBUG_RFC3267
 	printf("pak - writing sid %u %u %u\n", 
@@ -139,14 +174,15 @@ extern "C" bool MP4AV_Rfc3267Hinter (MP4FileHandle mp4File,
 	       PakBuffer[ix].offset, 
 	       PakBuffer[ix].len);
 #endif
-	MP4AddRtpSampleData(mp4File, 
-			    hintTrackId, 
-			    PakBuffer[ix].sid, 
-			    PakBuffer[ix].offset,
-			    PakBuffer[ix].len);
+	if (MP4AddRtpSampleData(mp4File, 
+				hintTrackId, 
+				PakBuffer[ix].sid, 
+				PakBuffer[ix].offset,
+				PakBuffer[ix].len) == false) return false;
       }
       MP4Duration duration = toc_on * (isAmrWb ? 320 : 160);
-      MP4WriteRtpHint(mp4File, hintTrackId, duration);
+      if (MP4WriteRtpHint(mp4File, hintTrackId, duration) == false) 
+	return false;
       toc_on = 0;
       bytes_in_pak = 0;
     }
@@ -170,20 +206,19 @@ extern "C" bool MP4AV_Rfc3267Hinter (MP4FileHandle mp4File,
   // finish it.  
 
   if (toc_on > 0) {
-    MP4AddRtpHint(mp4File, hintTrackId);
-    MP4AddRtpPacket(mp4File, hintTrackId, 1);
-    MP4AddRtpImmediateData(mp4File, hintTrackId,
-			   toc, toc_on + 1);
+    if (MP4AddRtpHint(mp4File, hintTrackId) == false ||
+	MP4AddRtpPacket(mp4File, hintTrackId, 1) == false ||
+	MP4AddRtpImmediateData(mp4File, hintTrackId,
+			       toc, toc_on + 1) == false) return false;
     for (uint32_t ix = 0; ix < toc_on; ix++) {
-      MP4AddRtpSampleData(mp4File, 
-			  hintTrackId, 
-			  PakBuffer[ix].sid, 
-			  PakBuffer[ix].offset,
-			  PakBuffer[ix].len);
+      if (MP4AddRtpSampleData(mp4File, 
+			      hintTrackId, 
+			      PakBuffer[ix].sid, 
+			      PakBuffer[ix].offset,
+			      PakBuffer[ix].len) == false) return false;
     }
     MP4Duration duration = toc_on * (isAmrWb ? 320 : 160);
-    MP4WriteRtpHint(mp4File, hintTrackId, duration);
+    if (MP4WriteRtpHint(mp4File, hintTrackId, duration) == false) return false;
   }
-  free(buffer);
   return true;
 }

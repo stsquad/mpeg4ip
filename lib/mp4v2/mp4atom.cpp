@@ -523,7 +523,7 @@ MP4Atom* MP4Atom::FindChildAtom(const char* name)
 	u_int32_t atomIndex = 0;
 
 	// get the index if we have one, e.g. moov.trak[2].mdia...
-	MP4NameFirstIndex(name, &atomIndex);
+	(void)MP4NameFirstIndex(name, &atomIndex);
 
 	// need to get to the index'th child atom of the right type
 	for (u_int32_t i = 0; i < m_pChildAtoms.Size(); i++) {
@@ -557,7 +557,7 @@ bool MP4Atom::FindContainedProperty(const char *name,
 
 	// check if we have an index, e.g. trak[2].mdia...
 	u_int32_t atomIndex = 0;
-	MP4NameFirstIndex(name, &atomIndex);
+	(void)MP4NameFirstIndex(name, &atomIndex);
 
 	// need to get to the index'th child atom of the right type
 	for (i = 0; i < m_pChildAtoms.Size(); i++) {
@@ -631,7 +631,7 @@ void MP4Atom::ReadChildAtoms()
 			    printf("Error: In %s atom, extra "D64" bytes at end of atom\n", 
 				   m_type, (m_end - position)));
 	    for (uint64_t ix = 0; ix < m_end - position; ix++) {
-	      m_pFile->ReadUInt8();
+	      (void)m_pFile->ReadUInt8();
 	    }
 	    continue;
 	  }

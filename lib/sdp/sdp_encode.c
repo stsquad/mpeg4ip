@@ -120,7 +120,7 @@ static int encode_bandwidth (bandwidth_t *bptr, sdp_encode_t *se)
 				  bptr->user_band :
 				  bptr->modifier == BANDWIDTH_MODIFIER_CT ?
 				     "CT" : "AS");
-    sprintf(buffer, ":%ld\n", bptr->bandwidth);
+    snprintf(buffer, sizeof(buffer), ":%ld\n", bptr->bandwidth);
     ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
     bptr = bptr->next;
   }
@@ -136,11 +136,11 @@ static int encode_category (category_list_t *cptr, sdp_encode_t *se)
   while (cptr != NULL) {
     if (first == FALSE) {
       ADD_STR_TO_ENCODE_WITH_RETURN(se, "a=cat:");
-      sprintf(buffer, U64, cptr->category);
+      snprintf(buffer, sizeof(buffer), U64, cptr->category);
       ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       first = TRUE;
     } else {
-      sprintf(buffer, "."U64, cptr->category);
+      snprintf(buffer, sizeof(buffer), "."U64, cptr->category);
       ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
     }
     cptr = cptr->next;
@@ -190,10 +190,10 @@ static int encode_connect (connect_desc_t *cptr, sdp_encode_t *se)
   ADD_STR_TO_ENCODE_WITH_RETURN(se, " ");
   ADD_STR_TO_ENCODE_WITH_RETURN(se, cptr->conn_addr);
   if (cptr->ttl) {
-    sprintf(buffer, "/%d", cptr->ttl);
+    snprintf(buffer, sizeof(buffer), "/%d", cptr->ttl);
     ADD_STR_TO_ENCODE_WITH_RETURN(se,buffer);
     if (cptr->num_addr) {
-      sprintf(buffer, "/%d", cptr->num_addr);
+      snprintf(buffer, sizeof(buffer), "/%d", cptr->num_addr);
       ADD_STR_TO_ENCODE_WITH_RETURN(se,buffer);
     }
   }
@@ -206,7 +206,7 @@ static int encode_rtcp (media_desc_t *mptr, sdp_encode_t *se)
   char buffer[20];
   connect_desc_t *cptr = &mptr->rtcp_connect;
   ADD_STR_TO_ENCODE_WITH_RETURN(se, "a=rtcp:");
-  sprintf(buffer, "%u", mptr->rtcp_port);
+  snprintf(buffer, sizeof(buffer), "%u", mptr->rtcp_port);
   ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
   if (cptr->conn_type != NULL) {
     ADD_STR_TO_ENCODE_WITH_RETURN(se, " ");
@@ -214,10 +214,10 @@ static int encode_rtcp (media_desc_t *mptr, sdp_encode_t *se)
     ADD_STR_TO_ENCODE_WITH_RETURN(se, " ");
     ADD_STR_TO_ENCODE_WITH_RETURN(se, cptr->conn_addr);
     if (cptr->ttl) {
-      sprintf(buffer, "/%d", cptr->ttl);
+      snprintf(buffer, sizeof(buffer), "/%d", cptr->ttl);
       ADD_STR_TO_ENCODE_WITH_RETURN(se,buffer);
       if (cptr->num_addr) {
-	sprintf(buffer, "/%d", cptr->num_addr);
+	snprintf(buffer, sizeof(buffer), "/%d", cptr->num_addr);
 	ADD_STR_TO_ENCODE_WITH_RETURN(se,buffer);
       }
     }
@@ -260,24 +260,26 @@ static int encode_range (range_desc_t *rptr, sdp_encode_t *se)
   if (rptr->have_range) {
     if (rptr->range_is_npt) {
       ADD_STR_TO_ENCODE_WITH_RETURN(se, "a=npt:");
-      sprintf(buffer, "%g-", rptr->range_start);
+      snprintf(buffer, sizeof(buffer), "%g-", rptr->range_start);
       ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       if (rptr->range_end_infinite == FALSE) {
-	sprintf(buffer,"%g", rptr->range_end);
+	snprintf(buffer, sizeof(buffer), "%g", rptr->range_end);
 	ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       }
     } else {
       ADD_STR_TO_ENCODE_WITH_RETURN(se, "a=smpte");
       if (rptr->range_smpte_fps != 0) {
-	sprintf(buffer, "-%d", rptr->range_smpte_fps);
+	snprintf(buffer, sizeof(buffer), "-%d", rptr->range_smpte_fps);
 	ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       }
       ADD_STR_TO_ENCODE_WITH_RETURN(se, "=");
-      sdp_smpte_to_str(rptr->range_start, rptr->range_smpte_fps, buffer);
+      sdp_smpte_to_str(rptr->range_start, rptr->range_smpte_fps, buffer, 
+		       sizeof(buffer));
       ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       ADD_STR_TO_ENCODE_WITH_RETURN(se, "-");
       if (rptr->range_end_infinite == FALSE) {
-	sdp_smpte_to_str(rptr->range_end, rptr->range_smpte_fps, buffer);
+	sdp_smpte_to_str(rptr->range_end, rptr->range_smpte_fps, buffer,
+			 sizeof(buffer));
 	ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       }
     }
@@ -299,7 +301,7 @@ static int encode_time (session_time_desc_t *tptr, sdp_encode_t *se)
     end = tptr->end_time;
     if (end != 0) end += NTP_TO_UNIX_TIME;
 
-    sprintf(buffer, "t="U64" "U64"\n", start, end);
+    snprintf(buffer, sizeof(buffer), "t="U64" "U64"\n", start, end);
     ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
 
     rptr = tptr->repeat;
@@ -311,7 +313,7 @@ static int encode_time (session_time_desc_t *tptr, sdp_encode_t *se)
       sdp_time_offset_to_str(rptr->active_duration, buffer, sizeof(buffer));
       ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       for (ix = 0; ix < rptr->offset_cnt; ix++) {
-	sprintf(buffer, " %d", rptr->offsets[ix]);
+	snprintf(buffer, sizeof(buffer), " %d", rptr->offsets[ix]);
 	ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       }
       ADD_STR_TO_ENCODE_WITH_RETURN(se, "\n");
@@ -336,7 +338,7 @@ static int encode_time_adj (time_adj_desc_t *aptr, sdp_encode_t *se)
   while (aptr != NULL) {
     ADD_STR_TO_ENCODE_WITH_RETURN(se, dohead ? "z=" : " ");
 	time_val = aptr->adj_time + NTP_TO_UNIX_TIME;
-    sprintf(buffer, U64" ", time_val);
+    snprintf(buffer, sizeof(buffer), U64" ", time_val);
     ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
     if (aptr->offset < 0) {
       offset = (0 - aptr->offset);
@@ -396,10 +398,10 @@ static int encode_media (media_desc_t *mptr, sdp_encode_t *se)
   ADD_STR_TO_ENCODE_WITH_RETURN(se, "m=");
   ADD_STR_TO_ENCODE_WITH_RETURN(se, mptr->media);
   
-  sprintf(buffer, " %u", mptr->port);
+  snprintf(buffer, sizeof(buffer), " %u", mptr->port);
   ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
   if (mptr->num_ports) {
-    sprintf(buffer,"/%u", mptr->num_ports);
+    snprintf(buffer,sizeof(buffer), "/%u", mptr->num_ports);
     ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
   }
   ADD_STR_TO_ENCODE_WITH_RETURN(se, " ");
@@ -428,17 +430,17 @@ static int encode_media (media_desc_t *mptr, sdp_encode_t *se)
   
   if (mptr->ptime_present) {
     ADD_STR_TO_ENCODE_WITH_RETURN(se, "a=ptime:");
-    sprintf(buffer, "%u\n", mptr->ptime);
+    snprintf(buffer, sizeof(buffer), "%u\n", mptr->ptime);
     ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
   }
   if (mptr->quality_present) {
     ADD_STR_TO_ENCODE_WITH_RETURN(se, "a=quality:");
-    sprintf(buffer, "%u\n", mptr->quality);
+    snprintf(buffer, sizeof(buffer), "%u\n", mptr->quality);
     ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
   }
   if (mptr->framerate_present) {
     ADD_STR_TO_ENCODE_WITH_RETURN(se, "a=framerate:");
-    sprintf(buffer, "%g\n", mptr->framerate);
+    snprintf(buffer, sizeof(buffer), "%g\n", mptr->framerate);
     ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
   }
   
@@ -465,10 +467,10 @@ static int encode_media (media_desc_t *mptr, sdp_encode_t *se)
       ADD_STR_TO_ENCODE_WITH_RETURN(se, fptr->fmt);
       ADD_STR_TO_ENCODE_WITH_RETURN(se, " ");
       ADD_STR_TO_ENCODE_WITH_RETURN(se, fptr->rtpmap_name);
-      sprintf(buffer, "/%u", fptr->rtpmap_clock_rate);
+      snprintf(buffer, sizeof(buffer), "/%u", fptr->rtpmap_clock_rate);
       ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       if (fptr->rtpmap_encode_param != 0) {
-	sprintf(buffer, "/%u", fptr->rtpmap_encode_param);
+	snprintf(buffer, sizeof(buffer), "/%u", fptr->rtpmap_encode_param);
 	ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       }
       ADD_STR_TO_ENCODE_WITH_RETURN(se, "\n");
@@ -506,7 +508,7 @@ static int sdp_encode (session_desc_t *sptr, sdp_encode_t *se)
   ADD_STR_TO_ENCODE_WITH_RETURN(se,
 				sptr->orig_username == NULL ?
 				"-" : sptr->orig_username);
-  sprintf(buffer, " "D64" "D64" IN ",
+  snprintf(buffer, sizeof(buffer), " "D64" "D64" IN ",
 	  sptr->session_id,
 	  sptr->session_version);
   ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);

@@ -180,29 +180,36 @@ extern "C" bool MP4AV_AdtsMakeFrameFromMp4Sample(
 		u_int8_t* pConfig = NULL;
 		u_int32_t configLength;
 
-		MP4GetTrackESConfiguration(
+		if (MP4GetTrackESConfiguration(
 			mp4File, 
 			trackId,
 			&pConfig,
-			&configLength);
+			&configLength) == false) {
+		  return false;
+		}
 
 		if (pConfig == NULL || configLength < 2) {
 		  uint64_t sound_version;
-		  MP4GetTrackIntegerProperty(mp4File, 
-					     trackId,
-					     "mdia.minf.stbl.stsd.mp4a.soundVersion",
-					     &sound_version);
+		  if (MP4GetTrackIntegerProperty(mp4File, 
+						 trackId,
+						 "mdia.minf.stbl.stsd.mp4a.soundVersion",
+						 &sound_version) == false)
+		    return false;
+
 		  if (sound_version == 1) {
 		    uint64_t temp;
-		    MP4GetTrackIntegerProperty(mp4File, 
-					       trackId, 
-					       "mdia.minf.stbl.stsd.mp4a.timeScale", 
-					       &temp);
+		    if (MP4GetTrackIntegerProperty(mp4File, 
+						   trackId, 
+						   "mdia.minf.stbl.stsd.mp4a.timeScale", 
+						   &temp) == false)
+		      return false;
+
 		    samplingFrequency = temp;
-		    MP4GetTrackIntegerProperty(mp4File,
-					       trackId,
-					       "mdia.minf.stbl.stsd.mp4a.channels",
-					       &temp);
+		    if (MP4GetTrackIntegerProperty(mp4File,
+						   trackId,
+						   "mdia.minf.stbl.stsd.mp4a.channels",
+						   &temp) == false)
+		      return false;
 		      channels = temp;
 		  } else {
 		  //		  if (sound_version == 1) {
@@ -291,7 +298,7 @@ extern "C" bool MP4AV_AdtsMakeFrame(
 		// copy audio frame data
 		adts.PutBytes(pData, dataLength);
 	}
-	catch (int e) {
+	catch (...) {
 		return false;
 	}
 

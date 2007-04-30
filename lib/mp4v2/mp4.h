@@ -344,7 +344,7 @@ MP4FileHandle MP4ReadEx(const char* fileName,
 			Virtual_IO_t *virtual_IO,
 			u_int32_t verbosity DEFAULT(0));
  
-bool MP4Close(
+void MP4Close(
 	MP4FileHandle hFile);
 
 bool MP4Optimize(
@@ -371,7 +371,7 @@ char* MP4FileInfo(
 
 u_int32_t MP4GetVerbosity(MP4FileHandle hFile);
 
-bool MP4SetVerbosity(MP4FileHandle hFile, u_int32_t verbosity);
+void MP4SetVerbosity(MP4FileHandle hFile, u_int32_t verbosity);
 
 MP4Duration MP4GetDuration(MP4FileHandle hFile);
 
@@ -390,11 +390,11 @@ bool MP4SetSceneProfileLevel(MP4FileHandle hFile, u_int8_t value);
 u_int8_t MP4GetVideoProfileLevel(MP4FileHandle hFile,
 				 MP4TrackId trackId DEFAULT(MP4_INVALID_TRACK_ID));
 
-bool MP4SetVideoProfileLevel(MP4FileHandle hFile, u_int8_t value);
+void MP4SetVideoProfileLevel(MP4FileHandle hFile, u_int8_t value);
 
 u_int8_t MP4GetAudioProfileLevel(MP4FileHandle hFile);
 
-bool MP4SetAudioProfileLevel(MP4FileHandle hFile, u_int8_t value);
+void MP4SetAudioProfileLevel(MP4FileHandle hFile, u_int8_t value);
 
 u_int8_t MP4GetGraphicsProfileLevel(MP4FileHandle hFile);
 
@@ -552,11 +552,11 @@ MP4TrackId MP4AddEncH264VideoTrack(
 				MP4TrackId srcTrackId,
 				mp4v2_ismacrypParams *icPp);
 
-bool MP4AddH264SequenceParameterSet(MP4FileHandle hFile,
+void MP4AddH264SequenceParameterSet(MP4FileHandle hFile,
 				    MP4TrackId trackId,
 				    const uint8_t *pSequence,
 				    uint16_t sequenceLen);
-bool MP4AddH264PictureParameterSet(MP4FileHandle hFile,
+void MP4AddH264PictureParameterSet(MP4FileHandle hFile,
 				   MP4TrackId trackId,
 				   const uint8_t *pPict,
 				   uint16_t pictLen);
@@ -631,7 +631,7 @@ MP4TrackId MP4EncAndCopyTrack(
 	bool applyEdits DEFAULT(false),
 	MP4TrackId dstHintTrackReferenceTrack DEFAULT(MP4_INVALID_TRACK_ID));
 
-bool MP4DeleteTrack(
+void MP4DeleteTrack(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
 
@@ -678,7 +678,7 @@ u_int32_t MP4GetTrackTimeScale(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
 
-bool MP4SetTrackTimeScale(
+void MP4SetTrackTimeScale(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId, 
 	u_int32_t value);
@@ -722,7 +722,7 @@ bool MP4GetTrackH264ProfileLevel(MP4FileHandle hFile,
 				 MP4TrackId trackId,
 				 uint8_t *pProfile,
 				 uint8_t *pLevel);
-bool MP4GetTrackH264SeqPictHeaders(MP4FileHandle hFile,
+void MP4GetTrackH264SeqPictHeaders(MP4FileHandle hFile,
 				   MP4TrackId trackId,
 				   uint8_t ***pSeqHeaders,
 				   uint32_t **pSeqHeaderSize,
@@ -1164,8 +1164,9 @@ MP4SampleId MP4GetSampleIdFromEditTime(
 /* iTunes metadata handling */
 bool MP4MetadataDelete(MP4FileHandle hFile);
 bool MP4GetMetadataByIndex(MP4FileHandle hFile, u_int32_t index,
-			   const char** ppName,
-			   u_int8_t** ppValue, u_int32_t* pValueSize);
+			   char** ppName, // need to free memory
+			   u_int8_t** ppValue,  // need to free
+			   u_int32_t* pValueSize);
 bool MP4SetMetadataName(MP4FileHandle hFile, const char* value);
 bool MP4GetMetadataName(MP4FileHandle hFile, char** value);
 bool MP4DeleteMetadataName(MP4FileHandle hFile);

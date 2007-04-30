@@ -59,8 +59,8 @@ extern "C" bool G711Hinter (MP4FileHandle mp4file,
     type = "PCMU";
   }
 
-  MP4SetHintTrackRtpPayload(mp4file, hintTrackId, type, &payload, 0,NULL,
-			    false);
+  if (MP4SetHintTrackRtpPayload(mp4file, hintTrackId, type, &payload, 0,NULL,
+				false) == false) return false;
 
   MP4Duration sampleDuration;
   bool have_skip;
@@ -78,14 +78,17 @@ extern "C" bool G711Hinter (MP4FileHandle mp4file,
 #ifdef DEBUG_G711
       printf("Adding hint/packet\n");
 #endif
-      MP4AddRtpHint(mp4file, hintTrackId);
-      MP4AddRtpPacket(mp4file, hintTrackId, false); // marker bit 0
+      if (MP4AddRtpHint(mp4file, hintTrackId) == false ||
+	  MP4AddRtpPacket(mp4file, hintTrackId, false) == false) // marker bit 0
+	return false;
+	
     }
     uint16_t bytes_left_this_packet;
     bytes_left_this_packet = maxPayloadSize - bytes_this_hint;
     if (sampleSize >= bytes_left_this_packet) {
-      MP4AddRtpSampleData(mp4file, hintTrackId, 
-			  sampleId, sampleOffset, bytes_left_this_packet);
+      if (MP4AddRtpSampleData(mp4file, hintTrackId, 
+			      sampleId, sampleOffset, bytes_left_this_packet) == false)
+	return false;
       bytes_this_hint += bytes_left_this_packet;
       sampleSize -= bytes_left_this_packet;
       sampleOffset += bytes_left_this_packet;
@@ -93,8 +96,9 @@ extern "C" bool G711Hinter (MP4FileHandle mp4file,
       printf("Added sample with %u bytes\n", bytes_left_this_packet);
 #endif
     } else {
-      MP4AddRtpSampleData(mp4file, hintTrackId, 
-			  sampleId, sampleOffset, sampleSize);
+      if (MP4AddRtpSampleData(mp4file, hintTrackId, 
+			      sampleId, sampleOffset, sampleSize) == false)
+	return false;
       bytes_this_hint += sampleSize;
 #ifdef DEBUG_G711
       printf("Added sample with %u bytes\n", sampleSize);
@@ -105,7 +109,8 @@ extern "C" bool G711Hinter (MP4FileHandle mp4file,
     if (bytes_this_hint >= maxPayloadSize) {
       // Write the hint
       // duration is bytes written
-      MP4WriteRtpHint(mp4file, hintTrackId, bytes_this_hint);
+      if (MP4WriteRtpHint(mp4file, hintTrackId, bytes_this_hint) == false)
+	return false;
 #ifdef DEBUG_G711
       printf("Finished packet - bytes %u\n", bytes_this_hint);
 #endif
@@ -117,14 +122,16 @@ extern "C" bool G711Hinter (MP4FileHandle mp4file,
 #ifdef DEBUG_G711
 	printf("duration - ending packet - bytes %u\n", bytes_this_hint);
 #endif
-	MP4WriteRtpHint(mp4file, hintTrackId, bytes_this_hint);
+	if (MP4WriteRtpHint(mp4file, hintTrackId, bytes_this_hint) == false)
+	  return false;
 	bytes_this_hint = 0;
       }
       sampleId++;
       if (sampleId > numSamples) {
 	// finish it and exit
 	if (bytes_this_hint != 0) {
-	  MP4WriteRtpHint(mp4file, hintTrackId, bytes_this_hint);
+	  if (MP4WriteRtpHint(mp4file, hintTrackId, bytes_this_hint) == false)
+	    return false;
 	}
 	return true;
       }

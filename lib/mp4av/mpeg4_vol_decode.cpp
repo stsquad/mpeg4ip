@@ -18,18 +18,19 @@ int main (int argc, char **argv)
   argv++;
   if (argc != 1) {
     printf("Only 1 argument allowed\n");
-    exit(-1);
+    return(-1);
   }
 
   len = strlen(*argv);
   if (len & 0x1) {
     printf("must have even number of numbers\n");
-    exit(-1);
+    return(-1);
   }
 
   len /= 2;
 
   uint8_t *vol = (uint8_t *)malloc(len);
+  if (vol == NULL) return -1;
   char *ptr;
   uint8_t *bptr = vol;
   ptr = *argv;
@@ -60,5 +61,5 @@ int main (int argc, char **argv)
   }
 
   free(vol);
-  exit(0);
+  return(0);
 }

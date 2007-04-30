@@ -212,6 +212,7 @@ extern "C" u_int16_t MP4AV_Mp3GetBitRate (MP4AV_Mp3Header hdr)
 
   if (version == 3) {
     /* MPEG-1 */
+    if (layer == 0) return 0;
     bitRateIndex1 = layer - 1;
   } else {
     /* MPEG-2 or MPEG-2.5 */
@@ -240,6 +241,8 @@ extern "C" u_int16_t MP4AV_Mp3GetFrameSize(MP4AV_Mp3Header hdr)
 
 	if (version == 3) {
 		/* MPEG-1 */
+	  if (layer == 0) return 0;
+
 		bitRateIndex1 = layer - 1;
 	} else {
 		/* MPEG-2 or MPEG-2.5 */

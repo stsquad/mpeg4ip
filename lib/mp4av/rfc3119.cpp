@@ -63,12 +63,14 @@ static bool GetFrameInfo(
 		u_int32_t sampleSize = 0;
 
 		// read it
-		MP4ReadSample(
-			mp4File,
-			mediaTrackId,
-			sampleId,
-			&pSample,
-			&sampleSize);
+		if (MP4ReadSample(
+				  mp4File,
+				  mediaTrackId,
+				  sampleId,
+				  &pSample,
+				  &sampleSize) == false) {
+		  return false;
+		}
 
 		// extract the MP3 frame header
 		MP4AV_Mp3Header mp3hdr = 
@@ -141,41 +143,44 @@ static u_int16_t GetAduDataSize(
 		- GetFrameHeaderSize(sampleId);
 }
 
-static void AddFrameHeader(
+static bool AddFrameHeader(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
 	MP4TrackId hintTrackId,
 	MP4SampleId sampleId)
 {
-	// when interleaving we replace the 11 bit mp3 frame sync
-	if (doInterleave) {
-		// compute interleave index and interleave cycle from sampleId
-		u_int8_t interleaveIndex =
-			(sampleId - 1) % samplesPerGroup;
-		u_int8_t interleaveCycle =
-			((sampleId - 1) / samplesPerGroup) & 0x7;
+  // when interleaving we replace the 11 bit mp3 frame sync
+  uint offset;
 
-		u_int8_t interleaveHeader[4];
-		interleaveHeader[0] = 
-			interleaveIndex;
-		interleaveHeader[1] = 
-			(interleaveCycle << 5) | ((pFrameHeaders[sampleId] >> 16) & 0x1F);
-		interleaveHeader[2] = 
-			(pFrameHeaders[sampleId] >> 8) & 0xFF;
-		interleaveHeader[3] = 
-			pFrameHeaders[sampleId] & 0xFF;
+  if (doInterleave) {
+    // compute interleave index and interleave cycle from sampleId
+    u_int8_t interleaveIndex =
+      (sampleId - 1) % samplesPerGroup;
+    u_int8_t interleaveCycle =
+      ((sampleId - 1) / samplesPerGroup) & 0x7;
 
-		MP4AddRtpImmediateData(mp4File, hintTrackId,
-			interleaveHeader, 4);
+    u_int8_t interleaveHeader[4];
+    interleaveHeader[0] = 
+      interleaveIndex;
+    interleaveHeader[1] = 
+      (interleaveCycle << 5) | ((pFrameHeaders[sampleId] >> 16) & 0x1F);
+    interleaveHeader[2] = 
+      (pFrameHeaders[sampleId] >> 8) & 0xFF;
+    interleaveHeader[3] = 
+      pFrameHeaders[sampleId] & 0xFF;
 
-		// add crc and side info from current mp3 frame
-		MP4AddRtpSampleData(mp4File, hintTrackId,
-			sampleId, 4, GetFrameHeaderSize(sampleId) - 4);
-	} else {
-		// add mp3 header, crc, and side info from current mp3 frame
-		MP4AddRtpSampleData(mp4File, hintTrackId,
-			sampleId, 0, GetFrameHeaderSize(sampleId));
-	}
+    if (MP4AddRtpImmediateData(mp4File, hintTrackId,
+			       interleaveHeader, 4) == false) return false;
+
+    // add crc and side info from current mp3 frame
+    offset = 4;
+  } else {
+    // add mp3 header, crc, and side info from current mp3 frame
+    offset = 0;
+  }
+  return MP4AddRtpSampleData(mp4File, hintTrackId,
+			     sampleId, offset, 
+			     GetFrameHeaderSize(sampleId) - offset);
 }
 
 static void CollectAduDataBlocks(
@@ -235,69 +240,88 @@ bool MP4AV_Rfc3119Concatenator(
 	MP4Duration hintDuration,
 	u_int16_t maxPayloadSize)
 {
-	// handle degenerate case
-	if (samplesThisHint == 0) {
-		return true;
-	}
+  // handle degenerate case
+  if (samplesThisHint == 0) {
+    return true;
+  }
 
-	// construct the new hint
-	MP4AddRtpHint(mp4File, hintTrackId);
-	MP4AddRtpPacket(mp4File, hintTrackId, false);
+  // construct the new hint
+  if (MP4AddRtpHint(mp4File, hintTrackId) == false ||
+      MP4AddRtpPacket(mp4File, hintTrackId, false) == false) {
+    MP4DeleteTrack(mp4File, hintTrackId);
+    return false;
+  }
+    
 
-	// rfc 3119 per adu payload header
-	u_int8_t payloadHeader[2];
+  // rfc 3119 per adu payload header
+  u_int8_t payloadHeader[2];
 
-	// for each given sample
-	for (u_int8_t i = 0; i < samplesThisHint; i++) {
-		MP4SampleId sampleId = pSampleIds[i];
+  // for each given sample
+  for (u_int8_t i = 0; i < samplesThisHint; i++) {
+    MP4SampleId sampleId = pSampleIds[i];
 
-		u_int16_t aduSize = 
-			MP4AV_Rfc3119GetAduSize(mp4File, mediaTrackId, sampleId);
+    u_int16_t aduSize = 
+      MP4AV_Rfc3119GetAduSize(mp4File, mediaTrackId, sampleId);
 
-		// add the per ADU payload header
-		payloadHeader[0] = 0x40 | ((aduSize >> 8) & 0x3F);
-		payloadHeader[1] = aduSize & 0xFF;
+    // add the per ADU payload header
+    payloadHeader[0] = 0x40 | ((aduSize >> 8) & 0x3F);
+    payloadHeader[1] = aduSize & 0xFF;
 
-		MP4AddRtpImmediateData(mp4File, hintTrackId,
-			(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
-		// add the mp3 frame header and side info
-		AddFrameHeader(mp4File, mediaTrackId, hintTrackId, sampleId);
+    if (MP4AddRtpImmediateData(mp4File, hintTrackId,
+			       (u_int8_t*)&payloadHeader, 
+			       sizeof(payloadHeader)) == false ||
+	AddFrameHeader(mp4File, mediaTrackId, hintTrackId, sampleId) == false) {
+      MP4DeleteTrack(mp4File, hintTrackId);
+      return false;
+    }
+    // add the mp3 frame header and side info
 
-		// collect the info on the adu main data fragments
-		u_int8_t numDataBlocks;
-		u_int32_t* pDataOffsets;
-		u_int32_t* pDataSizes;
+    // collect the info on the adu main data fragments
+    u_int8_t numDataBlocks;
+    u_int32_t* pDataOffsets;
+    u_int32_t* pDataSizes;
 
-		CollectAduDataBlocks(mp4File, mediaTrackId, hintTrackId, sampleId,
-			&numDataBlocks, &pDataOffsets, &pDataSizes);
+    CollectAduDataBlocks(mp4File, mediaTrackId, hintTrackId, sampleId,
+			 &numDataBlocks, &pDataOffsets, &pDataSizes);
 
-		// collect the needed blocks of data
-		u_int16_t dataSize = 0;
-		u_int16_t aduDataSize = 
-			GetAduDataSize(mp4File, mediaTrackId, sampleId);
+    // collect the needed blocks of data
+    u_int16_t dataSize = 0;
+    u_int16_t aduDataSize = 
+      GetAduDataSize(mp4File, mediaTrackId, sampleId);
 
-		for (int8_t ix = numDataBlocks - 1;
-		  ix >= 0 && dataSize < aduDataSize; i--) {
-			u_int32_t blockSize = pDataSizes[ix];
+    for (int8_t ix = numDataBlocks - 1;
+	 ix >= 0 && dataSize < aduDataSize; i--) {
+      u_int32_t blockSize = pDataSizes[ix];
 
-			if ((u_int32_t)(aduDataSize - dataSize) < blockSize) {
-				blockSize = (u_int32_t)(aduDataSize - dataSize);
-			}
+      if ((u_int32_t)(aduDataSize - dataSize) < blockSize) {
+	blockSize = (u_int32_t)(aduDataSize - dataSize);
+      }
 
-			MP4AddRtpSampleData(mp4File, hintTrackId,
-				sampleId - ix, pDataOffsets[ix], blockSize);
+      if (MP4AddRtpSampleData(mp4File, hintTrackId,
+			      sampleId - ix, 
+			      pDataOffsets[ix], 
+			      blockSize) == false) {
+	MP4DeleteTrack(mp4File, hintTrackId);
+	delete [] pDataOffsets;
+	delete [] pDataSizes;
+	return false;
+      }
+			  
 
-			dataSize += blockSize;
-		}
+      dataSize += blockSize;
+    }
 
-		delete [] pDataOffsets;
-		delete [] pDataSizes;
-	}
+    delete [] pDataOffsets;
+    delete [] pDataSizes;
+  }
 
-	// write the hint
-	MP4WriteRtpHint(mp4File, hintTrackId, hintDuration);
+  // write the hint
+  if (MP4WriteRtpHint(mp4File, hintTrackId, hintDuration) == false) {
+    MP4DeleteTrack(mp4File, hintTrackId);
+    return false;
+  }
 
-	return true;
+  return true;
 }
 
 bool MP4AV_Rfc3119Fragmenter(
@@ -309,96 +333,114 @@ bool MP4AV_Rfc3119Fragmenter(
 	MP4Duration sampleDuration,
 	u_int16_t maxPayloadSize)
 {
-	MP4AddRtpHint(mp4File, hintTrackId);
-	MP4AddRtpPacket(mp4File, hintTrackId, false);
+  if (MP4AddRtpHint(mp4File, hintTrackId) == false ||
+      MP4AddRtpPacket(mp4File, hintTrackId, false) == false) {
+    MP4DeleteTrack(mp4File, hintTrackId);
+    return false;
+  }
 
-	// rfc 3119 payload header
-	u_int8_t payloadHeader[2];
+  // rfc 3119 payload header
+  u_int8_t payloadHeader[2];
 
-	u_int16_t payloadSize = 
-		sizeof(payloadHeader) + GetFrameHeaderSize(sampleId);
+  u_int16_t payloadSize = 
+    sizeof(payloadHeader) + GetFrameHeaderSize(sampleId);
 
-	// guard against ridiculous payload sizes
-	if (payloadSize > maxPayloadSize) {
-		return false;
+  // guard against ridiculous payload sizes
+  if (payloadSize > maxPayloadSize) {
+    return false;
+  }
+
+  // add the per ADU fragment payload header
+  payloadHeader[0] = 0x40 | ((aduSize >> 8) & 0x3F);
+  payloadHeader[1] = aduSize & 0xFF;
+
+  if (MP4AddRtpImmediateData(mp4File, hintTrackId,
+			     (u_int8_t*)&payloadHeader, 
+			     sizeof(payloadHeader)) == false ||
+      AddFrameHeader(mp4File, mediaTrackId, hintTrackId, sampleId) == false) {
+    MP4DeleteTrack(mp4File, hintTrackId);
+    return false;
+  }
+
+  payloadHeader[0] |= 0x80;	// mark future packets as continuations
+
+  // add the mp3 frame header and side info
+
+  // collect the info on the adu main data fragments
+  u_int8_t numDataBlocks;
+  u_int32_t* pDataOffsets;
+  u_int32_t* pDataSizes;
+
+  CollectAduDataBlocks(mp4File, mediaTrackId, hintTrackId, sampleId,
+		       &numDataBlocks, &pDataOffsets, &pDataSizes);
+
+  u_int16_t dataSize = 0;
+  u_int16_t aduDataSize = 
+    GetAduDataSize(mp4File, mediaTrackId, sampleId);
+
+  // for each data block
+  for (int8_t i = numDataBlocks - 1; i >= 0 && dataSize < aduDataSize; i--) {
+    u_int32_t blockSize = pDataSizes[i];
+    u_int32_t blockOffset = pDataOffsets[i];
+
+    // we may not need all of a block
+    if ((u_int32_t)(aduDataSize - dataSize) < blockSize) {
+      blockSize = (u_int32_t)(aduDataSize - dataSize);
+    }
+
+    dataSize += blockSize;
+
+    // while data left in this block
+    while (blockSize > 0) {
+      u_int16_t payloadRemaining = maxPayloadSize - payloadSize;
+
+      if (blockSize < payloadRemaining) {
+	// the entire block fits in this packet
+	if (MP4AddRtpSampleData(mp4File, hintTrackId,
+				sampleId - i, 
+				blockOffset, blockSize) == false) {
+	  MP4DeleteTrack(mp4File, hintTrackId);
+	  delete [] pDataOffsets;
+	  delete [] pDataSizes;
+	  return false;
 	}
 
-	// add the per ADU fragment payload header
-	payloadHeader[0] = 0x40 | ((aduSize >> 8) & 0x3F);
-	payloadHeader[1] = aduSize & 0xFF;
+	payloadSize += blockSize;
+	blockSize = 0;
 
-	MP4AddRtpImmediateData(mp4File, hintTrackId,
-		(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
-
-	payloadHeader[0] |= 0x80;	// mark future packets as continuations
-
-	// add the mp3 frame header and side info
-	AddFrameHeader(mp4File, mediaTrackId, hintTrackId, sampleId);
-
-	// collect the info on the adu main data fragments
-	u_int8_t numDataBlocks;
-	u_int32_t* pDataOffsets;
-	u_int32_t* pDataSizes;
-
-	CollectAduDataBlocks(mp4File, mediaTrackId, hintTrackId, sampleId,
-		&numDataBlocks, &pDataOffsets, &pDataSizes);
-
-	u_int16_t dataSize = 0;
-	u_int16_t aduDataSize = 
-		GetAduDataSize(mp4File, mediaTrackId, sampleId);
-
-	// for each data block
-	for (int8_t i = numDataBlocks - 1; i >= 0 && dataSize < aduDataSize; i--) {
-		u_int32_t blockSize = pDataSizes[i];
-		u_int32_t blockOffset = pDataOffsets[i];
-
-		// we may not need all of a block
-		if ((u_int32_t)(aduDataSize - dataSize) < blockSize) {
-			blockSize = (u_int32_t)(aduDataSize - dataSize);
-		}
-
-		dataSize += blockSize;
-
-		// while data left in this block
-		while (blockSize > 0) {
-			u_int16_t payloadRemaining = maxPayloadSize - payloadSize;
-
-			if (blockSize < payloadRemaining) {
-				// the entire block fits in this packet
-				MP4AddRtpSampleData(mp4File, hintTrackId,
-					sampleId - i, blockOffset, blockSize);
-
-				payloadSize += blockSize;
-				blockSize = 0;
-
-			} else {
-				// the block fills this packet
-				MP4AddRtpSampleData(mp4File, hintTrackId,
-					sampleId - i, blockOffset, payloadRemaining);
-
-				blockOffset += payloadRemaining;
-				blockSize -= payloadRemaining;
-
-				// start a new RTP packet
-				MP4AddRtpPacket(mp4File, hintTrackId, false);
-
-				// add the fragment payload header
-				MP4AddRtpImmediateData(mp4File, hintTrackId,
-					(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
-
-				payloadSize = sizeof(payloadHeader);
-			}
-		}
+      } else {
+	// the block fills this packet
+	if (MP4AddRtpSampleData(mp4File, hintTrackId,
+				sampleId - i, blockOffset, 
+				payloadRemaining) == false ||
+	    // start a new RTP packet
+	    MP4AddRtpPacket(mp4File, hintTrackId, false) == false ||
+	    // add the fragment payload header
+	    MP4AddRtpImmediateData(mp4File, hintTrackId,
+				   (u_int8_t*)&payloadHeader, 
+				   sizeof(payloadHeader)) == false) {
+	  MP4DeleteTrack(mp4File, hintTrackId);
+	  delete [] pDataOffsets;
+	  delete [] pDataSizes;
+	  return false;
 	}
+	    
+	blockOffset += payloadRemaining;
+	blockSize -= payloadRemaining;
 
-	// write the hint
-	MP4WriteRtpHint(mp4File, hintTrackId, sampleDuration);
+	payloadSize = sizeof(payloadHeader);
+      }
+    }
+  }
 
-	// cleanup
-	delete [] pDataOffsets;
-	delete [] pDataSizes;
+  // write the hint
+  bool end = MP4WriteRtpHint(mp4File, hintTrackId, sampleDuration);
 
-	return true;
+  // cleanup
+  delete [] pDataOffsets;
+  delete [] pDataSizes;
+
+  return end;
 }
 
 extern "C" bool MP4AV_Rfc3119Hinter(
@@ -448,8 +490,12 @@ extern "C" bool MP4AV_Rfc3119Hinter(
 
 	u_int8_t payloadNumber = MP4_SET_DYNAMIC_PAYLOAD;
 
-	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
-		"mpa-robust", &payloadNumber, 0);
+	if (MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
+				      "mpa-robust", 
+				      &payloadNumber, 0) == false) {
+	  MP4DeleteTrack(mp4File, hintTrackId);
+	  return false;
+	}
 
 	// load mp3 frame information into memory
 	rc = GetFrameInfo(
@@ -459,7 +505,7 @@ extern "C" bool MP4AV_Rfc3119Hinter(
 		&pAduOffsets);
 
 	if (!rc) {
-		MP4DeleteTrack(mp4File, hintTrackId);
+	  MP4DeleteTrack(mp4File, hintTrackId);
 		return false;
 	}
  
@@ -517,7 +563,7 @@ extern "C" bool MP4AV_Rfc3119Hinter(
 	pAduOffsets = NULL;
 
 	if (!rc) {
-		MP4DeleteTrack(mp4File, hintTrackId);
+	  MP4DeleteTrack(mp4File, hintTrackId);
 		return false;
 	}
 

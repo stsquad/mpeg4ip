@@ -66,6 +66,7 @@ bool MP4AV_AudioConsecutiveHinter(
 					maxPayloadSize);
 
 				if (!rc) {
+				  delete [] pSampleIds;
 					return false;
 				}
 			}
@@ -91,7 +92,8 @@ bool MP4AV_AudioConsecutiveHinter(
 				sampleId, sampleSize, sampleDuration, maxPayloadSize);
 
 			if (!rc) {
-				return false;
+			  delete [] pSampleIds;
+			  return false;
 			}
 
 			// start a new hint 
@@ -107,6 +109,7 @@ bool MP4AV_AudioConsecutiveHinter(
 				maxPayloadSize);
 	  
 	  if (!rc) {
+	    delete [] pSampleIds;
 	    return false;
 	  }
 	}

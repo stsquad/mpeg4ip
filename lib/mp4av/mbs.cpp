@@ -27,6 +27,7 @@ void CMemoryBitstream::AllocBytes(u_int32_t numBytes)
 	if (!m_pBuf) {
 		throw ENOMEM;
 	}
+	m_alloced = true;
 	m_bitPos = 0;
 	m_numBits = numBytes << 3;
 }

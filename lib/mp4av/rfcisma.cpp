@@ -35,85 +35,87 @@ bool MP4AV_RfcIsmaConcatenator(
 	MP4Duration hintDuration,
 	u_int16_t maxPayloadSize)
 {
-	// handle degenerate case
-	if (samplesThisHint == 0) {
-		return true;
-	}
+  // handle degenerate case
+  if (samplesThisHint == 0) {
+    return true;
+  }
 
-	u_int8_t auPayloadHdrSize;
+  u_int8_t auPayloadHdrSize;
 
-	// LATER would be more efficient if this were a parameter
-	u_int8_t mpeg4AudioType =
-		MP4GetTrackAudioMpeg4Type(mp4File, mediaTrackId);
+  // LATER would be more efficient if this were a parameter
+  u_int8_t mpeg4AudioType =
+    MP4GetTrackAudioMpeg4Type(mp4File, mediaTrackId);
 
-	if (mpeg4AudioType == MP4_MPEG4_CELP_AUDIO_TYPE) {
-		auPayloadHdrSize = 1;
-	} else {
-		auPayloadHdrSize = 2;
-	}
+  if (mpeg4AudioType == MP4_MPEG4_CELP_AUDIO_TYPE) {
+    auPayloadHdrSize = 1;
+  } else {
+    auPayloadHdrSize = 2;
+  }
 
-	// construct the new hint
-	MP4AddRtpHint(mp4File, hintTrackId);
-	MP4AddRtpPacket(mp4File, hintTrackId, true);
+  // construct the new hint
+  if (MP4AddRtpHint(mp4File, hintTrackId) == false ||
+      MP4AddRtpPacket(mp4File, hintTrackId, true) == false) return false;
 
-	u_int8_t payloadHeader[2];
+  u_int8_t payloadHeader[2];
 
-	u_int16_t numHdrBits = samplesThisHint * auPayloadHdrSize * 8;
-	payloadHeader[0] = numHdrBits >> 8;
-	payloadHeader[1] = numHdrBits & 0xFF;
+  u_int16_t numHdrBits = samplesThisHint * auPayloadHdrSize * 8;
+  payloadHeader[0] = numHdrBits >> 8;
+  payloadHeader[1] = numHdrBits & 0xFF;
 
-	MP4AddRtpImmediateData(mp4File, hintTrackId,
-		(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
+  if (MP4AddRtpImmediateData(mp4File, hintTrackId,
+			     (u_int8_t*)&payloadHeader, 
+			     sizeof(payloadHeader)) == false) return false;
 
-	u_int8_t i;
+  u_int8_t i;
 
-	// first the headers
-	for (i = 0; i < samplesThisHint; i++) {
-		MP4SampleId sampleId = pSampleIds[i];
+  // first the headers
+  for (i = 0; i < samplesThisHint; i++) {
+    MP4SampleId sampleId = pSampleIds[i];
 
-		u_int32_t sampleSize = 
-			MP4GetSampleSize(mp4File, mediaTrackId, sampleId);
+    u_int32_t sampleSize = 
+      MP4GetSampleSize(mp4File, mediaTrackId, sampleId);
 
-		if (auPayloadHdrSize == 1) {
-			// AU payload header is 6 bits of size
-			// follow by 2 bits of the difference between sampleId's - 1
-			payloadHeader[0] = sampleSize << 2;
+    if (auPayloadHdrSize == 1) {
+      // AU payload header is 6 bits of size
+      // follow by 2 bits of the difference between sampleId's - 1
+      payloadHeader[0] = sampleSize << 2;
 
-		} else { // auPayloadHdrSize == 2
-			// AU payload header is 13 bits of size
-			// follow by 3 bits of the difference between sampleId's - 1
-			payloadHeader[0] = sampleSize >> 5;
-			payloadHeader[1] = (sampleSize & 0x1F) << 3;
-		}
+    } else { // auPayloadHdrSize == 2
+      // AU payload header is 13 bits of size
+      // follow by 3 bits of the difference between sampleId's - 1
+      payloadHeader[0] = sampleSize >> 5;
+      payloadHeader[1] = (sampleSize & 0x1F) << 3;
+    }
 
-		if (i > 0) {
-			payloadHeader[auPayloadHdrSize - 1] 
-				|= ((sampleId - pSampleIds[i-1]) - 1); 
-		}
+    if (i > 0) {
+      payloadHeader[auPayloadHdrSize - 1] 
+	|= ((sampleId - pSampleIds[i-1]) - 1); 
+    }
 #if 0
-		printf("sample %u size %u %02x %02x prev sample %d\n", 
-		       sampleId, sampleSize, payloadHeader[0],
-		       payloadHeader[1], pSampleIds[i-1]);
+    printf("sample %u size %u %02x %02x prev sample %d\n", 
+	   sampleId, sampleSize, payloadHeader[0],
+	   payloadHeader[1], pSampleIds[i-1]);
 #endif
 
-		MP4AddRtpImmediateData(mp4File, hintTrackId,
-			(u_int8_t*)&payloadHeader, auPayloadHdrSize);
-	}
+    if (MP4AddRtpImmediateData(mp4File, hintTrackId,
+			       (u_int8_t*)&payloadHeader, 
+			       auPayloadHdrSize) == false) 
+      return false;
+  }
 
-	// then the samples
-	for (i = 0; i < samplesThisHint; i++) {
-		MP4SampleId sampleId = pSampleIds[i];
+  // then the samples
+  for (i = 0; i < samplesThisHint; i++) {
+    MP4SampleId sampleId = pSampleIds[i];
 
-		u_int32_t sampleSize = 
-			MP4GetSampleSize(mp4File, mediaTrackId, sampleId);
+    u_int32_t sampleSize = 
+      MP4GetSampleSize(mp4File, mediaTrackId, sampleId);
 
-		MP4AddRtpSampleData(mp4File, hintTrackId, sampleId, 0, sampleSize);
-	}
+    if (MP4AddRtpSampleData(mp4File, hintTrackId, 
+			    sampleId, 0, sampleSize) == false) return false;
+  }
 
-	// write the hint
-	MP4WriteRtpHint(mp4File, hintTrackId, hintDuration);
-
-	return true;
+  // write the hint
+  return MP4WriteRtpHint(mp4File, hintTrackId, hintDuration);
 }
 
 bool MP4AV_RfcIsmaFragmenter(
@@ -125,44 +127,46 @@ bool MP4AV_RfcIsmaFragmenter(
 	MP4Duration sampleDuration,
 	u_int16_t maxPayloadSize)
 {
-	MP4AddRtpHint(mp4File, hintTrackId);
+  if (MP4AddRtpHint(mp4File, hintTrackId) == false ||
+      MP4AddRtpPacket(mp4File, hintTrackId, false) == false) 
+    return false;
 
-	MP4AddRtpPacket(mp4File, hintTrackId, false);
+  // Note: CELP is never fragmented
+  // so we assume the two byte AAC-hbr payload header
+  u_int8_t payloadHeader[4];
+  payloadHeader[0] = 0;
+  payloadHeader[1] = 16;
+  payloadHeader[2] = sampleSize >> 5;
+  payloadHeader[3] = (sampleSize & 0x1F) << 3;
 
-	// Note: CELP is never fragmented
-	// so we assume the two byte AAC-hbr payload header
-	u_int8_t payloadHeader[4];
-	payloadHeader[0] = 0;
-	payloadHeader[1] = 16;
-	payloadHeader[2] = sampleSize >> 5;
-	payloadHeader[3] = (sampleSize & 0x1F) << 3;
+  if (MP4AddRtpImmediateData(mp4File, hintTrackId,
+			     (u_int8_t*)&payloadHeader, 
+			     sizeof(payloadHeader)) == false) 
+    return false;
 
-	MP4AddRtpImmediateData(mp4File, hintTrackId,
-		(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
+  u_int16_t sampleOffset = 0;
+  u_int16_t fragLength = maxPayloadSize - 4;
 
-	u_int16_t sampleOffset = 0;
-	u_int16_t fragLength = maxPayloadSize - 4;
+  do {
+    if (MP4AddRtpSampleData(mp4File, hintTrackId,
+			    sampleId, 
+			    sampleOffset, 
+			    fragLength) == false) return false;
 
-	do {
-		MP4AddRtpSampleData(mp4File, hintTrackId,
-			sampleId, sampleOffset, fragLength);
+    sampleOffset += fragLength;
 
-		sampleOffset += fragLength;
+    if (sampleSize - sampleOffset > maxPayloadSize) {
+      fragLength = maxPayloadSize; 
+      if (MP4AddRtpPacket(mp4File, hintTrackId, false) == false) return false;
+    } else {
+      fragLength = sampleSize - sampleOffset; 
+      if (fragLength) {
+	if (MP4AddRtpPacket(mp4File, hintTrackId, true) == false) return false;
+      }
+    }
+  } while (sampleOffset < sampleSize);
 
-		if (sampleSize - sampleOffset > maxPayloadSize) {
-			fragLength = maxPayloadSize; 
-			MP4AddRtpPacket(mp4File, hintTrackId, false);
-		} else {
-			fragLength = sampleSize - sampleOffset; 
-			if (fragLength) {
-				MP4AddRtpPacket(mp4File, hintTrackId, true);
-			}
-		}
-	} while (sampleOffset < sampleSize);
-
-	MP4WriteRtpHint(mp4File, hintTrackId, sampleDuration);
-
-	return true;
+  return MP4WriteRtpHint(mp4File, hintTrackId, sampleDuration);
 }
 
 extern "C" bool MP4AV_RfcIsmaHinter(
@@ -218,7 +222,9 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 	u_int32_t configSize;
 	uint8_t channels;
 
-	MP4GetTrackESConfiguration(mp4File, mediaTrackId, &pConfig, &configSize);
+	if (MP4GetTrackESConfiguration(mp4File, mediaTrackId, 
+				       &pConfig, &configSize) == false)
+	  return false;
 
 	if (!pConfig) {
 		return false;
@@ -237,8 +243,9 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 	}
 
 	/* create the appropriate SDP attribute */
+	uint sdpBufLen = strlen(sConfig) + 256;
 	char* sdpBuf = 
-		(char*)malloc(strlen(sConfig) + 256);
+	  (char*)malloc(sdpBufLen);
 
 	if (!sdpBuf) {
 		free(sConfig);
@@ -261,14 +268,19 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 	if (channels != 1) {
 	  snprintf(buffer, sizeof(buffer), "%u", channels);
 	}
-	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
-				  "mpeg4-generic", &payloadNumber, 0,
-				  channels != 1 ? buffer : NULL);
+	if (MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
+				      "mpeg4-generic", &payloadNumber, 0,
+				      channels != 1 ? buffer : NULL) == false) {
+	  MP4DeleteTrack(mp4File, hintTrackId);
+	  free(sConfig);
+	  free(sdpBuf);
+	  return false;
+	}
 
 	MP4Duration maxLatency;
 	bool OneByteHeader = false;
 	if (mpeg4AudioType == MP4_MPEG4_CELP_AUDIO_TYPE) {
-		sprintf(sdpBuf,
+	  snprintf(sdpBuf, sdpBufLen,
 			"a=fmtp:%u "
 			"streamtype=5; profile-level-id=15; mode=CELP-vbr; config=%s; "
 			"SizeLength=6; IndexLength=2; IndexDeltaLength=2; Profile=0;"
@@ -280,7 +292,7 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 		maxLatency = timeScale / 5;
 		OneByteHeader = true;
 	} else { // AAC
-		sprintf(sdpBuf,
+	  snprintf(sdpBuf, sdpBufLen,
 			"a=fmtp:%u "
 			"streamtype=5; profile-level-id=15; mode=AAC-hbr; config=%s; "
 			"SizeLength=13; IndexLength=3; IndexDeltaLength=3;"
@@ -293,10 +305,14 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 	}
 
 	/* add this to the track's sdp */
-	MP4AppendHintTrackSdp(mp4File, hintTrackId, sdpBuf);
+	bool val = MP4AppendHintTrackSdp(mp4File, hintTrackId, sdpBuf);
 
 	free(sConfig);
 	free(sdpBuf);
+	if (val == false) {
+	  MP4DeleteTrack(mp4File, hintTrackId);
+	  return false;
+	}
 
 	u_int32_t samplesPerPacket = 0;
  

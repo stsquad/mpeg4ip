@@ -311,7 +311,7 @@ void sdp_free_string_list (string_list_t **list);
 void sdp_time_offset_to_str(uint32_t val, char *buff, uint32_t buflen);
 format_list_t *sdp_find_format_in_line(format_list_t *head, const char *lptr);
 format_list_t *sdp_find_rtpmap_name(format_list_t *head, const char *name);
-void sdp_smpte_to_str(double value, uint16_t fps, char *buffer);
+void sdp_smpte_to_str(double value, uint16_t fps, char *buffer, uint buflen);
 
 media_desc_t *sdp_find_media_type(session_desc_t *sptr, const char *name);
 const char *find_unparsed_a_value(string_list_t *lptr, const char *value);

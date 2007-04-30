@@ -146,6 +146,8 @@ extern "C" bool MP4AV_AacGetConfiguration_SBR(
   /* create the appropriate decoder config */
 
   u_int8_t* pConfig = (u_int8_t*)malloc(5);
+  if (pConfig == NULL) return false;
+
   pConfig[0] = 0;
   pConfig[1] = 0;
   pConfig[2] = 0;

@@ -12,11 +12,11 @@ libsdp_la_SOURCES = \
 
 EXTRA_DIST = libsdp60.dsp 
 
-INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/lib/utils
+INCLUDES = -I$(top_srcdir)/include 
 
 AM_CFLAGS = -D_REENTRANT @BILLS_CWARNINGS@
 
 check_PROGRAMS = test_sdp
 test_sdp_SOURCES = test.c
-test_sdp_LDADD = libsdp.la $(top_srcdir)/lib/utils/libutils.la
+test_sdp_LDADD = libsdp.la 
 

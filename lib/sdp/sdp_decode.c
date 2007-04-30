@@ -206,13 +206,14 @@ static int get_next_line (char **polptr,
     while (*cptr != '\0' && *cptr != '\n' && *cptr != '\r') cptr++;
 
     len = cptr - decode->memptr;
-    if (*buflen <= len + 1) {
+    if (*polptr == NULL || *buflen <= len + 1) {
       if (len > 65535) {
 	sdp_debug(LOG_CRIT, "Max line length of 65535 exceeded %u", 
 		  len);
 	return (FALSE);
       }
       *polptr = realloc(*polptr, len + 1);
+      if (*polptr == NULL) return FALSE;
       *buflen = len + 1;
     }
     memcpy(*polptr, decode->memptr, len);
@@ -227,6 +228,7 @@ static int get_next_line (char **polptr,
       return FALSE;
     if (*buflen == 0) {
       *polptr = (char *)malloc(1024);
+      if (*polptr == NULL) return FALSE;
       *buflen = 1024;
     }
 
@@ -247,6 +249,8 @@ static int get_next_line (char **polptr,
       }
 
       len = strlen(ptr);
+      if (len == 0) return FALSE;
+
       if (ptr[len - 1] == '\n' || ptr[len - 1] == '\r') {
 	// we have an end of line
 	len--;
@@ -268,6 +272,7 @@ static int get_next_line (char **polptr,
       *buflen += 1024;
       buflen_left += 1024;
       *polptr = realloc(*polptr, *buflen);
+      if (*polptr == NULL) return FALSE;
       ptr = *polptr + *buflen - buflen_left;
     }
   }
@@ -455,6 +460,10 @@ static int sdp_decode_parse_a_fmtp (int arg,
     return (-1);
   }
 
+  if (fptr->fmt_param != NULL) {
+    sdp_debug(LOG_ALERT, "Duplicate fmpt line %s", lptr);
+    return -1;
+  }
   len = strlen(fptr->fmt);
   lptr += len;
   lptr++;
@@ -493,6 +502,11 @@ static int sdp_decode_parse_a_rtpmap (int arg,
     return (-1);
   }
 
+  if (fptr->rtpmap_name != NULL) {
+    sdp_debug(LOG_ALERT, "rtpmap already loaded in fmt %s", fptr->fmt);
+    return -1;
+  }
+
   len = strlen(fptr->fmt);
   /*
    * Matches entry left in fptr.  Decode rest of line
@@ -527,7 +541,9 @@ static int sdp_decode_parse_a_rtpmap (int arg,
 	ADV_SPACE(slash);
       }
       if (isdigit(*slash)) {
-	sscanf(slash, "%u", &b);
+	if (sscanf(slash, "%u", &b) != 1) {
+	  return -1;
+	}
       }
     }
   } else {
@@ -610,6 +626,9 @@ static int sdp_decode_parse_a_rtcp (int arg,
 
   if (mptr == NULL)
     return (-1);
+
+  if (mptr->rtcp_connect.used) return -1;
+
   port = 0;
   if (!isdigit(*lptr)) {
     sdp_debug(LOG_ERR, "Illegal port number in a=rtcp: %s", lptr);
@@ -668,7 +687,8 @@ static int sdp_decode_parse_a_rtcp (int arg,
   if (!isdigit(*sep)) {
     return 0;
   }
-  sscanf(sep, "%u", &cptr->ttl);
+  if (sscanf(sep, "%u", &cptr->ttl) != 1) return -1;
+
   // And see if we have a number of ports
   if (lptr != NULL) {
     // we have a number of ports, as well
@@ -676,7 +696,7 @@ static int sdp_decode_parse_a_rtcp (int arg,
     if (!isdigit(*lptr)) {
       return 0;
     }
-    sscanf(lptr, "%u", &cptr->num_addr);
+    if (sscanf(lptr, "%u", &cptr->num_addr) != 1) return -1;
   }
 
   return 0;
@@ -1263,6 +1283,7 @@ static int sdp_decode_parse_connect (char *lptr, connect_desc_t *cptr)
 {
   char *sep, *beg;
 
+  if (cptr->used != FALSE) return ESDP_CONNECT;
   cptr->ttl = 0;
   cptr->num_addr = 0;
 
@@ -1313,7 +1334,7 @@ static int sdp_decode_parse_connect (char *lptr, connect_desc_t *cptr)
     sdp_debug(LOG_ERR, "No multicast TTL in c=");
     return (ESDP_CONNECT);
   }
-  sscanf(sep, "%u", &cptr->ttl);
+  if (sscanf(sep, "%u", &cptr->ttl) != 1) return -1;
   // And see if we have a number of ports
   if (lptr != NULL) {
     // we have a number of ports, as well
@@ -1323,7 +1344,7 @@ static int sdp_decode_parse_connect (char *lptr, connect_desc_t *cptr)
       free_connect_desc(cptr);
       return (ESDP_CONNECT);
     }
-    sscanf(lptr, "%u", &cptr->num_addr);
+    if (sscanf(lptr, "%u", &cptr->num_addr) != 1) return -1;
   }
   cptr->used = TRUE;
   return (0);
@@ -1360,7 +1381,8 @@ static int sdp_decode_parse_key (char *lptr, key_desc_t *kptr)
   lptr++;
   // Because most of the types can have spaces, we take everything after
   // the colon here.  To eliminate the whitespace, use ADV_SPACE(lptr);
-  kptr->key = strdup(lptr);
+  if (kptr->key == NULL)
+    kptr->key = strdup(lptr);
   return (0);
 }
 
@@ -1423,7 +1445,10 @@ static media_desc_t *sdp_decode_parse_media (char *lptr,
       *err = ESDP_MEDIA;
       return (NULL);
     }
-    sscanf(sep, "%u", &port_no);
+    if (sscanf(sep, "%u", &port_no) != 1) {
+      *err = ESDP_MEDIA;
+      return NULL;
+    }
     ADV_SPACE(lptr);
   } else {
     port_no = 0;
@@ -1498,7 +1523,10 @@ static int sdp_decode_parse_origin (char *lptr, session_desc_t *sptr)
 {
   char *username, *sep;
 
+  if (sptr->create_addr_type != NULL) return ESDP_ORIGIN;
+
   // Username - leave null if "-"
+
   username = strsep(&lptr, SPACES);
   if (username == NULL || lptr == NULL) {
     sdp_debug(LOG_ERR, "o=: no username");
@@ -1663,7 +1691,7 @@ static int sdp_decode_parse_time_adj (char *lptr,
       continue;
     }
     // process <adjustment time> - adjust it from NTP to unix time
-    sscanf(sep, "%ld", &adj_time);
+    if (sscanf(sep, "%ld", &adj_time) != 1) return -1;
 
     // Check for negative sign for offset.
     ADV_SPACE(lptr);
@@ -1921,26 +1949,30 @@ int sdp_decode (sdp_decode_info_t *decode,
 	errret = sdp_decode_parse_origin(lptr, sptr);
 	break;
       case 's':
-	sptr->session_name = strdup(lptr);
+	if (sptr->session_name == NULL)
+	  sptr->session_name = strdup(lptr);
 	if (sptr->session_name == NULL) {
 	  errret = ENOMEM;
 	}
 	break;
       case 'i':
 	if (current_media != NULL) {
-	  current_media->media_desc = strdup(lptr);
+	  if (current_media->media_desc == NULL)
+	    current_media->media_desc = strdup(lptr);
 	  if (current_media->media_desc == NULL) {
 	    errret = ENOMEM;
 	  }
 	} else {
-	  sptr->session_desc = strdup(lptr);
+	  if (sptr->session_desc == NULL) 
+	    sptr->session_desc = strdup(lptr);
 	  if (sptr->session_desc == NULL) {
 	    errret = ENOMEM;
 	  }
 	}
 	break;
       case 'u':
-	sptr->uri = strdup(lptr);
+	if (sptr->uri == NULL)
+	  sptr->uri = strdup(lptr);
 	if (sptr->uri == NULL) {
 	  errret = ENOMEM;
 	}

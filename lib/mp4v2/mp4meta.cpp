@@ -57,17 +57,17 @@
 #include "mp4common.h"
 
 bool MP4File::GetMetadataByIndex(u_int32_t index,
-                                 const char** ppName,
+                                 char** ppName,
                                  u_int8_t** ppValue, u_int32_t* pValueSize)
 {
     char s[256];
 
-    sprintf(s, "moov.udta.meta.ilst.*[%u].data.metadata", index);
+    snprintf(s, 256, "moov.udta.meta.ilst.*[%u].data.metadata", index);
     GetBytesProperty(s, ppValue, pValueSize);
 
-    sprintf(s, "moov.udta.meta.ilst.*[%u]", index);
+    snprintf(s, 256, "moov.udta.meta.ilst.*[%u]", index);
     MP4Atom* pParent = m_pRootAtom->FindAtom(s);
-    *ppName = pParent->GetType();
+    if (pParent == NULL) return false;
 
     /* check for free form tagfield */
     if (memcmp(*ppName, "----", 4) == 0)
@@ -76,14 +76,18 @@ bool MP4File::GetMetadataByIndex(u_int32_t index,
         u_int32_t VSize = 0;
         char *pN;
 
-        sprintf(s, "moov.udta.meta.ilst.*[%u].name.metadata", index);
+        snprintf(s, 256, "moov.udta.meta.ilst.*[%u].name.metadata", index);
         GetBytesProperty(s, &pV, &VSize);
 
         pN = (char*)malloc((VSize+1)*sizeof(char));
-        memset(pN, 0, (VSize+1)*sizeof(char));
-        memcpy(pN, pV, VSize*sizeof(char));
-
+	if (pN != NULL) {
+	  memset(pN, 0, (VSize+1)*sizeof(char));
+	  memcpy(pN, pV, VSize*sizeof(char));
+	}
+	free(pV);
         *ppName = pN;
+    } else {
+      *ppName = strdup(pParent->GetType());
     }
 
     return true;
@@ -94,9 +98,9 @@ bool MP4File::CreateMetadataAtom(const char* name)
     char s[256];
     char t[256];
 
-    sprintf(t, "udta.meta.ilst.%s.data", name);
-    sprintf(s, "moov.udta.meta.ilst.%s.data", name);
-    AddDescendantAtoms("moov", t);
+    snprintf(t, 256, "udta.meta.ilst.%s.data", name);
+    snprintf(s, 256, "moov.udta.meta.ilst.%s.data", name);
+    (void)AddDescendantAtoms("moov", t);
     MP4Atom *pMetaAtom = m_pRootAtom->FindAtom(s);
 
     if (!pMetaAtom)
@@ -115,8 +119,8 @@ bool MP4File::CreateMetadataAtom(const char* name)
     MP4BytesProperty *pBytesProperty = NULL;
     ASSERT(pHdlrAtom);
 
-    pHdlrAtom->FindProperty(
-        "hdlr.handlerType", (MP4Property**)&pStringProperty);
+    ASSERT(pHdlrAtom->FindProperty("hdlr.handlerType", 
+				   (MP4Property**)&pStringProperty));
     ASSERT(pStringProperty);
     pStringProperty->SetValue("mdir");
 
@@ -126,8 +130,8 @@ bool MP4File::CreateMetadataAtom(const char* name)
     val[1] = 0x70;
     val[2] = 0x70;
     val[3] = 0x6c;
-    pHdlrAtom->FindProperty(
-        "hdlr.reserved2", (MP4Property**)&pBytesProperty);
+    ASSERT(pHdlrAtom->FindProperty("hdlr.reserved2", 
+				   (MP4Property**)&pBytesProperty));
     ASSERT(pBytesProperty);
     pBytesProperty->SetReadOnly(false);
     pBytesProperty->SetValue(val, 12);
@@ -141,11 +145,11 @@ bool MP4File::DeleteMetadataAtom(const char* name, bool try_udta)
     MP4Atom *pMetaAtom = NULL;
     char s[256];
 
-    sprintf(s, "moov.udta.meta.ilst.%s", name);
+    snprintf(s, 256, "moov.udta.meta.ilst.%s", name);
     pMetaAtom = m_pRootAtom->FindAtom(s);
 
     if (pMetaAtom == NULL && try_udta) {
-      sprintf(s, "moov.udta.%s", name);
+      snprintf(s, 256, "moov.udta.%s", name);
       pMetaAtom = m_pRootAtom->FindAtom(s);
     }
     /* if it exists, delete it */
@@ -168,7 +172,7 @@ bool MP4File::SetMetadataString (const char *atom, const char *value)
   char atomstring[40];
   MP4Atom *pMetaAtom;
   MP4BytesProperty *pMetadataProperty = NULL;
-  sprintf(atomstring, "moov.udta.meta.ilst.%s.data", atom);
+  snprintf(atomstring, 40, "moov.udta.meta.ilst.%s.data", atom);
 
   pMetaAtom = m_pRootAtom->FindAtom(atomstring);
   
@@ -178,9 +182,11 @@ bool MP4File::SetMetadataString (const char *atom, const char *value)
 	return false;
       
       pMetaAtom = m_pRootAtom->FindAtom(atomstring);
+      if (pMetaAtom == NULL) return false;
     }
 
-  pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
+  ASSERT(pMetaAtom->FindProperty("data.metadata", 
+				 (MP4Property**)&pMetadataProperty));
   ASSERT(pMetadataProperty);
   
   pMetadataProperty->SetValue((u_int8_t*)value, strlen(value));
@@ -193,7 +199,7 @@ bool MP4File::GetMetadataString (const char *atom, char **value, bool try_udta)
     unsigned char *val = NULL;
     u_int32_t valSize = 0;
     char atomstring[60];
-    sprintf(atomstring, "moov.udta.meta.ilst.%s.data.metadata", atom);
+    snprintf(atomstring, 60, "moov.udta.meta.ilst.%s.data.metadata", atom);
 
     *value = NULL;
     if (try_udta == false) {
@@ -208,15 +214,17 @@ bool MP4File::GetMetadataString (const char *atom, char **value, bool try_udta)
 	delete e;
       }
       if (got_it == false) {
-	sprintf(atomstring, "moov.udta.%s.metadata", atom);
+	snprintf(atomstring, 60, "moov.udta.%s.metadata", atom);
 	GetBytesProperty(atomstring, (u_int8_t**)&val, &valSize);
       }
     }
     if (valSize > 0)
     {
-        *value = (char*)malloc((valSize+1)*sizeof(unsigned char));
-        memset(*value, 0, (valSize+1)*sizeof(unsigned char));
+        *value = (char*)malloc((valSize+1)*sizeof(char));
+	if (*value == NULL) return false;
         memcpy(*value, val, valSize*sizeof(unsigned char));
+	free(val);
+	*value[valSize] = '\0';
         return true;
     } 
     return false;
@@ -237,6 +245,7 @@ bool MP4File::SetMetadataTrack(u_int16_t track, u_int16_t totalTracks)
             return false;
 
         pMetaAtom = m_pRootAtom->FindAtom(s);
+	if (pMetaAtom == NULL) return false;
     }
 
     memset(t, 0, 9*sizeof(unsigned char));
@@ -245,7 +254,8 @@ bool MP4File::SetMetadataTrack(u_int16_t track, u_int16_t totalTracks)
     t[4] = (unsigned char)(totalTracks>>8)&0xFF;
     t[5] = (unsigned char)(totalTracks)&0xFF;
 
-    pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
+    ASSERT(pMetaAtom->FindProperty("data.metadata", 
+				   (MP4Property**)&pMetadataProperty));
     ASSERT(pMetadataProperty);
 
     pMetadataProperty->SetValue((u_int8_t*)t, 8);
@@ -269,9 +279,10 @@ bool MP4File::GetMetadataTrack(u_int16_t* track, u_int16_t* totalTracks)
       *track += (u_int16_t)(val[2]<<8);
       *totalTracks = (u_int16_t)(val[5]);
       *totalTracks += (u_int16_t)(val[4]<<8);
-      
+      CHECK_AND_FREE(val);
       return true;
     } 
+    CHECK_AND_FREE(val);
     return false;
 }
 
@@ -290,6 +301,7 @@ bool MP4File::SetMetadataDisk(u_int16_t disk, u_int16_t totalDisks)
             return false;
 
         pMetaAtom = m_pRootAtom->FindAtom(s);
+	if (pMetaAtom == NULL) return false;
     }
 
     memset(t, 0, 7*sizeof(unsigned char));
@@ -298,7 +310,8 @@ bool MP4File::SetMetadataDisk(u_int16_t disk, u_int16_t totalDisks)
     t[4] = (unsigned char)(totalDisks>>8)&0xFF;
     t[5] = (unsigned char)(totalDisks)&0xFF;
 
-    pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
+    ASSERT(pMetaAtom->FindProperty("data.metadata", 
+				   (MP4Property**)&pMetadataProperty));
     ASSERT(pMetadataProperty);
 
     pMetadataProperty->SetValue((u_int8_t*)t, 6);
@@ -322,8 +335,10 @@ bool MP4File::GetMetadataDisk(u_int16_t* disk, u_int16_t* totalDisks)
       *disk += (u_int16_t)(val[2]<<8);
       *totalDisks = (u_int16_t)(val[5]);
       *totalDisks += (u_int16_t)(val[4]<<8);
+      free(val);
       return true;
     }
+    CHECK_AND_FREE(val);
     return true;
 }
 
@@ -356,20 +371,21 @@ static const char* ID3v1GenreList[] = {
     "SynthPop",
 };
 
-int GenreToString(char** GenreStr, const int genre)
+void GenreToString(char** GenreStr, const int genre)
 {
   if (genre > 0 && 
       genre <= (int)(sizeof(ID3v1GenreList)/sizeof(*ID3v1GenreList)))
     {
-        *GenreStr = (char*)malloc((strlen(ID3v1GenreList[genre-1])+1)*sizeof(char));
-        memset(*GenreStr, 0, (strlen(ID3v1GenreList[genre-1])+1)*sizeof(char));
-        strcpy(*GenreStr, ID3v1GenreList[genre-1]);
-        return 0;
-    } else {
-        *GenreStr = (char*)malloc(2*sizeof(char));
-        memset(*GenreStr, 0, 2*sizeof(char));
-        return 1;
-    }
+      uint len = strlen(ID3v1GenreList[genre-1])+1;
+        *GenreStr = (char*)malloc(len);
+	if (*GenreStr == NULL) return;
+        strncpy(*GenreStr, ID3v1GenreList[genre-1], len - 1);
+        return;
+    } 
+  *GenreStr = (char*)malloc(2*sizeof(char));
+  if (*GenreStr == NULL) return;
+  memset(*GenreStr, 0, 2*sizeof(char));
+  return;
 }
 
 int StringToGenre(const char* GenreStr)
@@ -406,13 +422,15 @@ bool MP4File::SetMetadataGenre(const char* value)
                 return false;
 
             pMetaAtom = m_pRootAtom->FindAtom(s);
+	    if (pMetaAtom == NULL) return false;
         }
 
         memset(t, 0, 3*sizeof(unsigned char));
         t[0] = (unsigned char)(genreIndex>>8)&0xFF;
         t[1] = (unsigned char)(genreIndex)&0xFF;
 
-        pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
+        ASSERT(pMetaAtom->FindProperty("data.metadata", 
+				       (MP4Property**)&pMetadataProperty));
         ASSERT(pMetadataProperty);
 
         pMetadataProperty->SetValue((u_int8_t*)t, 2);
@@ -421,8 +439,10 @@ bool MP4File::SetMetadataGenre(const char* value)
 	pMetaAtom = m_pRootAtom->FindAtom(s2root);
 	if (pMetaAtom != NULL) {
 	  MP4Atom *pParent = pMetaAtom->GetParentAtom();
-	  pParent->DeleteChildAtom(pMetaAtom);
-	  delete pMetaAtom;
+	  if (pParent != NULL) {
+	    pParent->DeleteChildAtom(pMetaAtom);
+	    delete pMetaAtom;
+	  }
 	}
 	  
 
@@ -440,7 +460,8 @@ bool MP4File::SetMetadataGenre(const char* value)
             pMetaAtom = m_pRootAtom->FindAtom(s2);
         }
 
-        pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
+        ASSERT(pMetaAtom->FindProperty("data.metadata", 
+				       (MP4Property**)&pMetadataProperty));
         ASSERT(pMetadataProperty);
 
         pMetadataProperty->SetValue((u_int8_t*)value, strlen(value));
@@ -474,8 +495,10 @@ bool MP4File::GetMetadataGenre(char** value)
     {
         GetBytesProperty(s, (u_int8_t**)&val, &valSize);
 
-        if (valSize != 2)
-            return false;
+        if (valSize != 2) {
+	  CHECK_AND_FREE(val);
+	  return false;
+	}
 
         genreIndex = (u_int16_t)(val[1]);
         genreIndex += (u_int16_t)(val[0]<<8);
@@ -483,7 +506,7 @@ bool MP4File::GetMetadataGenre(char** value)
         GenreToString(value, genreIndex);
 
         (void)DeleteMetadataAtom( "gnre" );
-
+	free(val);
         return true;
     } else {
         const char *s2 = "moov.udta.meta.ilst.\251gen.data.metadata";
@@ -496,11 +519,14 @@ bool MP4File::GetMetadataGenre(char** value)
         if (valSize > 0)
         {
             *value = (char*)malloc((valSize+1)*sizeof(unsigned char));
-            memset(*value, 0, (valSize+1)*sizeof(unsigned char));
-            memcpy(*value, val, valSize*sizeof(unsigned char));
+	    if (*value != NULL) {
+	      memset(*value, 0, (valSize+1)*sizeof(unsigned char));
+	      memcpy(*value, val, valSize*sizeof(unsigned char));
+	    }
+	    free(val);
             return true;
         } else {
-            return false;
+	  CHECK_AND_FREE(val);
         }
     }
 
@@ -529,13 +555,15 @@ bool MP4File::SetMetadataTempo(u_int16_t tempo)
             return false;
 
         pMetaAtom = m_pRootAtom->FindAtom(s);
+	if (pMetaAtom == NULL) return false;
     }
 
     memset(t, 0, 3*sizeof(unsigned char));
     t[0] = (unsigned char)(tempo>>8)&0xFF;
     t[1] = (unsigned char)(tempo)&0xFF;
 
-    pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
+    ASSERT(pMetaAtom->FindProperty("data.metadata", 
+				   (MP4Property**)&pMetadataProperty));
     ASSERT(pMetadataProperty);
 
     pMetadataProperty->SetValue((u_int8_t*)t, 2);
@@ -553,12 +581,14 @@ bool MP4File::GetMetadataTempo(u_int16_t* tempo)
 
     GetBytesProperty(s, (u_int8_t**)&val, &valSize);
 
-    if (valSize != 2)
+    if (valSize != 2) {
+      CHECK_AND_FREE(val);
         return false;
+    }
 
     *tempo = (u_int16_t)(val[1]);
     *tempo += (u_int16_t)(val[0]<<8);
-
+    free(val);
     return true;
 }
 bool MP4File::SetMetadataUint8 (const char *atom, uint8_t value)
@@ -576,9 +606,11 @@ bool MP4File::SetMetadataUint8 (const char *atom, uint8_t value)
       return false;
 
     pMetaAtom = m_pRootAtom->FindAtom(atompath);
+    if (pMetaAtom == NULL) return false;
   }
 
-  pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
+  ASSERT(pMetaAtom->FindProperty("data.metadata", 
+				 (MP4Property**)&pMetadataProperty));
   ASSERT(pMetadataProperty);
   
   pMetadataProperty->SetValue(&value, 1);
@@ -598,11 +630,13 @@ bool MP4File::GetMetadataUint8(const char *atom, u_int8_t* retvalue)
 
     GetBytesProperty(atompath, (u_int8_t**)&val, &valSize);
 
-    if (valSize != 1)
-        return false;
+    if (valSize != 1) {
+      CHECK_AND_FREE(val);
+      return false;
+    }
 
     *retvalue = val[0];
-
+    free(val);
     return true;
 }
 
@@ -620,9 +654,11 @@ bool MP4File::SetMetadataCoverArt(u_int8_t *coverArt, u_int32_t size)
             return false;
 
         pMetaAtom = m_pRootAtom->FindAtom(s);
+	if (pMetaAtom != NULL) return false;
     }
 
-    pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
+    ASSERT(pMetaAtom->FindProperty("data.metadata", 
+				   (MP4Property**)&pMetadataProperty));
     ASSERT(pMetadataProperty);
 
     pMetadataProperty->SetValue(coverArt, size);
@@ -634,9 +670,11 @@ bool MP4File::GetMetadataCoverArt(u_int8_t **coverArt, u_int32_t *size,
 				  uint32_t index)
 {
   char buffer[256];
+  if (size == NULL || coverArt == NULL) return false;
+
   if (index > 0 && index > GetMetadataCoverArtCount()) return false;
 
-  sprintf(buffer, "moov.udta.meta.ilst.covr.data[%d].metadata", index);
+  snprintf(buffer, 256, "moov.udta.meta.ilst.covr.data[%d].metadata", index);
 
     *coverArt = NULL;
     *size = 0;
@@ -669,16 +707,16 @@ bool MP4File::SetMetadataFreeForm(const char *name, const u_int8_t* pValue, u_in
     {
         MP4BytesProperty *pMetadataProperty;
 
-        sprintf(s, "moov.udta.meta.ilst.----[%u].name", i);
+        snprintf(s, 256, "moov.udta.meta.ilst.----[%u].name", i);
 
         MP4Atom *pTagAtom = m_pRootAtom->FindAtom(s);
 
         if (!pTagAtom)
             break;
 
-        pTagAtom->FindProperty("name.metadata", (MP4Property**)&pMetadataProperty);
-        if (pMetadataProperty)
-        {
+        if (pTagAtom->FindProperty("name.metadata", 
+				   (MP4Property**)&pMetadataProperty) &&
+	    pMetadataProperty) {
             u_int8_t* pV;
             u_int32_t VSize = 0;
 
@@ -688,12 +726,14 @@ bool MP4File::SetMetadataFreeForm(const char *name, const u_int8_t* pValue, u_in
             {
                 if (memcmp(pV, name, VSize) == 0)
                 {
-                    sprintf(s, "moov.udta.meta.ilst.----[%u].data.metadata", i);
+                    snprintf(s, 256, "moov.udta.meta.ilst.----[%u].data.metadata", i);
                     SetBytesProperty(s, pValue, valueSize);
+		    CHECK_AND_FREE(pV);
 
                     return true;
                 }
             }
+	    CHECK_AND_FREE(pV);
         }
 
         i++;
@@ -702,8 +742,8 @@ bool MP4File::SetMetadataFreeForm(const char *name, const u_int8_t* pValue, u_in
     /* doesn't exist yet, create it */
     char t[256];
 
-    sprintf(t, "udta.meta.ilst.----[%u]", i);
-    sprintf(s, "moov.udta.meta.ilst.----[%u].data", i);
+    snprintf(t, 256, "udta.meta.ilst.----[%u]", i);
+    snprintf(s, 256, "moov.udta.meta.ilst.----[%u].data", i);
     AddDescendantAtoms("moov", t);
 
     pMetaAtom = m_pRootAtom->FindAtom(s);
@@ -718,8 +758,8 @@ bool MP4File::SetMetadataFreeForm(const char *name, const u_int8_t* pValue, u_in
     MP4BytesProperty *pBytesProperty = NULL;
     ASSERT(pHdlrAtom);
 
-    pHdlrAtom->FindProperty(
-        "hdlr.handlerType", (MP4Property**)&pStringProperty);
+    ASSERT(pHdlrAtom->FindProperty("hdlr.handlerType", 
+				  (MP4Property**)&pStringProperty));
     ASSERT(pStringProperty);
     pStringProperty->SetValue("mdir");
 
@@ -729,27 +769,31 @@ bool MP4File::SetMetadataFreeForm(const char *name, const u_int8_t* pValue, u_in
     val[1] = 0x70;
     val[2] = 0x70;
     val[3] = 0x6c;
-    pHdlrAtom->FindProperty(
-        "hdlr.reserved2", (MP4Property**)&pBytesProperty);
+    ASSERT(pHdlrAtom->FindProperty("hdlr.reserved2", 
+				   (MP4Property**)&pBytesProperty));
     ASSERT(pBytesProperty);
     pBytesProperty->SetReadOnly(false);
     pBytesProperty->SetValue(val, 12);
     pBytesProperty->SetReadOnly(true);
 
     pMetaAtom = m_pRootAtom->FindAtom(s);
-    pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
+    ASSERT(pMetaAtom);
+    ASSERT(pMetaAtom->FindProperty("data.metadata", 
+				   (MP4Property**)&pMetadataProperty));
     ASSERT(pMetadataProperty);
     pMetadataProperty->SetValue(pValue, valueSize);
 
-    sprintf(s, "moov.udta.meta.ilst.----[%u].name", i);
+    snprintf(s, 256, "moov.udta.meta.ilst.----[%u].name", i);
     pMetaAtom = m_pRootAtom->FindAtom(s);
-    pMetaAtom->FindProperty("name.metadata", (MP4Property**)&pMetadataProperty);
+    ASSERT(pMetaAtom->FindProperty("name.metadata", 
+				   (MP4Property**)&pMetadataProperty));
     ASSERT(pMetadataProperty);
     pMetadataProperty->SetValue((const u_int8_t*)name, strlen(name));
 
-    sprintf(s, "moov.udta.meta.ilst.----[%u].mean", i);
+    snprintf(s, 256, "moov.udta.meta.ilst.----[%u].mean", i);
     pMetaAtom = m_pRootAtom->FindAtom(s);
-    pMetaAtom->FindProperty("mean.metadata", (MP4Property**)&pMetadataProperty);
+    ASSERT(pMetaAtom->FindProperty("mean.metadata", 
+				   (MP4Property**)&pMetadataProperty));
     ASSERT(pMetadataProperty);
     pMetadataProperty->SetValue((u_int8_t*)"com.apple.iTunes", 16); /* ?? */
 
@@ -770,16 +814,16 @@ bool MP4File::GetMetadataFreeForm(const char *name,
     {
         MP4BytesProperty *pMetadataProperty;
 
-        sprintf(s, "moov.udta.meta.ilst.----[%u].name", i);
+        snprintf(s, 256,"moov.udta.meta.ilst.----[%u].name", i);
 
         MP4Atom *pTagAtom = m_pRootAtom->FindAtom(s);
 
         if (!pTagAtom)
             return false;
 
-        pTagAtom->FindProperty("name.metadata", (MP4Property**)&pMetadataProperty);
-        if (pMetadataProperty)
-        {
+        if (pTagAtom->FindProperty("name.metadata", 
+				   (MP4Property**)&pMetadataProperty) &&
+	    pMetadataProperty) {
             u_int8_t* pV;
             u_int32_t VSize = 0;
 
@@ -789,12 +833,14 @@ bool MP4File::GetMetadataFreeForm(const char *name,
             {
                 if (memcmp(pV, name, VSize) == 0)
                 {
-                    sprintf(s, "moov.udta.meta.ilst.----[%u].data.metadata", i);
+                    snprintf(s, 256, "moov.udta.meta.ilst.----[%u].data.metadata", i);
                     GetBytesProperty(s, ppValue, pValueSize);
 
+		    CHECK_AND_FREE(pV);
                     return true;
                 }
             }
+	    CHECK_AND_FREE(pV);
         }
 
         i++;
@@ -810,16 +856,16 @@ bool MP4File::DeleteMetadataFreeForm(const char *name)
     {
         MP4BytesProperty *pMetadataProperty;
 
-        sprintf(s, "moov.udta.meta.ilst.----[%u].name", i);
+        snprintf(s, 256, "moov.udta.meta.ilst.----[%u].name", i);
 
         MP4Atom *pTagAtom = m_pRootAtom->FindAtom(s);
 
         if (!pTagAtom)
             return false;
 
-        pTagAtom->FindProperty("name.metadata", (MP4Property**)&pMetadataProperty);
-        if (pMetadataProperty)
-        {
+        if (pTagAtom->FindProperty("name.metadata", 
+				   (MP4Property**)&pMetadataProperty) &&
+	    pMetadataProperty) {
             u_int8_t* pV;
             u_int32_t VSize = 0;
 
@@ -829,11 +875,13 @@ bool MP4File::DeleteMetadataFreeForm(const char *name)
             {
                 if (memcmp(pV, name, VSize) == 0)
                 {
-                    sprintf(s, "----[%u]", i);
+                    snprintf(s, 256, "----[%u]", i);
 
+		    CHECK_AND_FREE(pV);
                     return DeleteMetadataAtom(s);
                 }
             }
+	    CHECK_AND_FREE(pV);
         }
 
         i++;
@@ -845,7 +893,7 @@ bool MP4File::MetadataDelete()
     MP4Atom *pMetaAtom = NULL;
     char s[256];
 
-    sprintf(s, "moov.udta.meta");
+    snprintf(s, 256, "moov.udta.meta");
     pMetaAtom = m_pRootAtom->FindAtom(s);
 
     /* if it exists, delete it */

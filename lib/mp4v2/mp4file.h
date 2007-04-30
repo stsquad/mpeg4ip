@@ -301,10 +301,10 @@ public: /* equivalent to MP4 library API */
 					MP4Atom *srcAtom,
 					mp4v2_ismacrypParams *icPp);
 
-	bool AddH264SequenceParameterSet(MP4TrackId trackId,
+	void AddH264SequenceParameterSet(MP4TrackId trackId,
 					 const uint8_t *pSequence,
 					 uint16_t sequenceLen);
-	bool AddH264PictureParameterSet(MP4TrackId trackId,
+	void AddH264PictureParameterSet(MP4TrackId trackId,
 					const uint8_t *pPicture,
 					uint16_t pictureLen);
 	MP4TrackId AddHintTrack(MP4TrackId refTrackId);
@@ -341,7 +341,7 @@ public: /* equivalent to MP4 library API */
 
 	void GetTrackVideoMetadata(MP4TrackId trackId, 
 		u_int8_t** ppConfig, u_int32_t* pConfigSize);
-	bool GetTrackH264SeqPictHeaders(MP4TrackId trackId, 
+	void GetTrackH264SeqPictHeaders(MP4TrackId trackId, 
 					uint8_t ***pSeqHeader,
 					uint32_t **pSeqHeaderSize,
 					uint8_t ***pPictHeader,
@@ -575,8 +575,8 @@ public: /* equivalent to MP4 library API */
  
 	/* get metadata */
 	bool GetMetadataByIndex(u_int32_t index,
-				const char** ppName,
-				u_int8_t** ppValue, 
+				char** ppName, // free memory when done
+				u_int8_t** ppValue,  // free memory when done
 				u_int32_t* pValueSize);
 	bool GetMetadataTrack(u_int16_t* track, u_int16_t* totalTracks);
 	bool GetMetadataDisk(u_int16_t* disk, u_int16_t* totalDisks);
@@ -602,7 +602,7 @@ public: /* equivalent to MP4 library API */
 
 	u_int64_t GetSize();
 
-	u_int32_t ReadBytes(
+	void ReadBytes(
 		u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile = NULL);
 	u_int64_t ReadUInt(u_int8_t size);
 	u_int8_t ReadUInt8();
@@ -620,11 +620,10 @@ public: /* equivalent to MP4 library API */
 	void FlushReadBits();
 	u_int32_t ReadMpegLength();
 
-	u_int32_t PeekBytes(
+	void PeekBytes(
 		u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile = NULL);
 
 	void WriteBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile = NULL);
-	void WriteUInt(u_int64_t value, u_int8_t size);
 	void WriteUInt8(u_int8_t value);
 	void WriteUInt16(u_int16_t value);
 	void WriteUInt24(u_int32_t value);
@@ -652,7 +651,7 @@ public: /* equivalent to MP4 library API */
 
 	MP4Track* GetTrack(MP4TrackId trackId);
 
-	MP4Duration UpdateDuration(MP4Duration duration);
+	void UpdateDuration(MP4Duration duration);
 
 	MP4Atom* FindAtom(const char* name);
 
@@ -754,7 +753,7 @@ protected:
 		u_int8_t** ppBytes,
 		u_int64_t* pNumBytes);
 
-	MP4Descriptor* CreateESD(
+	void CreateESD(
 		MP4DescriptorProperty* pEsProperty,
 		u_int32_t esid,
 		u_int8_t objectType,
