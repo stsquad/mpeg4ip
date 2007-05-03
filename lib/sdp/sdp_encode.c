@@ -531,7 +531,7 @@ static int sdp_encode (session_desc_t *sptr, sdp_encode_t *se)
   }
   CHECK_RETURN(encode_string_list(sptr->admin_email, se, "e=", &temp));
   CHECK_RETURN(encode_string_list(sptr->admin_phone, se, "p=", &temp1));
-  if (temp + temp1 == 0) {
+  if (temp + temp1 == 0 && sptr->no_admin_or_phone == FALSE) {
     ADD_STR_TO_ENCODE_WITH_RETURN(se, "e=NONE\n");
   }
   if (sptr->session_connect.used) {

@@ -220,6 +220,7 @@ typedef struct session_desc_t {
   /* Administrator Information */
   string_list_t *admin_phone;
   string_list_t *admin_email;
+  bool no_admin_or_phone;
   /* connect info */
   connect_desc_t session_connect;
   range_desc_t   session_range;

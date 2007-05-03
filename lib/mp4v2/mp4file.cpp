@@ -989,8 +989,8 @@ MP4TrackId MP4File::AddTrack(const char* type, u_int32_t timeScale)
 
 	// set track id
 	MP4Integer32Property* pInteger32Property = NULL;
-	ASSERT(pTrakAtom->FindProperty("trak.tkhd.trackId", 
-				       (MP4Property**)&pInteger32Property));
+	(void)pTrakAtom->FindProperty("trak.tkhd.trackId", 
+				       (MP4Property**)&pInteger32Property);
 	ASSERT(pInteger32Property);
 	pInteger32Property->SetValue(trackId);
 
@@ -1005,15 +1005,15 @@ MP4TrackId MP4File::AddTrack(const char* type, u_int32_t timeScale)
 	}
 
 	MP4StringProperty* pStringProperty = NULL;
-	ASSERT(pTrakAtom->FindProperty("trak.mdia.hdlr.handlerType", 
-				       (MP4Property**)&pStringProperty));
+	(void)pTrakAtom->FindProperty("trak.mdia.hdlr.handlerType", 
+				      (MP4Property**)&pStringProperty);
 	ASSERT(pStringProperty);
 	pStringProperty->SetValue(normType);
 
 	// set track time scale
 	pInteger32Property = NULL;
-	ASSERT(pTrakAtom->FindProperty("trak.mdia.mdhd.timeScale", 
-				       (MP4Property**)&pInteger32Property));
+	(void)pTrakAtom->FindProperty("trak.mdia.mdhd.timeScale", 
+				       (MP4Property**)&pInteger32Property);
 	ASSERT(pInteger32Property);
 	pInteger32Property->SetValue(timeScale ? timeScale : 1000);
 
@@ -1041,8 +1041,8 @@ MP4TrackId MP4File::AddTrack(const char* type, u_int32_t timeScale)
 void MP4File::AddTrackToIod(MP4TrackId trackId)
 {
 	MP4DescriptorProperty* pDescriptorProperty = NULL;
-	ASSERT(m_pRootAtom->FindProperty("moov.iods.esIds", 
-					 (MP4Property**)&pDescriptorProperty));
+	(void)m_pRootAtom->FindProperty("moov.iods.esIds", 
+				  (MP4Property**)&pDescriptorProperty);
 	ASSERT(pDescriptorProperty);
 
 	MP4Descriptor* pDescriptor = 
@@ -1050,8 +1050,8 @@ void MP4File::AddTrackToIod(MP4TrackId trackId)
 	ASSERT(pDescriptor);
 
 	MP4Integer32Property* pIdProperty = NULL;
-	ASSERT(pDescriptor->FindProperty("id", 
-					 (MP4Property**)&pIdProperty));
+	(void)pDescriptor->FindProperty("id", 
+					(MP4Property**)&pIdProperty);
 	ASSERT(pIdProperty);
 
 	pIdProperty->SetValue(trackId);
@@ -1119,11 +1119,11 @@ void MP4File::GetTrackReferenceProperties(const char* trefName,
 	char propName[1024];
 
 	snprintf(propName, sizeof(propName), "%s.%s", trefName, "entryCount");
-	ASSERT(m_pRootAtom->FindProperty(propName, ppCountProperty));
+	(void)m_pRootAtom->FindProperty(propName, ppCountProperty);
 	ASSERT(*ppCountProperty);
 
 	snprintf(propName, sizeof(propName), "%s.%s", trefName, "entries.trackId");
-	ASSERT(m_pRootAtom->FindProperty(propName, ppTrackIdProperty));
+	(void)m_pRootAtom->FindProperty(propName, ppTrackIdProperty);
 	ASSERT(*ppTrackIdProperty);
 }
 
@@ -1182,8 +1182,8 @@ void MP4File::AddDataReference(MP4TrackId trackId, const char* url)
 	ASSERT(pDrefAtom);
 
 	MP4Integer32Property* pCountProperty = NULL;
-	ASSERT(pDrefAtom->FindProperty("dref.entryCount", 
-				       (MP4Property**)&pCountProperty));
+	(void)pDrefAtom->FindProperty("dref.entryCount", 
+				(MP4Property**)&pCountProperty);
 	ASSERT(pCountProperty);
 	pCountProperty->IncrementValue();
 
@@ -1193,8 +1193,8 @@ void MP4File::AddDataReference(MP4TrackId trackId, const char* url)
 		pUrlAtom->SetFlags(pUrlAtom->GetFlags() & 0xFFFFFE);
 
 		MP4StringProperty* pUrlProperty = NULL;
-		ASSERT(pUrlAtom->FindProperty("url .location",
-					      (MP4Property**)&pUrlProperty));
+		(void)pUrlAtom->FindProperty("url .location",
+					     (MP4Property**)&pUrlProperty);
 		ASSERT(pUrlProperty);
 		pUrlProperty->SetValue(url);
 	} else {
@@ -1286,9 +1286,9 @@ bool MP4File::ShallHaveIods()
 	if (ftypAtom == NULL) return false;
 	
         // Check the major brand
-	ASSERT(ftypAtom->FindProperty(
-			"ftyp.majorBrand",
-			(MP4Property**)&pMajorBrandProperty));
+	(void)ftypAtom->FindProperty(
+				     "ftyp.majorBrand",
+				     (MP4Property**)&pMajorBrandProperty);
 	ASSERT(pMajorBrandProperty);
         for(u_int32_t j = 0 ; brandsWithIods[j] != NULL ; j++) {
                 if (!strcasecmp( ((MP4StringProperty*)pMajorBrandProperty)->GetValue(),
@@ -1298,17 +1298,17 @@ bool MP4File::ShallHaveIods()
 
         // Check the compatible brands
 	MP4Integer32Property* pCompatibleBrandsCountProperty;
-	ASSERT(ftypAtom->FindProperty(
+        (void)ftypAtom->FindProperty(
 			"ftyp.compatibleBrandsCount",
-			(MP4Property**)&pCompatibleBrandsCountProperty));
+			(MP4Property**)&pCompatibleBrandsCountProperty);
 	ASSERT(pCompatibleBrandsCountProperty);
 	
 	compatibleBrandsCount  = pCompatibleBrandsCountProperty->GetValue();
 	
 	MP4TableProperty* pCompatibleBrandsProperty;
-	ASSERT(ftypAtom->FindProperty(
+	(void)ftypAtom->FindProperty(
 			"ftyp.compatibleBrands",
-			(MP4Property**)&pCompatibleBrandsProperty));
+			(MP4Property**)&pCompatibleBrandsProperty);
 	
 	MP4StringProperty* pBrandProperty = (MP4StringProperty*)pCompatibleBrandsProperty->GetProperty(0);
 	ASSERT(pBrandProperty);
@@ -2792,8 +2792,8 @@ void MP4File::SetTrackESConfiguration(MP4TrackId trackId,
 
 	// lookup the property to store the configuration
 	MP4BytesProperty* pInfoProperty = NULL;
-	ASSERT(pConfigDescrProperty->FindProperty("decSpecificInfo[0].info",
-						  (MP4Property**)&pInfoProperty));
+	(void)pConfigDescrProperty->FindProperty("decSpecificInfo[0].info",
+						  (MP4Property**)&pInfoProperty);
 
 	// configuration being set for the first time
 	if (pInfoProperty == NULL) {
@@ -2802,9 +2802,9 @@ void MP4File::SetTrackESConfiguration(MP4TrackId trackId,
 			pConfigDescrProperty->AddDescriptor(MP4DecSpecificDescrTag);
 		pConfigDescr->Generate();
 
-		ASSERT(pConfigDescrProperty->FindProperty(
+		(void)pConfigDescrProperty->FindProperty(
 			"decSpecificInfo[0].info",
-			(MP4Property**)&pInfoProperty));
+			(MP4Property**)&pInfoProperty);
 		ASSERT(pInfoProperty);
 	}
 
