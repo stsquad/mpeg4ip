@@ -221,10 +221,13 @@ bool MP4File::GetMetadataString (const char *atom, char **value, bool try_udta)
     if (valSize > 0)
     {
         *value = (char*)malloc((valSize+1)*sizeof(char));
-	if (*value == NULL) return false;
+	if (*value == NULL) {
+	  free(val);
+	  return false;
+	}
         memcpy(*value, val, valSize*sizeof(unsigned char));
 	free(val);
-	*value[valSize] = '\0';
+	(*value)[valSize] = '\0';
         return true;
     } 
     return false;
@@ -654,7 +657,7 @@ bool MP4File::SetMetadataCoverArt(u_int8_t *coverArt, u_int32_t size)
             return false;
 
         pMetaAtom = m_pRootAtom->FindAtom(s);
-	if (pMetaAtom != NULL) return false;
+	if (pMetaAtom == NULL) return false;
     }
 
     ASSERT(pMetaAtom->FindProperty("data.metadata", 

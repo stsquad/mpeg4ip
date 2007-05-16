@@ -63,6 +63,7 @@ public:
 	}
 
 	u_int8_t* GetBuffer() {
+	  m_alloced = false;
 		return m_pBuf;
 	}
 

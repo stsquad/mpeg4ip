@@ -80,8 +80,8 @@ typedef bool (*get_gui_options_list_f)(encoder_gui_options_base_t ***value,
 #define GUI_FLOAT_RANGE(name, config_name, label, min, max) \
   static encoder_gui_options_float_range_t (name) = {{GUI_TYPE_FLOAT_RANGE, &config_name, label}, min, max };
 
-#define GUI_FLOAT_STRING_DROPDOWN(name, config_name, label, string_list, count) \
-  static encoder_gui_options_float_range_t (name) = {{GUI_TYPE_STRING_DROPDOWN, &config_name, label}, string_list, count };
+#define GUI_STRING_DROPDOWN(name, config_name, label, string_list, count) \
+  static encoder_gui_options_string_drop_t (name) = {{GUI_TYPE_STRING_DROPDOWN, &config_name, label}, string_list, count };
 
 #define EXTERN_TABLE_F(name)  extern bool name##_f(encoder_gui_options_base_t ***value, uint *count);
 
