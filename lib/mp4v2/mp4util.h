@@ -24,26 +24,18 @@
 #include <assert.h>
 
 #ifndef ASSERT
-#ifdef NDEBUG
-#define ASSERT(expr)
-#else
 #define ASSERT(expr) \
 	if (!(expr)) { \
 		(void)fflush(stdout); \
 		assert((expr)); \
 	}
 #endif
-#endif
-#ifdef NDEBUG
-#define WARNING(expr)
-#else
 #define WARNING(expr) \
 	if (expr) { \
 		fflush(stdout); \
 		fprintf(stderr, "Warning (%s) in %s at line %u\n", \
 			__STRING(expr), __FILE__, __LINE__); \
 	}
-#endif
 
 #define VERBOSE(exprverbosity, verbosity, expr)	\
 	if (((exprverbosity) & (verbosity)) == (exprverbosity)) { expr; }

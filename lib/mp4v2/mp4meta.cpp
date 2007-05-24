@@ -382,7 +382,8 @@ void GenreToString(char** GenreStr, const int genre)
       uint len = strlen(ID3v1GenreList[genre-1])+1;
         *GenreStr = (char*)malloc(len);
 	if (*GenreStr == NULL) return;
-        strncpy(*GenreStr, ID3v1GenreList[genre-1], len - 1);
+	// no need for strncpy; enough was malloced
+        strcpy(*GenreStr, ID3v1GenreList[genre-1]);
         return;
     } 
   *GenreStr = (char*)malloc(2*sizeof(char));
