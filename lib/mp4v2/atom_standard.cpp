@@ -41,7 +41,10 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
    * Try to keep it in alphabetical order - it should only be called
    * 1 time per atom, so it's not that urgent.
    */
-  if (ATOMID(type) == ATOMID("aART")) {
+  if (ATOMID(type) == ATOMID("aART") ||
+      ATOMID(type) == ATOMID("akID") ||
+      ATOMID(type) == ATOMID("apID") ||
+      ATOMID(type) == ATOMID("atID")) {
       ExpectChildAtom("data", Required, OnlyOne);
   /*
    * b???
@@ -79,7 +82,8 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
     ExpectChildAtom("data", Required, OnlyOne);
   } else if (ATOMID(type) == ATOMID("covr")) { /* Apple iTunes */
     ExpectChildAtom("data", Required, Many);
-  } else if (ATOMID(type) == ATOMID("cprt")) {
+  } else if (ATOMID(type) == ATOMID("cprt") ||
+	     ATOMID(type) == ATOMID("cnID")) {
 #if 0
     AddVersionAndFlags();
     AddProperty(
@@ -150,7 +154,8 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
     ExpectChildAtom("gmin", Required, OnlyOne);
     ExpectChildAtom("tmcd", Optional, OnlyOne);
     ExpectChildAtom("text", Optional, OnlyOne);
-  } else if (ATOMID(type) == ATOMID("gnre")) { // Apple iTunes 
+  } else if (ATOMID(type) == ATOMID("gnre") ||
+	     ATOMID(type) == ATOMID("geID")) { // Apple iTunes 
     ExpectChildAtom("data", Optional, OnlyOne);
 
   /*
@@ -279,10 +284,15 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
     AddProperty(new MP4Integer32Property("payloadNumber"));
     AddProperty(new MP4StringProperty("rtpMap", Counted));
 
+  } else if (ATOMID(type) == ATOMID("pinf")) {
+    ExpectChildAtom("frma", Required, OnlyOne);
   } else if (ATOMID(type) == ATOMID("pmax")) {
     AddProperty( // max packet size 
 		new MP4Integer32Property("bytes"));
-  } else if (ATOMID(type) == ATOMID("pgap")) {
+  } else if (ATOMID(type) == ATOMID("pgap") ||
+	     ATOMID(type) == ATOMID("plID") ||
+	     ATOMID(type) == ATOMID("purd") ||
+	     ATOMID(type) == ATOMID("rtng")) {
     ExpectChildAtom("data", Required, OnlyOne);
   /*
    * s???
@@ -359,7 +369,9 @@ MP4StandardAtom::MP4StandardAtom (const char *type) : MP4Atom(type)
 
     pTable->AddProperty(new MP4Integer32Property("sampleCount"));
     pTable->AddProperty(new MP4Integer32Property("sampleDelta"));
-
+  } else if (ATOMID(type) == ATOMID("sfID") ||
+	     ATOMID(type) == ATOMID("stik")) {
+    ExpectChildAtom("data", Required, OnlyOne);
   /*
    * t???
    */

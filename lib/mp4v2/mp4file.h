@@ -571,7 +571,8 @@ public: /* equivalent to MP4 library API */
 	bool SetMetadataCoverArt(u_int8_t *coverArt, u_int32_t size);
 	bool SetMetadataFreeForm(const char *name, 
 				 const u_int8_t* pValue, 
-				 u_int32_t valueSize);
+				 u_int32_t valueSize,
+				 const char *owner = NULL);
  
 	/* get metadata */
 	bool GetMetadataByIndex(u_int32_t index,
@@ -587,11 +588,12 @@ public: /* equivalent to MP4 library API */
 	u_int32_t GetMetadataCoverArtCount(void);
 	bool GetMetadataFreeForm(const char *name, 
 				 u_int8_t** pValue, 
-				 u_int32_t* valueSize);
+				 u_int32_t* valueSize,
+				 const char *owner = NULL);
 
 	/* delete metadata */
 	bool DeleteMetadataGenre();
-	bool DeleteMetadataFreeForm(const char *name);
+	bool DeleteMetadataFreeForm(const char *name, const char *owner = NULL);
 
 	/* end of MP4 API */
 

@@ -1226,10 +1226,10 @@ bool MP4DeleteMetadataAlbumArtist(MP4FileHandle hFile);
 
 
 bool MP4SetMetadataFreeForm(MP4FileHandle hFile, const char *name,
-			    const u_int8_t* pValue, u_int32_t valueSize);
+			    const u_int8_t* pValue, u_int32_t valueSize, const char *owner DEFAULT(NULL));
 bool MP4GetMetadataFreeForm(MP4FileHandle hFile, const char *name,
-			    u_int8_t** pValue, u_int32_t* valueSize);
-bool MP4DeleteMetadataFreeForm(MP4FileHandle hFile, const char *name);
+			    u_int8_t** pValue, u_int32_t* valueSize, const char *owner DEFAULT(NULL));
+bool MP4DeleteMetadataFreeForm(MP4FileHandle hFile, const char *name, const char *owner DEFAULT(NULL));
 
 /* time conversion utilties */
 

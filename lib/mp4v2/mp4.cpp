@@ -3744,7 +3744,7 @@ extern "C" bool MP4GetMetadataAlbum(MP4FileHandle hFile,
   }
   return false;
 }
- 
+
 extern "C" bool MP4DeleteMetadataAlbum(MP4FileHandle hFile)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
@@ -4340,11 +4340,12 @@ extern "C" bool MP4DeleteMetadataAlbumArtist (MP4FileHandle hFile)
 extern "C" bool MP4SetMetadataFreeForm(MP4FileHandle hFile, 
 				       const char *name,
 				       const u_int8_t* pValue, 
-				       u_int32_t valueSize)
+				       u_int32_t valueSize,
+							 const char *owner)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {
-      return ((MP4File*)hFile)->SetMetadataFreeForm(name, pValue, valueSize);
+      return ((MP4File*)hFile)->SetMetadataFreeForm(name, pValue, valueSize, owner);
     }
     catch (MP4Error* e) {
       PRINT_ERROR(e);
@@ -4355,11 +4356,11 @@ extern "C" bool MP4SetMetadataFreeForm(MP4FileHandle hFile,
 }
  
 extern "C" bool MP4GetMetadataFreeForm(MP4FileHandle hFile, const char *name,
-				       u_int8_t** pValue, u_int32_t* valueSize)
+				       u_int8_t** pValue, u_int32_t* valueSize, const char *owner)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {
-      return ((MP4File*)hFile)->GetMetadataFreeForm(name, pValue, valueSize);
+      return ((MP4File*)hFile)->GetMetadataFreeForm(name, pValue, valueSize, owner);
     }
     catch (MP4Error* e) {
       PRINT_ERROR(e);
@@ -4369,11 +4370,11 @@ extern "C" bool MP4GetMetadataFreeForm(MP4FileHandle hFile, const char *name,
   return false;
 }
 
-extern "C" bool MP4DeleteMetadataFreeForm(MP4FileHandle hFile, const char *name)
+extern "C" bool MP4DeleteMetadataFreeForm(MP4FileHandle hFile, const char *name, const char *owner)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {
-      return ((MP4File*)hFile)->DeleteMetadataFreeForm(name);
+      return ((MP4File*)hFile)->DeleteMetadataFreeForm(name, owner);
     }
     catch (MP4Error* e) {
       PRINT_ERROR(e);
