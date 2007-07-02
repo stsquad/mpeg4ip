@@ -23,11 +23,13 @@
 #define __VIDEO_FFMPEG_H__
 
 #include "video_encoder.h"
+extern "C" {
 #ifdef HAVE_FFMPEG_INSTALLED
 #include <ffmpeg/avcodec.h>
 #else
 #include <avcodec.h>
 #endif
+}
 typedef struct pts_queue_t {
   pts_queue_t *next;
   uint8_t *frameBuffer;

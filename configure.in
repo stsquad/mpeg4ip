@@ -1,6 +1,6 @@
 
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(mpeg4ip, 1.5.27)
+AC_INIT(mpeg4ip, 1.5.28)
 AM_CONFIG_HEADER(mpeg4ip_config.h)
 dnl Prevent user from running just ./configure
 AC_CHECK_FILE(./bootstrapped, [did_bootstrap=yes], [did_bootstrap=no])
@@ -517,6 +517,16 @@ if test x$disable_ffmpeg = xfalse; then
 	AC_CHECK_MEMBERS(AVCodecContext.time_base, , , [#include <ffmpeg/avcodec.h>])
 	AC_CHECK_DECLS([avcodec_decode_audio2], , ,[#include <ffmpeg/avcodec.h>])
         AC_DEFINE(HAVE_FFMPEG, 1, [enable ffmpeg for mp4live])
+	AC_CHECK_LIB(amrnb, VADxEncoder_Interface_init, 
+		     [have_amr_nb=true], [have_amr_nb=false])
+	AC_CHECK_LIB(amrwb, E_IF_init, 
+		     [have_amr_wb=true], [have_amr_wb=false])
+        if test x$have_amr_nb = xtrue; then
+           FFMPEG_LIB="$FFMPEG_LIB -lamrnb"
+        fi
+        if test x$have_amr_wb = xtrue; then
+           FFMPEG_LIB="$FFMPEG_LIB -lamrwb"
+        fi
      fi
   fi
 else

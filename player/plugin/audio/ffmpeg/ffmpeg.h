@@ -24,11 +24,13 @@
 #ifndef __MPEG4IP_FFMPEG_H__
 #define __MPEG4IP_FFMPEG_H__ 1
 #include "codec_plugin.h"
+extern "C" {
 #ifdef HAVE_FFMPEG_INSTALLED
 #include <ffmpeg/avcodec.h>
 #else
 #include <avcodec.h>
 #endif
+}
 
 DECLARE_CONFIG(CONFIG_USE_FFMPEG_AUDIO);
 

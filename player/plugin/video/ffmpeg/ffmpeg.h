@@ -25,11 +25,13 @@
 #define __MPEG4IP_FFMPEG_H__ 1
 #define always_inline inline
 #include "codec_plugin.h"
+extern "C" {
 #ifdef HAVE_FFMPEG_INSTALLED
 #include <ffmpeg/avcodec.h>
 #else
 #include <avcodec.h>
 #endif
+}
 #include <mp4av.h>
 
 DECLARE_CONFIG(CONFIG_USE_FFMPEG);

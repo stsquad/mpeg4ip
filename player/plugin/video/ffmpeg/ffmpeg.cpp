@@ -22,6 +22,7 @@
  * mpeg2 video codec with libmpeg2 library
  */
 #define DECLARE_CONFIG_VARIABLES
+#define attribute_deprecated
 #include "ffmpeg.h"
 #include "mp4av.h"
 #include "mp4av_h264.h"
@@ -142,9 +143,12 @@ static bool ffmpeg_find_h264_size (ffmpeg_codec_t *ffmpeg,
 				   uint32_t ud_size)
 {
   uint32_t offset = 0;
+  ffmpeg_message(LOG_DEBUG, "ffmpeg", "start finding size");
   do {
     if (h264_is_start_code(ud + offset)) {
-      if (h264_nal_unit_type(ud + offset) == H264_NAL_TYPE_SEQ_PARAM) {
+      uint8_t nal_type = h264_nal_unit_type(ud + offset);
+      ffmpeg_message(LOG_DEBUG, "ffmpeg", "nal %u", nal_type);
+      if (nal_type == H264_NAL_TYPE_SEQ_PARAM) {
 	h264_decode_t dec;
 	memset(&dec, 0, sizeof(dec));
 	if (h264_read_seq_info(ud + offset, ud_size - offset, &dec) == 0) {
@@ -154,7 +158,11 @@ static bool ffmpeg_find_h264_size (ffmpeg_codec_t *ffmpeg,
 	}
       }
     }
-    offset += h264_find_next_start_code(ud + offset, ud_size - offset);
+    uint32_t result;
+    result = h264_find_next_start_code(ud + offset, ud_size - offset);
+    if (result == 0) offset = ud_size;
+    else offset += result;
+
   } while (offset < ud_size);
   return false;
 }
@@ -343,7 +351,7 @@ static int ffmpeg_frame_is_sync (codec_data_t *ifptr,
   case CODEC_ID_H264:
     // look for idr nal
     // disable to just start right up
-#if 1
+#if 0
     uint32_t offset;
     do {
       uint8_t nal_type = h264_nal_unit_type(buffer);

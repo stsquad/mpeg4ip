@@ -25,11 +25,13 @@
 #include "video_encoder_base.h"
 #include "video_util_filter.h"
 #ifdef HAVE_FFMPEG
+extern "C" {
 #ifdef HAVE_FFMPEG_INSTALLED
 #include <ffmpeg/avcodec.h>
 #else
 #include <avcodec.h>
 #endif
+}
 #endif
 
 // Video encoder initialization

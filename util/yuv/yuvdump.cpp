@@ -118,20 +118,20 @@ int main (int argc, char **argv)
       }
     }
     readbytes = fread(ybuf, ysize,  sizeof(uint8_t), yuvfile);
-    if (readbytes != 1) {
-      if (feof(yuvfile)) {
+    if (ferror(yuvfile) || readbytes != 1) {
+      if (feof(yuvfile) && !ferror(yuvfile)) {
 	continue;
       }
       printf("frame %u - y buf read error\n", fcount);
       continue;
     }
     readbytes = fread(ubuf, uvsize,  sizeof(uint8_t), yuvfile);
-    if (readbytes != 1) {
+    if (ferror(yuvfile) || readbytes != 1) {
       printf("frame %u - u buf read error\n", fcount);
       continue;
     }
     readbytes = fread(vbuf, uvsize,  sizeof(uint8_t), yuvfile);
-    if (readbytes != 1) {
+    if (ferror(yuvfile) || readbytes != 1) {
       printf("frame %u - v buf read error\n", fcount);
       continue;
     }
