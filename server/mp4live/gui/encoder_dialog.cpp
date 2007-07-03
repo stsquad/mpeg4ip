@@ -69,7 +69,9 @@ on_EncoderSettingsDialog_response         (GtkWidget       *dialog,
 	str = gtk_entry_get_text(GTK_ENTRY(action));
 	if (str != NULL) {
 	  ADV_SPACE(str);
-	  if (str == '\0') str = NULL;
+	  if (*str == '\0') {
+	    str = NULL;
+	  }
 	}
 	pConfig->SetStringValue(*bptr->index, str);
 	break;

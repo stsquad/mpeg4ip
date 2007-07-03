@@ -228,7 +228,7 @@ bool CX264VideoEncoder::Init (void)
   m_param.rc.f_rate_tolerance = Profile()->GetFloatValue(CFG_X264_BIT_RATE_TOLERANCE);
 
   const char *level = Profile()->GetStringValue(CFG_X264_LEVEL);
-  if(level != NULL) {
+  if(level != NULL && *level != '\0') {
   	if( strstr( level, "1b" ) ) {
       m_param.i_level_idc = 1;
   	} else {
