@@ -2068,8 +2068,7 @@ MP4TrackId MP4File::AddH263VideoTrack(
 MP4TrackId MP4File::AddHintTrack(MP4TrackId refTrackId)
 {
 	// validate reference track id
-  if (FindTrackIndex(refTrackId) == MP4_INVALID_TRACK_ID)
-    return MP4_INVALID_TRACK_ID;
+  (void)FindTrackIndex(refTrackId);
 
 	MP4TrackId trackId = 
 		AddTrack(MP4_HINT_TRACK_TYPE, GetTrackTimeScale(refTrackId));
