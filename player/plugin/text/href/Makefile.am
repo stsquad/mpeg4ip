@@ -13,4 +13,4 @@ AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
-EXTRA_DIST = href_plugin.dsp
+EXTRA_DIST = href_plugin.dsp href_plugin.vcproj

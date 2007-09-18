@@ -57,7 +57,7 @@
 #include <math.h>
 #include <assert.h>
 // begin: added by Sharp (99/2/16)
-#include <iostream.h>
+#include <iostream>
 #include <sys/stat.h>
 // end: added by Sharp (99/2/16)
 
@@ -847,7 +847,7 @@ Void CVTCEncoder::TextureSNRLayerMQ_encode(Int spa_lev, Int snr_lev, FILE *fp)
   if(mzte_codec.m_bStartCodeEnable){
     noteProgress("Encoding Multi-Quant Mode Layer with SNR start code....");
     /* header */  
-    emit_bits((UShort)texture_snr_layer_start_code>>16,16);
+    emit_bits((UShort)(texture_snr_layer_start_code>>16),16);
     emit_bits((UShort)texture_snr_layer_start_code,16);
     emit_bits((UShort)texture_snr_layer_id++,5);
   }

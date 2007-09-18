@@ -41,7 +41,7 @@ static const char* h261SizeNames[] = {
 	"352 x 288 CIF",
 };
 
-#if defined(HAVE_FFMPEG) || defined(HAVE_XVID_H) || defined(HAVE_XVID10)
+#if defined(HAVE_FFMPEG) || defined(HAVE_XVID_H) || defined(HAVE_XVID10) || defined(HAVE_X264)
 static u_int16_t mpeg4SizeWidthValues[] = {
   128, 160, 176, 320, 352, 352, 352, 384, 480, 544,
 	640, 704, 720, 704, 720, 768,

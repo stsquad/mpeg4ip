@@ -3,8 +3,8 @@
  *
  *  Unix specific definitions and includes
  *  
- *  $Revision: 1.11 $
- *  $Date: 2006/05/15 22:25:34 $
+ *  $Revision: 1.12 $
+ *  $Date: 2007/09/18 20:52:01 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -37,10 +37,10 @@
  * SUCH DAMAGE.
  */
 
-#ifndef WIN32
+#ifndef _WIN32
 #ifndef _CONFIG_UNIX_H
 #define _CONFIG_UNIX_H
-#include "mpeg4ip_config.h"
+#include "mpeg4ip.h"
 //#include "../../include/mpeg4ip_version.h"
 #include <limits.h>
 #include <sys/types.h>

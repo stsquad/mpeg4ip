@@ -441,9 +441,9 @@ Void CVideoObjectDecoder::decodeSIBAB (PixelC* ppxlcBYMB, PixelC* ppxlcBYFrm, Bo
 	PixelC* PredSrc = ppxlcBYMB;
 	PixelC* PredDst = m_ppxlcReconCurrBAB+20*2+2;
 
-	double h_factor = log((double)m_volmd.ihor_sampling_factor_n_shape/m_volmd.ihor_sampling_factor_m_shape)/log(2);
+	double h_factor = log((double)m_volmd.ihor_sampling_factor_n_shape/m_volmd.ihor_sampling_factor_m_shape)/log((double)2);
 	int h_factor_int = (int)floor(h_factor+0.000001);
-	double v_factor = log((double)m_volmd.iver_sampling_factor_n_shape/m_volmd.iver_sampling_factor_m_shape)/log(2);
+	double v_factor = log((double)m_volmd.iver_sampling_factor_n_shape/m_volmd.iver_sampling_factor_m_shape)/log((double)2);
 	int v_factor_int = (int)floor(v_factor+0.000001);
 
 	Int NumTwoPowerLoopX = h_factor_int;

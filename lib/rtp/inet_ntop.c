@@ -18,9 +18,10 @@
 #ifndef _WIN32
 #include "mpeg4ip_config.h"
 #endif
-#ifndef HAVE_INET_NTOP
 #include "config_unix.h"
 #include "config_win32.h"
+#ifndef HAVE_INET_NTOP
+
 #include "inet_ntop.h"
 
 #define	IN6ADDRSZ	16

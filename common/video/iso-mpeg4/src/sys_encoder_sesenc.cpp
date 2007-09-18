@@ -83,8 +83,8 @@ Revision History:
 #include "stdlib.h"
 #include "stdio.h"
 #include "math.h"
-#include "fstream.h"
-#include "ostream.h"
+#include "fstream"
+#include "iostream"
 
 #include "typeapi.h"
 #include "codehead.h"
@@ -113,7 +113,7 @@ static char BASED_CODE THIS_FILE[] = __FILE__;
 
 #define new DEBUG_NEW				   
 #endif // __MFC_
-
+using namespace std;
 #ifdef __PC_COMPILER_					//OS specific stuff
 #define SUB_CMPFILE "%s\\%2.2d\\%s.cmp"
 #define SUB_TRCFILE "%s\\%2.2d\\%s.trc"
@@ -2007,7 +2007,7 @@ Bool CSessionEncoder::loadData (UInt iFrame, FILE* pfYuvSrc, FILE* pfSegSrc, Pix
 		else{
 			int *HorizontalSamplingMatrix = NULL;
 			int *VerticalSamplingMatrix = NULL;
-			double h_factor = log((double)volmd_enhn.ihor_sampling_factor_n_shape/volmd_enhn.ihor_sampling_factor_m_shape)/log(2);
+			double h_factor = log((double)volmd_enhn.ihor_sampling_factor_n_shape/volmd_enhn.ihor_sampling_factor_m_shape)/log((double)2);
 			int h_factor_int = (int)floor(h_factor+0.000001);
 			if(h_factor - h_factor_int > 0.000001) {
 				HorizontalSamplingMatrix = new int [volmd_enhn.ihor_sampling_factor_n_shape-volmd_enhn.ihor_sampling_factor_m_shape*(1<<h_factor_int)];
@@ -2020,7 +2020,7 @@ Bool CSessionEncoder::loadData (UInt iFrame, FILE* pfYuvSrc, FILE* pfSegSrc, Pix
 
 			}
 
-			double v_factor = log((double)volmd_enhn.iver_sampling_factor_n_shape/volmd_enhn.iver_sampling_factor_m_shape)/log(2);
+			double v_factor = log((double)volmd_enhn.iver_sampling_factor_n_shape/volmd_enhn.iver_sampling_factor_m_shape)/log((double)2);
 			int v_factor_int = (int)floor(v_factor+0.000001);
 			if(v_factor - v_factor_int > 0.000001) {
 				VerticalSamplingMatrix = new int [volmd_enhn.iver_sampling_factor_n_shape-volmd_enhn.iver_sampling_factor_m_shape*(1<<v_factor_int)];

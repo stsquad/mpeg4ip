@@ -16,12 +16,12 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #ifndef _BOOLEAN_HH
 #define _BOOLEAN_HH
 
-typedef unsigned Boolean;
+#define Boolean bool
 #ifndef False
-const Boolean False = 0;
+#define False false
 #endif
 #ifndef True
-const Boolean True = 1;
+#define True true
 #endif
 
 #endif

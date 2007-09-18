@@ -24,7 +24,9 @@
 #define HAVE_IN_PORT_T
 #define HAVE_SOCKLEN_T
 #define NEED_SDL_VIDEO_IN_MAIN_THREAD
+#ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0400
+#endif
 #define _WINSOCKAPI_
 #define _INTEGRAL_MAX_BITS 64
 #ifndef __GNUC__
@@ -40,14 +42,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <limits.h>
-#ifdef __GNUC__
-#include <stdint.h>
-#include <ctype.h>
-typedef uint64_t u_int64_t;
-typedef uint32_t u_int32_t;
-typedef uint16_t u_int16_t;
-typedef uint8_t u_int8_t;
-#else
+
+#ifndef inline
+#define inline __inline
+#endif
 typedef unsigned __int64 uint64_t;
 typedef unsigned __int32 uint32_t;
 typedef unsigned __int16 uint16_t;
@@ -64,11 +62,24 @@ typedef unsigned short in_port_t;
 typedef int socklen_t;
 typedef int ssize_t;
 typedef unsigned int uint;
-#define snprintf _snprintf
+static inline int snprintf(char *buffer, size_t count,
+			  const char *format, ...) {
+  va_list ap;
+  int ret;
+  va_start(ap, format);
+  ret = vsnprintf_s(buffer, count, _TRUNCATE, format, ap);
+  va_end(ap);
+  if (ret == -1) {
+    if (errno == EINVAL) return -1;
+    return (int)count;
+  }
+  return ret;
+}
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
-#define localtime_r(a,b) localtime(a)
-#endif
+#define localtime_r(a,b) localtime_s(b,a)
+#define printf printf_s
+#define fprintf fprintf_s
 
 #include <io.h>
 #include <fcntl.h>
@@ -108,21 +119,14 @@ int gettimeofday(struct timeval *t, void *);
 #define PATH_MAX MAX_PATH
 #endif
 #define MAX_UINT64 -1
-#ifdef __GNUC__
-#define D64F "lld"
-#define U64F  "llu"
-#define X64F "llx"
 
-#define TO_D64(a) (a##LL)
-#define TO_U64(a) (a##LLU)
-#else
 #define D64F "I64d"
 #define U64F  "I64u"
 #define X64F "I64x"
 
 #define TO_D64(a) (a##I64)
 #define TO_U64(a) (a##UI64)
-#endif
+
 #define LOG_EMERG 0
 #define LOG_ALERT 1
 #define LOG_CRIT 2
@@ -166,5 +170,9 @@ struct sockaddr_storage {
 };
 #endif
 #pragma warning(disable : 4244)
+#pragma warning(disable: 4996)
+#define HAVE_STRUCT_SOCKADDR_STORAGE 1
+#define HAVE_INET_PTON 1
+#define HAVE_INET_NTOP 1
 #endif
 #endif

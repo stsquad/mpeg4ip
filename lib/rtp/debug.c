@@ -7,8 +7,8 @@
  *          Orion Hodson
  *          Jerry Isdale
  * 
- * $Revision: 1.7 $
- * $Date: 2006/05/15 22:25:34 $
+ * $Revision: 1.8 $
+ * $Date: 2007/09/18 20:52:01 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -49,7 +49,7 @@
 void _dprintf(const char *format, ...)
 {
 #ifdef DEBUG
-#ifdef WIN32
+#ifdef _WIN32
         char msg[65535];
         va_list ap;
         
@@ -162,7 +162,7 @@ void debug_dump(void*lp, long len)
  **/
 void debug_set_core_dir(const char *argv0)
 {
-#if defined(DEBUG) && !defined(WIN32)
+#if defined(DEBUG) && !defined(_WIN32)
         struct stat s;
         char coredir[64];
         const char *appname;

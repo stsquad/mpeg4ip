@@ -42,8 +42,8 @@ Revision History:
 
 *************************************************************************/
 
-#include <fstream.h>
-#include <iostream.h>
+#include <fstream>
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include "typeapi.h"
@@ -91,11 +91,7 @@ unsigned int bit_msk[33] =
 
 
 COutBitStream::COutBitStream (Char* pchBuffer, Int iBitPosition, 
-#ifdef _WIN32
-							ostream *
-#else
 							  std::ostream* 
-#endif
 							  pstrmTrace) : CIOBitStream()
 {
   m_pstrmTrace = pstrmTrace;

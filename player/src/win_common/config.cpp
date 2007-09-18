@@ -1,7 +1,8 @@
 #include <mpeg4ip_config_set.h>
+#undef read
 
 #include <atlbase.h>
-#include <atlimpl.cpp>
+//#include <atlimpl.cpp>
 
 int CConfigSet::ReadVariablesFromRegistry (const char *reg_name, 
 					   const char *config_section)
@@ -46,7 +47,7 @@ int CConfigSet::ReadVariablesFromRegistry (const char *reg_name,
 	    result = newrk.QueryValue(buff + 1, m_variables[ix].m_sName,
 				      &buflen);
 	    if (result == ERROR_SUCCESS) {
-	      m_variables[ix].FromAscii(buff);
+	      FromAscii(&m_variables[ix], buff);
 	    }
 	    break;
 	  }
@@ -75,12 +76,12 @@ void CConfigSet::WriteVariablesToRegistry (const char *reg_name, const char *con
 			   m_variables[ix].m_sName);
 	    break;
 	  case CONFIG_TYPE_STRING:
-	    newrk.SetValue(m_variables[ix].ToAscii(),
+	    newrk.SetValue(ToAscii(&m_variables[ix]),
 			   m_variables[ix].m_sName);
 	    break;
 	  case CONFIG_TYPE_FLOAT:
 	    
-	    newrk.SetValue(m_variables[ix].ToAscii(), 
+	    newrk.SetValue(ToAscii(&m_variables[ix]), 
 			   m_variables[ix].m_sName);
 	    break;
 			   

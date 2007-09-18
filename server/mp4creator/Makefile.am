@@ -33,4 +33,4 @@ mp4creator_LDADD = \
 	$(top_builddir)/lib/ismacryp/libismacryp.la \
 	@SRTPLIB@ 
 
-EXTRA_DIST = mp4creator60.dsp 
+EXTRA_DIST = mp4creator60.dsp mp4creator.vcproj

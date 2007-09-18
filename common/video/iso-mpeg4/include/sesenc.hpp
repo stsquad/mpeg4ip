@@ -317,9 +317,9 @@ protected:
                       FILE*& pfAlpSrcSpatialEnhn,//OBSS_SAIT_991015
                       FILE* rgpfReconYUV [], FILE* rgpfReconSeg [], 
                       FILE** rgpfReconAux [],
-                      ofstream* rgpostrm [], ofstream* rgpostrmTrace [],
+					  std::ofstream* rgpostrm [], std::ofstream* rgpostrmTrace [],
                       PixelC& pxlcObjColor, Int iobj, const VOLMode& volmd, const VOLMode& volmd_enhn);
-	Void initVOEncoder (CVideoObjectEncoder** rgpvoenc, Int iobj, ofstream* rgpostrmTrace []);
+  Void initVOEncoder (CVideoObjectEncoder** rgpvoenc, Int iobj, std::ofstream* rgpostrmTrace []);
 	Bool loadDataSpriteCheck(UInt iVOrelative,UInt iFrame, FILE* pfYuvSrc, FILE* pfSegSrc,
                            FILE** ppfAuxSrc,
 					                 PixelC pxlcObjColor, CVOPU8YUVBA* pvopcDst, const VOLMode& volmd);
@@ -358,7 +358,7 @@ protected:
 							PixelC pxlcObjColor,
 							CVideoObjectEncoder** rgpvoenc,
 							const VOLMode& volmd,
-							ofstream* rgpostrm[],
+							std::ofstream* rgpostrm[],
 							const CVOPU8YUVBA* pvopcBaseQuant = NULL);
 
 // begin: added by Sharp (98/2/12)
@@ -382,7 +382,7 @@ protected:
                                   const VOLMode& volmd,
                                   const VOLMode& volmd_enhn,
                                   Int iEnhnFirstFrame,
-                                  ofstream* rgpostrm[],
+								  std::ofstream* rgpostrm[],
                                   CEnhcBufferEncoder& BufP1,
                                   CEnhcBufferEncoder& BufP2,
                                   CEnhcBufferEncoder& BufB1,

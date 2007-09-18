@@ -9,7 +9,7 @@ libmpeg4ip_gnu_la_SOURCES = \
 	strcasestr.c \
 	strcasestr.h
 
-EXTRA_DIST = libmissing60.dsp \
+EXTRA_DIST = libmissing60.dsp libmissing.vcproj \
 	need_for_win32.c 
 
 AM_CFLAGS = -D_REENTRANT -Werror -Wall -Wcast-align -Wstrict-prototypes -Wmissing-prototypes

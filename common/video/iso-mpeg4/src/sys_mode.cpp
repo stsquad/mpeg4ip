@@ -50,7 +50,7 @@ Revision History:
 
 
 #include <string.h>
-#include <iostream.h>
+#include <iostream>
 #include <math.h>
 #include "typeapi.h"
 #include "mode.hpp"

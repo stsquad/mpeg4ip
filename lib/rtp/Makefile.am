@@ -35,7 +35,7 @@ EXTRA_DIST = \
 	boxes-fst.dat \
 	btree.h \
 	cdecl_ext.h \
-	common60.dsp \
+	common60.dsp rtp_common.vcproj \
 	config_unix.h \
 	config_win32.h \
 	COPYRIGHT \

@@ -349,7 +349,7 @@ class MP4TextAtom : public MP4Atom {
 public:
 	MP4TextAtom();
 	void Generate();
-
+	void Read();
 protected:
 	void AddPropertiesStsdType();
 	void AddPropertiesGmhdType();

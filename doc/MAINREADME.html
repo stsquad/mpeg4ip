@@ -307,6 +307,8 @@ You may also have to run <code>ranlib /usr/local/lib/libavcodec.a</code>
 after installing it, if you get an error that it (/usr/local/lib/libavcodec.a)
 is out of date.
 <p>
+We haven't been successful linking ffmpeg builds of 2007 on the Mac. 
+<p>
 We've tested with ffmpeg version 0.4.7, 0.4.8 and 0.4.9-pre1.  See the 
 <a href="http://ffmpeg.sourceforge.net">ffmpeg</a> site for information on how to download.  Use of CVS versions are
 at the discretion of the user.  If you have problems with compiling with a
@@ -546,11 +548,14 @@ unless you're explicitly told to use CVS, <b>don't</b>.
 As of 1.0, we're supporting Windows less and less.  You can read the
 code yourself - if you have trouble doing so, our windows code is not
 for you.
+<p>
+For Windows, we now require Visual Studios 2005, with the Windows SDK
+and Direct X.
 <P>
-For windows, Visual Studio 6.0 projects are included.  You will need
-to install nasm in the VC98/bin directory before compiling.  You should
-get nasm-0.98.22-win32.zip from the nasm web site.  You will need to 
-rename nasmw.exe to nasm.exe.  We require Service Pack 5.
+We also have the Visual Studio 6.0 projects included, but they most
+likely do not work.  You will need to install nasm in the VC98/bin directory
+before compiling.  You should get nasm-0.98.22-win32.zip from the nasm web site.
+You will need to rename nasmw.exe to nasm.exe.  We require Service Pack 5.
 <P>
 We also require you to install the SDL project into where ever you
 are compiling the mpeg4ip project.  Download the latest <a href="http://www.libsdl.org">
@@ -564,18 +569,23 @@ If you're looking at these directions, and going "Huh?" - this project may
 not be right for you.  Don't contact us.  Like I said, we're supporting
 Windows less and less.
 <P>
-Use the encoding60.dsw project for encoding tools, and the 
+If you're using Visual Studios 2005, use the tools.sln or player.sln
+solutions.  The executables and DLLs will be built into the Debug
+and Release directories under mpeg4ip.
+<P>
+We recommend installing DirectX 8.1 or later.  If that is not possible, 
+and you have problems with video, try uncommenting out #define OLD_SURFACE
+in player/src/video.cpp. Other than that, you'll have to figure it
+out yourself - libsdl.org is a good resource.
+<P>
+For Visual Studio 6 (which no longer works), 
+use the encoding60.dsw project for encoding tools, and the 
 player/src/player60.dsw for the player.  You may have problems with 
 certain projects not being able to load. This is due to a problem with
 the way Windows ends lines in their files (using a Ctrl-M, instead of
 a CR-LF like DOS).  For some reason, I have never had these problems.
 You can use a unix to DOS file converter, or just open the .dsp or .dsw
 in Wordpad and save it.
-<P>
-We recommend installing DirectX 8.1 or later.  If that is not possible, 
-and you have problems with video, try uncommenting out #define OLD_SURFACE
-in player/src/video.cpp. Other than that, you'll have to figure it
-out yourself - libsdl.org is a good resource.
 <P>
 To run mp4player other than in Visual Studio, install mp4player.exe 
 into a directory on your Window's path (install them into

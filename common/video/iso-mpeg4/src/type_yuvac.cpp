@@ -38,8 +38,7 @@ Abstract:
 Revision History:
 
 *************************************************************************/
-
-#include <iostream.h>
+#include <iostream>
 #include "typeapi.h"
 
 #ifdef __MFC_
@@ -540,7 +539,7 @@ const CU8Image* CVOPU8YUVBA::getPlaneA (Int iAuxComp) const
 const CU8Image* CVOPU8YUVBA::getPlane (PlaneType plnType) const
 {
 	if (plnType==A_PLANE) {
-		cerr << "For A-Planes please use CVOPIntYUVBA::getPlaneA()!\n";
+		printf("For A-Planes please use CVOPIntYUVBA::getPlaneA()!\n");
 		assert( plnType!=A_PLANE );
 	}
 	

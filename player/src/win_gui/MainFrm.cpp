@@ -85,27 +85,31 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	return TRUE;
 }
 
-void CMainFrame::OnCloseSession (void)
+LRESULT CMainFrame::OnCloseSession (WPARAM, LPARAM)
 {
 	theApp.StopSession();
+	return 0;
 }
 
-void CMainFrame::OnSessionDied (void)
+LRESULT CMainFrame::OnSessionDied (WPARAM, LPARAM)
 {
 	theApp.SessionDied();
+	return 0;
 }
 
-void CMainFrame::OnSessionWarning(WPARAM temp, LPARAM notemp)
+LRESULT CMainFrame::OnSessionWarning(WPARAM temp, LPARAM notemp)
 {
 	const char *p = (const char *)temp;
 	AfxMessageBox(p);
+	return 0;
 }
 
-void CMainFrame::OnSessionError(WPARAM temp, LPARAM notemp)
+LRESULT CMainFrame::OnSessionError(WPARAM temp, LPARAM notemp)
 {
 	const char *p = (const char *)temp;
 	AfxMessageBox(p);
 	theApp.StopSession();
+	return 0;
 }
 	
 /////////////////////////////////////////////////////////////////////////////

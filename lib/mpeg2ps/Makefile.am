@@ -30,5 +30,5 @@ mpeg2ps_test_LDADD = libmpeg2_program.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	libmpeg2_program.la 
 
-EXTRA_DIST=libmpeg2ps.dsp
+EXTRA_DIST=libmpeg2ps.dsp libmpeg2ps.vcproj
 

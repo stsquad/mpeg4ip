@@ -9,6 +9,6 @@ libismacryp_la_SOURCES = ismacryplib.c \
 AM_CFLAGS = -D_REENTRANT @BILLS_CWARNINGS@
 
 EXTRA_DIST = \
-	libismacryp.dsp \
+	libismacryp.dsp libismacryp.vcproj \
 	README \
 	README.html

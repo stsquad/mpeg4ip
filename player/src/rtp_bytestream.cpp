@@ -1010,7 +1010,7 @@ bool CRtpByteStream::start_next_frame (uint8_t **buffer,
   pts->audio_freq_timestamp = m_last_rtp_ts;
   pts->audio_freq = m_timescale;
   pts->timestamp_is_pts = true;
-  return (timetick);
+  return (true);
 }
 
 bool CRtpByteStream::skip_next_frame (frame_timestamp_t *pts, 

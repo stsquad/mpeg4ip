@@ -37,4 +37,4 @@ AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@ -D__TRACE_AND_STATS_ -D_
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_OBSS_
 
-EXTRA_DIST = mpeg4_iso_plugin60.dsp
+EXTRA_DIST = mpeg4_iso_plugin60.dsp mpeg4_iso_plugin.vcproj

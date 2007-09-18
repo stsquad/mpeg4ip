@@ -1271,12 +1271,14 @@ extern "C" MP4TrackId MP4CloneTrack (MP4FileHandle srcFile,
     // copy track ES configuration
     u_int8_t* pConfig = NULL;
     u_int32_t configSize = 0;
-	  
-    if (MP4GetTrackESConfiguration(
-				   srcFile, 
-				   srcTrackId,
-				   &pConfig,
-				   &configSize) &&
+    uint32_t verb = MP4GetVerbosity(srcFile);
+    MP4SetVerbosity(srcFile, verb & ~(MP4_DETAILS_ERROR));
+    bool haveEs = MP4GetTrackESConfiguration(srcFile, 
+					     srcTrackId,
+					     &pConfig,
+					     &configSize);
+    MP4SetVerbosity(srcFile, verb);
+    if (haveEs &&
 	pConfig != NULL && configSize != 0) {
       if (!MP4SetTrackESConfiguration(
 				      dstFile, 
@@ -1878,7 +1880,7 @@ extern "C" u_int32_t MP4GetTrackBitRate(
 				"mdia.minf.stbl.stsd.*.esds.decConfigDescr.avgBitrate");
 		}
 		catch (MP4Error* e) {
-			PRINT_ERROR(e);
+		  //PRINT_ERROR(e);  we don't really need to print this.
 			delete e;
 		}
 		// if we're here, we can't get the bitrate from above - 
@@ -1898,7 +1900,7 @@ extern "C" u_int32_t MP4GetTrackBitRate(
 		  return (uint32_t)bytes;
 		}
 		catch (MP4Error* e) {
-			PRINT_ERROR(e);
+		  PRINT_ERROR(e); // print this one.
 			delete e;
 		}
 		
@@ -3375,7 +3377,7 @@ extern "C" u_int32_t MP4GetTrackNumberOfEdits(
 			return ((MP4File*)hFile)->GetTrackNumberOfEdits(trackId);
 		}
 		catch (MP4Error* e) {
-			PRINT_ERROR(e);
+			//PRINT_ERROR(e);
 			delete e;
 		}
 	}

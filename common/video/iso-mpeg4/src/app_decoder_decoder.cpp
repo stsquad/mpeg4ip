@@ -56,6 +56,7 @@ Revision History:
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
 #include <strstream>
 #ifdef __PC_COMPILER_
 #include <windows.h>
@@ -81,7 +82,7 @@ Revision History:
 
 #include "global.hpp"
 #include "globals.hpp"
-
+using namespace std;
 #ifdef __MFC_
 #ifdef _DEBUG
 #undef THIS_FILE

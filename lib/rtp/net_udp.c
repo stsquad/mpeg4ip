@@ -115,7 +115,7 @@ struct socket_udp_ {
 #endif /* HAVE_IPv6 */
 };
 
-#ifdef WIN32
+#ifdef _WIN32
 /* Want to use both Winsock 1 and 2 socket options, but since
 * IPv6 support requires Winsock 2 we have to add own backwards
 * compatibility for Winsock 1.
@@ -317,7 +317,7 @@ static socket_udp *udp_init4 (const char *addr, const char *iface,
     recv_buf_size = recv_buf_size_value;
     if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_RCVBUF, (char *)&recv_buf_size, sizeof(int)) != 0) {
       socket_error("setsockopt SO_RCVBUF");
-      close(s->fd);
+      closesocket(s->fd);
       free(s);
       return NULL;
     }
@@ -338,13 +338,13 @@ static socket_udp *udp_init4 (const char *addr, const char *iface,
 	
   if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) != 0) {
     socket_error("setsockopt SO_REUSEADDR");
-    close(s->fd);
+    closesocket(s->fd);
     free(s);
     return NULL;
   }
 #ifdef SO_REUSEPORT
   if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEPORT, (char *) &reuse, sizeof(reuse)) != 0) {
-    close(s->fd);
+    closesocket(s->fd);
     free(s);
     socket_error("setsockopt SO_REUSEPORT");
     return NULL;
@@ -355,7 +355,7 @@ static socket_udp *udp_init4 (const char *addr, const char *iface,
   s_in.sin_port        = htons(rx_port);
   if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
     socket_error("bind: port %d", rx_port);
-    close(s->fd);
+    closesocket(s->fd);
     free(s);
     return NULL;
   }
@@ -368,7 +368,7 @@ static socket_udp *udp_init4 (const char *addr, const char *iface,
 
     if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) != 0) {
       socket_error("setsockopt IP_ADD_MEMBERSHIP");
-      close(s->fd);
+      closesocket(s->fd);
       free(s);
       return NULL;
     }
@@ -391,7 +391,7 @@ static socket_udp *udp_init4 (const char *addr, const char *iface,
 		      sizeof(struct ip_mreq_source) ) == -1 )
 	{
 	  socket_error("setsockopt IP_ADD_SOURCE_MEMBERSHIP");
-	  close(s->fd);
+	  closesocket(s->fd);
 	  free(s);
 	  return NULL;
 	}
@@ -401,20 +401,20 @@ static socket_udp *udp_init4 (const char *addr, const char *iface,
 #ifndef WIN32
     if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop)) != 0) {
       socket_error("setsockopt IP_MULTICAST_LOOP");
-      close(s->fd);
+      closesocket(s->fd);
       free(s);
       return NULL;
     }
 #endif
     if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_TTL, (char *) &s->ttl, sizeof(s->ttl)) != 0) {
       socket_error("setsockopt IP_MULTICAST_TTL");
-      close(s->fd);
+      closesocket(s->fd);
       free(s);
       return NULL;
     }
     if (s->iface4_addr.s_addr != 0) {
       if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_IF, (char *) &s->iface4_addr, sizeof(s->iface4_addr)) != 0) {
-	close(s->fd);
+	closesocket(s->fd);
 	free(s);
 	socket_error("setsockopt IP_MULTICAST_IF");
 	return NULL;
@@ -466,7 +466,7 @@ static void udp_exit4(socket_udp *s)
 #endif
 		rtp_message(LOG_INFO,  "Dropped membership of multicast group");
 	}
-	close(s->fd);
+	closesocket(s->fd);
 	if (s->addr != NULL)
 	  free(s->addr);
 	free(s);
@@ -671,7 +671,7 @@ static void udp_exit6(socket_udp *s)
 			abort();
 		}
 	}
-	close(s->fd);
+	closesocket(s->fd);
 	if (s->addr != NULL) {
 	  free(s->addr);
 	}
@@ -774,7 +774,7 @@ static char *udp_host_addr6(socket_udp *s)
 		debug_msg("getsockname failed\n");
 	}
 
-	close (newsock);
+	closesocket (newsock);
 
 	if (IN6_IS_ADDR_UNSPECIFIED(&local.sin6_addr) || IN6_IS_ADDR_MULTICAST(&local.sin6_addr)) {
 		if (gethostname(hname, MAXHOSTNAMELEN) != 0) {

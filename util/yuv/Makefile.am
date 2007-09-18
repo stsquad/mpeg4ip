@@ -21,4 +21,4 @@ LDADD = \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
         -lm
 
-EXTRA_DIST=yuvdump60.dsp
+EXTRA_DIST=yuvdump60.dsp yuvdump.vcproj

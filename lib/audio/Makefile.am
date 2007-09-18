@@ -7,4 +7,4 @@ INCLUDES = -I$(top_srcdir)/include
 AM_CFLAGS = -D_REENTRANT @BILLS_CWARNINGS@
 AM_CXXFLAGS = -D_REENTRANT @BILLS_CPPWARNINGS@
 
-EXTRA_DIST=audio.dsp
+EXTRA_DIST=audio.dsp audio.vcproj

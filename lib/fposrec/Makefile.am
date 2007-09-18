@@ -3,7 +3,7 @@ libmpeg4ip_fposrec_la_SOURCES = \
 	fposrec.cpp \
 	fposrec.h
 
-EXTRA_DIST = libfileposrec60.dsp 
+EXTRA_DIST = libfileposrec60.dsp libfileposrec.vcproj
 
 INCLUDES = -I$(top_srcdir)/include
 

@@ -38,9 +38,8 @@ Revision History:
 
 #ifndef __ENTROPY_HPP_
 #define __ENTROPY_HPP_
-
-#include <istream.h>
-#include <ostream.h>
+#include <istream>
+#include <ostream>
 
 class CInBitStream;
 class COutBitStream;
@@ -54,7 +53,7 @@ class CEntropyEncoder
 {
 public:
 	virtual ~CEntropyEncoder () {};
-    virtual Void loadTable (istream &Table) = 0;
+	virtual Void loadTable (std::istream &Table) = 0;
 	virtual Void loadTable (VlcTable *pVlc) = 0;
     virtual Void attachStream (COutBitStream &BitStream) = 0;
     virtual UInt encodeSymbol (Int lSymbol, Char* rgchSymbolName = NULL, Bool bDontSendBits = FALSE) = 0;
@@ -66,7 +65,7 @@ class CEntropyDecoder
 {
 public:
 	virtual ~CEntropyDecoder () {};
-    virtual Void loadTable (istream &Table, Bool bIncompleteTree=TRUE) = 0;
+	virtual Void loadTable (std::istream &Table, Bool bIncompleteTree=TRUE) = 0;
 	virtual Void loadTable (VlcTable *pVlc, Bool bIncompleteTree=TRUE) = 0;
     virtual Int decodeSymbol () = 0;
     virtual Void attachStream (CInBitStream *bitStream) = 0;

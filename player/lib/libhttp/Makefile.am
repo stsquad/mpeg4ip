@@ -19,4 +19,4 @@ http_test_LDADD = libhttp.la $(top_builddir)/lib/utils/libutils.la
 post_test_SOURCES = post_test.c
 post_test_LDADD = libhttp.la $(top_builddir)/lib/utils/libutils.la
 
-EXTRA_DIST = libhttp60.dsp 
+EXTRA_DIST = libhttp60.dsp libhttp.vcproj

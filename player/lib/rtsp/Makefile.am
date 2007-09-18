@@ -25,4 +25,4 @@ test_thread_INCLUDES = -I../../../lib/sdp
 test_thread_LDADD = librtsp.la $(top_builddir)/lib/sdp/libsdp.la @SDL_LIBS@ \
 	$(top_builddir)/lib/rtp/libuclmmbase.la $(top_builddir)/lib/utils/libutils.la
 
-EXTRA_DIST = librtsp60.dsp rtsp_thread_win.cpp rtsp_thread_win.h
+EXTRA_DIST = librtsp60.dsp rtsp_thread_win.cpp rtsp_thread_win.h librtsp.vcproj

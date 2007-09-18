@@ -49,5 +49,5 @@ libmp4av_la_SOURCES = \
 	rfch264.cpp
 
 
-EXTRA_DIST = libmp4av.dsp
+EXTRA_DIST = libmp4av.dsp mp4av.vcproj
 

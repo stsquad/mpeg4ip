@@ -55,7 +55,7 @@ Revision History:
 #include "bitstrm.hpp"
 
 #include "vlc.hpp"
-#include <iostream.h>
+#include <iostream>
 #ifdef __MFC_
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -112,7 +112,7 @@ CHuffmanTree::~CHuffmanTree()
     delete[]m_pNodes;
 }
 
-Void CHuffmanTree::writeSymbol (Int symbolNo,ostream &stream)
+Void CHuffmanTree::writeSymbol (Int symbolNo,std::ostream &stream)
 {
     stream<<symbolNo<<" ";
 }
@@ -172,7 +172,7 @@ Void CHuffmanTree::buildTree ()
     delete pSortingArray;
 }
 
-void CHuffmanTree::writeOneTableEntry(ostream &stream, Int entryNo,
+void CHuffmanTree::writeOneTableEntry(std::ostream &stream, Int entryNo,
                                     Double lTotalFrequency, Double &dNOfBits)
 {
     Double dP=m_pNodes[entryNo].m_lFrequency/(Double)lTotalFrequency;
@@ -191,11 +191,11 @@ void CHuffmanTree::writeOneTableEntry(ostream &stream, Int entryNo,
         lCodeNo--;
         stream<<(Int)pCodeArray[lCodeNo];
     };
-    stream<<endl;
+	stream<< std::endl;
     delete pCodeArray;
 }
 
-Void CHuffmanTree::writeTable (ostream &stream)
+Void CHuffmanTree::writeTable (std::ostream &stream)
 {
     Int lTotalFrequency=0;
     Double dEntropy=0;
@@ -206,7 +206,7 @@ Void CHuffmanTree::writeTable (ostream &stream)
     printStatistics (dEntropy, dNOfBits, stream);
 }
 
-Void CHuffmanTree::writeTableSorted(ostream &stream)
+Void CHuffmanTree::writeTableSorted(std::ostream &stream)
 {
     Int lTotalFrequency=0;
     Double dEntropy=0;
@@ -239,7 +239,7 @@ Void CHuffmanTree::statistics (Int& lTotalFrequency,Double &dEntropy)
     };
 }
 
-Void CHuffmanTree::printStatistics (Double dEntropy, Double dNOfBits, ostream &stream)
+Void CHuffmanTree::printStatistics (Double dEntropy, Double dNOfBits, std::ostream &stream)
 {
     stream<<endl<<endl;
     stream<<"//Entropy Per Symbol : "<<dEntropy<<endl;
@@ -247,14 +247,14 @@ Void CHuffmanTree::printStatistics (Double dEntropy, Double dNOfBits, ostream &s
     stream<<"//Table Efficiency   : "<<dEntropy/dNOfBits<<endl;
 }
 
-Int CHuffmanCoDec::makeIndexFromSymbolInTable(istream &huffmanTable)  
+Int CHuffmanCoDec::makeIndexFromSymbolInTable(std::istream &huffmanTable)  
 {
     Int lR;
 	huffmanTable >> lR;
 	return lR;
 }
 
-Void CHuffmanCoDec::trashRestOfLine (istream &str)
+Void CHuffmanCoDec::trashRestOfLine (std::istream &str)
 {
     Int iC;
     do
@@ -264,7 +264,7 @@ Void CHuffmanCoDec::trashRestOfLine (istream &str)
     while ((iC!='\n') && (iC!=EOF));
 }
 
-Bool CHuffmanCoDec::processOneLine (istream &huffmanTable, Int &lSymbol,
+Bool CHuffmanCoDec::processOneLine (std::istream &huffmanTable, Int &lSymbol,
                     Int &lCodeSize, Char *pCode)
 {
 	huffmanTable >> ws;
@@ -298,7 +298,7 @@ Bool CHuffmanCoDec::processOneLine (istream &huffmanTable, Int &lSymbol,
     return TRUE;
 }
 
-Void CHuffmanCoDec::profileTable (istream &huffmanTable,
+Void CHuffmanCoDec::profileTable (std::istream &huffmanTable,
             Int &lNOfSymbols, Int &lMaxCodeSize)
 {
     huffmanTable.clear();
@@ -353,7 +353,7 @@ Void CHuffmanDecoder::realloc(Int lOldSize,Int lNewSize)
     m_pTree=pNewTree;
 }
 
-void CHuffmanDecoder::loadTable(istream &huffmanTable,Bool bIncompleteTree)
+void CHuffmanDecoder::loadTable(std::istream &huffmanTable,Bool bIncompleteTree)
 {
     Int lTableSize;
     Int lNOfSymbols;
@@ -609,7 +609,7 @@ CHuffmanEncoder::CHuffmanEncoder(COutBitStream &bitStream, VlcTable *pVlc)
 	loadTable(pVlc);
 }
 
-Void CHuffmanEncoder::loadTable(istream &huffmanTable)
+Void CHuffmanEncoder::loadTable(std::istream &huffmanTable)
 {
     Int lNOfSymbols;
     Int lMaxCodeSize;

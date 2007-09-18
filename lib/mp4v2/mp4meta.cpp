@@ -720,8 +720,6 @@ bool MP4File::SetMetadataFreeForm (const char *name,
 
   while (1)
     {
-      MP4BytesProperty *pMetadataProperty;
-
       snprintf(s, 256, "moov.udta.meta.ilst.----[%u].name", i);
 
       MP4Atom *pTagAtom = m_pRootAtom->FindAtom(s);
@@ -776,7 +774,7 @@ bool MP4File::SetMetadataFreeForm (const char *name,
 
   snprintf(t, 256, "udta.meta.ilst.----[%u]", i);
   snprintf(s, 256, "moov.udta.meta.ilst.----[%u].data", i);
-  AddDescendantAtoms("moov", t);
+  (void)AddDescendantAtoms("moov", t);
 
   pMetaAtom = m_pRootAtom->FindAtom(s);
 

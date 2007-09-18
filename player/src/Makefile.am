@@ -216,10 +216,10 @@ gmp4player_LDADD = $(mp4player_LDADD) \
 EXTRA_DIST = \
 	audio_dummy.cpp \
 	audio_dummy.h \
-	libmpplayer60.dsp \
-	mp4player60.dsp \
+	libmpplayer60.dsp libmpplayer.vcproj \
+	mp4player60.dsp mp4player.vcproj \
 	player60.dsw \
-	wmp4player60.dsp \
+	wmp4player60.dsp wmp4player.vcproj \
 	video_dummy.cpp \
 	video_dummy.h
 

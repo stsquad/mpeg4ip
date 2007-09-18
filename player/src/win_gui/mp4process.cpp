@@ -92,21 +92,19 @@ BOOL CMP4Process::start_process (CString &name)
    
    m_receive_thread = CreateThread(NULL, 0, c_receive_thread, this, 
 								   0, &m_receive_thread_id);
-
-   char buffer[512];
-   _snprintf(buffer, sizeof(buffer), "%swmp4client.exe \"%s\"", 
-#ifdef _DEBUG
-	   "win_client\\debug\\", 
-#else
-	   "",
+#if 0
+	char path[MAX_PATH];
+	path[0] = '\0';
+	if (GetModuleFileName(NULL, path, MAX_PATH) > 0) {
+		char *end = strrchr(path, '\\');
+		*end = '\0';
+	} 
 #endif
+   char buffer[512];
+   _snprintf(buffer, sizeof(buffer), "wmp4client.exe \"%s\"", 
 	   name);
    m_thread_created = CreateProcess(
-#ifdef _DEBUG
-	   "win_client\\debug\\wmp4client.exe", 
-#else
 	   "wmp4client.exe",
-#endif
 		buffer,       // command line 
 		NULL,          // process security attributes 
 		NULL,          // primary thread security attributes 
@@ -116,9 +114,9 @@ BOOL CMP4Process::start_process (CString &name)
 		NULL,          // use parent's current directory 
 		&m_siStartInfo,  // STARTUPINFO pointer 
 		&m_piProcInfo);  // receives PROCESS_INFORMATION 
-   if (m_thread_created == FALSE) {
-	   char buffer[512];
-	   sprintf(buffer, "Thread error is %d", GetLastError());
+   if (m_thread_created == 0) {
+	   char outbuffer[512];
+	   _snprintf(outbuffer, 512, "Thread error is %d\n%s", GetLastError(), buffer);
 	   AfxMessageBox(buffer);
    }
    return m_thread_created;
@@ -275,8 +273,8 @@ void CMP4Process::receive_thread (void)
 				theApp.m_pMainWnd->PostMessage(WM_SESSION_DIED);
 			break;
 		default:
-			TRACE1("Illegal code %d received in receive thread\n", 
-				    ret);
+			TRACE2("Illegal code %d received in receive thread %u\n", 
+				    ret, GetLastError());
 			break;
 		}
 #if 0

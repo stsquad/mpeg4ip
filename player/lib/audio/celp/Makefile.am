@@ -1,3 +1,3 @@
 SUBDIRS = BS dec include
 
-EXTRA_DIST = libcelp.dsp
+EXTRA_DIST = libcelp.dsp libcelp.vcproj

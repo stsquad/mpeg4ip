@@ -75,7 +75,7 @@
 
 #include <stdlib.h>
 #include <math.h>
-#include <iostream.h>
+#include <iostream>
 #include "typeapi.h"
 #include "codehead.h"
 #include "mode.hpp"

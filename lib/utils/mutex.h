@@ -20,7 +20,7 @@ void MutexDestroy(mutex_t);
 thread_t ThreadCreate(thread_func_f, void *);
 int ThreadWait(thread_t);
 
-void ThreadSleep(uint msec);
+void ThreadSleep(unsigned int msec);
 #ifdef __cplusplus
 }
 #endif

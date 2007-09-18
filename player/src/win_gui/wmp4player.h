@@ -47,7 +47,7 @@ public:
 	//{{AFX_MSG(CWmp4playerApp)
 	afx_msg void OnAppAbout();
 	afx_msg void OnFileOpen();
-	afx_msg BOOL OnOpenRecentFile(UINT nID);
+	afx_msg void OnOpenRecentFile(UINT nID);
 	afx_msg void OnVideoFullscreen();
 	afx_msg void OnUpdateDebugMpeg4isoonly(CCmdUI* pCmdUI);
 	afx_msg void OnDebugMpeg4isoonly();

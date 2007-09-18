@@ -223,7 +223,7 @@ void CWmp4playerApp::OnFileOpen()
 	//CWinApp::AddToRecentFileList
 }
 
-BOOL CWmp4playerApp::OnOpenRecentFile(UINT nID)
+void CWmp4playerApp::OnOpenRecentFile(UINT nID)
 {
 	int nIndex = nID - ID_FILE_MRU_FILE1;
 
@@ -234,7 +234,6 @@ BOOL CWmp4playerApp::OnOpenRecentFile(UINT nID)
 	//if (OpenDocumentFile((*m_pRecentFileList)[nIndex]) == NULL)
 	//	m_pRecentFileList->Remove(nIndex);
 
-	return TRUE;
 }
 
 

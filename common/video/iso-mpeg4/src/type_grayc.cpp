@@ -837,9 +837,9 @@ own CU8Image* CU8Image::upsampleSegForSpatialScalability (	Int iVerticalSampling
 	//Int iWidthDst = rctDst.width;
 	Int iHeightDst = rctDst.bottom - rctDst.top;
 
-	double h_factor = log((double)iHorizontalSamplingFactorN/iHorizontalSamplingFactorM)/log(2);
+	double h_factor = log((double)iHorizontalSamplingFactorN/iHorizontalSamplingFactorM)/log((double)2);
 	int h_factor_int = (int)floor(h_factor+0.000001);
-	double v_factor = log((double)iVerticalSamplingFactorN/iVerticalSamplingFactorM)/log(2);
+	double v_factor = log((double)iVerticalSamplingFactorN/iVerticalSamplingFactorM)/log((double)2);
 	int v_factor_int = (int)floor(v_factor+0.000001);
 
 	//wchen: this approach is very slow; will have to change later

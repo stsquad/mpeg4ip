@@ -21,4 +21,4 @@ AM_CFLAGS = -D_REENTRANT @BILLS_CWARNINGS@
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
-EXTRA_DIST = libmp4util60.dsp 
+EXTRA_DIST = libmp4util60.dsp libmp4util.vcproj

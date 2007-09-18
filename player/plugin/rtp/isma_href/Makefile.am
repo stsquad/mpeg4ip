@@ -20,5 +20,5 @@ AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
-EXTRA_DIST = isma_href_rtp_plugin.dsp
+EXTRA_DIST = isma_href_rtp_plugin.dsp isma_href_rtp_plugin.vcproj
 

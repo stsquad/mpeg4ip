@@ -88,157 +88,16 @@ union UConfigValue {
 	float				m_fvalue;
 };
 
-#ifdef _WIN32
-#define SConfigVariableDeclare class
-#else
-#define SConfigVariableDeclare struct
-#endif
-
-SConfigVariableDeclare SConfigVariable {
-#ifdef _WIN32
- public:	
-  SConfigVariable(config_index_t *iName,
-		  const char* 	 sName,
-		  ConfigType	 type,
-		  UConfigValue	 defaultValue,
-		  const char *help = NULL,
-		  UConfigValue	 value = (config_integer_t)0) {
-    m_iName = iName;
-    m_sName = sName;
-    m_type = type;
-    m_defaultValue = defaultValue;
-    m_helpString = help;
-    m_value = value;
-  };
-#endif
-
+typedef struct SConfigVariable {
         config_index_t	               *m_iName;
 	const char* 			m_sName;
 	ConfigType			m_type;
 	UConfigValue			m_defaultValue;
 	const char*                     m_helpString;
 	UConfigValue			m_value;
+} SConfigVarible;
 
-	const char* ToAscii() {
-		static char sBuf[CONFIG_MAX_STRLEN+3];
-		switch (m_type) {
-		case CONFIG_TYPE_INTEGER:
-			sprintf(sBuf, "%d", m_value.m_ivalue);
-			return sBuf;
-		case CONFIG_TYPE_BOOL:
-			sprintf(sBuf, "%d", m_value.m_bvalue);
-			return sBuf;
-		case CONFIG_TYPE_STRING:
-		  if(m_value.m_svalue == NULL) {
-		    sprintf(sBuf, "\"\"");
-		    return sBuf;
-		  } 
-		  if (strchr(m_value.m_svalue, ' ')) {
-		    sBuf[0] = '"';
-		    strncpy(&sBuf[1], m_value.m_svalue, CONFIG_MAX_STRLEN);
-		    strcpy(&sBuf[MIN(strlen(m_value.m_svalue), 
-				     CONFIG_MAX_STRLEN)+1], "\"");
-		  }
-		  return m_value.m_svalue;
-		case CONFIG_TYPE_FLOAT:
-			sprintf(sBuf, "%f", m_value.m_fvalue);
-			return sBuf;
-		case CONFIG_TYPE_UNDEFINED:
-		default:
-			return "";
-		}
-	}
 
-	bool FromAscii(const char* s) {
-		switch (m_type) {
-		case CONFIG_TYPE_INTEGER:
-			return (sscanf(s, " %i ", &m_value.m_ivalue) == 1);
-		case CONFIG_TYPE_BOOL:
-			// OPTION could add "yes/no", "true/false"
-			if (sscanf(s, " %u ", &m_value.m_ivalue) != 1) {
-				return false;
-			}
-			m_value.m_bvalue = m_value.m_ivalue ? true : false;
-			return true;
-		case CONFIG_TYPE_STRING:
-			// N.B. assuming m_svalue has been alloc'ed
-		  {
-		    size_t len = strlen(s);
-		    CHECK_AND_FREE(m_value.m_svalue);
-		    if (*s == '"' && s[len] == '"') {
-		      char *newvalue = strdup(s + 1);
-		      newvalue[len - 1] = '\0';
-
-		      m_value.m_svalue = newvalue;
-		    } else {
-		      m_value.m_svalue = strdup(s);
-		    }
-		    if (m_value.m_svalue == NULL) {
-		      throw new CConfigException(CONFIG_ERR_MEMORY);
-		    }
-		    return true;
-		  }
-		case CONFIG_TYPE_FLOAT:
-			return (sscanf(s, " %f ", &m_value.m_fvalue) == 1);
-		case CONFIG_TYPE_UNDEFINED:
-		default:
-			return false;
-		}
-	}
-
-	void SetToDefault(void) {
-		switch (m_type) {
-		case CONFIG_TYPE_INTEGER:
-			m_value.m_ivalue = m_defaultValue.m_ivalue;
-			break;
-		case CONFIG_TYPE_BOOL:
-			m_value.m_bvalue = m_defaultValue.m_bvalue;
-			break;
-		case CONFIG_TYPE_STRING:
-			CHECK_AND_FREE(m_value.m_svalue);
-			if (m_defaultValue.m_svalue == NULL) {
-			  m_value.m_svalue = NULL;
-			} else {
-			  m_value.m_svalue = strdup(m_defaultValue.m_svalue);
-			  if (m_value.m_svalue == NULL) {
-			    throw new CConfigException(CONFIG_ERR_MEMORY);
-			  }
-			}
-			break;
-		case CONFIG_TYPE_FLOAT:
-			m_value.m_fvalue = m_defaultValue.m_fvalue;
-			break;
-		case CONFIG_TYPE_UNDEFINED:
-		default:
-			break;
-		} 
-	}
-
-	bool IsValueDefault(void) {
-		switch (m_type) {
-		case CONFIG_TYPE_INTEGER:
-			return m_value.m_ivalue == m_defaultValue.m_ivalue;
-		case CONFIG_TYPE_BOOL:
-			return m_value.m_bvalue == m_defaultValue.m_bvalue;
-		case CONFIG_TYPE_STRING:
-		  if (m_defaultValue.m_svalue == NULL && m_value.m_svalue == NULL) 
-		    return true;
-		  if (m_defaultValue.m_svalue == NULL) return false;
-		  if (m_value.m_svalue == NULL) return false;
-			return (strcmp(m_value.m_svalue, m_defaultValue.m_svalue) == 0);
-		case CONFIG_TYPE_FLOAT:
-			return m_value.m_fvalue == m_defaultValue.m_fvalue;
-		case CONFIG_TYPE_UNDEFINED:
-		default:
-			return false;
-		} 
-	}
-        void CleanUpConfig(void) {
-	  if (m_type == CONFIG_TYPE_STRING) {
-	    CHECK_AND_FREE(m_value.m_svalue);
-	  }
-	}
-};
 
 struct SUnknownConfigVariable {
   struct SUnknownConfigVariable *next;
@@ -267,7 +126,7 @@ public:
 	~CConfigSet() {
 		CHECK_AND_FREE(m_fileName);
 		for (config_index_t i = 0; i < m_numVariables; i++) {
-		  m_variables[i].CleanUpConfig();
+		  CleanUpConfig(&m_variables[i]);
 		}
 		free(m_variables);
 		m_variables = NULL;
@@ -371,7 +230,7 @@ public:
 #if CONFIG_SAFETY
 	  CheckIName(iName);
 #endif
-	  return m_variables[iName].IsValueDefault();
+	  return IsValueDefault(&m_variables[iName]);
 	};
 
 	inline config_integer_t GetIntegerValue(const config_index_t iName) {
@@ -459,12 +318,12 @@ public:
 
 	void SetToDefaults(int start = 0) {
 		for (config_index_t i = start; i < m_numVariables; i++) {
-			m_variables[i].SetToDefault();
+			SetToDefault(&m_variables[i]);
 		}
 	}
 
 	void SetToDefault(const config_index_t iName) {
-	  m_variables[iName].SetToDefault();
+	  SetToDefault(&m_variables[iName]);
 	}
 
 	void ProcessLine (char *line) {
@@ -490,7 +349,7 @@ public:
 	      memset(svar, 0, sizeof(*svar));
 	      svar->m_sName = strdup(name);
 	      svar->m_type = CONFIG_TYPE_STRING;
-	      if (!svar->FromAscii(s)) {
+	      if (!FromAscii(svar, s)) {
 		fprintf(stderr, "bad config value in line %s\n", s);
 	      }
 	      SUnknownConfigVariable *ptr;
@@ -504,7 +363,7 @@ public:
 	    }
 	    return;
 	  }
-	  if (!var->FromAscii(s)) {
+	  if (!FromAscii(var, s)) {
 	    if (m_debug) {
 	      fprintf(stderr, "bad config value in line %s\n", s);  
 	    }
@@ -512,7 +371,7 @@ public:
 	}
 
 	void SetVariableFromAscii(config_index_t ix, char *arg) {
-	  m_variables[ix].FromAscii(arg);
+	  FromAscii(&m_variables[ix], arg);
 	};
 
 	bool ReadFile(const char* fileName = NULL) {
@@ -558,14 +417,15 @@ public:
 		}
 		for (i = 0; i < m_numVariables; i++) {
 			var = &m_variables[i];
-			if (allValues || !var->IsValueDefault()) {
-				fprintf(pFile, "%s=%s\n", var->m_sName, var->ToAscii());
+			if (allValues || !IsValueDefault(var)) {
+				fprintf(pFile, "%s=%s\n", var->m_sName, 
+					ToAscii(var));
 			}
 		}
 		ptr = m_unknown_head;
 		while (ptr != NULL) {
 		  fprintf(pFile, "%s=%s\n", ptr->value->m_sName, 
-			  ptr->value->ToAscii());
+			  ToAscii(ptr->value));
 		  ptr = ptr->next;
 		}
 		fclose(pFile);
@@ -623,7 +483,7 @@ public:
 	  for (ix = 0; ix < m_numVariables; ix++) {
 	    fprintf(stdout, "%s:\t%s\n", 
 		    m_variables[ix].m_sName, 
-		    m_variables[ix].ToAscii());
+		    ToAscii(&m_variables[ix]));
 	  }
 	};
 	const char* GetUnknownStringValue (const char *var_name) {
@@ -652,6 +512,127 @@ protected:
 	bool 			m_debug;
 	const char*		m_fileName;
 	SUnknownConfigVariable *m_unknown_head;
+	const char* ToAscii(SConfigVariable *v) {
+	  static char sBuf[CONFIG_MAX_STRLEN+3];
+	  switch (v->m_type) {
+	  case CONFIG_TYPE_INTEGER:
+	    sprintf(sBuf, "%d", v->m_value.m_ivalue);
+	    return sBuf;
+	  case CONFIG_TYPE_BOOL:
+	    sprintf(sBuf, "%d", v->m_value.m_bvalue);
+	    return sBuf;
+	  case CONFIG_TYPE_STRING:
+	    if (v->m_value.m_svalue == NULL) {
+	      sprintf(sBuf, "\"\"");
+	      return sBuf;
+	    } 
+	    if (strchr(v->m_value.m_svalue, ' ')) {
+	      sBuf[0] = '"';
+	      strncpy(&sBuf[1], v->m_value.m_svalue, CONFIG_MAX_STRLEN);
+	      strcpy(&sBuf[MIN(strlen(v->m_value.m_svalue), 
+			       CONFIG_MAX_STRLEN)+1], "\"");
+	    }
+	    return v->m_value.m_svalue;
+	  case CONFIG_TYPE_FLOAT:
+	    sprintf(sBuf, "%f", v->m_value.m_fvalue);
+	    return sBuf;
+	  case CONFIG_TYPE_UNDEFINED:
+	  default:
+	    return "";
+	  }
+	};
+
+	bool FromAscii(SConfigVarible *v, const char* s) {
+	  switch (v->m_type) {
+	  case CONFIG_TYPE_INTEGER:
+	    return (sscanf(s, " %i ", &v->m_value.m_ivalue) == 1);
+	  case CONFIG_TYPE_BOOL:
+	    // OPTION could add "yes/no", "true/false"
+	    if (sscanf(s, " %u ", &v->m_value.m_ivalue) != 1) {
+	      return false;
+	    }
+	    v->m_value.m_bvalue = v->m_value.m_ivalue ? true : false;
+	    return true;
+	  case CONFIG_TYPE_STRING:
+	    // N.B. assuming m_svalue has been alloc'ed
+	    {
+	      size_t len = strlen(s);
+	      CHECK_AND_FREE(v->m_value.m_svalue);
+	      if (*s == '"' && s[len] == '"') {
+		char *newvalue = strdup(s + 1);
+		newvalue[len - 1] = '\0';
+
+		v->m_value.m_svalue = newvalue;
+	      } else {
+		v->m_value.m_svalue = strdup(s);
+	      }
+	      if (v->m_value.m_svalue == NULL) {
+		throw new CConfigException(CONFIG_ERR_MEMORY);
+	      }
+	      return true;
+	    }
+	  case CONFIG_TYPE_FLOAT:
+	    return (sscanf(s, " %f ", &v->m_value.m_fvalue) == 1);
+	  case CONFIG_TYPE_UNDEFINED:
+	  default:
+	    return false;
+	  }
+	};
+
+	void SetToDefault(SConfigVariable *v) {
+	  switch (v->m_type) {
+	  case CONFIG_TYPE_INTEGER:
+	    v->m_value.m_ivalue = v->m_defaultValue.m_ivalue;
+	    break;
+	  case CONFIG_TYPE_BOOL:
+	    v->m_value.m_bvalue = v->m_defaultValue.m_bvalue;
+	    break;
+	  case CONFIG_TYPE_STRING:
+	    CHECK_AND_FREE(v->m_value.m_svalue);
+	    if (v->m_defaultValue.m_svalue == NULL) {
+	      v->m_value.m_svalue = NULL;
+	    } else {
+	      v->m_value.m_svalue = strdup(v->m_defaultValue.m_svalue);
+	      if (v->m_value.m_svalue == NULL) {
+		throw new CConfigException(CONFIG_ERR_MEMORY);
+	      }
+	    }
+	    break;
+	  case CONFIG_TYPE_FLOAT:
+	    v->m_value.m_fvalue = v->m_defaultValue.m_fvalue;
+	    break;
+	  case CONFIG_TYPE_UNDEFINED:
+	  default:
+	    break;
+	  } 
+	};
+
+	bool IsValueDefault(SConfigVarible *v) {
+	  switch (v->m_type) {
+	  case CONFIG_TYPE_INTEGER:
+	    return v->m_value.m_ivalue == v->m_defaultValue.m_ivalue;
+	  case CONFIG_TYPE_BOOL:
+	    return v->m_value.m_bvalue == v->m_defaultValue.m_bvalue;
+	  case CONFIG_TYPE_STRING:
+	    if (v->m_defaultValue.m_svalue == NULL && 
+		v->m_value.m_svalue == NULL) 
+	      return true;
+	    if (v->m_defaultValue.m_svalue == NULL) return false;
+	    if (v->m_value.m_svalue == NULL) return false;
+	    return (strcmp(v->m_value.m_svalue, 
+			   v->m_defaultValue.m_svalue) == 0);
+	  case CONFIG_TYPE_FLOAT:
+	    return v->m_value.m_fvalue == v->m_defaultValue.m_fvalue;
+	  case CONFIG_TYPE_UNDEFINED:
+	  default:
+	    return false;
+	  } 
+	};
+        void CleanUpConfig(SConfigVariable *v) {
+	  if (v->m_type == CONFIG_TYPE_STRING) {
+	    CHECK_AND_FREE(v->m_value.m_svalue);
+	  }
+	};
 };
 
 // To define configuration variables - first DECLARE_CONFIG in a
@@ -665,26 +646,6 @@ protected:
 // Note - you want to add the config variables BEFORE the ReadFile
 // call
 
-#ifdef _WIN32
-#define CONFIG_BOOL(var, name, defval) \
- { SConfigVariable(&(var), (name), CONFIG_TYPE_BOOL, (defval)) }
-#define CONFIG_FLOAT(var, name, defval) \
- { SConfigVariable(&(var), (name), CONFIG_TYPE_FLOAT,(float) (defval)) }
-#define CONFIG_INT(var, name, defval) \
- { SConfigVariable(&var, name, CONFIG_TYPE_INTEGER, (config_integer_t)(defval))}
- //{ &(var), (name), CONFIG_TYPE_INTEGER,(config_integer_t) (defval), }
-#define CONFIG_STRING(var, name, defval) \
- { SConfigVariable(&(var), (name), CONFIG_TYPE_STRING, (const char *)(defval)) }
-#define CONFIG_BOOL_HELP(var, name, defval, help) \
- { SConfigVariable(&(var), (name), CONFIG_TYPE_BOOL, (defval), help) }
-#define CONFIG_FLOAT_HELP(var, name, defval, help) \
- { SConfigVariable(&(var), (name), CONFIG_TYPE_FLOAT,(float) (defval), help) }
-#define CONFIG_INT_HELP(var, name, defval, help) \
- { SConfigVariable(&var, name, CONFIG_TYPE_INTEGER, (config_integer_t)(defval), help)}
- //{ &(var), (name), CONFIG_TYPE_INTEGER,(config_integer_t) (defval), }
-#define CONFIG_STRING_HELP(var, name, defval, help) \
- { SConfigVariable(&(var), (name), CONFIG_TYPE_STRING, (const char *)(defval), help) }
-#else
 #define CONFIG_BOOL(var, name, defval) \
  { &(var), (name), CONFIG_TYPE_BOOL, (defval), }
 #define CONFIG_FLOAT(var, name, defval) \
@@ -701,7 +662,7 @@ protected:
  { &(var), (name), CONFIG_TYPE_INTEGER,(config_integer_t) (defval), (help), }
 #define CONFIG_STRING_HELP(var, name, defval, help) \
  { &(var), (name), CONFIG_TYPE_STRING, (const char *)(defval), (help), (const char *)NULL,  }
-#endif
+
 
 #endif /* __CONFIG_SET_H__ */
 

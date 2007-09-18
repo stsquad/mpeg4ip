@@ -81,7 +81,7 @@ Revision History:
 #ifdef __GNUC__
 //#include <strstream.h>
 #else
-#include <strstrea.h>
+#include <strstream>
 #endif
 #include <math.h>
 
@@ -372,7 +372,7 @@ CVideoObjectDecoder::CVideoObjectDecoder (
 #if 0
 	if (pistrm == NULL) {
 #endif
-	  m_pistrm = open(pchStrFile, O_RDONLY);
+		m_pistrm = open(pchStrFile, O_RDONLY, 0);
 		if(m_pistrm < 0)
 			fatal_error("Can't open bitstream file");
 #if 0

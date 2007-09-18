@@ -71,10 +71,10 @@ void MP4TextAtom::AddPropertiesGmhdType()
 void MP4TextAtom::Generate()
 {
 
-	if (!strcmp(m_pParentAtom->GetType(), "stsd")) {
+	if (ATOMID(m_pParentAtom->GetType()) == ATOMID("stsd")) {
 		AddPropertiesStsdType();
 		GenerateStsdType();
-	} else if (!strcmp(m_pParentAtom->GetType(), "gmhd")) {
+	} else if (ATOMID(m_pParentAtom->GetType()) == ATOMID("gmhd")) {
 		AddPropertiesGmhdType();
 		GenerateGmhdType();
 	} else {
@@ -125,4 +125,14 @@ void MP4TextAtom::GenerateGmhdType()
 	
 }
 
+void MP4TextAtom::Read ()
+{
+  if (ATOMID(m_pParentAtom->GetType()) == ATOMID("stsd")) {
+    AddPropertiesStsdType();
+  } else if (ATOMID(m_pParentAtom->GetType()) == ATOMID("gmhd")) {
+    AddPropertiesGmhdType();
+  }
+   
+  MP4Atom::Read();
+}
 

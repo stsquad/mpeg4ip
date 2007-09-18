@@ -48,6 +48,7 @@ Revision History:
 
 #define VM_HOME_DIR		"\\vm"
 #include "bitstrm.hpp"
+using namespace std;
 
 class CEntropyEncoder;
 class CEntropyDecoder;
@@ -64,21 +65,21 @@ public:
     Void setFrequencies (Int* lpFrequencies);//load frequencies of all symbols
     Void setFrequency (Int lFrequency, Int lIndex);//set frequency of one symbol
     Void buildTree ();//generate huffman table
-    Void writeTable (ostream &stream);//write table into text stream
-    Void writeTableSorted (ostream &stream);//write table sorted by frequencies into text stream
+	Void writeTable (std::ostream &stream);//write table into text stream
+	Void writeTableSorted (std::ostream &stream);//write table sorted by frequencies into text stream
 
 private:
     CNode* m_pNodes;
     Int m_lNOfSymbols;
-    virtual Void writeSymbol (Int symbolNo,ostream &Stream);
+	virtual Void writeSymbol (Int symbolNo,std::ostream &Stream);
     Void writeOneTableEntry (
-		ostream &Stream,
+		std::ostream &Stream,
 		Int entryNo,
         Double lTotalFrequency,
 		Double &dNOfBits
 	);
     Void statistics (Int &lTotalFrequency, Double &dEntropy);
-    Void printStatistics (Double dEntropy, Double dNOfBits, ostream &stream);
+	Void printStatistics (Double dEntropy, Double dNOfBits, std::ostream &stream);
 };
 
 class CHuffmanCoDec
@@ -86,19 +87,19 @@ class CHuffmanCoDec
 public:
     virtual ~CHuffmanCoDec() {};
 protected:
-    virtual Int makeIndexFromSymbolInTable (istream &huffmanTable);
+	virtual Int makeIndexFromSymbolInTable (std::istream &huffmanTable);
     Void profileTable (
-		istream &huffmanTable,
+		std::istream &huffmanTable,
 		Int& lNOfSymbols, 
 		Int& lMaxCodeSize
 	);
     Bool processOneLine (
-		istream &huffmanTable,
+		std::istream &huffmanTable,
 		Int& lSymbol,
 		Int& lCodeSize,
 		Char* pCode
 	);
-    Void trashRestOfLine (istream &str);
+	Void trashRestOfLine (std::istream &str);
 };
 
 class CHuffmanDecoderNode;
@@ -112,7 +113,7 @@ public:
     ~CHuffmanDecoder ();//destroy decoder
 
 	// Operations
-    Void loadTable (istream &HuffmanTable,Bool bIncompleteTree=TRUE);//load huffman table from the text istream
+	Void loadTable (std::istream &HuffmanTable,Bool bIncompleteTree=TRUE);//load huffman table from the text istream
 	Void loadTable (VlcTable *pVlc,Bool bIncompleteTree=TRUE);//load huffman table from array
 	Int decodeSymbol ();//return one decoded symbol from the attached CInBitStream
     void attachStream (CInBitStream *bitStream);//attach bitStream to decoder
@@ -133,7 +134,7 @@ public:
     ~CHuffmanEncoder ();//destroy encoder
 
 	// Operations
-    Void loadTable (istream &HuffmanTable);//load huffman table from the text istream
+	Void loadTable (std::istream &HuffmanTable);//load huffman table from the text istream
     Void loadTable (VlcTable *pVlc);//load huffman table from the text istream
     Void attachStream (COutBitStream &BitStream);//attach bitStream to the decoder
     UInt encodeSymbol (Int lSymbol, Char* rgchSymbolName = NULL, Bool bDontSendBits = FALSE);//encode one symbol and put into the attached COutBitStream

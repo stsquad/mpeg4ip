@@ -35,7 +35,7 @@ This software module was originally developed by
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include <iostream.h>
+#include <iostream>
 
 #include "typeapi.h"
 #include "codehead.h"

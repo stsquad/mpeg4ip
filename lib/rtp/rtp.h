@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.22 $ 
- * $Date: 2007/01/22 17:31:08 $
+ * $Revision: 1.23 $ 
+ * $Date: 2007/09/18 20:52:01 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -40,7 +40,7 @@
 #define __RTP_H__
 
 #ifndef HAVE_STRUCT_SOCKADDR_STORAGE
-#include "sogckstorage.h"
+#include "sockstorage.h"
 #endif
 
 #ifdef __cplusplus

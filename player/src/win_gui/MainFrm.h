@@ -18,10 +18,10 @@ protected: // create from serialization only
 
 // Attributes
 public:
-	void OnCloseSession();
-	void OnSessionDied();
-	void OnSessionWarning(WPARAM, LPARAM);
-	void OnSessionError(WPARAM, LPARAM);
+	LRESULT OnCloseSession(WPARAM, LPARAM);
+	LRESULT OnSessionDied(WPARAM, LPARAM);
+	LRESULT OnSessionWarning(WPARAM, LPARAM);
+	LRESULT OnSessionError(WPARAM, LPARAM);
 // Operations
 public:
 

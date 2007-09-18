@@ -133,7 +133,7 @@ public:
 		Int iSessionHeight,					// session height
 		UInt uiRateControl,					// rate control type
 		UInt uiBudget,						// bit budget for vop
-		ostream* pstrmTrace,				// trace outstream
+		std::ostream* pstrmTrace,				// trace outstream
 		UInt uiSprite,				// for sprite type // GMC
 		UInt uiWarpAccuracy,				// for sprite warping
 		Int iNumOfPnts,						// for sprite warping

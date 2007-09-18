@@ -19,4 +19,4 @@ h264_parse_LDADD = \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la 
 
-EXTRA_DIST= h264_parse.dsp
+EXTRA_DIST= h264_parse.dsp h264_parse.vcproj

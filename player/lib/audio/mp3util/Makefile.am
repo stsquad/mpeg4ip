@@ -8,7 +8,7 @@ libmp3utils_la_SOURCES = \
 	MP3Internals.cpp \
 	MP3Internals.hh
 
-EXTRA_DIST = libmp3util60.dsp
+EXTRA_DIST = libmp3util60.dsp libmp3util.vcproj
 
 AM_CFLAGS = @BILLS_CWARNINGS@
 

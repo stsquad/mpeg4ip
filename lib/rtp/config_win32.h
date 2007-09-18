@@ -3,8 +3,8 @@
  *
  *  Windows specific definitions and includes.
  *  
- *  $Revision: 1.11 $
- *  $Date: 2006/08/07 18:27:02 $
+ *  $Revision: 1.12 $
+ *  $Date: 2007/09/18 20:52:01 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -37,7 +37,7 @@
  * SUCH DAMAGE.
  */
 
-#ifdef WIN32
+#ifdef _WIN32
 #ifndef _CONFIG_WIN32_H
 #define _CONFIG_WIN32_H
 
@@ -113,6 +113,7 @@ typedef unsigned long	in_addr_t;
 #define WORDS_SMALLENDIAN
 #define NEED_INET_ATON
 #define NEED_DRAND48
+#include "drand48.h"
 //#define NEED_GETTIMEOFDAY
 
 #ifdef NDEBUG
@@ -231,11 +232,18 @@ void ShowMessage(int level, char *msg);
 
 typedef uint16_t in_port_t;
 
+#ifndef _SS_PAD1SIZE
 struct sockaddr_storage {
 	unsigned short ss_family;
 	uint32_t ss_align;
 	char __ss_padding[128 - 2 * sizeof(uint32_t)];
 };
+#else
+#define HAVE_STRUCT_SOCKADDR_STORAGE 1
+//#define HAVE_INET_PTON 1
+#define HAVE_INET_NTOP 1
+#define HAVE_VSNPRINTF 1
+#endif
 
 #ifndef MAX
 #define MAX(a,b) ((a) > (b) ? (a) : (b))

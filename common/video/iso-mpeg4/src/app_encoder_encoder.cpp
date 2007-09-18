@@ -99,7 +99,7 @@ Revision History:
 
 #include "mode.hpp"
 #include "tm5rc.hpp"
-#include "fstream.h"
+#include "iostream"
 #include "sesenc.hpp"
 // #include "encoder/tps_sesenc.hpp" // deleted by Sharp (98/2/12)
 

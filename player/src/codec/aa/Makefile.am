@@ -22,4 +22,4 @@ AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
-EXTRA_DIST = aac_plugin_60.dsp
+EXTRA_DIST = aac_plugin_60.dsp aac_plugin.vcproj

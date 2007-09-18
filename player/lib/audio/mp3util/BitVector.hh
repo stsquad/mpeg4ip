@@ -19,39 +19,39 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 // C++ header
 
 #ifndef _BIT_VECTOR_HH
-#define _BIT_VECTOR_HH
+#define _BIT_VECTOR_HH 1
 
 class BitVector {
 public:
   BitVector(unsigned char* baseBytePtr,
-	    unsigned baseBitOffset,
-	    unsigned totNumBits);
+	    unsigned int baseBitOffset,
+	    unsigned int totNumBits);
 
   void setup(unsigned char* baseBytePtr,
-	     unsigned baseBitOffset,
-	     unsigned totNumBits);
+	     unsigned int baseBitOffset,
+	     unsigned int totNumBits);
 
-  void putBits(unsigned from, unsigned numBits); // "numBits" <= 32
-  void put1Bit(unsigned bit);
+  void putBits(unsigned int from, unsigned int numBits); // "numBits" <= 32
+  void put1Bit(unsigned int bit);
 
-  unsigned getBits(unsigned numBits); // "numBits" <= 32
-  unsigned get1Bit();
+  unsigned int getBits(unsigned int numBits); // "numBits" <= 32
+  unsigned int get1Bit();
 
-  void skipBits(unsigned numBits);
+  void skipBits(unsigned int numBits);
 
-  unsigned curBitIndex() const { return fCurBitIndex; }
-  unsigned totNumBits() const { return fTotNumBits; }
+  unsigned int curBitIndex() const { return fCurBitIndex; };
+  unsigned int totNumBits() const { return fTotNumBits; };
 
 private:
   unsigned char* fBaseBytePtr;
-  unsigned fBaseBitOffset;
-  unsigned fTotNumBits;
-  unsigned fCurBitIndex;
+  unsigned int fBaseBitOffset;
+  unsigned int fTotNumBits;
+  unsigned int fCurBitIndex;
 };
 
 // A general bit copy operation:
-void shiftBits(unsigned char* toBasePtr, unsigned toBitOffset,
-	       unsigned char const* fromBasePtr, unsigned fromBitOffset,
-	       unsigned numBits);
+void shiftBits(unsigned char* toBasePtr, unsigned int toBitOffset,
+	       unsigned char const* fromBasePtr, unsigned int fromBitOffset,
+	       unsigned int numBits);
 
 #endif

@@ -39,4 +39,4 @@ AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
-EXTRA_DIST = mp3_plugin60.dsp
+EXTRA_DIST = mp3_plugin60.dsp mp3_plugin.vcproj

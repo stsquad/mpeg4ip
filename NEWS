@@ -1,3 +1,14 @@
+09/18/07 Version 1.6
+    Visual Studios 2005 support (VC6.0 decommissioned)
+    Many fixes for external packages (ffmpeg, x264)
+    Reduce size of mp4v2, clone of h.264 tracks, new iTunes metadata fields, 
+       support for stz2,
+    Added twolame support for mp4live
+    Support for mpeg-4 in mpeg-2 transport streams
+    Consolidated some fields in SDP structures
+    user contributed source for CYGWIN, ISMAcryp h.264, mp4v2 virtual IO,
+       cached times in mp4v2, 
+
 05/11/06 Version 1.5
     Added integration with libsrtp for player and mp4live
     Updated for gcc 4.0

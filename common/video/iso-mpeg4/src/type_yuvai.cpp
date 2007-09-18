@@ -37,7 +37,7 @@ Revision History:
 *************************************************************************/
 
 #include "typeapi.h"
-#include <iostream.h>
+#include <iostream>
 
 #ifdef __MFC_
 #ifdef _DEBUG
@@ -252,7 +252,7 @@ CVOPIntYUVBA::CVOPIntYUVBA (AlphaUsage fAUsage) :
 const CIntImage* CVOPIntYUVBA::getPlane (PlaneType plnType) const
 {
   if (plnType==A_PLANE) {
-    cerr << "For A-Planes please use CVOPIntYUVBA::getPlaneA()!\n";
+    printf("For A-Planes please use CVOPIntYUVBA::getPlaneA()!\n");
     assert( plnType!=A_PLANE );
   }
 
@@ -309,7 +309,7 @@ Void CVOPIntYUVBA::setPlaneA (const CIntImage* pii, Int iAuxComp )
 Void CVOPIntYUVBA::setPlane (const CIntImage* pii, PlaneType plnType, Bool bBUV)
 {
   if (plnType==A_PLANE) {
-    cerr << "For A-Planes please use CVOPIntYUVBA::setPlaneA()!\n";
+    printf("For A-Planes please use CVOPIntYUVBA::setPlaneA()!\n");
     assert( plnType!=A_PLANE );
   }
 

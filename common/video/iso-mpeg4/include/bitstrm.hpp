@@ -45,8 +45,9 @@ Revision History:
 #ifndef _BITSTREAM_HPP_
 #define _BITSTREAM_HPP_
 #include "inbits.h"
-#include <istream.h>
-#include <ostream.h>
+
+#include <istream>
+#include <ostream>
 
 class CIOBitStream
 {
@@ -111,11 +112,7 @@ class COutBitStream : public CIOBitStream
 public:
 	// Constructors
 	COutBitStream (){m_chEncBuffer = 0; m_uEncNumEmptyBits = 8;}//create unattached bitstream
-#ifdef _WIN32
-  COutBitStream (Char* pchBuffer, Int iBitPosition, ostream * pstrmTrace); //create bitstream and attach to outStream
-#else
   COutBitStream (Char* pchBuffer, Int iBitPosition, std::ostream * pstrmTrace); //create bitstream and attach to outStream
-#endif
   ~COutBitStream() {};
 	// attributes
 	Char* str () const {return m_pchBuffer;}
@@ -152,11 +149,8 @@ public:
 protected:
 	Char* m_pchBuffer;
 	Char* m_pchBufferRun;
-#ifdef _WIN32
-	ostream* m_pstrmTrace;		//stream for trace file
-#else
-	std::ostream* m_pstrmTrace;
-#endif
+	std::ostream* m_pstrmTrace;		//stream for trace file
+
     Void putBitsC (Char cBits, Int iNOfBits);
 	Char m_chEncBuffer;
 	UInt m_uEncNumEmptyBits;
