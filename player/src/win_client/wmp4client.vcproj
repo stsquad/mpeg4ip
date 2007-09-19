@@ -78,7 +78,7 @@
 				AdditionalDependencies="odbc32.lib odbccp32.lib ws2_32.lib ../../../SDL/lib/SDL.lib ../../../SDL/lib/SDLMain.lib winmm.lib"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				IgnoreDefaultLibraryNames="libcd.lib,msvcrt.lib"
+				IgnoreDefaultLibraryNames="libcmtd.lib"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"

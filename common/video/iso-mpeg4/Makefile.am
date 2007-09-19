@@ -4,6 +4,7 @@ EXTRA_DIST =  \
 	ProgrammersGuide.doc \
         libobj60.dsp libobj.vcproj \
 	isoencoder60.dsp \
+	isoencoder.vcproj \
 	include/ac.hpp \
 	include/basic.hpp \
 	include/BinArCodec.hpp \

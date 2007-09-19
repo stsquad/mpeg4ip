@@ -38,11 +38,13 @@
 #define NAN HUGE_VAL
 #endif
 
+#ifndef DEFAULT
 #ifdef __cplusplus
 /* exploit C++ ability of default values for function parameters */
 #define DEFAULT(x)	=x
 #else
 #define DEFAULT(x)
+#endif
 #endif
 
 /* MP4 API types */

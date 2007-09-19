@@ -205,10 +205,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\mpeg4_vol_decode.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\rfc2250.cpp"
 				>
 			</File>

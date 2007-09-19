@@ -1,4 +1,4 @@
-09/18/07 Version 1.6
+xx/xx/07 Version 1.6
     Visual Studios 2005 support (VC6.0 decommissioned)
     Many fixes for external packages (ffmpeg, x264)
     Reduce size of mp4v2, clone of h.264 tracks, new iTunes metadata fields, 
