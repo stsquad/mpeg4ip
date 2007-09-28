@@ -195,7 +195,7 @@ void MP4File::Check64BitStatus (const char *atomName)
 }
 
     
-void MP4File::Modify(const char* fileName)
+bool MP4File::Modify(const char* fileName)
 {
 	m_fileName = MP4Stralloc(fileName);
 	m_mode = 'r';
@@ -211,7 +211,8 @@ void MP4File::Modify(const char* fileName)
 
 	if (pMoovAtom == NULL) {
 		// there isn't one, odd but we can still proceed
-		pMoovAtom = AddChildAtom(m_pRootAtom, "moov");
+	  return false;
+	  //pMoovAtom = AddChildAtom(m_pRootAtom, "moov");
 	} else {
 		numAtoms = m_pRootAtom->GetNumberOfChildAtoms();
 
@@ -285,6 +286,7 @@ void MP4File::Modify(const char* fileName)
 
 	// start writing new mdat
 	pMdatAtom->BeginWrite(Use64Bits("mdat"));
+	return true;
 }
 
 void MP4File::Optimize(const char* orgFileName, const char* newFileName)
@@ -624,7 +626,6 @@ void MP4File::FinishWrite()
 		ASSERT(m_pTracks[i]);
 		m_pTracks[i]->FinishWrite();
 	}
-
 	// ask root atom to write
 	m_pRootAtom->FinishWrite();
 

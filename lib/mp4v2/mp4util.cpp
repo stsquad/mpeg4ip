@@ -22,8 +22,21 @@
 
 #include "mp4common.h"
 
+static lib_message_func_t libfunc = NULL;
+extern "C"   void MP4SetLibFunc(lib_message_func_t libf)
+{
+  libfunc = libf;
+}
+
 void MP4Error::Print(FILE* pFile)
 {
+  if (libfunc != NULL) {
+    (libfunc)(LOG_ERR, "MP4ERROR", "%s:%s:%s",
+	      m_where == NULL ? "" : m_where, 
+	      m_errstring == NULL ? "" : m_errstring,
+	      m_errno ? strerror(m_errno) : "");
+    return;
+  } 
 	fprintf(pFile, "MP4ERROR: ");
 	if (m_where) {
 		fprintf(pFile, "%s", m_where);

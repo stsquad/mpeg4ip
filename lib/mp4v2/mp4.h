@@ -1287,6 +1287,9 @@ uint8_t *Base64ToBinary(const char *pData,
 			uint32_t decodeSize, 
 			uint32_t *pDataSize);
 void MP4Free(void *p);
+
+  void MP4SetLibFunc(lib_message_func_t libfunc);
+
 #ifdef __cplusplus
 }
 #endif

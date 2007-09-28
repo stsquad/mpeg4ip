@@ -483,6 +483,7 @@ void MP4Track::FinishWrite()
 {
 	// write out any remaining samples in chunk buffer
 	WriteChunkBuffer();
+
 	if (m_pStszFixedSampleSizeProperty == NULL &&
 	    m_stsz_sample_bits == 4) {
 	  if (m_have_stz2_4bit_sample) {
@@ -646,7 +647,10 @@ void MP4Track::UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes)
     numBytes /= m_bytesPerSample;
   }
 	// for first sample
-	if (sampleId == 1) {
+	// wmay - if we are adding, we want to make sure that
+	// we don't inadvertently set up the fixed size again.
+	// so, we check the number of samples
+	if (sampleId == 1 && GetNumberOfSamples() == 0) {
 	  if (m_pStszFixedSampleSizeProperty == NULL ||
 	      numBytes == 0) {
 	    // special case of first sample is zero bytes in length
@@ -670,13 +674,15 @@ void MP4Track::UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes)
 	  // doesn't match our sample size, we need to write the current
 	  // sample size into the table
 	  if (fixedSampleSize == 0 || numBytes != fixedSampleSize) {
-
 	    if (fixedSampleSize != 0) {
 	      // fixed size was set; we need to clear fixed sample size
 	      m_pStszFixedSampleSizeProperty->SetValue(0); 
 	      
 	      // and create sizes for all previous samples
-	      for (MP4SampleId sid = 1; sid < sampleId; sid++) {
+	      // use GetNumberOfSamples due to needing the total number
+	      // not just the appended part of the file
+	      uint32_t samples = GetNumberOfSamples();
+	      for (MP4SampleId sid = 1; sid <= samples; sid++) {
 		SampleSizePropertyAddValue(fixedSampleSize);
 	      }
 	    }
@@ -1345,7 +1351,8 @@ void MP4Track::UpdateSyncSamples(MP4SampleId sampleId, bool isSyncSample)
 			      (MP4Property**)&m_pStssSampleProperty));
 
       // set values for all samples that came before this one
-      for (MP4SampleId sid = 1; sid < sampleId; sid++) {
+      uint32_t samples = GetNumberOfSamples();
+      for (MP4SampleId sid = 1; sid < samples; sid++) {
 	m_pStssSampleProperty->AddValue(sid);
 	m_pStssCountProperty->IncrementValue();
       }

@@ -119,15 +119,16 @@ extern "C" MP4FileHandle MP4Modify(const char* fileName,
 	try {
 		pFile = new MP4File(verbosity);
 		// LATER useExtensibleFormat, moov first, then mvex's
-		pFile->Modify(fileName);
+		if (pFile->Modify(fileName))
 		return (MP4FileHandle)pFile;
 	}
 	catch (MP4Error* e) {
 		VERBOSE_ERROR(verbosity, e->Print());
 		delete e;
-		delete pFile;
-		return MP4_INVALID_FILE_HANDLE;
 	}
+
+	if (pFile) delete pFile;
+	return MP4_INVALID_FILE_HANDLE;
 }
 
 extern "C" bool MP4Optimize(const char* existingFileName, 

@@ -56,7 +56,7 @@ public: /* equivalent to MP4 library API */
 		    char* majorBrand = NULL, 
 		    u_int32_t minorVersion = 0, char** supportedBrands = NULL, 
 		    u_int32_t supportedBrandsCount = 0);
-	void Modify(const char* fileName);
+	bool Modify(const char* fileName);
 	void Optimize(const char* orgFileName, 
 		const char* newFileName = NULL);
 	void Dump(FILE* pDumpFile = NULL, bool dumpImplicits = false);

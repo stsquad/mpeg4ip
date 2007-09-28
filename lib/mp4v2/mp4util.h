@@ -26,8 +26,7 @@
 #ifndef ASSERT
 #define ASSERT(expr) \
 	if (!(expr)) { \
-		(void)fflush(stdout); \
-		assert((expr)); \
+		throw new MP4Error("assert failure", __STRING((expr))); \
 	}
 #endif
 #define WARNING(expr) \
